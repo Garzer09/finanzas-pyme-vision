@@ -20,17 +20,20 @@ export const MainCharts = () => {
   ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="border-0 shadow-md">
-        <CardHeader>
-          <CardTitle className="text-lg">Evolución de Ventas vs Presupuesto</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
+    <div className="flex flex-wrap gap-4 py-6">
+      <div className="flex min-w-72 flex-1 flex-col gap-2 rounded-lg border border-[#dce1e5] p-6">
+        <p className="text-[#111518] text-base font-medium leading-normal">Evolución de Ventas vs Presupuesto</p>
+        <p className="text-[#111518] tracking-light text-[32px] font-bold leading-tight truncate">€2.5M</p>
+        <div className="flex gap-1">
+          <p className="text-[#637988] text-base font-normal leading-normal">Current Year</p>
+          <p className="text-[#078838] text-base font-medium leading-normal">+12%</p>
+        </div>
+        <div className="flex min-h-[180px] flex-1 flex-col gap-8 py-4">
+          <ResponsiveContainer width="100%" height={150}>
             <LineChart data={salesData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="month" stroke="#64748b" />
-              <YAxis stroke="#64748b" />
+              <XAxis dataKey="month" stroke="#637988" />
+              <YAxis stroke="#637988" />
               <Tooltip 
                 contentStyle={{ 
                   backgroundColor: '#fff', 
@@ -41,46 +44,49 @@ export const MainCharts = () => {
               <Line 
                 type="monotone" 
                 dataKey="ventas" 
-                stroke="#2563eb" 
+                stroke="#111518" 
                 strokeWidth={3}
                 name="Ventas Reales"
               />
               <Line 
                 type="monotone" 
                 dataKey="presupuesto" 
-                stroke="#10b981" 
+                stroke="#637988" 
                 strokeWidth={2}
                 strokeDasharray="5 5"
                 name="Presupuesto"
               />
             </LineChart>
           </ResponsiveContainer>
-        </CardContent>
-      </Card>
+          <div className="flex justify-around">
+            {salesData.map((data) => (
+              <p key={data.month} className="text-[#637988] text-[13px] font-bold leading-normal tracking-[0.015em]">{data.month}</p>
+            ))}
+          </div>
+        </div>
+      </div>
 
-      <Card className="border-0 shadow-md">
-        <CardHeader>
-          <CardTitle className="text-lg">Generación vs Consumo de Caja</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={cashFlowData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-              <XAxis dataKey="month" stroke="#64748b" />
-              <YAxis stroke="#64748b" />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '8px'
-                }} 
-              />
-              <Bar dataKey="generacion" fill="#10b981" name="Generación" />
-              <Bar dataKey="consumo" fill="#ef4444" name="Consumo" />
-            </BarChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
+      <div className="flex min-w-72 flex-1 flex-col gap-2 rounded-lg border border-[#dce1e5] p-6">
+        <p className="text-[#111518] text-base font-medium leading-normal">Generación vs Consumo de Caja</p>
+        <p className="text-[#111518] tracking-light text-[32px] font-bold leading-tight truncate">€125K</p>
+        <p className="text-[#637988] text-base font-normal leading-normal">Current</p>
+        <ResponsiveContainer width="100%" height={180}>
+          <BarChart data={cashFlowData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+            <XAxis dataKey="month" stroke="#637988" />
+            <YAxis stroke="#637988" />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: '#fff', 
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px'
+              }} 
+            />
+            <Bar dataKey="generacion" fill="#f0f3f4" stroke="#637988" strokeWidth={2} name="Generación" />
+            <Bar dataKey="consumo" fill="#f0f3f4" stroke="#637988" strokeWidth={2} name="Consumo" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
     </div>
   );
 };

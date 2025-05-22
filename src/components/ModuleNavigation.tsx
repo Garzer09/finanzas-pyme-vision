@@ -1,6 +1,5 @@
 
 import { BarChart3, Droplets, Shield, Zap, Calculator, Home } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 type ActiveModule = 'overview' | 'rentability' | 'liquidity' | 'solvency' | 'efficiency' | 'simulator';
 
@@ -20,22 +19,22 @@ export const ModuleNavigation = ({ activeModule, onModuleChange }: ModuleNavigat
   ];
 
   return (
-    <div className="flex flex-wrap gap-2 p-4 bg-white rounded-lg shadow-sm border border-slate-200">
+    <div className="flex flex-wrap pb-3 border-b border-[#dce1e5]">
       {modules.map((module) => (
-        <Button
+        <button
           key={module.id}
-          variant={activeModule === module.id ? 'default' : 'outline'}
-          size="sm"
           onClick={() => onModuleChange(module.id as ActiveModule)}
-          className={`space-x-2 ${
+          className={`flex flex-col items-center justify-center pb-[13px] pt-4 px-8 ${
             activeModule === module.id 
-              ? 'bg-blue-600 hover:bg-blue-700' 
-              : 'hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300'
+              ? 'border-b-[3px] border-b-[#111518] text-[#111518]' 
+              : 'border-b-[3px] border-b-transparent text-[#637988]'
           }`}
         >
-          <module.icon className="h-4 w-4" />
-          <span>{module.name}</span>
-        </Button>
+          <p className={`text-sm font-bold leading-normal tracking-[0.015em] flex items-center gap-2`}>
+            <module.icon className="h-4 w-4" />
+            <span>{module.name}</span>
+          </p>
+        </button>
       ))}
     </div>
   );

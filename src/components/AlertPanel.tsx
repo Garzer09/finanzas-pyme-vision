@@ -31,8 +31,8 @@ export const AlertPanel = () => {
           icon: XCircle,
           bgColor: 'bg-red-50',
           borderColor: 'border-red-200',
-          iconColor: 'text-red-600',
-          titleColor: 'text-red-800'
+          iconColor: 'text-[#e73508]',
+          titleColor: 'text-[#e73508]'
         };
       case 'warning':
         return {
@@ -54,36 +54,32 @@ export const AlertPanel = () => {
   };
 
   return (
-    <Card className="border-0 shadow-md">
-      <CardHeader>
-        <CardTitle className="text-lg">Alertas y Recomendaciones</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {alerts.map((alert, index) => {
-            const config = getAlertConfig(alert.type);
-            return (
-              <div
-                key={index}
-                className={`p-4 rounded-lg border ${config.bgColor} ${config.borderColor}`}
-              >
-                <div className="flex items-start space-x-3">
-                  <config.icon className={`h-5 w-5 ${config.iconColor} mt-0.5`} />
-                  <div className="flex-1">
-                    <h4 className={`font-semibold ${config.titleColor} mb-1`}>
-                      {alert.title}
-                    </h4>
-                    <p className="text-sm text-slate-600 mb-2">{alert.message}</p>
-                    <p className="text-xs font-medium text-slate-500">
-                      Acción recomendada: {alert.action}
-                    </p>
-                  </div>
+    <div className="space-y-4 mt-6">
+      <h2 className="text-[#111518] text-[22px] font-bold leading-tight tracking-[-0.015em]">Alertas y Recomendaciones</h2>
+      <div className="space-y-4">
+        {alerts.map((alert, index) => {
+          const config = getAlertConfig(alert.type);
+          return (
+            <div
+              key={index}
+              className={`p-4 rounded-lg border ${config.bgColor} ${config.borderColor}`}
+            >
+              <div className="flex items-start space-x-3">
+                <config.icon className={`h-5 w-5 ${config.iconColor} mt-0.5`} />
+                <div className="flex-1">
+                  <h4 className={`font-semibold ${config.titleColor} mb-1`}>
+                    {alert.title}
+                  </h4>
+                  <p className="text-sm text-[#637988] mb-2">{alert.message}</p>
+                  <p className="text-xs font-medium text-slate-500">
+                    Acción recomendada: {alert.action}
+                  </p>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 };

@@ -1,6 +1,5 @@
 
-import { TrendingUp, TrendingDown, DollarSign, CreditCard } from 'lucide-react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 
 export const KPICards = () => {
   const kpis = [
@@ -10,7 +9,6 @@ export const KPICards = () => {
       change: '+12%',
       trend: 'up',
       subtitle: 'YoY',
-      icon: DollarSign,
     },
     {
       title: 'EBITDA',
@@ -18,7 +16,6 @@ export const KPICards = () => {
       change: '-5%',
       trend: 'down',
       subtitle: 'YoY',
-      icon: TrendingUp,
     },
     {
       title: 'TESORERÍA',
@@ -26,7 +23,6 @@ export const KPICards = () => {
       change: '15 días',
       trend: 'neutral',
       subtitle: 'de operación',
-      icon: CreditCard,
     },
     {
       title: 'DEUDA NETA',
@@ -34,38 +30,23 @@ export const KPICards = () => {
       change: '2.1x',
       trend: 'neutral',
       subtitle: 'EBITDA',
-      icon: TrendingDown,
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="flex flex-wrap gap-4">
       {kpis.map((kpi, index) => (
-        <Card key={index} className="hover:shadow-lg transition-shadow duration-200 border-0 shadow-md">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 bg-blue-50 rounded-lg">
-                <kpi.icon className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className={`flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium ${
-                kpi.trend === 'up' 
-                  ? 'bg-green-100 text-green-700' 
-                  : kpi.trend === 'down' 
-                  ? 'bg-red-100 text-red-700'
-                  : 'bg-gray-100 text-gray-700'
-              }`}>
-                {kpi.trend === 'up' && <TrendingUp className="h-3 w-3" />}
-                {kpi.trend === 'down' && <TrendingDown className="h-3 w-3" />}
-                <span>{kpi.change}</span>
-              </div>
-            </div>
-            <div>
-              <h3 className="text-sm font-medium text-slate-600 mb-1">{kpi.title}</h3>
-              <p className="text-2xl font-bold text-slate-800 mb-1">{kpi.value}</p>
-              <p className="text-xs text-slate-500">{kpi.subtitle}</p>
-            </div>
-          </CardContent>
-        </Card>
+        <div key={index} className="flex min-w-[158px] flex-1 flex-col gap-2 rounded-lg p-6 border border-[#dce1e5]">
+          <p className="text-[#111518] text-base font-medium leading-normal">{kpi.title}</p>
+          <p className="text-[#111518] tracking-light text-2xl font-bold leading-tight">{kpi.value}</p>
+          <p className={`text-base font-medium leading-normal ${
+            kpi.trend === 'up' 
+              ? 'text-[#078838]' 
+              : kpi.trend === 'down' 
+              ? 'text-[#e73508]'
+              : 'text-[#637988]'
+          }`}>{kpi.change}</p>
+        </div>
       ))}
     </div>
   );
