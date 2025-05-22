@@ -1,2 +1,52 @@
 
-/* Clean slate for tailwind styles to take precedence */
+/* Estilos para usar Noto Sans y tonos pastel */
+body {
+  font-family: 'Noto Sans', sans-serif;
+}
+
+.bg-pastel-blue {
+  background-color: #A5D7E8;
+}
+
+.bg-pastel-green {
+  background-color: #B5D5C5;
+}
+
+.bg-pastel-yellow {
+  background-color: #EEE9DA;
+}
+
+.bg-pastel-pink {
+  background-color: #F8CBA6;
+}
+
+.text-pastel-blue {
+  color: #A5D7E8;
+}
+
+.text-pastel-green {
+  color: #B5D5C5;
+}
+
+.text-pastel-yellow {
+  color: #EEE9DA;
+}
+
+.text-pastel-pink {
+  color: #F8CBA6;
+}
+
+/* Gradientes para encabezados */
+.gradient-header {
+  background: linear-gradient(to right, #f0f9ff, #e0f2fe);
+}
+
+/* Animaciones suaves para transiciones */
+.card-hover {
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
