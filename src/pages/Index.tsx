@@ -11,8 +11,9 @@ import { LiquidityModule } from '../components/modules/LiquidityModule';
 import { SolvencyModule } from '../components/modules/SolvencyModule';
 import { EfficiencyModule } from '../components/modules/EfficiencyModule';
 import { SimulatorModule } from '../components/modules/SimulatorModule';
+import { KeyFinancialAssumptionsModule } from '../components/modules/KeyFinancialAssumptionsModule';
 
-type ActiveModule = 'overview' | 'rentability' | 'liquidity' | 'solvency' | 'efficiency' | 'simulator';
+type ActiveModule = 'overview' | 'rentability' | 'liquidity' | 'solvency' | 'efficiency' | 'simulator' | 'assumptions';
 
 const Index = () => {
   const [activeModule, setActiveModule] = useState<ActiveModule>('overview');
@@ -29,6 +30,8 @@ const Index = () => {
         return <EfficiencyModule />;
       case 'simulator':
         return <SimulatorModule />;
+      case 'assumptions':
+        return <KeyFinancialAssumptionsModule />;
       default:
         return (
           <div className="layout-content-container flex flex-col max-w-[960px] flex-1 mx-auto">

@@ -1,7 +1,7 @@
 
-import { BarChart3, Droplets, Shield, Zap, Calculator, Home } from 'lucide-react';
+import { BarChart3, Droplets, Shield, Zap, Calculator, Home, Settings } from 'lucide-react';
 
-type ActiveModule = 'overview' | 'rentability' | 'liquidity' | 'solvency' | 'efficiency' | 'simulator';
+type ActiveModule = 'overview' | 'rentability' | 'liquidity' | 'solvency' | 'efficiency' | 'simulator' | 'assumptions';
 
 interface ModuleNavigationProps {
   activeModule: ActiveModule;
@@ -16,6 +16,7 @@ export const ModuleNavigation = ({ activeModule, onModuleChange }: ModuleNavigat
     { id: 'solvency', name: 'Solvencia', icon: Shield },
     { id: 'efficiency', name: 'Eficiencia', icon: Zap },
     { id: 'simulator', name: 'Simulador', icon: Calculator },
+    { id: 'assumptions', name: 'Supuestos', icon: Settings },
   ];
 
   return (
