@@ -1,7 +1,7 @@
 
-import { BarChart3, Droplets, Shield, Zap, Calculator, Home, Settings } from 'lucide-react';
+import { BarChart3, Droplets, Shield, Zap, Calculator, Home, Settings, FileText, TrendingUp, BarChart, PieChart, Lightbulb } from 'lucide-react';
 
-type ActiveModule = 'overview' | 'rentability' | 'liquidity' | 'solvency' | 'efficiency' | 'simulator' | 'assumptions';
+type ActiveModule = 'overview' | 'rentability' | 'liquidity' | 'solvency' | 'efficiency' | 'simulator' | 'assumptions' | 'financial-analysis' | 'projections' | 'sensitivity' | 'valuation';
 
 interface ModuleNavigationProps {
   activeModule: ActiveModule;
@@ -11,16 +11,20 @@ interface ModuleNavigationProps {
 export const ModuleNavigation = ({ activeModule, onModuleChange }: ModuleNavigationProps) => {
   const modules = [
     { id: 'overview', name: 'Panel Principal', icon: Home },
+    { id: 'financial-analysis', name: 'Análisis Financiero', icon: FileText },
     { id: 'rentability', name: 'Rentabilidad', icon: BarChart3 },
     { id: 'liquidity', name: 'Liquidez', icon: Droplets },
     { id: 'solvency', name: 'Solvencia', icon: Shield },
     { id: 'efficiency', name: 'Eficiencia', icon: Zap },
-    { id: 'simulator', name: 'Simulador', icon: Calculator },
     { id: 'assumptions', name: 'Supuestos', icon: Settings },
+    { id: 'projections', name: 'Proyecciones', icon: TrendingUp },
+    { id: 'sensitivity', name: 'Escenarios', icon: BarChart },
+    { id: 'valuation', name: 'EVA', icon: PieChart },
+    { id: 'simulator', name: 'Simulador', icon: Calculator },
   ];
 
   return (
-    <div className="flex flex-wrap pb-3 border-b border-[#dce1e5]">
+    <div className="flex flex-wrap pb-3 border-b border-[#dce1e5] overflow-x-auto">
       {modules.map((module) => (
         <button
           key={module.id}

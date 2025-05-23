@@ -12,8 +12,12 @@ import { SolvencyModule } from '../components/modules/SolvencyModule';
 import { EfficiencyModule } from '../components/modules/EfficiencyModule';
 import { SimulatorModule } from '../components/modules/SimulatorModule';
 import { KeyFinancialAssumptionsModule } from '../components/modules/KeyFinancialAssumptionsModule';
+import { FinancialAnalysisModule } from '../components/modules/FinancialAnalysisModule';
+import { ProjectionsModule } from '../components/modules/ProjectionsModule';
+import { SensitivityModule } from '../components/modules/SensitivityModule';
+import { ValuationModule } from '../components/modules/ValuationModule';
 
-type ActiveModule = 'overview' | 'rentability' | 'liquidity' | 'solvency' | 'efficiency' | 'simulator' | 'assumptions';
+type ActiveModule = 'overview' | 'rentability' | 'liquidity' | 'solvency' | 'efficiency' | 'simulator' | 'assumptions' | 'financial-analysis' | 'projections' | 'sensitivity' | 'valuation';
 
 const Index = () => {
   const [activeModule, setActiveModule] = useState<ActiveModule>('overview');
@@ -32,6 +36,14 @@ const Index = () => {
         return <SimulatorModule />;
       case 'assumptions':
         return <KeyFinancialAssumptionsModule />;
+      case 'financial-analysis':
+        return <FinancialAnalysisModule />;
+      case 'projections':
+        return <ProjectionsModule />;
+      case 'sensitivity':
+        return <SensitivityModule />;
+      case 'valuation':
+        return <ValuationModule />;
       default:
         return (
           <div className="layout-content-container flex flex-col max-w-[960px] flex-1 mx-auto">
@@ -66,7 +78,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-white" style={{ fontFamily: 'Inter, sans-serif' }}>
+    <div className="min-h-screen bg-white" style={{ fontFamily: 'Inter, Noto Sans, sans-serif' }}>
       <DashboardHeader />
       <div className="px-4 md:px-10 lg:px-40 flex flex-1 justify-center py-5">
         <div className="w-full max-w-[1200px]">
