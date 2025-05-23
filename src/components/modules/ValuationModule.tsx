@@ -462,7 +462,7 @@ export const ValuationModule = () => {
                         <h5 className="font-medium mb-2">2. Gestión Eficiente del Capital</h5>
                         <ul className="list-disc pl-5 text-sm space-y-1">
                           <li>Optimización del ciclo de caja (-3 días en clientes)</li>
-                          <li>Inversiones con alto retorno (TIR > WACC)</li>
+                          <li>Inversiones con alto retorno (TIR &gt; WACC)</li>
                           <li>Desinversión en activos no estratégicos</li>
                         </ul>
                       </div>
@@ -668,7 +668,7 @@ export const ValuationModule = () => {
                         <li>Reducir ciclo de caja: cobros -5 días, pagos +3 días</li>
                         <li>Revisar niveles óptimos de inventario: -15% objetivo</li>
                         <li>Desinvertir en activos no estratégicos: €300K</li>
-                        <li>Optimizar CAPEX con criterio EVA: TIR > WACC+2%</li>
+                        <li>Optimizar CAPEX con criterio EVA: TIR &gt; WACC+2%</li>
                       </ul>
                       <div className="mt-3 flex items-center gap-2">
                         <span className="text-xs font-medium">Impacto en valor:</span>
@@ -697,7 +697,7 @@ export const ValuationModule = () => {
                       <ul className="list-disc pl-5 text-sm space-y-1">
                         <li>Adquisiciones selectivas con criterio EVA</li>
                         <li>Penetración en mercados de mayor crecimiento (+20%)</li>
-                        <li>Desarrollar nuevas líneas con margen EBITDA >25%</li>
+                        <li>Desarrollar nuevas líneas con margen EBITDA &gt;25%</li>
                         <li>Alianzas estratégicas para reducir capital empleado</li>
                       </ul>
                       <div className="mt-3 flex items-center gap-2">
@@ -735,3 +735,4 @@ export const ValuationModule = () => {
     </div>
   );
 };
+
