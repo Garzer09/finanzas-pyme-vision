@@ -1,33 +1,23 @@
-
-import { Card, CardContent } from '@/components/ui/card';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
-import { Download, FileText, TrendingUp, BarChart as BarChartIcon } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, AreaChart, Area } from 'recharts';
+import { TrendingUp, Calendar, Target, AlertTriangle } from 'lucide-react';
 
-// Datos de proyección
-const dataProyeccion = [
-  { año: 'Actual', ventas: 2500, ebitda: 450, beneficio: 195 },
-  { año: 'Año 1', ventas: 2800, ebitda: 504, beneficio: 228 },
-  { año: 'Año 2', ventas: 3136, ebitda: 565, beneficio: 266 },
-  { año: 'Año 3', ventas: 3513, ebitda: 632, beneficio: 312 },
+const projectedPyG = [
+  { year: '2024', ingresos: 2500, costes: -1500, ebitda: 450, beneficio: 195 },
+  { year: '2025', ingresos: 2750, costes: -1600, ebitda: 520, beneficio: 245 },
+  { year: '2026', ingresos: 3000, costes: -1750, ebitda: 580, beneficio: 285 },
+  { year: '2027', ingresos: 3300, costes: -1900, ebitda: 650, beneficio: 335 },
 ];
 
-const dataNOF = [
-  { año: 'Actual', clientes: 450, existencias: 350, proveedores: 375, nof: 425 },
-  { año: 'Año 1', clientes: 500, existencias: 380, proveedores: 400, nof: 480 },
-  { año: 'Año 2', clientes: 560, existencias: 415, proveedores: 440, nof: 535 },
-  { año: 'Año 3', clientes: 630, existencias: 450, proveedores: 480, nof: 600 },
+const projectedMetrics = [
+  { year: '2024', roe: 24.4, roa: 9.2, margenEbitda: 18.0, liquidez: 1.5 },
+  { year: '2025', roe: 26.8, roa: 10.1, margenEbitda: 18.9, liquidez: 1.6 },
+  { year: '2026', roe: 28.5, roa: 11.2, margenEbitda: 19.3, liquidez: 1.7 },
+  { year: '2027', roe: 30.1, roa: 12.5, margenEbitda: 19.7, liquidez: 1.8 },
 ];
 
-const dataRatios = [
-  { año: 'Actual', roe: 24.4, roa: 9.2, margen: 18.0, deuda: 2.1 },
-  { año: 'Año 1', roe: 25.2, roa: 9.8, margen: 18.5, deuda: 1.9 },
-  { año: 'Año 2', roe: 26.0, roa: 10.4, margen: 19.0, deuda: 1.7 },
-  { año: 'Año 3', roe: 27.2, roa: 11.0, margen: 19.5, deuda: 1.5 },
-];
-
-// Formato para valores monetarios
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('es-ES', {
     style: 'currency',
@@ -39,222 +29,261 @@ const formatCurrency = (value: number) => {
 
 export const ProjectionsModule = () => {
   return (
-    <div className="flex flex-col max-w-[960px] flex-1 mx-auto">
-      <div className="flex flex-wrap justify-between gap-3 p-4">
+    <div className="flex flex-col max-w-[960px] flex-1 mx-auto bg-gradient-to-br from-dashboard-green-50 to-dashboard-orange-50 min-h-screen">
+      <div className="flex flex-wrap justify-between gap-3 p-6">
         <div className="flex min-w-72 flex-col gap-3">
-          <p className="text-[#111518] tracking-light text-[32px] font-bold leading-tight">Proyecciones Financieras</p>
-          <p className="text-[#637988] text-sm font-normal leading-normal">Previsión para los próximos 3 años</p>
+          <p className="text-dashboard-green-600 tracking-light text-[32px] font-bold leading-tight">Proyecciones Financieras</p>
+          <p className="text-dashboard-green-500 text-sm font-normal leading-normal">Proyecciones a 3 años con análisis de tendencias</p>
         </div>
       </div>
-      
-      <Tabs defaultValue="pyg" className="w-full px-4">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="pyg">P&G Proyectado</TabsTrigger>
-          <TabsTrigger value="balance">Balance Proyectado</TabsTrigger>
-          <TabsTrigger value="flujos">Cash Flow Proyectado</TabsTrigger>
-          <TabsTrigger value="ratios">Ratios Proyectados</TabsTrigger>
+
+      <Tabs defaultValue="pyg" className="w-full px-6">
+        <TabsList className="grid w-full grid-cols-4 bg-dashboard-green-100 rounded-xl p-1">
+          <TabsTrigger value="pyg" className="rounded-lg data-[state=active]:bg-dashboard-green-300 data-[state=active]:text-dashboard-green-700">P&G Proyectado</TabsTrigger>
+          <TabsTrigger value="balance" className="rounded-lg data-[state=active]:bg-dashboard-green-300 data-[state=active]:text-dashboard-green-700">Balance</TabsTrigger>
+          <TabsTrigger value="flujos" className="rounded-lg data-[state=active]:bg-dashboard-green-300 data-[state=active]:text-dashboard-green-700">Flujos</TabsTrigger>
+          <TabsTrigger value="ratios" className="rounded-lg data-[state=active]:bg-dashboard-green-300 data-[state=active]:text-dashboard-green-700">Ratios</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="pyg" className="pt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Evolución de Ventas</h3>
-                <div className="h-[350px]">
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-dashboard-green-600 flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5" />
+                  Proyección de Ingresos y EBITDA
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={dataProyeccion}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="año" stroke="#637988" />
-                      <YAxis stroke="#637988" />
+                    <AreaChart data={projectedPyG}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#B5D5C5" opacity={0.3} />
+                      <XAxis dataKey="year" stroke="#4A7C59" />
+                      <YAxis stroke="#4A7C59" tickFormatter={(value) => `${value}K`} />
                       <Tooltip 
-                        formatter={(value) => [formatCurrency(Number(value)), 'Ventas']}
+                        formatter={(value) => [formatCurrency(Number(value)), '']}
                         contentStyle={{ 
-                          backgroundColor: '#fff', 
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '8px'
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                          border: '1px solid #B5D5C5',
+                          borderRadius: '12px'
                         }}
                       />
-                      <Bar dataKey="ventas" fill="#B5D5C5" name="Ventas" />
-                    </BarChart>
+                      <Area type="monotone" dataKey="ingresos" stackId="1" stroke="#9DC88D" fill="url(#greenGradient)" />
+                      <Area type="monotone" dataKey="ebitda" stackId="2" stroke="#F8CBA6" fill="url(#orangeGradient)" />
+                      <defs>
+                        <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#9DC88D" stopOpacity={0.8} />
+                          <stop offset="100%" stopColor="#9DC88D" stopOpacity={0.1} />
+                        </linearGradient>
+                        <linearGradient id="orangeGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#F8CBA6" stopOpacity={0.8} />
+                          <stop offset="100%" stopColor="#F8CBA6" stopOpacity={0.1} />
+                        </linearGradient>
+                      </defs>
+                    </AreaChart>
                   </ResponsiveContainer>
-                </div>
-                <div className="mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[#f0f3f4] p-4 rounded-lg">
-                      <p className="text-xs text-[#637988] font-medium">CAGR Ventas</p>
-                      <p className="text-xl font-bold text-[#111518]">+12.0%</p>
-                    </div>
-                    <div className="bg-[#f0f3f4] p-4 rounded-lg">
-                      <p className="text-xs text-[#637988] font-medium">Ventas Año 3</p>
-                      <p className="text-xl font-bold text-[#111518]">{formatCurrency(3513)}</p>
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>
-            
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Evolución de Rentabilidad</h3>
-                <div className="h-[350px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={dataProyeccion}
-                      margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="año" stroke="#637988" />
-                      <YAxis stroke="#637988" />
-                      <Tooltip 
-                        formatter={(value) => [formatCurrency(Number(value))]}
-                        contentStyle={{ 
-                          backgroundColor: '#fff', 
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '8px'
-                        }}
-                      />
-                      <Legend />
-                      <Line type="monotone" dataKey="ebitda" name="EBITDA" stroke="#EEE9DA" strokeWidth={2} />
-                      <Line type="monotone" dataKey="beneficio" name="Beneficio Neto" stroke="#F8CBA6" strokeWidth={2} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-[#f0f3f4] p-4 rounded-lg">
-                      <p className="text-xs text-[#637988] font-medium">CAGR EBITDA</p>
-                      <p className="text-xl font-bold text-[#111518]">+12.0%</p>
-                    </div>
-                    <div className="bg-[#f0f3f4] p-4 rounded-lg">
-                      <p className="text-xs text-[#637988] font-medium">CAGR Beneficio</p>
-                      <p className="text-xl font-bold text-[#111518]">+17.0%</p>
-                    </div>
-                  </div>
+
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-dashboard-green-600">Cuenta de P&G Proyectada</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-dashboard-green-50 border-b border-dashboard-green-100">
+                        <th className="text-left p-3 text-dashboard-green-700">Concepto</th>
+                        <th className="text-right p-3 text-dashboard-green-700">2024</th>
+                        <th className="text-right p-3 text-dashboard-green-700">2025</th>
+                        <th className="text-right p-3 text-dashboard-green-700">2026</th>
+                        <th className="text-right p-3 text-dashboard-green-700">2027</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b border-dashboard-green-100">
+                        <td className="p-3 font-medium text-dashboard-green-700">Ingresos</td>
+                        <td className="text-right p-3 font-mono text-dashboard-green-600">{formatCurrency(2500)}</td>
+                        <td className="text-right p-3 font-mono text-dashboard-green-600">{formatCurrency(2750)}</td>
+                        <td className="text-right p-3 font-mono text-dashboard-green-600">{formatCurrency(3000)}</td>
+                        <td className="text-right p-3 font-mono text-dashboard-green-600">{formatCurrency(3300)}</td>
+                      </tr>
+                      <tr className="border-b border-dashboard-green-100">
+                        <td className="p-3 font-medium text-dashboard-green-700">EBITDA</td>
+                        <td className="text-right p-3 font-mono text-dashboard-orange-600">{formatCurrency(450)}</td>
+                        <td className="text-right p-3 font-mono text-dashboard-orange-600">{formatCurrency(520)}</td>
+                        <td className="text-right p-3 font-mono text-dashboard-orange-600">{formatCurrency(580)}</td>
+                        <td className="text-right p-3 font-mono text-dashboard-orange-600">{formatCurrency(650)}</td>
+                      </tr>
+                      <tr className="border-b border-dashboard-green-100 bg-dashboard-green-50">
+                        <td className="p-3 font-bold text-dashboard-green-700">Beneficio Neto</td>
+                        <td className="text-right p-3 font-mono font-bold text-dashboard-green-600">{formatCurrency(195)}</td>
+                        <td className="text-right p-3 font-mono font-bold text-dashboard-green-600">{formatCurrency(245)}</td>
+                        <td className="text-right p-3 font-mono font-bold text-dashboard-green-600">{formatCurrency(285)}</td>
+                        <td className="text-right p-3 font-mono font-bold text-dashboard-green-600">{formatCurrency(335)}</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="balance" className="pt-6">
-          <div className="grid grid-cols-1 gap-6">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Evolución del Balance</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-[#f0f3f4] border-b border-[#dce1e5]">
-                        <th className="text-left p-2">Partida</th>
-                        <th className="text-right p-2">Actual</th>
-                        <th className="text-right p-2">Año 1</th>
-                        <th className="text-right p-2">Año 2</th>
-                        <th className="text-right p-2">Año 3</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="font-bold bg-[#f0f3f4]">
-                        <td className="p-2">Total Activo</td>
-                        <td className="text-right p-2">{formatCurrency(2125)}</td>
-                        <td className="text-right p-2">{formatCurrency(2380)}</td>
-                        <td className="text-right p-2">{formatCurrency(2665)}</td>
-                        <td className="text-right p-2">{formatCurrency(2985)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Inmovilizado</td>
-                        <td className="text-right p-2">{formatCurrency(1200)}</td>
-                        <td className="text-right p-2">{formatCurrency(1320)}</td>
-                        <td className="text-right p-2">{formatCurrency(1450)}</td>
-                        <td className="text-right p-2">{formatCurrency(1595)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Existencias</td>
-                        <td className="text-right p-2">{formatCurrency(350)}</td>
-                        <td className="text-right p-2">{formatCurrency(380)}</td>
-                        <td className="text-right p-2">{formatCurrency(415)}</td>
-                        <td className="text-right p-2">{formatCurrency(450)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Clientes</td>
-                        <td className="text-right p-2">{formatCurrency(450)}</td>
-                        <td className="text-right p-2">{formatCurrency(500)}</td>
-                        <td className="text-right p-2">{formatCurrency(560)}</td>
-                        <td className="text-right p-2">{formatCurrency(630)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Tesorería</td>
-                        <td className="text-right p-2">{formatCurrency(125)}</td>
-                        <td className="text-right p-2">{formatCurrency(180)}</td>
-                        <td className="text-right p-2">{formatCurrency(240)}</td>
-                        <td className="text-right p-2">{formatCurrency(310)}</td>
-                      </tr>
-                      
-                      <tr className="font-bold bg-[#f0f3f4] mt-4">
-                        <td className="p-2">Total Pasivo</td>
-                        <td className="text-right p-2">{formatCurrency(2125)}</td>
-                        <td className="text-right p-2">{formatCurrency(2380)}</td>
-                        <td className="text-right p-2">{formatCurrency(2665)}</td>
-                        <td className="text-right p-2">{formatCurrency(2985)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Patrimonio Neto</td>
-                        <td className="text-right p-2">{formatCurrency(800)}</td>
-                        <td className="text-right p-2">{formatCurrency(1028)}</td>
-                        <td className="text-right p-2">{formatCurrency(1294)}</td>
-                        <td className="text-right p-2">{formatCurrency(1606)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Deuda L/P</td>
-                        <td className="text-right p-2">{formatCurrency(750)}</td>
-                        <td className="text-right p-2">{formatCurrency(700)}</td>
-                        <td className="text-right p-2">{formatCurrency(650)}</td>
-                        <td className="text-right p-2">{formatCurrency(600)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Deuda C/P</td>
-                        <td className="text-right p-2">{formatCurrency(200)}</td>
-                        <td className="text-right p-2">{formatCurrency(212)}</td>
-                        <td className="text-right p-2">{formatCurrency(221)}</td>
-                        <td className="text-right p-2">{formatCurrency(229)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Proveedores</td>
-                        <td className="text-right p-2">{formatCurrency(375)}</td>
-                        <td className="text-right p-2">{formatCurrency(400)}</td>
-                        <td className="text-right p-2">{formatCurrency(440)}</td>
-                        <td className="text-right p-2">{formatCurrency(480)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-dashboard-green-600">Proyección del Balance</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                      data={[
+                        { year: '2024', activo: 2125, pasivo: 950, patrimonio: 1175 },
+                        { year: '2025', activo: 2350, pasivo: 980, patrimonio: 1370 },
+                        { year: '2026', activo: 2600, pasivo: 1020, patrimonio: 1580 },
+                        { year: '2027', activo: 2900, pasivo: 1050, patrimonio: 1850 }
+                      ]}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#B5D5C5" opacity={0.3} />
+                      <XAxis dataKey="year" stroke="#4A7C59" />
+                      <YAxis stroke="#4A7C59" tickFormatter={(value) => `${value}K`} />
+                      <Tooltip 
+                        formatter={(value) => [formatCurrency(Number(value)), '']}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                          border: '1px solid #B5D5C5',
+                          borderRadius: '12px'
+                        }}
+                      />
+                      <Bar dataKey="activo" name="Activo Total" fill="url(#blueGradient)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="pasivo" name="Pasivo" fill="url(#redGradient)" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="patrimonio" name="Patrimonio" fill="url(#greenGradient)" radius={[4, 4, 0, 0]} />
+                      <defs>
+                        <linearGradient id="blueGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#A5D7E8" />
+                          <stop offset="100%" stopColor="#A5D7E8" stopOpacity={0.6} />
+                        </linearGradient>
+                        <linearGradient id="redGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#FFB5B5" />
+                          <stop offset="100%" stopColor="#FFB5B5" stopOpacity={0.6} />
+                        </linearGradient>
+                      </defs>
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
-            
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Evolución de NOF</h3>
-                <div className="h-[250px]">
+
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-dashboard-green-600">Evolución de Activos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={dataNOF}
-                      margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+                    <AreaChart 
+                      data={[
+                        { year: '2024', activo_fijo: 1200, existencias: 350, clientes: 450, tesoreria: 125 },
+                        { year: '2025', activo_fijo: 1250, existencias: 380, clientes: 520, tesoreria: 200 },
+                        { year: '2026', activo_fijo: 1320, existencias: 420, clientes: 580, tesoreria: 280 },
+                        { year: '2027', activo_fijo: 1400, existencias: 470, clientes: 650, tesoreria: 380 }
+                      ]}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="año" stroke="#637988" />
-                      <YAxis stroke="#637988" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#B5D5C5" opacity={0.3} />
+                      <XAxis dataKey="year" stroke="#4A7C59" />
+                      <YAxis stroke="#4A7C59" tickFormatter={(value) => `${value}K`} />
                       <Tooltip 
-                        formatter={(value) => [formatCurrency(Number(value))]}
+                        formatter={(value) => [formatCurrency(Number(value)), '']}
                         contentStyle={{ 
-                          backgroundColor: '#fff', 
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '8px'
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                          border: '1px solid #B5D5C5',
+                          borderRadius: '12px'
                         }}
                       />
-                      <Legend />
-                      <Line type="monotone" dataKey="clientes" name="Clientes" stroke="#B5D5C5" strokeWidth={2} />
-                      <Line type="monotone" dataKey="existencias" name="Existencias" stroke="#EEE9DA" strokeWidth={2} />
-                      <Line type="monotone" dataKey="proveedores" name="Proveedores" stroke="#F8CBA6" strokeWidth={2} />
-                      <Line type="monotone" dataKey="nof" name="NOF Total" stroke="#A5D7E8" strokeWidth={3} />
+                      <Area type="monotone" dataKey="activo_fijo" stackId="1" stroke="#9DC88D" fill="#9DC88D" fillOpacity={0.6} name="Activo Fijo" />
+                      <Area type="monotone" dataKey="existencias" stackId="1" stroke="#F8CBA6" fill="#F8CBA6" fillOpacity={0.6} name="Existencias" />
+                      <Area type="monotone" dataKey="clientes" stackId="1" stroke="#A5D7E8" fill="#A5D7E8" fillOpacity={0.6} name="Clientes" />
+                      <Area type="monotone" dataKey="tesoreria" stackId="1" stroke="#FFB5B5" fill="#FFB5B5" fillOpacity={0.6} name="Tesorería" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="flujos" className="pt-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-dashboard-green-600">Proyección de Flujos de Caja</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart 
+                      data={[
+                        { year: '2024', operativo: 350, inversion: -220, financiacion: -90, fcf: 40 },
+                        { year: '2025', operativo: 410, inversion: -180, financiacion: -85, fcf: 145 },
+                        { year: '2026', operativo: 470, inversion: -240, financiacion: -80, fcf: 150 },
+                        { year: '2027', operativo: 540, inversion: -260, financiacion: -75, fcf: 205 }
+                      ]}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#B5D5C5" opacity={0.3} />
+                      <XAxis dataKey="year" stroke="#4A7C59" />
+                      <YAxis stroke="#4A7C59" tickFormatter={(value) => `${value}K`} />
+                      <Tooltip 
+                        formatter={(value) => [formatCurrency(Number(value)), '']}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                          border: '1px solid #B5D5C5',
+                          borderRadius: '12px'
+                        }}
+                      />
+                      <Bar dataKey="operativo" name="Flujo Operativo" fill="#9DC88D" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="inversion" name="Flujo Inversión" fill="#F8CBA6" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="financiacion" name="Flujo Financiación" fill="#A5D7E8" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="fcf" name="Free Cash Flow" fill="#FFB5B5" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-dashboard-green-600">Evolución de Tesorería</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart 
+                      data={[
+                        { year: '2024', tesoreria: 125, fcf: 40 },
+                        { year: '2025', tesoreria: 165, fcf: 145 },
+                        { year: '2026', tesoreria: 310, fcf: 150 },
+                        { year: '2027', tesoreria: 460, fcf: 205 }
+                      ]}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#B5D5C5" opacity={0.3} />
+                      <XAxis dataKey="year" stroke="#4A7C59" />
+                      <YAxis stroke="#4A7C59" tickFormatter={(value) => `${value}K`} />
+                      <Tooltip 
+                        formatter={(value) => [formatCurrency(Number(value)), '']}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                          border: '1px solid #B5D5C5',
+                          borderRadius: '12px'
+                        }}
+                      />
+                      <Line type="monotone" dataKey="tesoreria" stroke="#A5D7E8" strokeWidth={3} dot={{ r: 6 }} name="Tesorería" />
+                      <Line type="monotone" dataKey="fcf" stroke="#9DC88D" strokeWidth={3} dot={{ r: 6 }} name="Free Cash Flow" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -262,265 +291,66 @@ export const ProjectionsModule = () => {
             </Card>
           </div>
         </TabsContent>
-        
-        <TabsContent value="flujos" className="pt-6">
-          <div className="grid grid-cols-1 gap-6">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Proyección de Cash Flow</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-[#f0f3f4] border-b border-[#dce1e5]">
-                        <th className="text-left p-2">Flujo</th>
-                        <th className="text-right p-2">Actual</th>
-                        <th className="text-right p-2">Año 1</th>
-                        <th className="text-right p-2">Año 2</th>
-                        <th className="text-right p-2">Año 3</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="font-bold bg-[#f0f3f4]">
-                        <td className="p-2">Flujo de Operaciones</td>
-                        <td className="text-right p-2">{formatCurrency(350)}</td>
-                        <td className="text-right p-2">{formatCurrency(392)}</td>
-                        <td className="text-right p-2">{formatCurrency(439)}</td>
-                        <td className="text-right p-2">{formatCurrency(492)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">EBITDA</td>
-                        <td className="text-right p-2">{formatCurrency(450)}</td>
-                        <td className="text-right p-2">{formatCurrency(504)}</td>
-                        <td className="text-right p-2">{formatCurrency(565)}</td>
-                        <td className="text-right p-2">{formatCurrency(632)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Variación NOF</td>
-                        <td className="text-right p-2">{formatCurrency(-35)}</td>
-                        <td className="text-right p-2">{formatCurrency(-47)}</td>
-                        <td className="text-right p-2">{formatCurrency(-55)}</td>
-                        <td className="text-right p-2">{formatCurrency(-65)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Impuestos</td>
-                        <td className="text-right p-2">{formatCurrency(-65)}</td>
-                        <td className="text-right p-2">{formatCurrency(-65)}</td>
-                        <td className="text-right p-2">{formatCurrency(-71)}</td>
-                        <td className="text-right p-2">{formatCurrency(-75)}</td>
-                      </tr>
-                      
-                      <tr className="font-bold bg-[#f0f3f4] mt-4">
-                        <td className="p-2">Flujo de Inversión</td>
-                        <td className="text-right p-2">{formatCurrency(-220)}</td>
-                        <td className="text-right p-2">{formatCurrency(-240)}</td>
-                        <td className="text-right p-2">{formatCurrency(-260)}</td>
-                        <td className="text-right p-2">{formatCurrency(-280)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">CAPEX</td>
-                        <td className="text-right p-2">{formatCurrency(-220)}</td>
-                        <td className="text-right p-2">{formatCurrency(-240)}</td>
-                        <td className="text-right p-2">{formatCurrency(-260)}</td>
-                        <td className="text-right p-2">{formatCurrency(-280)}</td>
-                      </tr>
-                      
-                      <tr className="font-bold bg-[#f0f3f4] mt-4">
-                        <td className="p-2">Flujo de Financiación</td>
-                        <td className="text-right p-2">{formatCurrency(-90)}</td>
-                        <td className="text-right p-2">{formatCurrency(-97)}</td>
-                        <td className="text-right p-2">{formatCurrency(-119)}</td>
-                        <td className="text-right p-2">{formatCurrency(-142)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Amortización Deuda</td>
-                        <td className="text-right p-2">{formatCurrency(-50)}</td>
-                        <td className="text-right p-2">{formatCurrency(-62)}</td>
-                        <td className="text-right p-2">{formatCurrency(-91)}</td>
-                        <td className="text-right p-2">{formatCurrency(-121)}</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Intereses</td>
-                        <td className="text-right p-2">{formatCurrency(-40)}</td>
-                        <td className="text-right p-2">{formatCurrency(-35)}</td>
-                        <td className="text-right p-2">{formatCurrency(-28)}</td>
-                        <td className="text-right p-2">{formatCurrency(-21)}</td>
-                      </tr>
-                      
-                      <tr className="font-bold bg-[#f0f3f4] mt-4">
-                        <td className="p-2">Free Cash Flow</td>
-                        <td className="text-right p-2">{formatCurrency(40)}</td>
-                        <td className="text-right p-2">{formatCurrency(55)}</td>
-                        <td className="text-right p-2">{formatCurrency(60)}</td>
-                        <td className="text-right p-2">{formatCurrency(70)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-            
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Cash Flow Acumulado</h3>
-                <div className="h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={[
-                        { año: 'Actual', fcf: 40, acumulado: 40 },
-                        { año: 'Año 1', fcf: 55, acumulado: 95 },
-                        { año: 'Año 2', fcf: 60, acumulado: 155 },
-                        { año: 'Año 3', fcf: 70, acumulado: 225 },
-                      ]}
-                      margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="año" stroke="#637988" />
-                      <YAxis stroke="#637988" />
-                      <Tooltip 
-                        formatter={(value) => [formatCurrency(Number(value))]}
-                        contentStyle={{ 
-                          backgroundColor: '#fff', 
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '8px'
-                        }}
-                      />
-                      <Legend />
-                      <Bar dataKey="fcf" name="FCF Anual" fill="#B5D5C5" />
-                      <Line type="monotone" dataKey="acumulado" name="FCF Acumulado" stroke="#F8CBA6" strokeWidth={2} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
-        
+
         <TabsContent value="ratios" className="pt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Proyección de Ratios</h3>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-[#f0f3f4] border-b border-[#dce1e5]">
-                        <th className="text-left p-2">Ratio</th>
-                        <th className="text-right p-2">Actual</th>
-                        <th className="text-right p-2">Año 1</th>
-                        <th className="text-right p-2">Año 2</th>
-                        <th className="text-right p-2">Año 3</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="font-bold bg-[#f0f3f4]">
-                        <td className="p-2">Rentabilidad</td>
-                        <td className="text-right p-2"></td>
-                        <td className="text-right p-2"></td>
-                        <td className="text-right p-2"></td>
-                        <td className="text-right p-2"></td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">ROE (%)</td>
-                        <td className="text-right p-2">24.4%</td>
-                        <td className="text-right p-2">25.2%</td>
-                        <td className="text-right p-2">26.0%</td>
-                        <td className="text-right p-2">27.2%</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">ROA (%)</td>
-                        <td className="text-right p-2">9.2%</td>
-                        <td className="text-right p-2">9.8%</td>
-                        <td className="text-right p-2">10.4%</td>
-                        <td className="text-right p-2">11.0%</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Margen EBITDA (%)</td>
-                        <td className="text-right p-2">18.0%</td>
-                        <td className="text-right p-2">18.5%</td>
-                        <td className="text-right p-2">19.0%</td>
-                        <td className="text-right p-2">19.5%</td>
-                      </tr>
-                      
-                      <tr className="font-bold bg-[#f0f3f4] mt-4">
-                        <td className="p-2">Operativos</td>
-                        <td className="text-right p-2"></td>
-                        <td className="text-right p-2"></td>
-                        <td className="text-right p-2"></td>
-                        <td className="text-right p-2"></td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Rotación Clientes (días)</td>
-                        <td className="text-right p-2">65</td>
-                        <td className="text-right p-2">62</td>
-                        <td className="text-right p-2">60</td>
-                        <td className="text-right p-2">58</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Rotación Existencias (días)</td>
-                        <td className="text-right p-2">85</td>
-                        <td className="text-right p-2">84</td>
-                        <td className="text-right p-2">82</td>
-                        <td className="text-right p-2">80</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Rotación Proveedores (días)</td>
-                        <td className="text-right p-2">90</td>
-                        <td className="text-right p-2">90</td>
-                        <td className="text-right p-2">90</td>
-                        <td className="text-right p-2">90</td>
-                      </tr>
-                      
-                      <tr className="font-bold bg-[#f0f3f4] mt-4">
-                        <td className="p-2">Financieros</td>
-                        <td className="text-right p-2"></td>
-                        <td className="text-right p-2"></td>
-                        <td className="text-right p-2"></td>
-                        <td className="text-right p-2"></td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Deuda/EBITDA</td>
-                        <td className="text-right p-2">2.1x</td>
-                        <td className="text-right p-2">1.9x</td>
-                        <td className="text-right p-2">1.7x</td>
-                        <td className="text-right p-2">1.5x</td>
-                      </tr>
-                      <tr className="border-b border-[#dce1e5]">
-                        <td className="pl-6 p-2">Cobertura de Intereses</td>
-                        <td className="text-right p-2">7.5x</td>
-                        <td className="text-right p-2">8.5x</td>
-                        <td className="text-right p-2">10.0x</td>
-                        <td className="text-right p-2">12.0x</td>
-                      </tr>
-                    </tbody>
-                  </table>
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-dashboard-green-600">Evolución de Ratios de Rentabilidad</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={projectedMetrics}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#B5D5C5" opacity={0.3} />
+                      <XAxis dataKey="year" stroke="#4A7C59" />
+                      <YAxis stroke="#4A7C59" tickFormatter={(value) => `${value}%`} />
+                      <Tooltip 
+                        formatter={(value) => [`${value}%`, '']}
+                        contentStyle={{ 
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                          border: '1px solid #B5D5C5',
+                          borderRadius: '12px'
+                        }}
+                      />
+                      <Line type="monotone" dataKey="roe" stroke="#9DC88D" strokeWidth={3} dot={{ r: 6 }} name="ROE" />
+                      <Line type="monotone" dataKey="roa" stroke="#F8CBA6" strokeWidth={3} dot={{ r: 6 }} name="ROA" />
+                      <Line type="monotone" dataKey="margenEbitda" stroke="#A5D7E8" strokeWidth={3} dot={{ r: 6 }} name="Margen EBITDA" />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               </CardContent>
             </Card>
-            
-            <Card>
-              <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Evolución de Ratios Clave</h3>
-                <div className="h-[350px]">
+
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="text-dashboard-green-600">Evolución de Ratios de Liquidez y Solvencia</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={dataRatios}
-                      margin={{ top: 10, right: 10, left: 10, bottom: 10 }}
+                    <LineChart 
+                      data={[
+                        { year: '2024', liquidez: 1.5, solvencia: 1.4, endeudamiento: 0.95 },
+                        { year: '2025', liquidez: 1.6, solvencia: 1.5, endeudamiento: 0.90 },
+                        { year: '2026', liquidez: 1.7, solvencia: 1.6, endeudamiento: 0.85 },
+                        { year: '2027', liquidez: 1.8, solvencia: 1.7, endeudamiento: 0.80 }
+                      ]}
                     >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="año" stroke="#637988" />
-                      <YAxis stroke="#637988" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#B5D5C5" opacity={0.3} />
+                      <XAxis dataKey="year" stroke="#4A7C59" />
+                      <YAxis stroke="#4A7C59" />
                       <Tooltip 
-                        formatter={(value) => [`${value}${['roe', 'roa', 'margen'].includes(Object.keys(dataRatios[0]).find(key => dataRatios[0][key as keyof typeof dataRatios[0]] === value) as string) ? '%' : 'x'}`]}
+                        formatter={(value) => [`${value}`, '']}
                         contentStyle={{ 
-                          backgroundColor: '#fff', 
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '8px'
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                          border: '1px solid #B5D5C5',
+                          borderRadius: '12px'
                         }}
                       />
-                      <Legend />
-                      <Line type="monotone" dataKey="roe" name="ROE" stroke="#B5D5C5" strokeWidth={2} />
-                      <Line type="monotone" dataKey="margen" name="Margen EBITDA" stroke="#EEE9DA" strokeWidth={2} />
-                      <Line type="monotone" dataKey="deuda" name="Deuda/EBITDA" stroke="#F8CBA6" strokeWidth={2} />
+                      <Line type="monotone" dataKey="liquidez" stroke="#9DC88D" strokeWidth={3} dot={{ r: 6 }} name="Liquidez" />
+                      <Line type="monotone" dataKey="solvencia" stroke="#F8CBA6" strokeWidth={3} dot={{ r: 6 }} name="Solvencia" />
+                      <Line type="monotone" dataKey="endeudamiento" stroke="#A5D7E8" strokeWidth={3} dot={{ r: 6 }} name="Endeudamiento" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -529,18 +359,6 @@ export const ProjectionsModule = () => {
           </div>
         </TabsContent>
       </Tabs>
-      
-      <div className="flex justify-end gap-4 p-4 mt-6">
-        <Button variant="outline" className="gap-2">
-          <FileText className="h-4 w-4" /> Supuestos Aplicados
-        </Button>
-        <Button variant="outline" className="gap-2">
-          <BarChartIcon className="h-4 w-4" /> Gráficos Adicionales
-        </Button>
-        <Button className="bg-[#B5D5C5] hover:bg-[#B5D5C5]/80 text-black gap-2">
-          <Download className="h-4 w-4" /> Exportar Proyecciones
-        </Button>
-      </div>
     </div>
   );
 };

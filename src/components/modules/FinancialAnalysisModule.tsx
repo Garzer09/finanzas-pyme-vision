@@ -1,8 +1,9 @@
-
+import { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from 'recharts';
-import { Download, FileText, TrendingUp, ArrowDownToLine } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, PieChart, Pie, Cell } from 'recharts';
+import { Download, FileText, TrendingUp, ArrowDownToLine, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const dataPyG = [
@@ -59,36 +60,62 @@ const formatCurrency = (value: number) => {
 };
 
 export const FinancialAnalysisModule = () => {
+  const [selectedPeriod, setSelectedPeriod] = useState('2024');
+
+  const periodOptions = [
+    { value: '2024', label: '2024 (Actual)' },
+    { value: '2023', label: '2023' },
+    { value: '2022', label: '2022' },
+    { value: 'q4-2024', label: 'Q4 2024' },
+    { value: 'q3-2024', label: 'Q3 2024' },
+    { value: 'monthly', label: 'Vista Mensual' },
+  ];
+
   return (
-    <div className="flex flex-col max-w-[960px] flex-1 mx-auto">
-      <div className="flex flex-wrap justify-between gap-3 p-4">
+    <div className="flex flex-col max-w-[960px] flex-1 mx-auto bg-gradient-to-br from-dashboard-green-50 to-dashboard-orange-50 min-h-screen">
+      <div className="flex flex-wrap justify-between gap-3 p-6">
         <div className="flex min-w-72 flex-col gap-3">
-          <p className="text-[#111518] tracking-light text-[32px] font-bold leading-tight">Análisis de la Situación Financiera Actual</p>
-          <p className="text-[#637988] text-sm font-normal leading-normal">Estado financiero detallado del año fiscal actual</p>
+          <p className="text-dashboard-green-600 tracking-light text-[32px] font-bold leading-tight">Análisis de la Situación Financiera Actual</p>
+          <p className="text-dashboard-green-500 text-sm font-normal leading-normal">Estado financiero detallado del período seleccionado</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Calendar className="h-5 w-5 text-dashboard-green-500" />
+          <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+            <SelectTrigger className="w-48 border-dashboard-green-200 bg-white">
+              <SelectValue placeholder="Seleccionar período" />
+            </SelectTrigger>
+            <SelectContent>
+              {periodOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
       
-      <Tabs defaultValue="pyg" className="w-full px-4">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="pyg">P&G</TabsTrigger>
-          <TabsTrigger value="balance">Balance</TabsTrigger>
-          <TabsTrigger value="flujos">Flujos de Caja</TabsTrigger>
-          <TabsTrigger value="ratios">Ratios</TabsTrigger>
-          <TabsTrigger value="nof">NOF</TabsTrigger>
+      <Tabs defaultValue="pyg" className="w-full px-6">
+        <TabsList className="grid w-full grid-cols-5 bg-dashboard-green-100 rounded-xl p-1">
+          <TabsTrigger value="pyg" className="rounded-lg data-[state=active]:bg-dashboard-green-300 data-[state=active]:text-dashboard-green-700">P&G</TabsTrigger>
+          <TabsTrigger value="balance" className="rounded-lg data-[state=active]:bg-dashboard-green-300 data-[state=active]:text-dashboard-green-700">Balance</TabsTrigger>
+          <TabsTrigger value="flujos" className="rounded-lg data-[state=active]:bg-dashboard-green-300 data-[state=active]:text-dashboard-green-700">Flujos de Caja</TabsTrigger>
+          <TabsTrigger value="ratios" className="rounded-lg data-[state=active]:bg-dashboard-green-300 data-[state=active]:text-dashboard-green-700">Ratios</TabsTrigger>
+          <TabsTrigger value="nof" className="rounded-lg data-[state=active]:bg-dashboard-green-300 data-[state=active]:text-dashboard-green-700">NOF</TabsTrigger>
         </TabsList>
         
         <TabsContent value="pyg" className="pt-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
               <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Cuenta de Pérdidas y Ganancias</h3>
+                <h3 className="text-xl font-bold mb-4 text-dashboard-green-600">Cuenta de Pérdidas y Ganancias</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <tbody>
                       {dataPyG.map((item, index) => (
-                        <tr key={index} className={`border-b border-[#dce1e5] ${item.concepto === 'Margen Bruto' || item.concepto === 'EBITDA' || item.concepto === 'EBIT' || item.concepto === 'BAI' || item.concepto === 'Beneficio Neto' ? 'font-semibold bg-[#f0f3f4]' : ''}`}>
-                          <td className="p-2">{item.concepto}</td>
-                          <td className="text-right p-2">{formatCurrency(item.valor)}</td>
+                        <tr key={index} className={`border-b border-dashboard-green-100 ${item.concepto === 'Margen Bruto' || item.concepto === 'EBITDA' || item.concepto === 'EBIT' || item.concepto === 'BAI' || item.concepto === 'Beneficio Neto' ? 'font-semibold bg-dashboard-green-50' : ''}`}>
+                          <td className="p-3 text-dashboard-green-700">{item.concepto}</td>
+                          <td className="text-right p-3 font-mono text-dashboard-green-600">{formatCurrency(item.valor)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -97,24 +124,31 @@ export const FinancialAnalysisModule = () => {
               </CardContent>
             </Card>
             
-            <Card>
+            <Card className="border-0 shadow-xl bg-white/80 backdrop-blur-sm">
               <CardContent className="pt-6">
-                <h3 className="text-lg font-semibold mb-4">Modelo Analítico</h3>
+                <h3 className="text-xl font-bold mb-4 text-dashboard-green-600">Modelo Analítico</h3>
                 <div className="h-[350px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={dataPyG.filter(item => ['Margen Bruto', 'EBITDA', 'EBIT', 'Beneficio Neto'].includes(item.concepto))}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="concepto" stroke="#637988" />
-                      <YAxis stroke="#637988" tickFormatter={(value) => `${value / 1000}K`} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#B5D5C5" opacity={0.3} />
+                      <XAxis dataKey="concepto" stroke="#4A7C59" tick={{ fontSize: 12 }} />
+                      <YAxis stroke="#4A7C59" tickFormatter={(value) => `${value / 1000}K`} />
                       <Tooltip 
                         formatter={(value) => [formatCurrency(Number(value)), 'Valor']}
                         contentStyle={{ 
-                          backgroundColor: '#fff', 
-                          border: '1px solid #e2e8f0',
-                          borderRadius: '8px'
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                          border: '1px solid #B5D5C5',
+                          borderRadius: '12px',
+                          boxShadow: '0 10px 25px rgba(0,0,0,0.1)'
                         }}
                       />
-                      <Bar dataKey="valor" fill="#B5D5C5" name="Valor" />
+                      <Bar dataKey="valor" fill="url(#greenGradient)" name="Valor" radius={[4, 4, 0, 0]} />
+                      <defs>
+                        <linearGradient id="greenGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#9DC88D" />
+                          <stop offset="100%" stopColor="#B5D5C5" />
+                        </linearGradient>
+                      </defs>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -512,14 +546,14 @@ export const FinancialAnalysisModule = () => {
         </TabsContent>
       </Tabs>
       
-      <div className="flex justify-end gap-4 p-4 mt-6">
-        <Button variant="outline" className="gap-2">
+      <div className="flex justify-end gap-4 p-6 mt-6">
+        <Button variant="outline" className="gap-2 border-dashboard-green-200 text-dashboard-green-600 hover:bg-dashboard-green-50">
           <FileText className="h-4 w-4" /> Ver Informe Completo
         </Button>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2 border-dashboard-green-200 text-dashboard-green-600 hover:bg-dashboard-green-50">
           <ArrowDownToLine className="h-4 w-4" /> Exportar Datos
         </Button>
-        <Button className="bg-[#B5D5C5] hover:bg-[#B5D5C5]/80 text-black gap-2">
+        <Button className="bg-gradient-to-r from-dashboard-green-300 to-dashboard-green-400 hover:from-dashboard-green-400 hover:to-dashboard-green-500 text-dashboard-green-700 gap-2 shadow-lg">
           <Download className="h-4 w-4" /> Descargar PDF
         </Button>
       </div>
