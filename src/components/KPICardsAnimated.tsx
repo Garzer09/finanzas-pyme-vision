@@ -21,8 +21,9 @@ export const KPICardsAnimated = () => {
       sparklineData: liquidityData,
       icon: Droplets,
       color: 'text-blue-400',
-      bgGradient: 'from-blue-500/20 to-cyan-500/20',
-      borderColor: 'border-blue-500/30'
+      bgGradient: 'from-blue-500/30 to-cyan-500/30',
+      borderColor: 'border-blue-400/50',
+      sparklineColor: '#60a5fa'
     },
     {
       title: 'Rentabilidad Neta',
@@ -35,8 +36,9 @@ export const KPICardsAnimated = () => {
       sparklineData: profitabilityData,
       icon: Percent,
       color: 'text-emerald-400',
-      bgGradient: 'from-emerald-500/20 to-teal-500/20',
-      borderColor: 'border-emerald-500/30'
+      bgGradient: 'from-emerald-500/30 to-teal-500/30',
+      borderColor: 'border-emerald-400/50',
+      sparklineColor: '#34d399'
     },
     {
       title: 'Endeudamiento',
@@ -48,9 +50,10 @@ export const KPICardsAnimated = () => {
       change: '-0.15',
       sparklineData: debtData,
       icon: PieChart,
-      color: 'text-coral-400',
-      bgGradient: 'from-coral-500/20 to-orange-500/20',
-      borderColor: 'border-coral-500/30'
+      color: 'text-orange-400',
+      bgGradient: 'from-orange-500/30 to-red-500/30',
+      borderColor: 'border-orange-400/50',
+      sparklineColor: '#fb923c'
     }
   ];
 
@@ -85,17 +88,17 @@ export const KPICardsAnimated = () => {
         return (
           <Card 
             key={index} 
-            className={`kpi-card bg-gradient-to-br ${kpi.bgGradient} border ${kpi.borderColor} hover:scale-105 transition-all duration-300 animate-fade-in group`}
+            className={`bg-gradient-to-br ${kpi.bgGradient} backdrop-blur-sm border ${kpi.borderColor} hover:scale-105 transition-all duration-300 animate-fade-in group p-6`}
             style={{ animationDelay: `${index * 100}ms` }}
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg bg-card/50 border border-border/50`}>
+                <div className={`p-2 rounded-lg bg-white/10 border border-white/20`}>
                   <Icon className={`h-5 w-5 ${kpi.color}`} />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground">{kpi.title}</h3>
-                  <p className="text-sm text-muted-foreground">{kpi.subtitle}</p>
+                  <h3 className="font-semibold text-white">{kpi.title}</h3>
+                  <p className="text-sm text-gray-300">{kpi.subtitle}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -108,27 +111,27 @@ export const KPICardsAnimated = () => {
 
             <div className="space-y-4">
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-foreground">
+                <span className="text-2xl font-bold text-white">
                   {kpi.current.toFixed(kpi.unit === '%' ? 1 : 2)}
                 </span>
-                <span className="text-lg text-muted-foreground">{kpi.unit}</span>
-                <span className="text-sm text-muted-foreground ml-auto">
+                <span className="text-lg text-gray-300">{kpi.unit}</span>
+                <span className="text-sm text-gray-400 ml-auto">
                   Meta: {kpi.target}{kpi.unit}
                 </span>
               </div>
 
               {/* Barra de progreso */}
               <div className="relative">
-                <div className="h-2 bg-card/50 rounded-full overflow-hidden">
+                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
                   <div 
-                    className={`h-full bg-gradient-to-r ${kpi.bgGradient} transition-all duration-1000 ease-out`}
+                    className={`h-full bg-gradient-to-r ${kpi.bgGradient} transition-all duration-1000 ease-out opacity-80`}
                     style={{ 
                       width: `${Math.min(progressPercentage, 100)}%`,
                       animationDelay: `${index * 200}ms`
                     }}
                   />
                 </div>
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <div className="flex justify-between text-xs text-gray-400 mt-1">
                   <span>0</span>
                   <span>{kpi.target}{kpi.unit}</span>
                 </div>
@@ -141,7 +144,7 @@ export const KPICardsAnimated = () => {
                     <Line 
                       type="monotone" 
                       dataKey="value" 
-                      stroke={kpi.trend === 'up' ? '#10b981' : kpi.trend === 'down' ? '#ef4444' : '#6b7280'}
+                      stroke={kpi.sparklineColor}
                       strokeWidth={2} 
                       dot={false}
                       strokeDasharray={kpi.trend === 'neutral' ? '5,5' : '0'}

@@ -14,7 +14,8 @@ import {
   TrendingDown,
   DollarSign,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Home
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -27,7 +28,7 @@ export const DashboardSidebar = () => {
     {
       path: '/',
       label: 'Panel Principal',
-      icon: LayoutDashboard,
+      icon: Home,
       color: 'text-teal-400'
     },
     {
@@ -110,7 +111,7 @@ export const DashboardSidebar = () => {
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative",
                 active
-                  ? "bg-teal-500/20 border border-teal-500/30 text-teal-400"
+                  ? "bg-teal-500/20 border border-teal-500/30 text-teal-300"
                   : "hover:bg-gray-700 text-white hover:text-teal-400"
               )}
               aria-label={item.label}
@@ -119,7 +120,7 @@ export const DashboardSidebar = () => {
               <Icon 
                 className={cn(
                   "h-5 w-5 transition-colors flex-shrink-0",
-                  active ? "text-teal-400" : item.color
+                  active ? "text-teal-300" : "text-gray-300"
                 )} 
               />
               {!collapsed && (
@@ -154,7 +155,7 @@ export const DashboardSidebar = () => {
           aria-label="Configuración"
           title={collapsed ? 'Configuración' : undefined}
         >
-          <Settings className="h-5 w-5" />
+          <Settings className="h-5 w-5 text-gray-300" />
           {!collapsed && (
             <span className="font-medium text-sm">Configuración</span>
           )}
