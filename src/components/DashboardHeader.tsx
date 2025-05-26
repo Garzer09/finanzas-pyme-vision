@@ -1,36 +1,32 @@
 
-import { Settings, Search } from 'lucide-react';
+import { TrendingUp, Bell, User } from 'lucide-react';
 
 export const DashboardHeader = () => {
   return (
-    <header className="h-16 bg-dashboard-bg border-b border-dashboard-border px-6 flex items-center justify-between">
-      {/* Page Info */}
-      <div>
-        <h2 className="text-xl font-semibold text-dashboard-text">Dashboard</h2>
-        <p className="text-sm text-dashboard-text-muted">Financial overview and analytics</p>
+    <header className="flex items-center justify-between whitespace-nowrap border-b border-solid border-[#f0f3f4] px-10 py-3 bg-white">
+      <div className="flex items-center gap-4 text-[#111518]">
+        <div className="h-4 w-4">
+          <TrendingUp className="h-full w-full" />
+        </div>
+        <h2 className="text-lg font-bold leading-tight tracking-[-0.015em]">FinSight</h2>
       </div>
       
-      {/* Actions */}
-      <div className="flex items-center gap-4">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-dashboard-text-muted" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="pl-10 pr-4 py-2 bg-dashboard-card border border-dashboard-border rounded-lg text-sm text-dashboard-text placeholder-dashboard-text-muted focus:outline-none focus:ring-2 focus:ring-dashboard-accent focus:border-transparent"
-          />
+      <div className="flex flex-1 justify-end gap-8">
+        <div className="flex items-center gap-9">
+          <a className="text-[#111518] text-sm font-medium leading-normal" href="#">Panel Principal</a>
+          <a className="text-[#111518] text-sm font-medium leading-normal" href="#">Rentabilidad</a>
+          <a className="text-[#111518] text-sm font-medium leading-normal" href="#">Liquidez</a>
+          <a className="text-[#111518] text-sm font-medium leading-normal" href="#">Solvencia</a>
+          <a className="text-[#111518] text-sm font-medium leading-normal" href="#">Eficiencia</a>
+          <a className="text-[#111518] text-sm font-medium leading-normal" href="#">Simulador</a>
         </div>
-        
-        {/* Settings */}
-        <button className="p-2 rounded-lg bg-dashboard-card border border-dashboard-border hover:bg-dashboard-card-hover transition-colors">
-          <Settings className="h-5 w-5 text-dashboard-text-secondary" />
+        <button
+          className="flex items-center justify-center overflow-hidden rounded-lg h-10 bg-[#f0f3f4] text-[#111518] gap-2 text-sm font-bold leading-normal tracking-[0.015em] px-2.5"
+        >
+          <Bell className="h-5 w-5" />
         </button>
-        
-        {/* Date Info */}
-        <div className="text-right">
-          <p className="text-sm font-medium text-dashboard-text">D189810</p>
-          <p className="text-xs text-dashboard-text-muted">Today</p>
+        <div className="h-10 w-10 rounded-full bg-gray-300 overflow-hidden">
+          <User className="h-full w-full p-2 text-gray-600" />
         </div>
       </div>
     </header>

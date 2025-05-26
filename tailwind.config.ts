@@ -63,47 +63,60 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Paleta inspirada en la imagen de referencia
-				'dashboard': {
-					bg: '#1e293b',           // Fondo principal oscuro
-					'bg-light': '#334155',   // Fondo más claro
-					card: '#374151',         // Cards
-					'card-hover': '#4b5563', // Cards hover
-					sidebar: '#1e2736',      // Sidebar
-					accent: '#3b82f6',       // Azul principal
-					'accent-light': '#60a5fa', // Azul claro
-					success: '#10b981',      // Verde
-					warning: '#f59e0b',      // Amarillo
-					danger: '#ef4444',       // Rojo
-					text: '#f8fafc',         // Texto principal
-					'text-secondary': '#94a3b8', // Texto secundario
-					'text-muted': '#64748b', // Texto muted
-					border: '#475569'        // Bordes
+				// Dashboard color palette from the image
+				'dashboard-green': {
+					50: '#F0F9F4',
+					100: '#DCF4E4',
+					200: '#B5D5C5',
+					300: '#9DC88D',
+					400: '#7CB342',
+					500: '#4A7C59',
+					600: '#2E5233',
+					700: '#1E3A22',
+					800: '#142B17',
+					900: '#0A1B0D'
+				},
+				'dashboard-orange': {
+					50: '#FFF8F0',
+					100: '#FEF0E1',
+					200: '#F8CBA6',
+					300: '#F4B76B',
+					400: '#E8A448',
+					500: '#D18F2B',
+					600: '#B8751E',
+					700: '#8B4513',
+					800: '#5C2E0C',
+					900: '#2D1706'
+				},
+				'dashboard-blue': {
+					50: '#F0F9FE',
+					100: '#E1F3FD',
+					200: '#A5D7E8',
+					300: '#6BB8D6',
+					400: '#359AC4',
+					500: '#0F7DB2',
+					600: '#0B5D85',
+					700: '#083E58',
+					800: '#04202B',
+					900: '#021016'
+				},
+				'dashboard-red': {
+					50: '#FFF5F5',
+					100: '#FFE5E5',
+					200: '#FFB5B5',
+					300: '#FF8585',
+					400: '#FF5555',
+					500: '#E53E3E',
+					600: '#C53030',
+					700: '#9B2C2C',
+					800: '#742A2A',
+					900: '#4A1414'
 				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
-			},
-			fontFamily: {
-				sans: ['Inter', 'system-ui', 'sans-serif'],
-				mono: ['JetBrains Mono', 'monospace']
-			},
-			backgroundImage: {
-				'gradient-dashboard': 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%)',
-				'gradient-card': 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(55, 65, 81, 0.8) 100%)',
-				'gradient-blue': 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-				'gradient-success': 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-				'gradient-warning': 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-				'gradient-danger': 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-			},
-			boxShadow: {
-				'dashboard': '0 4px 20px 0 rgba(0, 0, 0, 0.3)',
-				'card': '0 4px 16px 0 rgba(0, 0, 0, 0.2)',
-				'glow-blue': '0 0 20px rgba(59, 130, 246, 0.4)',
-				'glow-success': '0 0 20px rgba(16, 185, 129, 0.4)',
-				'glow-warning': '0 0 20px rgba(245, 158, 11, 0.4)',
 			},
 			keyframes: {
 				'accordion-down': {
@@ -121,21 +134,11 @@ export default {
 					to: {
 						height: '0'
 					}
-				},
-				'float': {
-					'0%, 100%': { transform: 'translateY(0px)' },
-					'50%': { transform: 'translateY(-10px)' }
-				},
-				'pulse-glow': {
-					'0%, 100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.4)' },
-					'50%': { boxShadow: '0 0 30px rgba(59, 130, 246, 0.7)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out',
-				'float': 'float 3s ease-in-out infinite',
-				'pulse-glow': 'pulse-glow 2s ease-in-out infinite'
+				'accordion-up': 'accordion-up 0.2s ease-out'
 			}
 		}
 	},
