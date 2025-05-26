@@ -1,4 +1,3 @@
-
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { Card } from '@/components/ui/card';
@@ -119,15 +118,15 @@ export const SituacionActualModule = () => {
     { concepto: 'Resultado Neto', valor: 225000, porcentaje: 9 }
   ];
 
-  // Waterfall Chart Data
+  // Waterfall Chart Data - Fixed with proper color assignment
   const waterfallData = [
-    { name: 'Ventas', value: 2500000, type: 'positive' },
-    { name: 'Coste Ventas', value: -1750000, type: 'negative' },
-    { name: 'Gastos Operativos', value: -300000, type: 'negative' },
-    { name: 'Amortizaciones', value: -100000, type: 'negative' },
-    { name: 'Gastos Financieros', value: -50000, type: 'negative' },
-    { name: 'Impuestos', value: -75000, type: 'negative' },
-    { name: 'Resultado Neto', value: 225000, type: 'final' }
+    { name: 'Ventas', value: 2500000, fill: '#10b981' },
+    { name: 'Coste Ventas', value: -1750000, fill: '#ef4444' },
+    { name: 'Gastos Operativos', value: -300000, fill: '#ef4444' },
+    { name: 'Amortizaciones', value: -100000, fill: '#ef4444' },
+    { name: 'Gastos Financieros', value: -50000, fill: '#ef4444' },
+    { name: 'Impuestos', value: -75000, fill: '#ef4444' },
+    { name: 'Resultado Neto', value: 225000, fill: '#3b82f6' }
   ];
 
   // Expense Composition
@@ -413,7 +412,7 @@ export const SituacionActualModule = () => {
                             </div>
                           </Card>
 
-                          {/* Waterfall Chart */}
+                          {/* Waterfall Chart - Fixed */}
                           <Card className="bg-black/20 border-gray-600">
                             <div className="p-4">
                               <h3 className="text-lg font-semibold text-white mb-4">Análisis Waterfall</h3>
@@ -432,14 +431,11 @@ export const SituacionActualModule = () => {
                                       }}
                                       formatter={(value) => [formatCurrency(Number(value)), '']}
                                     />
-                                    <Bar 
-                                      dataKey="value" 
-                                      fill={(entry) => {
-                                        if (entry?.type === 'positive') return '#10b981';
-                                        if (entry?.type === 'negative') return '#ef4444';
-                                        return '#3b82f6';
-                                      }}
-                                    />
+                                    <Bar dataKey="value" fill="#3b82f6">
+                                      {waterfallData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                                      ))}
+                                    </Bar>
                                   </BarChart>
                                 </ResponsiveContainer>
                               </div>
