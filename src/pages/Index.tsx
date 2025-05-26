@@ -6,6 +6,8 @@ import { KPICardsAnimated } from '@/components/KPICardsAnimated';
 import { GlobalFilters } from '@/components/GlobalFilters';
 import { MainCharts } from '@/components/MainCharts';
 import { AlertPanel } from '@/components/AlertPanel';
+import { Card } from '@/components/ui/card';
+import { TrendingUp, FileText, Users, Target } from 'lucide-react';
 
 const Index = () => {
   return (
@@ -19,7 +21,7 @@ const Index = () => {
           {/* Data wave background effect */}
           <div className="data-wave-bg absolute inset-0 pointer-events-none opacity-10" />
           
-          {/* Company Health Status - Nuevo componente en la parte superior */}
+          {/* Company Health Status */}
           <section className="relative z-10">
             <CompanyHealthStatus />
           </section>
@@ -37,6 +39,111 @@ const Index = () => {
           {/* Main Charts Grid */}
           <section className="relative z-10">
             <MainCharts />
+          </section>
+          
+          {/* Executive Summary Cards */}
+          <section className="relative z-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+              <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-500/30 p-6 hover:border-teal-400/50 transition-all duration-300">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-teal-500/20 border border-teal-400/30">
+                    <TrendingUp className="h-6 w-6 text-teal-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-1">Tendencia General</h3>
+                    <p className="text-teal-300 font-medium">Positiva</p>
+                    <p className="text-gray-300 text-sm">Crecimiento sostenido</p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-emerald-500/20 to-green-500/20 backdrop-blur-sm border border-emerald-500/30 p-6 hover:border-emerald-400/50 transition-all duration-300">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-emerald-500/20 border border-emerald-400/30">
+                    <FileText className="h-6 w-6 text-emerald-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-1">Estado Financiero</h3>
+                    <p className="text-emerald-300 font-medium">Saludable</p>
+                    <p className="text-gray-300 text-sm">Ratios equilibrados</p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-purple-500/20 to-violet-500/20 backdrop-blur-sm border border-purple-500/30 p-6 hover:border-purple-400/50 transition-all duration-300">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-purple-500/20 border border-purple-400/30">
+                    <Users className="h-6 w-6 text-purple-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-1">Segmentos</h3>
+                    <p className="text-purple-300 font-medium">Diversificados</p>
+                    <p className="text-gray-300 text-sm">Múltiples mercados</p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="bg-gradient-to-br from-orange-500/20 to-red-500/20 backdrop-blur-sm border border-orange-500/30 p-6 hover:border-orange-400/50 transition-all duration-300">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-full bg-orange-500/20 border border-orange-400/30">
+                    <Target className="h-6 w-6 text-orange-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-1">Objetivos</h3>
+                    <p className="text-orange-300 font-medium">En Progreso</p>
+                    <p className="text-gray-300 text-sm">Metas alcanzables</p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </section>
+
+          {/* Resumen Ejecutivo Text Section */}
+          <section className="relative z-10">
+            <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50 p-8">
+              <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-teal-500/20 border border-teal-400/30">
+                  <FileText className="h-6 w-6 text-teal-400" />
+                </div>
+                Resumen Ejecutivo del Análisis Financiero
+              </h2>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-teal-300 mb-3">Situación Actual</h3>
+                  <p className="text-gray-300 leading-relaxed">
+                    La empresa presenta una situación financiera sólida con indicadores positivos en liquidez, 
+                    rentabilidad y solvencia. Los ratios financieros se encuentran dentro de los parámetros 
+                    recomendados para el sector.
+                  </p>
+                  <p className="text-gray-300 leading-relaxed">
+                    El análisis del año 0 muestra una base estable para el crecimiento futuro, con una 
+                    estructura de costes optimizada y flujos de caja positivos.
+                  </p>
+                </div>
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-emerald-300 mb-3">Proyecciones</h3>
+                  <p className="text-gray-300 leading-relaxed">
+                    Las proyecciones para los próximos 3 años muestran un crecimiento sostenido con 
+                    incrementos progresivos en ingresos y mejoras en márgenes operativos.
+                  </p>
+                  <p className="text-gray-300 leading-relaxed">
+                    El plan de inversiones contempla las necesidades de CAPEX y capital de trabajo 
+                    para soportar el crecimiento proyectado.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-gray-600/50">
+                <h3 className="text-lg font-semibold text-purple-300 mb-4">Valor Económico Añadido (EVA)</h3>
+                <p className="text-gray-300 leading-relaxed">
+                  El análisis EVA confirma la capacidad de la empresa para crear valor económico, 
+                  superando el coste de capital en todos los escenarios proyectados. Esta métrica 
+                  valida la viabilidad y atractivo de la inversión.
+                </p>
+              </div>
+            </Card>
           </section>
           
           {/* Alert Panel */}
