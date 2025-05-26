@@ -1,7 +1,7 @@
 
 import { Card } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Minus, Droplets, Percent, PieChart } from 'lucide-react';
-import { LineChart, Line, ResponsiveContainer, Sparklines, SparklinesLine } from 'recharts';
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
 
 export const KPICardsAnimated = () => {
   // Datos de ejemplo para sparklines
