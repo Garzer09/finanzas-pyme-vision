@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -42,7 +41,18 @@ export const SubscriptionManager: React.FC = () => {
         .order('price');
 
       if (plansError) throw plansError;
-      setPlans(plansData || []);
+      
+      // Transform the data to match our interface
+      const transformedPlans: SubscriptionPlan[] = (plansData || []).map(plan => ({
+        id: plan.id,
+        name: plan.name,
+        description: plan.description || '',
+        price: plan.price || 0,
+        features: plan.features as Record<string, any>,
+        modules_access: plan.modules_access as string[]
+      }));
+      
+      setPlans(transformedPlans);
 
       // Cargar perfil del usuario
       const { data: { user } } = await supabase.auth.getUser();
