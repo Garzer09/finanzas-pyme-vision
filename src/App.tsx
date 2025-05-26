@@ -15,24 +15,26 @@ import { ValuationModule } from "./components/modules/ValuationModule";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/supuestos" element={<KeyFinancialAssumptionsModule />} />
-          <Route path="/analisis" element={<FinancialAnalysisModule />} />
-          <Route path="/proyecciones" element={<ProjectionsModule />} />
-          <Route path="/escenarios" element={<SensitivityModule />} />
-          <Route path="/valoracion" element={<ValuationModule />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <div className="dark">
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/supuestos" element={<KeyFinancialAssumptionsModule />} />
+            <Route path="/analisis" element={<FinancialAnalysisModule />} />
+            <Route path="/proyecciones" element={<ProjectionsModule />} />
+            <Route path="/escenarios" element={<SensitivityModule />} />
+            <Route path="/valoracion" element={<ValuationModule />} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </div>
 );
 
 export default App;
