@@ -1,36 +1,42 @@
 
-import { Settings, Search } from 'lucide-react';
+import { TrendingUp, Bell, User, Settings } from 'lucide-react';
 
 export const DashboardHeader = () => {
   return (
-    <header className="h-16 bg-dashboard-bg border-b border-dashboard-border px-6 flex items-center justify-between">
-      {/* Page Info */}
-      <div>
-        <h2 className="text-xl font-semibold text-dashboard-text">Dashboard</h2>
-        <p className="text-sm text-dashboard-text-muted">Financial overview and analytics</p>
-      </div>
-      
-      {/* Actions */}
-      <div className="flex items-center gap-4">
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-dashboard-text-muted" />
-          <input
-            type="text"
-            placeholder="Search..."
-            className="pl-10 pr-4 py-2 bg-dashboard-card border border-dashboard-border rounded-lg text-sm text-dashboard-text placeholder-dashboard-text-muted focus:outline-none focus:ring-2 focus:ring-dashboard-accent focus:border-transparent"
-          />
+    <header className="glass-card border-b border-dashboard-border px-6 lg:px-12 py-4 sticky top-0 z-50">
+      <div className="flex items-center justify-between">
+        {/* Logo y título */}
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 bg-gradient-blue rounded-xl flex items-center justify-center glow-blue">
+            <TrendingUp className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white tracking-tight">FinSight</h1>
+            <p className="text-dashboard-text-secondary text-sm">Financial Dashboard</p>
+          </div>
         </div>
         
-        {/* Settings */}
-        <button className="p-2 rounded-lg bg-dashboard-card border border-dashboard-border hover:bg-dashboard-card-hover transition-colors">
-          <Settings className="h-5 w-5 text-dashboard-text-secondary" />
-        </button>
+        {/* Navigation Links */}
+        <div className="hidden lg:flex items-center gap-8">
+          <nav className="flex items-center gap-6">
+            <a className="text-dashboard-text-secondary hover:text-white text-sm font-medium transition-colors duration-200" href="#">Panel Principal</a>
+            <a className="text-dashboard-text-secondary hover:text-white text-sm font-medium transition-colors duration-200" href="#">Análisis</a>
+            <a className="text-dashboard-text-secondary hover:text-white text-sm font-medium transition-colors duration-200" href="#">Proyecciones</a>
+            <a className="text-dashboard-text-secondary hover:text-white text-sm font-medium transition-colors duration-200" href="#">Simulador</a>
+          </nav>
+        </div>
         
-        {/* Date Info */}
-        <div className="text-right">
-          <p className="text-sm font-medium text-dashboard-text">D189810</p>
-          <p className="text-xs text-dashboard-text-muted">Today</p>
+        {/* Action buttons */}
+        <div className="flex items-center gap-4">
+          <button className="glass-card-hover w-10 h-10 rounded-xl border border-dashboard-border flex items-center justify-center transition-all duration-200 hover:glow-blue">
+            <Bell className="h-5 w-5 text-dashboard-text-secondary hover:text-white" />
+          </button>
+          <button className="glass-card-hover w-10 h-10 rounded-xl border border-dashboard-border flex items-center justify-center transition-all duration-200 hover:glow-blue">
+            <Settings className="h-5 w-5 text-dashboard-text-secondary hover:text-white" />
+          </button>
+          <div className="w-10 h-10 rounded-xl bg-gradient-blue flex items-center justify-center glow-blue">
+            <User className="h-5 w-5 text-white" />
+          </div>
         </div>
       </div>
     </header>

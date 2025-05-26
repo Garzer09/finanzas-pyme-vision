@@ -63,22 +63,43 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Paleta inspirada en la imagen de referencia
+				// Colores del dashboard navy/azul siguiendo la imagen de referencia
+				'navy': {
+					50: '#f0f4ff',
+					100: '#e0e7ff',
+					200: '#c7d2fe',
+					300: '#a5b4fc',
+					400: '#818cf8',
+					500: '#6366f1',
+					600: '#4f46e5',
+					700: '#4338ca',
+					800: '#3730a3',
+					900: '#312e81',
+					950: '#1e1b4b'
+				},
+				'dark-blue': {
+					50: '#f0f9ff',
+					100: '#e0f2fe',
+					200: '#bae6fd',
+					300: '#7dd3fc',
+					400: '#38bdf8',
+					500: '#0ea5e9',
+					600: '#0284c7',
+					700: '#0369a1',
+					800: '#075985',
+					900: '#0c4a6e',
+					950: '#082f49'
+				},
 				'dashboard': {
-					bg: '#1e293b',           // Fondo principal oscuro
-					'bg-light': '#334155',   // Fondo más claro
-					card: '#374151',         // Cards
-					'card-hover': '#4b5563', // Cards hover
-					sidebar: '#1e2736',      // Sidebar
-					accent: '#3b82f6',       // Azul principal
-					'accent-light': '#60a5fa', // Azul claro
-					success: '#10b981',      // Verde
-					warning: '#f59e0b',      // Amarillo
-					danger: '#ef4444',       // Rojo
-					text: '#f8fafc',         // Texto principal
-					'text-secondary': '#94a3b8', // Texto secundario
-					'text-muted': '#64748b', // Texto muted
-					border: '#475569'        // Bordes
+					bg: '#1a1d29',
+					card: '#252A3A',
+					accent: '#4A90E2',
+					success: '#00D4AA',
+					warning: '#FFB800',
+					danger: '#FF4757',
+					text: '#FFFFFF',
+					'text-secondary': '#8B92B0',
+					border: '#2A2F42'
 				}
 			},
 			borderRadius: {
@@ -91,19 +112,19 @@ export default {
 				mono: ['JetBrains Mono', 'monospace']
 			},
 			backgroundImage: {
-				'gradient-dashboard': 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%)',
-				'gradient-card': 'linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(55, 65, 81, 0.8) 100%)',
-				'gradient-blue': 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
-				'gradient-success': 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-				'gradient-warning': 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-				'gradient-danger': 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+				'gradient-dashboard': 'linear-gradient(135deg, #1a1d29 0%, #252A3A 50%, #1a1d29 100%)',
+				'gradient-card': 'linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(37, 42, 58, 0.8) 100%)',
+				'gradient-blue': 'linear-gradient(135deg, #4A90E2 0%, #357ABD 100%)',
+				'gradient-success': 'linear-gradient(135deg, #00D4AA 0%, #00B894 100%)',
+				'gradient-warning': 'linear-gradient(135deg, #FFB800 0%, #F39C12 100%)',
 			},
 			boxShadow: {
-				'dashboard': '0 4px 20px 0 rgba(0, 0, 0, 0.3)',
-				'card': '0 4px 16px 0 rgba(0, 0, 0, 0.2)',
-				'glow-blue': '0 0 20px rgba(59, 130, 246, 0.4)',
-				'glow-success': '0 0 20px rgba(16, 185, 129, 0.4)',
-				'glow-warning': '0 0 20px rgba(245, 158, 11, 0.4)',
+				'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
+				'card': '0 4px 16px 0 rgba(0, 0, 0, 0.25)',
+				'glow': '0 0 20px rgba(74, 144, 226, 0.3)',
+			},
+			backdropBlur: {
+				'glass': '10px'
 			},
 			keyframes: {
 				'accordion-down': {
@@ -127,8 +148,8 @@ export default {
 					'50%': { transform: 'translateY(-10px)' }
 				},
 				'pulse-glow': {
-					'0%, 100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.4)' },
-					'50%': { boxShadow: '0 0 30px rgba(59, 130, 246, 0.7)' }
+					'0%, 100%': { boxShadow: '0 0 20px rgba(74, 144, 226, 0.3)' },
+					'50%': { boxShadow: '0 0 30px rgba(74, 144, 226, 0.6)' }
 				}
 			},
 			animation: {
