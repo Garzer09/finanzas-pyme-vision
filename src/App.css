@@ -5,62 +5,79 @@
 
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: #1a1d29;
-  color: #FFFFFF;
+  background: #1e293b;
+  color: #f8fafc;
   margin: 0;
   padding: 0;
 }
 
-/* Estilos glassmorphism para cards */
-.glass-card {
-  background: rgba(37, 42, 58, 0.8);
+/* Estilos para cards con colores vibrantes */
+.dashboard-card {
+  background: rgba(55, 65, 81, 0.9);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
-}
-
-.glass-card-hover {
+  border: 1px solid rgba(75, 85, 99, 0.3);
+  border-radius: 16px;
   transition: all 0.3s ease;
 }
 
-.glass-card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.5);
+.dashboard-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-card-blue {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(55, 65, 81, 0.9) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.dashboard-card-green {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(55, 65, 81, 0.9) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.dashboard-card-yellow {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(55, 65, 81, 0.9) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.dashboard-card-red {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(55, 65, 81, 0.9) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
 /* Efectos de glow para elementos activos */
 .glow-blue {
-  box-shadow: 0 0 20px rgba(74, 144, 226, 0.3);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
 }
 
 .glow-success {
-  box-shadow: 0 0 20px rgba(0, 212, 170, 0.3);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.4);
 }
 
 .glow-warning {
-  box-shadow: 0 0 20px rgba(255, 184, 0, 0.3);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.4);
 }
 
 /* Gradientes para botones y elementos interactivos */
 .btn-gradient-blue {
-  background: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   border: none;
   color: white;
   transition: all 0.3s ease;
 }
 
 .btn-gradient-blue:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(74, 144, 226, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
 }
 
 /* Animaciones suaves */
 .fade-in {
-  animation: fadeIn 0.5s ease-in;
+  animation: fadeIn 0.6s ease-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(30px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -70,16 +87,16 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #252A3A;
+  background: #334155;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #4A90E2;
+  background: #3b82f6;
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #357ABD;
+  background: #1d4ed8;
 }
 
 /* Charts personalizados */
@@ -88,10 +105,10 @@ body {
 }
 
 .recharts-default-tooltip {
-  background: rgba(37, 42, 58, 0.95) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 8px !important;
-  color: #FFFFFF !important;
+  background: rgba(55, 65, 81, 0.95) !important;
+  border: 1px solid rgba(75, 85, 99, 0.3) !important;
+  border-radius: 12px !important;
+  color: #f8fafc !important;
 }
 
 /* Números y métricas destacadas */
@@ -102,7 +119,24 @@ body {
 }
 
 /* Estados de KPIs */
-.kpi-excellent { color: #00D4AA; }
-.kpi-good { color: #4A90E2; }
-.kpi-warning { color: #FFB800; }
-.kpi-danger { color: #FF4757; }
+.kpi-excellent { color: #10b981; }
+.kpi-good { color: #3b82f6; }
+.kpi-warning { color: #f59e0b; }
+.kpi-danger { color: #ef4444; }
+
+/* Sidebar styles */
+.sidebar-nav-item {
+  color: #94a3b8;
+  transition: all 0.2s ease;
+}
+
+.sidebar-nav-item:hover {
+  color: #f8fafc;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.sidebar-nav-item.active {
+  color: #3b82f6;
+  background: rgba(59, 130, 246, 0.15);
+  border-right: 3px solid #3b82f6;
+}
