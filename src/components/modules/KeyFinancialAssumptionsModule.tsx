@@ -69,7 +69,7 @@ export const KeyFinancialAssumptionsModule = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-navy-800">
+    <div className="flex min-h-screen bg-navy-800" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
@@ -82,8 +82,8 @@ export const KeyFinancialAssumptionsModule = () => {
           {/* Header Section */}
           <section className="relative z-10">
             <div className="mb-6">
-              <h1 className="text-2xl font-bold text-white mb-2">Supuestos Clave</h1>
-              <p className="text-gray-400">Parámetros fundamentales para el análisis financiero</p>
+              <h1 className="text-2xl font-bold text-white mb-2">Supuestos Financieros Clave</h1>
+              <p className="text-gray-400">Parámetros fundamentales para el análisis financiero y proyecciones</p>
             </div>
           </section>
 

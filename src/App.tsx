@@ -11,6 +11,7 @@ import { FinancialAnalysisModule } from "./components/modules/FinancialAnalysisM
 import { ProjectionsModule } from "./components/modules/ProjectionsModule";
 import { SensitivityModule } from "./components/modules/SensitivityModule";
 import { ValuationModule } from "./components/modules/ValuationModule";
+import { SituacionActualModule } from "./components/modules/SituacionActualModule";
 
 const queryClient = new QueryClient();
 
@@ -23,11 +24,20 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/situacion-actual" element={<SituacionActualModule />} />
+            <Route path="/pyg-actual" element={<FinancialAnalysisModule />} />
+            <Route path="/balance-actual" element={<FinancialAnalysisModule />} />
+            <Route path="/flujos-actual" element={<FinancialAnalysisModule />} />
+            <Route path="/ratios-actual" element={<FinancialAnalysisModule />} />
             <Route path="/supuestos" element={<KeyFinancialAssumptionsModule />} />
+            <Route path="/inversiones" element={<KeyFinancialAssumptionsModule />} />
             <Route path="/analisis" element={<FinancialAnalysisModule />} />
             <Route path="/proyecciones" element={<ProjectionsModule />} />
+            <Route path="/pyg-proyectado" element={<ProjectionsModule />} />
+            <Route path="/balance-proyectado" element={<ProjectionsModule />} />
             <Route path="/escenarios" element={<SensitivityModule />} />
             <Route path="/valoracion" element={<ValuationModule />} />
+            <Route path="/segmentos" element={<FinancialAnalysisModule />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
