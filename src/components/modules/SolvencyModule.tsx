@@ -4,11 +4,19 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 export const SolvencyModule = () => {
   const balanceData = [
-    { categoria: 'Activo Fijo', valor: 1200 },
-    { categoria: 'Activo Circulante', valor: 800 },
-    { categoria: 'Patrimonio Neto', valor: 1100 },
-    { categoria: 'Pasivo LP', valor: 650 },
-    { categoria: 'Pasivo CP', valor: 250 },
+    { categoria: 'Activo Fijo', valor: 1200, tipo: 'activo' },
+    { categoria: 'Activo Circulante', valor: 800, tipo: 'activo' },
+    { categoria: 'Patrimonio Neto', valor: 1100, tipo: 'pasivo' },
+    { categoria: 'Pasivo LP', valor: 650, tipo: 'pasivo' },
+    { categoria: 'Pasivo CP', valor: 250, tipo: 'pasivo' },
+  ];
+
+  const balanceComposition = [
+    { name: 'Activo Fijo', value: 1200, color: '#B5D5C5' },
+    { name: 'Activo Circulante', value: 800, color: '#A5D7E8' },
+    { name: 'Patrimonio Neto', value: 1100, color: '#9DC88D' },
+    { name: 'Pasivo L/P', value: 650, color: '#F8CBA6' },
+    { name: 'Pasivo C/P', value: 250, color: '#FFB5B5' },
   ];
 
   const ratiosData = [
@@ -33,6 +41,15 @@ export const SolvencyModule = () => {
     }
   };
 
+  const getProgressColor = (estado: string) => {
+    switch (estado) {
+      case 'bueno': return 'bg-[#9DC88D]';
+      case 'regular': return 'bg-[#F8CBA6]';
+      case 'malo': return 'bg-[#FFB5B5]';
+      default: return 'bg-gray-500';
+    }
+  };
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
@@ -42,19 +59,43 @@ export const SolvencyModule = () => {
     }).format(value * 1000);
   };
 
+  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }: any) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text x={x} y={y} fill="white" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" fontSize="12" fontWeight="bold">
+        {`${(percent * 100).toFixed(0)}%`}
+      </text>
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-0 shadow-md">
           <CardHeader>
-            <CardTitle>Estructura de Balance</CardTitle>
+            <CardTitle className="text-[#111518] font-bold">Estructura de Balance</CardTitle>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={balanceData} layout="horizontal">
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis type="number" stroke="#64748b" />
-                <YAxis type="category" dataKey="categoria" stroke="#64748b" width={120} />
+              <PieChart>
+                <Pie
+                  data={balanceComposition}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={renderCustomLabel}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {balanceComposition.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
                 <Tooltip 
                   formatter={(value) => [formatCurrency(Number(value)), '']}
                   contentStyle={{ 
@@ -63,15 +104,25 @@ export const SolvencyModule = () => {
                     borderRadius: '8px'
                   }}
                 />
-                <Bar dataKey="valor" fill="#3b82f6" />
-              </BarChart>
+              </PieChart>
             </ResponsiveContainer>
+            <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+              {balanceComposition.map((item, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div 
+                    className="w-3 h-3 rounded" 
+                    style={{ backgroundColor: item.color }}
+                  ></div>
+                  <span className="text-slate-700">{item.name}</span>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-md">
           <CardHeader>
-            <CardTitle>Ratios de Solvencia</CardTitle>
+            <CardTitle className="text-[#111518] font-bold">Ratios de Solvencia</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -91,10 +142,7 @@ export const SolvencyModule = () => {
                   </div>
                   <div className="mt-2 bg-gray-200 rounded-full h-2">
                     <div 
-                      className={`h-2 rounded-full ${
-                        ratio.estado === 'bueno' ? 'bg-green-500' : 
-                        ratio.estado === 'regular' ? 'bg-yellow-500' : 'bg-red-500'
-                      }`}
+                      className={`h-2 rounded-full ${getProgressColor(ratio.estado)}`}
                       style={{ width: `${Math.min((ratio.valor / ratio.referencia) * 50, 100)}%` }}
                     ></div>
                   </div>
@@ -107,34 +155,34 @@ export const SolvencyModule = () => {
 
       <Card className="border-0 shadow-md">
         <CardHeader>
-          <CardTitle>Estructura de Deuda y Vencimientos</CardTitle>
+          <CardTitle className="text-[#111518] font-bold">Estructura de Deuda y Vencimientos</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {debtStructure.map((debt, index) => (
-              <div key={index} className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                <h4 className="font-semibold text-blue-800 mb-2">{debt.tipo}</h4>
-                <p className="text-xl font-bold text-blue-600 mb-1">
+              <div key={index} className="bg-[#B5D5C5] bg-opacity-20 p-4 rounded-lg border border-[#B5D5C5]">
+                <h4 className="font-semibold text-[#4A7C59] mb-2">{debt.tipo}</h4>
+                <p className="text-xl font-bold text-[#4A7C59] mb-1">
                   {formatCurrency(debt.valor)}
                 </p>
-                <p className="text-sm text-blue-700">Vencimiento: {debt.vencimiento}</p>
+                <p className="text-sm text-[#4A7C59]">Vencimiento: {debt.vencimiento}</p>
               </div>
             ))}
           </div>
 
-          <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-            <h4 className="font-semibold text-yellow-800 mb-2">Cobertura del Servicio de Deuda</h4>
+          <div className="bg-[#F8CBA6] bg-opacity-20 border border-[#F8CBA6] p-4 rounded-lg">
+            <h4 className="font-semibold text-[#8B4513] mb-2">Cobertura del Servicio de Deuda</h4>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-yellow-700">DSCR Actual</p>
-                <p className="text-2xl font-bold text-yellow-600">1.85</p>
+                <p className="text-sm text-[#8B4513]">DSCR Actual</p>
+                <p className="text-2xl font-bold text-[#8B4513]">1.85</p>
               </div>
               <div>
-                <p className="text-sm text-yellow-700">Mínimo Recomendado</p>
-                <p className="text-2xl font-bold text-yellow-500">1.25</p>
+                <p className="text-sm text-[#8B4513]">Mínimo Recomendado</p>
+                <p className="text-2xl font-bold text-[#8B4513]">1.25</p>
               </div>
             </div>
-            <p className="text-xs text-yellow-600 mt-2">
+            <p className="text-xs text-[#8B4513] mt-2">
               Estado: Bueno - Capacidad adecuada para cubrir el servicio de deuda
             </p>
           </div>

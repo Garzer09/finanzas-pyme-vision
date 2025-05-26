@@ -1,9 +1,47 @@
 
-/* Estilos para usar Noto Sans y tonos pastel */
+/* Estilos para usar Noto Sans y la nueva paleta de colores del dashboard */
 body {
   font-family: 'Noto Sans', sans-serif;
 }
 
+/* Colores principales del dashboard basados en la imagen */
+.bg-dashboard-green {
+  background-color: #B5D5C5;
+}
+
+.bg-dashboard-green-light {
+  background-color: #9DC88D;
+}
+
+.bg-dashboard-orange {
+  background-color: #F8CBA6;
+}
+
+.bg-dashboard-blue {
+  background-color: #A5D7E8;
+}
+
+.bg-dashboard-red {
+  background-color: #FFB5B5;
+}
+
+.text-dashboard-green {
+  color: #4A7C59;
+}
+
+.text-dashboard-orange {
+  color: #8B4513;
+}
+
+.text-dashboard-blue {
+  color: #0F7DB2;
+}
+
+.text-dashboard-red {
+  color: #C53030;
+}
+
+/* Colores pastel originales mantenidos para compatibilidad */
 .bg-pastel-blue {
   background-color: #A5D7E8;
 }
@@ -49,4 +87,15 @@ body {
 .card-hover:hover {
   transform: translateY(-3px);
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos específicos para el dashboard financiero */
+.financial-card {
+  background: linear-gradient(135deg, #B5D5C5 0%, #9DC88D 100%);
+  border: 1px solid #B5D5C5;
+}
+
+.financial-highlight {
+  background: linear-gradient(135deg, #F8CBA6 0%, #F4B76B 100%);
+  border: 1px solid #F8CBA6;
 }
