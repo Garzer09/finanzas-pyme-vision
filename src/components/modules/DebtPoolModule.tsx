@@ -1,33 +1,13 @@
+
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { 
-  CreditCard, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Calendar,
-  Building2,
-  TrendingUp,
-  AlertTriangle
-} from 'lucide-react';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer
-} from 'recharts';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
+import { DebtPoolKPIs } from './debt-pool/DebtPoolKPIs';
+import { DebtPoolTable } from './debt-pool/DebtPoolTable';
+import { DebtPoolCharts } from './debt-pool/DebtPoolCharts';
+import { DebtPoolTimeline } from './debt-pool/DebtPoolTimeline';
 
 interface DebtItem {
   id: string;
@@ -139,24 +119,6 @@ export const DebtPoolModule = () => {
     return 'baja';
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  const getUrgencyColor = (urgencia: string) => {
-    switch (urgencia) {
-      case 'alta': return 'text-red-400 bg-red-500/20';
-      case 'media': return 'text-yellow-400 bg-yellow-500/20';
-      case 'baja': return 'text-green-400 bg-green-500/20';
-      default: return 'text-gray-400 bg-gray-500/20';
-    }
-  };
-
   return (
     <div className="flex min-h-screen bg-navy-800" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
       <DashboardSidebar />
@@ -185,185 +147,30 @@ export const DebtPoolModule = () => {
 
           {/* Resumen KPIs */}
           <section className="relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Card className="bg-gradient-to-br from-red-500/30 to-pink-500/30 backdrop-blur-sm border border-red-400/50 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-                    <CreditCard className="h-5 w-5 text-red-400" />
-                  </div>
-                  <h3 className="font-semibold text-white">Capital Pendiente Total</h3>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-white">{formatCurrency(totalCapitalPendiente)}</p>
-                  <p className="text-sm text-gray-300">{debtItems.length} instrumentos</p>
-                </div>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-blue-500/30 to-cyan-500/30 backdrop-blur-sm border border-blue-400/50 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-                    <TrendingUp className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <h3 className="font-semibold text-white">Tipo Interés Promedio</h3>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-white">{tipoInteresPromedio.toFixed(2)}%</p>
-                  <p className="text-sm text-gray-300">ponderado por capital</p>
-                </div>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-orange-500/30 to-yellow-500/30 backdrop-blur-sm border border-orange-400/50 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-                    <Calendar className="h-5 w-5 text-orange-400" />
-                  </div>
-                  <h3 className="font-semibold text-white">Cuotas Mensuales</h3>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-white">{formatCurrency(totalCuotasMensuales)}</p>
-                  <p className="text-sm text-gray-300">compromisos regulares</p>
-                </div>
-              </Card>
-            </div>
+            <DebtPoolKPIs
+              totalCapitalPendiente={totalCapitalPendiente}
+              tipoInteresPromedio={tipoInteresPromedio}
+              totalCuotasMensuales={totalCuotasMensuales}
+              debtItemsCount={debtItems.length}
+            />
           </section>
 
           {/* Tabla detallada de deudas */}
           <section className="relative z-10">
-            <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
-              <h2 className="text-xl font-semibold text-white mb-6">Detalle del Pool Bancario</h2>
-              
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-gray-300">Entidad</TableHead>
-                      <TableHead className="text-gray-300">Tipo</TableHead>
-                      <TableHead className="text-gray-300 text-right">Capital Pendiente</TableHead>
-                      <TableHead className="text-gray-300 text-center">Tipo Interés</TableHead>
-                      <TableHead className="text-gray-300 text-center">Plazo Restante</TableHead>
-                      <TableHead className="text-gray-300 text-right">Cuota</TableHead>
-                      <TableHead className="text-gray-300">Próximo Vencimiento</TableHead>
-                      <TableHead className="text-gray-300 text-center">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {debtItems.map((debt) => (
-                      <TableRow key={debt.id}>
-                        <TableCell className="text-white font-medium">{debt.entidad}</TableCell>
-                        <TableCell className="text-gray-300">{debt.tipo}</TableCell>
-                        <TableCell className="text-right text-white">{formatCurrency(debt.capitalPendiente)}</TableCell>
-                        <TableCell className="text-center text-gray-300">{debt.tipoInteres}%</TableCell>
-                        <TableCell className="text-center text-gray-300">{debt.plazoRestante} meses</TableCell>
-                        <TableCell className="text-right text-gray-300">
-                          {debt.cuota > 0 ? formatCurrency(debt.cuota) : 'A vencimiento'}
-                        </TableCell>
-                        <TableCell className="text-gray-300">{debt.proximoVencimiento}</TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex gap-2 justify-center">
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-8 w-8 p-0 text-red-400">
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
+            <DebtPoolTable debtItems={debtItems} />
           </section>
 
           {/* Gráficos de composición */}
           <section className="relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Composición por Entidad</h3>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={debtByEntity}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {debtByEntity.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#1f2937', 
-                          border: '1px solid #374151',
-                          borderRadius: '8px',
-                          color: '#fff'
-                        }}
-                        formatter={(value) => [formatCurrency(Number(value)), '']}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Composición por Tipo</h3>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={debtByType}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                      <XAxis dataKey="name" stroke="#9ca3af" />
-                      <YAxis stroke="#9ca3af" tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`} />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#1f2937', 
-                          border: '1px solid #374151',
-                          borderRadius: '8px',
-                          color: '#fff'
-                        }}
-                        formatter={(value) => [formatCurrency(Number(value)), '']}
-                      />
-                      <Bar dataKey="value" fill="#3b82f6">
-                        {debtByType.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </Card>
-            </div>
+            <DebtPoolCharts
+              debtByEntity={debtByEntity}
+              debtByType={debtByType}
+            />
           </section>
 
           {/* Timeline de vencimientos */}
           <section className="relative z-10">
-            <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
-              <h2 className="text-xl font-semibold text-white mb-6">Calendario de Vencimientos</h2>
-              
-              <div className="space-y-4">
-                {vencimientos.map((venc, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-black/20 rounded-lg border border-gray-600">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-lg ${getUrgencyColor(venc.urgencia)}`}>
-                        <AlertTriangle className="h-4 w-4" />
-                      </div>
-                      <div>
-                        <p className="text-white font-medium">{venc.entidad}</p>
-                        <p className="text-gray-400 text-sm">{venc.tipo}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-white font-medium">{formatCurrency(venc.cuota)}</p>
-                      <p className="text-gray-400 text-sm">{venc.fecha}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <DebtPoolTimeline vencimientos={vencimientos} />
           </section>
         </main>
       </div>

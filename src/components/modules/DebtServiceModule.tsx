@@ -1,4 +1,3 @@
-
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { Card } from '@/components/ui/card';
@@ -262,9 +261,9 @@ export const DebtServiceModule = () => {
                       label={{ value: "Umbral mínimo (1.0)", position: "left", fill: "#ef4444" }} />
                     <ReferenceLine y={1.2} stroke="#f59e0b" strokeWidth={2} strokeDasharray="3 3"
                       label={{ value: "Umbral recomendado (1.2)", position: "left", fill: "#f59e0b" }} />
-                    <Bar dataKey="dscr" fill="#3b82f6">
+                    <Bar dataKey="dscr">
                       {servicioDeudaData.map((entry, index) => (
-                        <Bar key={index} fill={entry.dscr >= 1.2 ? "#10b981" : entry.dscr >= 1.0 ? "#f59e0b" : "#ef4444"} />
+                        <Cell key={`cell-${index}`} fill={entry.dscr >= 1.2 ? "#10b981" : entry.dscr >= 1.0 ? "#f59e0b" : "#ef4444"} />
                       ))}
                     </Bar>
                   </BarChart>
