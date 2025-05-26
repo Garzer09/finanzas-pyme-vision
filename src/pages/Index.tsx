@@ -2,14 +2,13 @@
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { CompanyHealthStatus } from '@/components/CompanyHealthStatus';
-import { KPICardsAnimated } from '@/components/KPICardsAnimated';
+import { ExecutiveSummaryKPIs } from '@/components/ExecutiveSummaryKPIs';
 import { GlobalFilters } from '@/components/GlobalFilters';
 import { MainCharts } from '@/components/MainCharts';
 import { AlertPanel } from '@/components/AlertPanel';
 import { ModuleAccessControl } from '@/components/ModuleAccessControl';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { TrendingUp, FileText, Users, Target, DollarSign, BarChart3, Percent, Upload, Settings } from 'lucide-react';
+import { Upload, Settings, FileText, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Index = () => {
@@ -62,7 +61,7 @@ const Index = () => {
             </section>
             
             <section className="relative z-10">
-              <KPICardsAnimated />
+              <ExecutiveSummaryKPIs />
             </section>
             
             <section className="relative z-10">
@@ -71,50 +70,6 @@ const Index = () => {
             
             <section className="relative z-10">
               <MainCharts />
-            </section>
-            
-            {/* Métricas Principales */}
-            <section className="relative z-10">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-500/30 p-6 hover:border-teal-400/50 transition-all duration-300">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-full bg-teal-500/20 border border-teal-400/30">
-                      <DollarSign className="h-6 w-6 text-teal-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-1" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>Ingresos Totales</h3>
-                      <p className="text-teal-300 font-medium text-2xl">€2.5M</p>
-                      <p className="text-gray-300 text-sm">+12% YoY</p>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-emerald-500/20 to-green-500/20 backdrop-blur-sm border border-emerald-500/30 p-6 hover:border-emerald-400/50 transition-all duration-300">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-full bg-emerald-500/20 border border-emerald-400/30">
-                      <BarChart3 className="h-6 w-6 text-emerald-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-1" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>EBITDA</h3>
-                      <p className="text-emerald-300 font-medium text-2xl">€450K</p>
-                      <p className="text-gray-300 text-sm">18% margen</p>
-                    </div>
-                  </div>
-                </Card>
-
-                <Card className="bg-gradient-to-br from-purple-500/20 to-violet-500/20 backdrop-blur-sm border border-purple-500/30 p-6 hover:border-purple-400/50 transition-all duration-300">
-                  <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-full bg-purple-500/20 border border-purple-400/30">
-                      <Percent className="h-6 w-6 text-purple-400" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-1" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>Margen Neto</h3>
-                      <p className="text-purple-300 font-medium text-2xl">12.5%</p>
-                      <p className="text-gray-300 text-sm">€312K beneficio</p>
-                    </div>
-                  </div>
-                </Card>
-              </div>
             </section>
 
             {/* Resumen Ejecutivo Text Section */}
@@ -161,6 +116,48 @@ const Index = () => {
                     superando el coste de capital en todos los escenarios proyectados. Esta métrica 
                     valida la viabilidad y atractivo de la inversión.
                   </p>
+                </div>
+
+                {/* Enlaces rápidos a módulos de análisis */}
+                <div className="mt-8 pt-6 border-t border-gray-600/50">
+                  <h3 className="text-lg font-semibold text-blue-300 mb-4">Acceso Rápido al Análisis Detallado</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Link to="/pyg-actual" className="group">
+                      <Card className="bg-gradient-to-br from-blue-500/20 to-cyan-500/20 backdrop-blur-sm border border-blue-500/30 p-4 hover:border-blue-400/50 transition-all duration-300 cursor-pointer group-hover:scale-105">
+                        <div className="text-center">
+                          <TrendingUp className="h-6 w-6 text-blue-400 mx-auto mb-2" />
+                          <h4 className="text-white font-semibold text-sm">P&G Actual</h4>
+                        </div>
+                      </Card>
+                    </Link>
+                    
+                    <Link to="/balance-actual" className="group">
+                      <Card className="bg-gradient-to-br from-emerald-500/20 to-teal-500/20 backdrop-blur-sm border border-emerald-500/30 p-4 hover:border-emerald-400/50 transition-all duration-300 cursor-pointer group-hover:scale-105">
+                        <div className="text-center">
+                          <TrendingUp className="h-6 w-6 text-emerald-400 mx-auto mb-2" />
+                          <h4 className="text-white font-semibold text-sm">Balance</h4>
+                        </div>
+                      </Card>
+                    </Link>
+                    
+                    <Link to="/ratios-actual" className="group">
+                      <Card className="bg-gradient-to-br from-purple-500/20 to-pink-500/20 backdrop-blur-sm border border-purple-500/30 p-4 hover:border-purple-400/50 transition-all duration-300 cursor-pointer group-hover:scale-105">
+                        <div className="text-center">
+                          <TrendingUp className="h-6 w-6 text-purple-400 mx-auto mb-2" />
+                          <h4 className="text-white font-semibold text-sm">Ratios</h4>
+                        </div>
+                      </Card>
+                    </Link>
+                    
+                    <Link to="/pyg-proyectado" className="group">
+                      <Card className="bg-gradient-to-br from-orange-500/20 to-red-500/20 backdrop-blur-sm border border-orange-500/30 p-4 hover:border-orange-400/50 transition-all duration-300 cursor-pointer group-hover:scale-105">
+                        <div className="text-center">
+                          <TrendingUp className="h-6 w-6 text-orange-400 mx-auto mb-2" />
+                          <h4 className="text-white font-semibold text-sm">Proyecciones</h4>
+                        </div>
+                      </Card>
+                    </Link>
+                  </div>
                 </div>
               </Card>
             </section>
