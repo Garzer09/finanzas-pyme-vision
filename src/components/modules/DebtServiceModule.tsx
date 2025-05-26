@@ -1,3 +1,4 @@
+
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { Card } from '@/components/ui/card';
@@ -23,7 +24,8 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  ReferenceLine
+  ReferenceLine,
+  Cell
 } from 'recharts';
 import { useState } from 'react';
 
