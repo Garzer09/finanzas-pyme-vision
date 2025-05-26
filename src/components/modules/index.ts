@@ -2,8 +2,11 @@
 // Export all analysis modules
 export { SituacionActualModule } from './SituacionActualModule';
 export { ProfitLossCurrentModule } from './ProfitLossCurrentModule';
+export { AnalyticalPLCurrentModule } from './AnalyticalPLCurrentModule';
 export { BalanceSheetCurrentModule } from './BalanceSheetCurrentModule';
+export { CashFlowCurrentModule } from './CashFlowCurrentModule';
 export { FinancialRatiosCurrentModule } from './FinancialRatiosCurrentModule';
+export { BreakevenCurrentModule } from './BreakevenCurrentModule';
 export { FinancialAnalysisModule } from './FinancialAnalysisModule';
 export { ProjectionsModule } from './ProjectionsModule';
 export { KeyFinancialAssumptionsModule } from './KeyFinancialAssumptionsModule';
