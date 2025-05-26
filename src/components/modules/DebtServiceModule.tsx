@@ -103,7 +103,7 @@ export const DebtServiceModule = () => {
           {/* KPI Cards */}
           <section className="relative z-10">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className={`bg-gradient-to-br from-blue-500/30 to-cyan-500/30 backdrop-blur-sm border border-blue-400/50 p-6`}>
+              <Card className="bg-gradient-to-br from-blue-500/30 to-cyan-500/30 backdrop-blur-sm border border-blue-400/50 p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 rounded-lg bg-white/10 border border-white/20">
                     <Calculator className="h-5 w-5 text-blue-400" />
@@ -153,7 +153,7 @@ export const DebtServiceModule = () => {
                 </div>
                 <div className="space-y-2">
                   <p className="text-2xl font-bold text-white">{periodosRiesgo}</p>
-                  <p className="text-sm text-gray-300">DSCR < 1.2</p>
+                  <p className="text-sm text-gray-300">DSCR &lt; 1.2</p>
                 </div>
               </Card>
             </div>
