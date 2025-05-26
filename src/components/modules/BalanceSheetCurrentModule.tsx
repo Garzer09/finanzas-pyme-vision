@@ -486,7 +486,6 @@ export const BalanceSheetCurrentModule = () => {
                       data={treemapData}
                       dataKey="size"
                       stroke="#fff"
-                      strokeWidth={2}
                       content={<CustomTreemapContent />}
                     />
                   </ResponsiveContainer>
