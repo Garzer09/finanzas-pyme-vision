@@ -3,14 +3,17 @@ import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
-  Calendar, 
-  Package, 
-  Users, 
-  Truck, 
-  RotateCcw,
-  TrendingUp,
-  AlertCircle
+  RotateCcw, 
+  TrendingUp, 
+  Clock,
+  Calculator,
+  ShoppingCart,
+  Users,
+  Truck
 } from 'lucide-react';
 import {
   BarChart,
@@ -22,52 +25,56 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
-  ComposedChart,
-  Area,
-  AreaChart
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts';
 import { useState } from 'react';
 
 export const NOFModule = () => {
-  const [selectedPeriod, setSelectedPeriod] = useState('mensual');
+  const [periodo, setPeriodo] = useState('anual');
+  
+  // Datos de entrada
+  const [existencias, setExistencias] = useState(180000);
+  const [clientes, setClientes] = useState(220000);
+  const [proveedores, setProveedores] = useState(160000);
+  const [ventas, setVentas] = useState(2400000);
+  const [compras, setCompras] = useState(1680000);
+  const [costeVentas, setCosteVentas] = useState(1800000);
 
-  // Datos NOF actuales
-  const nofData = {
-    existencias: 350000,
-    clientes: 420000,
-    proveedores: 280000,
-    nofTotal: 490000,
-    pmc: 61.3, // días
-    pmp: 58.4, // días
-    pme: 73.0, // días
-    pmm: 76.0  // días
-  };
+  // Cálculos NOF
+  const nof = existencias + clientes - proveedores;
+  const pmc = Math.round((clientes / ventas) * 365); // Periodo Medio de Cobro
+  const pmp = Math.round((proveedores / compras) * 365); // Periodo Medio de Pago
+  const pme = Math.round((existencias / costeVentas) * 365); // Periodo Medio de Existencias
+  const pmm = pme + pmc - pmp; // Periodo Medio de Maduración
 
-  // Evolución mensual de NOF
+  // Datos históricos simulados
   const evolucionNOF = [
-    { mes: 'Ene', existencias: 320000, clientes: 380000, proveedores: 260000, nof: 440000, pmm: 78.5 },
-    { mes: 'Feb', existencias: 335000, clientes: 395000, proveedores: 275000, nof: 455000, pmm: 76.2 },
-    { mes: 'Mar', existencias: 350000, clientes: 420000, proveedores: 280000, nof: 490000, pmm: 76.0 },
-    { mes: 'Abr', existencias: 365000, clientes: 445000, proveedores: 295000, nof: 515000, pmm: 77.8 },
-    { mes: 'May', existencias: 340000, clientes: 415000, proveedores: 285000, nof: 470000, pmm: 74.5 },
-    { mes: 'Jun', existencias: 360000, clientes: 435000, proveedores: 300000, nof: 495000, pmm: 75.1 }
+    { mes: 'Ene', existencias: 175000, clientes: 200000, proveedores: 145000, nof: 230000 },
+    { mes: 'Feb', existencias: 168000, clientes: 210000, proveedores: 152000, nof: 226000 },
+    { mes: 'Mar', existencias: 172000, clientes: 215000, proveedores: 148000, nof: 239000 },
+    { mes: 'Abr', existencias: 185000, clientes: 225000, proveedores: 165000, nof: 245000 },
+    { mes: 'May', existencias: 178000, clientes: 218000, proveedores: 158000, nof: 238000 },
+    { mes: 'Jun', existencias: 182000, clientes: 222000, proveedores: 162000, nof: 242000 },
+    { mes: 'Jul', existencias: 180000, clientes: 220000, proveedores: 160000, nof: 240000 }
   ];
 
-  // Análisis sectorial (comparación con benchmarks)
-  const benchmarkData = [
-    { metrica: 'PME', empresa: 73.0, sector: 65.0, excelente: 55.0 },
-    { metrica: 'PMC', empresa: 61.3, sector: 52.0, excelente: 40.0 },
-    { metrica: 'PMP', empresa: 58.4, sector: 65.0, excelente: 75.0 },
-    { metrica: 'PMM', empresa: 76.0, sector: 52.0, excelente: 20.0 }
+  const evolucionPeriodos = [
+    { mes: 'Ene', pme: 35, pmc: 30, pmp: 31, pmm: 34 },
+    { mes: 'Feb', pme: 34, pmc: 32, pmp: 33, pmm: 33 },
+    { mes: 'Mar', pme: 35, pmc: 33, pmp: 32, pmm: 36 },
+    { mes: 'Abr', pme: 37, pmc: 34, pmp: 35, pmm: 36 },
+    { mes: 'May', pme: 36, pmc: 33, pmp: 34, pmm: 35 },
+    { mes: 'Jun', pme: 37, pmc: 34, pmp: 35, pmm: 36 },
+    { mes: 'Jul', pme: 37, pmc: 33, pmp: 35, pmm: 35 }
   ];
 
-  // Datos para el ciclo de conversión
-  const cicloConversion = [
-    { etapa: 'Compra MP', dias: 0, acumulado: 0 },
-    { etapa: 'Almacén', dias: 73, acumulado: 73 },
-    { etapa: 'Venta', dias: 0, acumulado: 73 },
-    { etapa: 'Cobro', dias: 61.3, acumulado: 134.3 },
-    { etapa: 'Pago Prov.', dias: -58.4, acumulado: 76.0 }
+  // Composición de NOF
+  const composicionNOF = [
+    { name: 'Existencias', value: existencias, color: '#3b82f6' },
+    { name: 'Clientes', value: clientes, color: '#10b981' },
+    { name: 'Proveedores', value: -proveedores, color: '#ef4444' }
   ];
 
   const formatCurrency = (value: number) => {
@@ -79,11 +86,18 @@ export const NOFModule = () => {
     }).format(value);
   };
 
-  const getPerformanceColor = (valor: number, benchmark: number, mejor: 'menor' | 'mayor') => {
-    const diferencia = mejor === 'menor' ? benchmark - valor : valor - benchmark;
-    if (diferencia > 10) return 'text-green-400';
-    if (diferencia > 0) return 'text-blue-400';
-    if (diferencia > -10) return 'text-yellow-400';
+  const formatDays = (days: number) => {
+    return `${days} días`;
+  };
+
+  const getNOFColor = (nof: number) => {
+    if (nof > 0) return 'text-orange-400';
+    return 'text-green-400';
+  };
+
+  const getPMMColor = (pmm: number) => {
+    if (pmm <= 30) return 'text-green-400';
+    if (pmm <= 45) return 'text-yellow-400';
     return 'text-red-400';
   };
 
@@ -98,66 +112,71 @@ export const NOFModule = () => {
           <div className="data-wave-bg absolute inset-0 pointer-events-none opacity-10" />
           
           <section className="relative z-10">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-white mb-2">Análisis de Necesidades Operativas de Financiación (NOF)</h1>
-              <p className="text-gray-400">Evaluación del capital circulante y ciclo de conversión de efectivo</p>
-              
-              {/* Period Selector */}
-              <div className="mt-4 flex gap-2">
-                {['mensual', 'trimestral', 'anual'].map((period) => (
-                  <Button
-                    key={period}
-                    variant={selectedPeriod === period ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedPeriod(period)}
-                    className="capitalize"
-                  >
-                    {period}
-                  </Button>
-                ))}
+            <div className="mb-6 flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-white mb-2">Necesidades Operativas de Financiación (NOF)</h1>
+                <p className="text-gray-400">Análisis del capital circulante y periodos de maduración</p>
+              </div>
+              <div className="flex gap-3">
+                <Select value={periodo} onValueChange={setPeriodo}>
+                  <SelectTrigger className="w-40 bg-black/20 border-gray-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-600">
+                    <SelectItem value="mensual">Mensual</SelectItem>
+                    <SelectItem value="trimestral">Trimestral</SelectItem>
+                    <SelectItem value="anual">Anual</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </section>
 
-          {/* KPI Cards */}
+          {/* KPIs principales */}
           <section className="relative z-10">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="bg-gradient-to-br from-emerald-500/30 to-teal-500/30 backdrop-blur-sm border border-emerald-400/50 p-6">
+              <Card className={`backdrop-blur-sm border p-6 ${nof > 0 
+                ? 'bg-gradient-to-br from-orange-500/30 to-red-500/30 border-orange-400/50' 
+                : 'bg-gradient-to-br from-green-500/30 to-emerald-500/30 border-green-400/50'}`}>
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-                    <Calendar className="h-5 w-5 text-emerald-400" />
+                    <Calculator className="h-5 w-5 text-white" />
                   </div>
                   <h3 className="font-semibold text-white">NOF Total</h3>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-2xl font-bold text-white">{formatCurrency(nofData.nofTotal)}</p>
-                  <p className="text-sm text-gray-300">capital circulante</p>
+                  <p className={`text-2xl font-bold ${getNOFColor(nof)}`}>{formatCurrency(nof)}</p>
+                  <p className="text-sm text-gray-300">{nof > 0 ? 'inversión necesaria' : 'financiación obtenida'}</p>
+                </div>
+              </Card>
+
+              <Card className={`backdrop-blur-sm border p-6 ${pmm <= 30 
+                ? 'bg-gradient-to-br from-green-500/30 to-emerald-500/30 border-green-400/50' 
+                : pmm <= 45 
+                ? 'bg-gradient-to-br from-yellow-500/30 to-orange-500/30 border-yellow-400/50'
+                : 'bg-gradient-to-br from-red-500/30 to-pink-500/30 border-red-400/50'}`}>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 rounded-lg bg-white/10 border border-white/20">
+                    <RotateCcw className="h-5 w-5 text-white" />
+                  </div>
+                  <h3 className="font-semibold text-white">Periodo Maduración</h3>
+                </div>
+                <div className="space-y-2">
+                  <p className={`text-2xl font-bold ${getPMMColor(pmm)}`}>{formatDays(pmm)}</p>
+                  <p className="text-sm text-gray-300">ciclo de conversión</p>
                 </div>
               </Card>
 
               <Card className="bg-gradient-to-br from-blue-500/30 to-cyan-500/30 backdrop-blur-sm border border-blue-400/50 p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-                    <RotateCcw className="h-5 w-5 text-blue-400" />
+                    <Users className="h-5 w-5 text-blue-400" />
                   </div>
-                  <h3 className="font-semibold text-white">PMM</h3>
+                  <h3 className="font-semibold text-white">Periodo Medio Cobro</h3>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-2xl font-bold text-white">{nofData.pmm.toFixed(1)}</p>
-                  <p className="text-sm text-gray-300">días maduración</p>
-                </div>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-orange-500/30 to-red-500/30 backdrop-blur-sm border border-orange-400/50 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-                    <Users className="h-5 w-5 text-orange-400" />
-                  </div>
-                  <h3 className="font-semibold text-white">PMC</h3>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-white">{nofData.pmc.toFixed(1)}</p>
-                  <p className="text-sm text-gray-300">días cobro</p>
+                  <p className="text-2xl font-bold text-white">{formatDays(pmc)}</p>
+                  <p className="text-sm text-gray-300">tiempo de cobro</p>
                 </div>
               </Card>
 
@@ -166,134 +185,115 @@ export const NOFModule = () => {
                   <div className="p-2 rounded-lg bg-white/10 border border-white/20">
                     <Truck className="h-5 w-5 text-purple-400" />
                   </div>
-                  <h3 className="font-semibold text-white">PMP</h3>
+                  <h3 className="font-semibold text-white">Periodo Medio Pago</h3>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-2xl font-bold text-white">{nofData.pmp.toFixed(1)}</p>
-                  <p className="text-sm text-gray-300">días pago</p>
+                  <p className="text-2xl font-bold text-white">{formatDays(pmp)}</p>
+                  <p className="text-sm text-gray-300">tiempo de pago</p>
                 </div>
               </Card>
             </div>
           </section>
 
-          {/* Composición NOF */}
-          <section className="relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Composición NOF</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-3 bg-green-500/20 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Package className="h-5 w-5 text-green-400" />
-                      <span className="text-white">Existencias</span>
-                    </div>
-                    <span className="text-green-400 font-bold">{formatCurrency(nofData.existencias)}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-blue-500/20 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Users className="h-5 w-5 text-blue-400" />
-                      <span className="text-white">Clientes</span>
-                    </div>
-                    <span className="text-blue-400 font-bold">{formatCurrency(nofData.clientes)}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-red-500/20 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Truck className="h-5 w-5 text-red-400" />
-                      <span className="text-white">Proveedores</span>
-                    </div>
-                    <span className="text-red-400 font-bold">-{formatCurrency(nofData.proveedores)}</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-teal-500/30 rounded-lg border border-teal-500/50">
-                    <div className="flex items-center gap-3">
-                      <Calendar className="h-5 w-5 text-teal-400" />
-                      <span className="text-white font-semibold">NOF Total</span>
-                    </div>
-                    <span className="text-teal-400 font-bold text-lg">{formatCurrency(nofData.nofTotal)}</span>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
-                <h3 className="text-lg font-semibold text-white mb-4">Períodos Medios</h3>
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center p-3 bg-yellow-500/20 rounded-lg">
-                    <span className="text-white">PME (Existencias)</span>
-                    <span className="text-yellow-400 font-bold">{nofData.pme.toFixed(1)} días</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-blue-500/20 rounded-lg">
-                    <span className="text-white">PMC (Cobro)</span>
-                    <span className="text-blue-400 font-bold">{nofData.pmc.toFixed(1)} días</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-red-500/20 rounded-lg">
-                    <span className="text-white">PMP (Pago)</span>
-                    <span className="text-red-400 font-bold">{nofData.pmp.toFixed(1)} días</span>
-                  </div>
-                  <div className="flex justify-between items-center p-3 bg-purple-500/30 rounded-lg border border-purple-500/50">
-                    <span className="text-white font-semibold">PMM (Maduración)</span>
-                    <span className="text-purple-400 font-bold text-lg">{nofData.pmm.toFixed(1)} días</span>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </section>
-
-          {/* Evolución NOF */}
+          {/* Parámetros de entrada */}
           <section className="relative z-10">
             <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
-              <h2 className="text-xl font-semibold text-white mb-6">Evolución de NOF y Componentes</h2>
+              <h2 className="text-xl font-semibold text-white mb-6">Datos de Balance y P&G</h2>
               
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart data={evolucionNOF}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                    <XAxis dataKey="mes" stroke="#9ca3af" />
-                    <YAxis yAxisId="left" stroke="#9ca3af" tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`} />
-                    <YAxis yAxisId="right" orientation="right" stroke="#9ca3af" />
-                    <Tooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1f2937', 
-                        border: '1px solid #374151',
-                        borderRadius: '8px',
-                        color: '#fff'
-                      }}
-                      formatter={(value, name) => {
-                        if (name === 'pmm') return [`${Number(value).toFixed(1)} días`, 'PMM'];
-                        return [formatCurrency(Number(value)), 
-                               name === 'existencias' ? 'Existencias' : 
-                               name === 'clientes' ? 'Clientes' : 
-                               name === 'proveedores' ? 'Proveedores' : 'NOF'];
-                      }}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-white">Activos Circulantes</h3>
+                  
+                  <div>
+                    <Label className="text-white text-sm font-medium mb-2 block">Existencias</Label>
+                    <Input
+                      type="number"
+                      value={existencias}
+                      onChange={(e) => setExistencias(Number(e.target.value))}
+                      className="bg-black/20 border-gray-600 text-white"
                     />
-                    
-                    <Bar yAxisId="left" dataKey="existencias" fill="#10b981" name="existencias" />
-                    <Bar yAxisId="left" dataKey="clientes" fill="#3b82f6" name="clientes" />
-                    <Bar yAxisId="left" dataKey="proveedores" fill="#ef4444" name="proveedores" />
-                    <Line 
-                      yAxisId="right"
-                      type="monotone" 
-                      dataKey="pmm" 
-                      stroke="#f59e0b" 
-                      strokeWidth={3}
-                      name="pmm"
+                    <p className="text-xs text-gray-400 mt-1">{formatCurrency(existencias)}</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-white text-sm font-medium mb-2 block">Clientes</Label>
+                    <Input
+                      type="number"
+                      value={clientes}
+                      onChange={(e) => setClientes(Number(e.target.value))}
+                      className="bg-black/20 border-gray-600 text-white"
                     />
-                  </ComposedChart>
-                </ResponsiveContainer>
+                    <p className="text-xs text-gray-400 mt-1">{formatCurrency(clientes)}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-white">Pasivos Circulantes</h3>
+                  
+                  <div>
+                    <Label className="text-white text-sm font-medium mb-2 block">Proveedores</Label>
+                    <Input
+                      type="number"
+                      value={proveedores}
+                      onChange={(e) => setProveedores(Number(e.target.value))}
+                      className="bg-black/20 border-gray-600 text-white"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">{formatCurrency(proveedores)}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-white">Datos del P&G</h3>
+                  
+                  <div>
+                    <Label className="text-white text-sm font-medium mb-2 block">Ventas Netas</Label>
+                    <Input
+                      type="number"
+                      value={ventas}
+                      onChange={(e) => setVentas(Number(e.target.value))}
+                      className="bg-black/20 border-gray-600 text-white"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">{formatCurrency(ventas)}</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-white text-sm font-medium mb-2 block">Compras</Label>
+                    <Input
+                      type="number"
+                      value={compras}
+                      onChange={(e) => setCompras(Number(e.target.value))}
+                      className="bg-black/20 border-gray-600 text-white"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">{formatCurrency(compras)}</p>
+                  </div>
+
+                  <div>
+                    <Label className="text-white text-sm font-medium mb-2 block">Coste de Ventas</Label>
+                    <Input
+                      type="number"
+                      value={costeVentas}
+                      onChange={(e) => setCosteVentas(Number(e.target.value))}
+                      className="bg-black/20 border-gray-600 text-white"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">{formatCurrency(costeVentas)}</p>
+                  </div>
+                </div>
               </div>
             </Card>
           </section>
 
-          {/* Análisis comparativo */}
+          {/* Gráficos */}
           <section className="relative z-10">
-            <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
-              <h2 className="text-xl font-semibold text-white mb-6">Comparación con Benchmarks Sectoriales</h2>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Evolución de NOF */}
+              <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Evolución de NOF y Componentes</h3>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={benchmarkData}>
+                    <BarChart data={evolucionNOF}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                      <XAxis dataKey="metrica" stroke="#9ca3af" />
-                      <YAxis stroke="#9ca3af" />
+                      <XAxis dataKey="mes" stroke="#9ca3af" />
+                      <YAxis stroke="#9ca3af" tickFormatter={(value) => `${(value / 1000).toFixed(0)}K€`} />
                       <Tooltip 
                         contentStyle={{ 
                           backgroundColor: '#1f2937', 
@@ -302,83 +302,95 @@ export const NOFModule = () => {
                           color: '#fff'
                         }}
                         formatter={(value, name) => [
-                          `${Number(value).toFixed(1)} días`, 
-                          name === 'empresa' ? 'Nuestra Empresa' : 
-                          name === 'sector' ? 'Promedio Sector' : 'Clase Mundial'
+                          formatCurrency(Number(value)), 
+                          name === 'existencias' ? 'Existencias' :
+                          name === 'clientes' ? 'Clientes' :
+                          name === 'proveedores' ? 'Proveedores' : 'NOF'
                         ]}
                       />
-                      <Bar dataKey="empresa" fill="#3b82f6" name="empresa" />
-                      <Bar dataKey="sector" fill="#10b981" name="sector" />
-                      <Bar dataKey="excelente" fill="#f59e0b" name="excelente" />
+                      <Bar dataKey="existencias" stackId="a" fill="#3b82f6" />
+                      <Bar dataKey="clientes" stackId="a" fill="#10b981" />
+                      <Bar dataKey="proveedores" stackId="a" fill="#ef4444" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+              </Card>
 
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-white">Análisis de Performance</h3>
-                  <div className="space-y-3">
-                    {benchmarkData.map((item) => {
-                      const esMejor = item.metrica === 'PMP' ? 'mayor' : 'menor';
-                      const colorClass = getPerformanceColor(item.empresa, item.sector, esMejor);
-                      
-                      return (
-                        <div key={item.metrica} className="flex justify-between items-center p-3 bg-black/20 rounded-lg">
-                          <span className="text-white">{item.metrica}</span>
-                          <div className="text-right">
-                            <span className={`font-bold ${colorClass}`}>
-                              {item.empresa.toFixed(1)} días
-                            </span>
-                            <p className="text-xs text-gray-400">
-                              vs {item.sector.toFixed(1)} sector
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+              {/* Evolución de periodos */}
+              <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
+                <h3 className="text-lg font-semibold text-white mb-4">Evolución de Periodos Medios</h3>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={evolucionPeriodos}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                      <XAxis dataKey="mes" stroke="#9ca3af" />
+                      <YAxis stroke="#9ca3af" label={{ value: 'Días', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: '#1f2937', 
+                          border: '1px solid #374151',
+                          borderRadius: '8px',
+                          color: '#fff'
+                        }}
+                        formatter={(value, name) => [
+                          `${value} días`, 
+                          name === 'pme' ? 'PM Existencias' :
+                          name === 'pmc' ? 'PM Cobro' :
+                          name === 'pmp' ? 'PM Pago' : 'PM Maduración'
+                        ]}
+                      />
+                      <Line type="monotone" dataKey="pme" stroke="#3b82f6" strokeWidth={2} name="pme" />
+                      <Line type="monotone" dataKey="pmc" stroke="#10b981" strokeWidth={2} name="pmc" />
+                      <Line type="monotone" dataKey="pmp" stroke="#ef4444" strokeWidth={2} name="pmp" />
+                      <Line type="monotone" dataKey="pmm" stroke="#f59e0b" strokeWidth={3} name="pmm" />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
           </section>
 
-          {/* Ciclo de conversión visual */}
+          {/* Ciclo de conversión de efectivo */}
           <section className="relative z-10">
             <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
               <h2 className="text-xl font-semibold text-white mb-6">Ciclo de Conversión de Efectivo</h2>
               
-              <div className="space-y-6">
-                <div className="flex items-center justify-between p-4 bg-black/20 rounded-lg">
-                  <div className="text-center flex-1">
-                    <p className="text-sm text-gray-400">Compra Materiales</p>
-                    <p className="text-white font-bold">Día 0</p>
-                  </div>
-                  <div className="text-center flex-1">
-                    <p className="text-sm text-gray-400">En Almacén</p>
-                    <p className="text-yellow-400 font-bold">+{nofData.pme.toFixed(0)} días</p>
-                  </div>
-                  <div className="text-center flex-1">
-                    <p className="text-sm text-gray-400">Venta</p>
-                    <p className="text-white font-bold">Día {nofData.pme.toFixed(0)}</p>
-                  </div>
-                  <div className="text-center flex-1">
-                    <p className="text-sm text-gray-400">Cobro</p>
-                    <p className="text-blue-400 font-bold">+{nofData.pmc.toFixed(0)} días</p>
-                  </div>
-                  <div className="text-center flex-1">
-                    <p className="text-sm text-gray-400">Pago Proveedores</p>
-                    <p className="text-red-400 font-bold">-{nofData.pmp.toFixed(0)} días</p>
-                  </div>
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
+                <div className="text-center p-4 bg-blue-500/20 rounded-lg border border-blue-400/30">
+                  <ShoppingCart className="h-8 w-8 text-blue-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-300">PM Existencias</p>
+                  <p className="text-2xl font-bold text-white">{formatDays(pme)}</p>
                 </div>
-
-                <div className="bg-purple-500/20 rounded-lg p-4 border border-purple-500/50">
-                  <div className="text-center">
-                    <p className="text-purple-400 font-semibold">Período Medio de Maduración</p>
-                    <p className="text-2xl font-bold text-white">{nofData.pmm.toFixed(1)} días</p>
-                    <p className="text-sm text-gray-300">
-                      Tiempo desde la compra hasta el cobro (neto del período de pago a proveedores)
-                    </p>
-                  </div>
+                
+                <div className="text-center p-4 bg-green-500/20 rounded-lg border border-green-400/30">
+                  <Users className="h-8 w-8 text-green-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-300">PM Cobro</p>
+                  <p className="text-2xl font-bold text-white">+ {formatDays(pmc)}</p>
                 </div>
+                
+                <div className="text-center p-4 bg-red-500/20 rounded-lg border border-red-400/30">
+                  <Truck className="h-8 w-8 text-red-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-300">PM Pago</p>
+                  <p className="text-2xl font-bold text-white">- {formatDays(pmp)}</p>
+                </div>
+                
+                <div className="text-center p-4 bg-yellow-500/20 rounded-lg border border-yellow-400/30">
+                  <Clock className="h-8 w-8 text-yellow-400 mx-auto mb-2" />
+                  <p className="text-sm text-gray-300">PM Maduración</p>
+                  <p className={`text-2xl font-bold ${getPMMColor(pmm)}`}>= {formatDays(pmm)}</p>
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <p className="text-gray-300 mb-2">
+                  Tiempo que tarda la empresa en convertir sus inversiones en capital circulante en efectivo
+                </p>
+                <p className="text-sm text-gray-400">
+                  {pmm > 0 
+                    ? `La empresa necesita financiar ${formatDays(pmm)} de operaciones`
+                    : `La empresa obtiene financiación durante ${formatDays(Math.abs(pmm))} de sus proveedores`
+                  }
+                </p>
               </div>
             </Card>
           </section>
