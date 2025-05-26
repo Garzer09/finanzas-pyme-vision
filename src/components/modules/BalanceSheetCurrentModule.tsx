@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
@@ -24,7 +23,12 @@ const CustomTreemapContent = (props: any) => {
   
   if (width < 100 || height < 50) return null;
   
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number | undefined) => {
+    // Add safety check for undefined values
+    if (value === undefined || value === null || isNaN(value)) {
+      return '0€';
+    }
+    
     if (Math.abs(value) >= 1000000) {
       return `${(value / 1000000).toFixed(1)}M€`;
     } else if (Math.abs(value) >= 1000) {
@@ -481,7 +485,6 @@ export const BalanceSheetCurrentModule = () => {
                     <Treemap
                       data={treemapData}
                       dataKey="size"
-                      ratio={4/3}
                       stroke="#fff"
                       strokeWidth={2}
                       content={<CustomTreemapContent />}
