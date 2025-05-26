@@ -12,6 +12,9 @@ import { ProjectionsModule } from "./components/modules/ProjectionsModule";
 import { SensitivityModule } from "./components/modules/SensitivityModule";
 import { ValuationModule } from "./components/modules/ValuationModule";
 import { SituacionActualModule } from "./components/modules/SituacionActualModule";
+import { SimulatorModule } from "./components/modules/SimulatorModule";
+import { PremisasIngresosModule } from "./components/modules/PremisasIngresosModule";
+import { MetodologiaSensibilidadModule } from "./components/modules/MetodologiaSensibilidadModule";
 
 const queryClient = new QueryClient();
 
@@ -24,21 +27,52 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
-            <Route path="/situacion-actual" element={<SituacionActualModule />} />
+            <Route path="/descripcion-empresa" element={<SituacionActualModule />} />
+            
+            {/* Sección 3 - Situación Actual */}
             <Route path="/pyg-actual" element={<FinancialAnalysisModule />} />
+            <Route path="/pyg-analitico-actual" element={<FinancialAnalysisModule />} />
             <Route path="/balance-actual" element={<FinancialAnalysisModule />} />
             <Route path="/flujos-actual" element={<FinancialAnalysisModule />} />
             <Route path="/ratios-actual" element={<FinancialAnalysisModule />} />
-            <Route path="/supuestos" element={<KeyFinancialAssumptionsModule />} />
+            <Route path="/punto-muerto-actual" element={<FinancialAnalysisModule />} />
+            <Route path="/endeudamiento-actual" element={<FinancialAnalysisModule />} />
+            <Route path="/servicio-deuda-actual" element={<FinancialAnalysisModule />} />
+            <Route path="/tesoreria-actual" element={<FinancialAnalysisModule />} />
+            <Route path="/nof-actual" element={<FinancialAnalysisModule />} />
+            <Route path="/segmentos-actual" element={<FinancialAnalysisModule />} />
+            
+            {/* Sección 4 - Supuestos */}
+            <Route path="/premisas-ingresos" element={<PremisasIngresosModule />} />
+            <Route path="/estructura-costes" element={<KeyFinancialAssumptionsModule />} />
+            <Route path="/capital-trabajo" element={<KeyFinancialAssumptionsModule />} />
+            <Route path="/endeudamiento-coste" element={<KeyFinancialAssumptionsModule />} />
             <Route path="/inversiones" element={<KeyFinancialAssumptionsModule />} />
-            <Route path="/analisis" element={<FinancialAnalysisModule />} />
-            <Route path="/proyecciones" element={<ProjectionsModule />} />
+            <Route path="/supuestos" element={<KeyFinancialAssumptionsModule />} />
+            
+            {/* Sección 5 - Proyecciones */}
             <Route path="/pyg-proyectado" element={<ProjectionsModule />} />
+            <Route path="/pyg-analitico-proyectado" element={<ProjectionsModule />} />
             <Route path="/balance-proyectado" element={<ProjectionsModule />} />
+            <Route path="/flujos-proyectado" element={<ProjectionsModule />} />
+            <Route path="/ratios-proyectado" element={<ProjectionsModule />} />
+            <Route path="/nof-proyectado" element={<ProjectionsModule />} />
+            <Route path="/servicio-deuda-proyectado" element={<ProjectionsModule />} />
+            <Route path="/segmentos-proyectado" element={<ProjectionsModule />} />
+            
+            {/* Sección 6 - Sensibilidad */}
+            <Route path="/metodologia-sensibilidad" element={<MetodologiaSensibilidadModule />} />
             <Route path="/escenarios" element={<SensitivityModule />} />
+            
+            {/* Sección 7 - Valoración EVA */}
+            <Route path="/introduccion-eva" element={<ValuationModule />} />
+            <Route path="/calculo-eva" element={<ValuationModule />} />
+            <Route path="/interpretacion-eva" element={<ValuationModule />} />
             <Route path="/valoracion" element={<ValuationModule />} />
-            <Route path="/segmentos" element={<FinancialAnalysisModule />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            
+            {/* Simulador */}
+            <Route path="/simulador" element={<SimulatorModule />} />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
