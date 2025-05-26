@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import ExcelUploadPage from "./pages/ExcelUploadPage";
+import SubscriptionPage from "./pages/SubscriptionPage";
 import { KeyFinancialAssumptionsModule } from "./components/modules/KeyFinancialAssumptionsModule";
 import { FinancialAnalysisModule } from "./components/modules/FinancialAnalysisModule";
 import { ProjectionsModule } from "./components/modules/ProjectionsModule";
@@ -27,6 +29,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/subir-excel" element={<ExcelUploadPage />} />
+            <Route path="/suscripcion" element={<SubscriptionPage />} />
             <Route path="/descripcion-empresa" element={<SituacionActualModule />} />
             
             {/* Sección 3 - Situación Actual */}
