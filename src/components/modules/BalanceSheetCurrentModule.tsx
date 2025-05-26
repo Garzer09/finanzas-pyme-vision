@@ -18,6 +18,56 @@ interface BalanceItem {
   subCategory: string;
 }
 
+const CustomTreemapContent = (props: any) => {
+  const { x, y, width, height, name, size, payload } = props;
+  const data = payload?.size || size;
+  
+  if (width < 100 || height < 50) return null;
+  
+  const formatCurrency = (value: number) => {
+    if (Math.abs(value) >= 1000000) {
+      return `${(value / 1000000).toFixed(1)}M€`;
+    } else if (Math.abs(value) >= 1000) {
+      return `${(value / 1000).toFixed(0)}K€`;
+    }
+    return `${value.toLocaleString()}€`;
+  };
+
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        fill={payload?.color || '#3b82f6'}
+        fillOpacity={0.8}
+        stroke="#fff"
+        strokeWidth={2}
+      />
+      <text
+        x={x + width / 2}
+        y={y + height / 2 - 10}
+        textAnchor="middle"
+        fill="#fff"
+        fontSize="12"
+        fontWeight="bold"
+      >
+        {name}
+      </text>
+      <text
+        x={x + width / 2}
+        y={y + height / 2 + 10}
+        textAnchor="middle"
+        fill="#fff"
+        fontSize="10"
+      >
+        {formatCurrency(data)}
+      </text>
+    </g>
+  );
+};
+
 export const BalanceSheetCurrentModule = () => {
   const [viewMode, setViewMode] = useState<'table' | 'structure' | 'treemap'>('table');
   const [showPercentages, setShowPercentages] = useState<'vertical' | 'horizontal'>('vertical');
@@ -434,41 +484,7 @@ export const BalanceSheetCurrentModule = () => {
                       ratio={4/3}
                       stroke="#fff"
                       strokeWidth={2}
-                      content={({ x, y, width, height, name, size }) => (
-                        <g>
-                          <rect
-                            x={x}
-                            y={y}
-                            width={width}
-                            height={height}
-                            fill={treemapData.find(item => item.name === name)?.color}
-                            fillOpacity={0.8}
-                          />
-                          {width > 100 && height > 50 && (
-                            <>
-                              <text
-                                x={x + width / 2}
-                                y={y + height / 2 - 10}
-                                textAnchor="middle"
-                                fill="#fff"
-                                fontSize="12"
-                                fontWeight="bold"
-                              >
-                                {name}
-                              </text>
-                              <text
-                                x={x + width / 2}
-                                y={y + height / 2 + 10}
-                                textAnchor="middle"
-                                fill="#fff"
-                                fontSize="10"
-                              >
-                                {formatCurrency(size)}
-                              </text>
-                            </>
-                          )}
-                        </g>
-                      )}
+                      content={<CustomTreemapContent />}
                     />
                   </ResponsiveContainer>
                 </div>

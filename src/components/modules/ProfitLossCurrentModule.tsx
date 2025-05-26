@@ -344,7 +344,7 @@ export const ProfitLossCurrentModule = () => {
                       />
                       <Bar 
                         dataKey="value" 
-                        fill={(entry: any) => entry.value > 0 ? '#10b981' : '#ef4444'}
+                        fill="#10b981"
                         stroke="#fff"
                         strokeWidth={1}
                       />
