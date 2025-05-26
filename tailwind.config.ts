@@ -63,68 +63,60 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Colores del dashboard navy/azul siguiendo la imagen de referencia
-				'navy': {
-					50: '#f0f4ff',
-					100: '#e0e7ff',
-					200: '#c7d2fe',
-					300: '#a5b4fc',
-					400: '#818cf8',
-					500: '#6366f1',
-					600: '#4f46e5',
-					700: '#4338ca',
-					800: '#3730a3',
-					900: '#312e81',
-					950: '#1e1b4b'
+				// Dashboard color palette from the image
+				'dashboard-green': {
+					50: '#F0F9F4',
+					100: '#DCF4E4',
+					200: '#B5D5C5',
+					300: '#9DC88D',
+					400: '#7CB342',
+					500: '#4A7C59',
+					600: '#2E5233',
+					700: '#1E3A22',
+					800: '#142B17',
+					900: '#0A1B0D'
 				},
-				'dark-blue': {
-					50: '#f0f9ff',
-					100: '#e0f2fe',
-					200: '#bae6fd',
-					300: '#7dd3fc',
-					400: '#38bdf8',
-					500: '#0ea5e9',
-					600: '#0284c7',
-					700: '#0369a1',
-					800: '#075985',
-					900: '#0c4a6e',
-					950: '#082f49'
+				'dashboard-orange': {
+					50: '#FFF8F0',
+					100: '#FEF0E1',
+					200: '#F8CBA6',
+					300: '#F4B76B',
+					400: '#E8A448',
+					500: '#D18F2B',
+					600: '#B8751E',
+					700: '#8B4513',
+					800: '#5C2E0C',
+					900: '#2D1706'
 				},
-				'dashboard': {
-					bg: '#1a1d29',
-					card: '#252A3A',
-					accent: '#4A90E2',
-					success: '#00D4AA',
-					warning: '#FFB800',
-					danger: '#FF4757',
-					text: '#FFFFFF',
-					'text-secondary': '#8B92B0',
-					border: '#2A2F42'
+				'dashboard-blue': {
+					50: '#F0F9FE',
+					100: '#E1F3FD',
+					200: '#A5D7E8',
+					300: '#6BB8D6',
+					400: '#359AC4',
+					500: '#0F7DB2',
+					600: '#0B5D85',
+					700: '#083E58',
+					800: '#04202B',
+					900: '#021016'
+				},
+				'dashboard-red': {
+					50: '#FFF5F5',
+					100: '#FFE5E5',
+					200: '#FFB5B5',
+					300: '#FF8585',
+					400: '#FF5555',
+					500: '#E53E3E',
+					600: '#C53030',
+					700: '#9B2C2C',
+					800: '#742A2A',
+					900: '#4A1414'
 				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
 				sm: 'calc(var(--radius) - 4px)'
-			},
-			fontFamily: {
-				sans: ['Inter', 'system-ui', 'sans-serif'],
-				mono: ['JetBrains Mono', 'monospace']
-			},
-			backgroundImage: {
-				'gradient-dashboard': 'linear-gradient(135deg, #1a1d29 0%, #252A3A 50%, #1a1d29 100%)',
-				'gradient-card': 'linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(37, 42, 58, 0.8) 100%)',
-				'gradient-blue': 'linear-gradient(135deg, #4A90E2 0%, #357ABD 100%)',
-				'gradient-success': 'linear-gradient(135deg, #00D4AA 0%, #00B894 100%)',
-				'gradient-warning': 'linear-gradient(135deg, #FFB800 0%, #F39C12 100%)',
-			},
-			boxShadow: {
-				'glass': '0 8px 32px 0 rgba(31, 38, 135, 0.37)',
-				'card': '0 4px 16px 0 rgba(0, 0, 0, 0.25)',
-				'glow': '0 0 20px rgba(74, 144, 226, 0.3)',
-			},
-			backdropBlur: {
-				'glass': '10px'
 			},
 			keyframes: {
 				'accordion-down': {
@@ -142,21 +134,11 @@ export default {
 					to: {
 						height: '0'
 					}
-				},
-				'float': {
-					'0%, 100%': { transform: 'translateY(0px)' },
-					'50%': { transform: 'translateY(-10px)' }
-				},
-				'pulse-glow': {
-					'0%, 100%': { boxShadow: '0 0 20px rgba(74, 144, 226, 0.3)' },
-					'50%': { boxShadow: '0 0 30px rgba(74, 144, 226, 0.6)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out',
-				'float': 'float 3s ease-in-out infinite',
-				'pulse-glow': 'pulse-glow 2s ease-in-out infinite'
+				'accordion-up': 'accordion-up 0.2s ease-out'
 			}
 		}
 	},

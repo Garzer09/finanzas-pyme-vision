@@ -46,52 +46,38 @@ const Index = () => {
         return <ValuationModule />;
       default:
         return (
-          <div className="min-h-screen bg-gradient-dashboard">
-            <div className="container mx-auto px-6 py-8 max-w-7xl">
-              {/* Header Section */}
-              <div className="mb-8 fade-in">
-                <div className="flex flex-col gap-2">
-                  <h1 className="text-4xl font-bold text-white tracking-tight">Panel Principal</h1>
-                  <p className="text-dashboard-text-secondary text-lg">Resumen financiero del año fiscal actual</p>
+          <div className="min-h-screen bg-gradient-to-br from-dashboard-green-50 via-white to-dashboard-orange-50">
+            <div className="layout-content-container flex flex-col max-w-[960px] flex-1 mx-auto">
+              <div className="flex flex-wrap justify-between gap-3 p-6">
+                <div className="flex min-w-72 flex-col gap-3">
+                  <p className="text-dashboard-green-600 tracking-light text-[32px] font-bold leading-tight">Panel Principal</p>
+                  <p className="text-dashboard-green-500 text-sm font-normal leading-normal">Resumen financiero del año fiscal actual</p>
                 </div>
               </div>
               
-              {/* Financial Health Section */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-semibold text-white mb-6 flex items-center gap-3">
-                  <div className="w-1 h-8 bg-gradient-blue rounded-full"></div>
-                  Salud Financiera
-                </h2>
-                <div className="glass-card glass-card-hover rounded-2xl p-6 border border-dashboard-border">
+              <h2 className="text-dashboard-green-600 text-[22px] font-bold leading-tight tracking-[-0.015em] px-6 pb-3 pt-5">Salud Financiera</h2>
+              <div className="px-6">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-dashboard-green-100">
                   <FinancialSemaphore />
                 </div>
               </div>
               
-              {/* KPIs Section */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-semibold text-white mb-6 flex items-center gap-3">
-                  <div className="w-1 h-8 bg-gradient-success rounded-full"></div>
-                  Indicadores Clave de Rendimiento
-                </h2>
-                <div className="glass-card glass-card-hover rounded-2xl p-6 border border-dashboard-border">
+              <h2 className="text-dashboard-green-600 text-[22px] font-bold leading-tight tracking-[-0.015em] px-6 pb-3 pt-8">Indicadores Clave de Rendimiento (KPIs)</h2>
+              <div className="px-6">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-dashboard-green-100">
                   <KPICards />
                 </div>
               </div>
               
-              {/* Financial Trends Section */}
-              <div className="mb-8">
-                <h2 className="text-2xl font-semibold text-white mb-6 flex items-center gap-3">
-                  <div className="w-1 h-8 bg-gradient-warning rounded-full"></div>
-                  Tendencias Financieras
-                </h2>
-                <div className="glass-card glass-card-hover rounded-2xl p-6 border border-dashboard-border">
+              <h2 className="text-dashboard-green-600 text-[22px] font-bold leading-tight tracking-[-0.015em] px-6 pb-3 pt-8">Tendencias Financieras</h2>
+              <div className="px-6">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-dashboard-green-100">
                   <MainCharts />
                 </div>
               </div>
               
-              {/* Alerts Section */}
-              <div className="mb-8">
-                <div className="glass-card glass-card-hover rounded-2xl p-6 border border-dashboard-border">
+              <div className="px-6 pt-8">
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-dashboard-green-100">
                   <AlertPanel />
                 </div>
               </div>
@@ -102,17 +88,14 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-dashboard font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-dashboard-green-50 via-white to-dashboard-orange-50" style={{ fontFamily: 'Inter, Noto Sans, sans-serif' }}>
       <DashboardHeader />
-      <div className="px-4 md:px-6 lg:px-8 xl:px-12 flex flex-1 justify-center py-6">
-        <div className="w-full max-w-[1400px]">
-          {/* Navigation */}
-          <div className="glass-card rounded-2xl p-4 border border-dashboard-border mb-8">
+      <div className="px-4 md:px-10 lg:px-40 flex flex-1 justify-center py-5">
+        <div className="w-full max-w-[1200px]">
+          <div className="bg-white/60 backdrop-blur-sm rounded-2xl shadow-lg p-4 border border-dashboard-green-100">
             <ModuleNavigation activeModule={activeModule} onModuleChange={setActiveModule} />
           </div>
-          
-          {/* Main Content */}
-          <div className="fade-in">
+          <div className="mt-6">
             {renderActiveModule()}
           </div>
         </div>
