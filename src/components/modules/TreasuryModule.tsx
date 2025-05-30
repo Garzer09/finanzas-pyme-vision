@@ -1,4 +1,3 @@
-
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { Card } from '@/components/ui/card';
@@ -103,6 +102,34 @@ export const TreasuryModule = () => {
   const [saldoMinimoObjetivo, setSaldoMinimoObjetivo] = useState(30000);
   const [saldoMaximoObjetivo, setSaldoMaximoObjetivo] = useState(150000);
 
+  // Utility functions
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('es-ES');
+  };
+
+  const getTipoColor = (tipo: string) => {
+    switch (tipo) {
+      case 'Cuenta Corriente':
+      case 'Cuenta Vista':
+        return 'text-blue-400 bg-blue-500/20';
+      case 'Línea de Crédito':
+        return 'text-orange-400 bg-orange-500/20';
+      case 'Efectivo':
+        return 'text-green-400 bg-green-500/20';
+      default:
+        return 'text-gray-400 bg-gray-500/20';
+    }
+  };
+
   // Previsión de flujos de caja para los próximos 30 días
   const previsionFlujos: FlujoPrevisto[] = [
     { fecha: '2024-01-16', ingresos: 45000, gastos: 38000, saldoAcumulado: 111500, saldoMinimo: 30000 },
@@ -171,33 +198,6 @@ export const TreasuryModule = () => {
   if (diasCobertura < 15) {
     alertas.push({ tipo: 'danger', mensaje: `Cobertura insuficiente: solo ${diasCobertura} días` });
   }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('es-ES');
-  };
-
-  const getTipoColor = (tipo: string) => {
-    switch (tipo) {
-      case 'Cuenta Corriente':
-      case 'Cuenta Vista':
-        return 'text-blue-400 bg-blue-500/20';
-      case 'Línea de Crédito':
-        return 'text-orange-400 bg-orange-500/20';
-      case 'Efectivo':
-        return 'text-green-400 bg-green-500/20';
-      default:
-        return 'text-gray-400 bg-gray-500/20';
-    }
-  };
 
   return (
     <div className="flex min-h-screen bg-navy-800" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
