@@ -1,101 +1,378 @@
 
-/* Estilos para usar Noto Sans y la nueva paleta de colores del dashboard */
+/* Estilos específicos para el Dashboard Financiero - Tema Claro */
+
+/* Reset y configuración base */
+* {
+  box-sizing: border-box;
+}
+
 body {
-  font-family: 'Noto Sans', sans-serif;
+  font-family: 'Inter', 'system-ui', 'sans-serif';
+  background-color: #F8F9FA;
+  color: #212529;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Colores principales del dashboard basados en la imagen */
-.bg-dashboard-green {
-  background-color: #B5D5C5;
+/* Colores principales del dashboard - Light Theme */
+.bg-dashboard-primary {
+  background-color: #007BFF; /* Azul corporativo */
 }
 
-.bg-dashboard-green-light {
-  background-color: #9DC88D;
+.bg-dashboard-success {
+  background-color: #28A745; /* Verde éxito */
+}
+
+.bg-dashboard-warning {
+  background-color: #FFC107; /* Amarillo advertencia */
+}
+
+.bg-dashboard-danger {
+  background-color: #DC3545; /* Rojo error */
+}
+
+.bg-dashboard-info {
+  background-color: #17A2B8; /* Cian información */
 }
 
 .bg-dashboard-orange {
-  background-color: #F8CBA6;
+  background-color: #FD7E14; /* Naranja */
 }
 
-.bg-dashboard-blue {
-  background-color: #A5D7E8;
+.bg-dashboard-indigo {
+  background-color: #6610F2; /* Índigo */
 }
 
-.bg-dashboard-red {
-  background-color: #FFB5B5;
+/* Variantes claras para fondos de tarjetas */
+.bg-dashboard-primary-light {
+  background-color: #E7F1FF; /* Azul muy claro */
 }
 
-.text-dashboard-green {
-  color: #4A7C59;
+.bg-dashboard-success-light {
+  background-color: #D4EDDA; /* Verde muy claro */
+}
+
+.bg-dashboard-warning-light {
+  background-color: #FFF3CD; /* Amarillo muy claro */
+}
+
+.bg-dashboard-danger-light {
+  background-color: #F8D7DA; /* Rojo muy claro */
+}
+
+.bg-dashboard-info-light {
+  background-color: #D1ECF1; /* Cian muy claro */
+}
+
+/* Colores de texto correspondientes */
+.text-dashboard-primary {
+  color: #007BFF;
+}
+
+.text-dashboard-success {
+  color: #28A745;
+}
+
+.text-dashboard-warning {
+  color: #FFC107;
+}
+
+.text-dashboard-danger {
+  color: #DC3545;
+}
+
+.text-dashboard-info {
+  color: #17A2B8;
 }
 
 .text-dashboard-orange {
-  color: #8B4513;
+  color: #FD7E14;
 }
 
-.text-dashboard-blue {
-  color: #0F7DB2;
+.text-dashboard-indigo {
+  color: #6610F2;
 }
 
-.text-dashboard-red {
-  color: #C53030;
+/* Estilos para tarjetas del dashboard */
+.dashboard-card {
+  background: white;
+  border: 1px solid #DEE2E6;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
 }
 
-/* Colores pastel originales mantenidos para compatibilidad */
-.bg-pastel-blue {
-  background-color: #A5D7E8;
+.dashboard-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #007BFF;
 }
 
-.bg-pastel-green {
-  background-color: #B5D5C5;
+/* KPI Cards específicas */
+.kpi-card-enhanced {
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8F9FA 100%);
+  border: 1px solid #DEE2E6;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
 }
 
-.bg-pastel-yellow {
-  background-color: #EEE9DA;
+.kpi-card-enhanced:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
 }
 
-.bg-pastel-pink {
-  background-color: #F8CBA6;
+/* Estilos para gráficos */
+.chart-wrapper {
+  background: white;
+  border: 1px solid #DEE2E6;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
-.text-pastel-blue {
-  color: #A5D7E8;
+/* Estilos para tablas financieras */
+.financial-table-light {
+  background: white;
+  border: 1px solid #DEE2E6;
+  border-radius: 8px;
+  overflow: hidden;
 }
 
-.text-pastel-green {
-  color: #B5D5C5;
+.financial-table-light thead {
+  background: #F8F9FA;
 }
 
-.text-pastel-yellow {
-  color: #EEE9DA;
+.financial-table-light th {
+  color: #495057;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  padding: 16px;
+  border-bottom: 1px solid #DEE2E6;
 }
 
-.text-pastel-pink {
-  color: #F8CBA6;
+.financial-table-light td {
+  color: #212529;
+  padding: 16px;
+  border-bottom: 1px solid #F1F3F4;
 }
 
-/* Gradientes para encabezados */
-.gradient-header {
-  background: linear-gradient(to right, #f0f9ff, #e0f2fe);
+.financial-table-light tbody tr:hover {
+  background-color: #F8F9FA;
 }
 
-/* Animaciones suaves para transiciones */
-.card-hover {
-  transition: transform 0.2s, box-shadow 0.2s;
+/* Botones con diseño claro */
+.btn-light-primary {
+  background: #007BFF;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.2);
 }
 
-.card-hover:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+.btn-light-primary:hover {
+  background: #0056B3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
 }
 
-/* Estilos específicos para el dashboard financiero */
-.financial-card {
-  background: linear-gradient(135deg, #B5D5C5 0%, #9DC88D 100%);
-  border: 1px solid #B5D5C5;
+.btn-light-secondary {
+  background: white;
+  color: #007BFF;
+  border: 2px solid #007BFF;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-.financial-highlight {
-  background: linear-gradient(135deg, #F8CBA6 0%, #F4B76B 100%);
-  border: 1px solid #F8CBA6;
+.btn-light-secondary:hover {
+  background: #007BFF;
+  color: white;
+}
+
+/* Indicadores de estado financiero */
+.financial-positive {
+  color: #28A745;
+  font-weight: 600;
+}
+
+.financial-negative {
+  color: #DC3545;
+  font-weight: 600;
+}
+
+.financial-neutral {
+  color: #6C757D;
+  font-weight: 500;
+}
+
+/* Badges y etiquetas */
+.badge-light {
+  background: #F8F9FA;
+  color: #495057;
+  border: 1px solid #DEE2E6;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-success-light {
+  background: #D4EDDA;
+  color: #155724;
+  border: 1px solid #C3E6CB;
+}
+
+.badge-warning-light {
+  background: #FFF3CD;
+  color: #856404;
+  border: 1px solid #FFEAA7;
+}
+
+.badge-danger-light {
+  background: #F8D7DA;
+  color: #721C24;
+  border: 1px solid #F5C6CB;
+}
+
+/* Espaciado y layout mejorado */
+.dashboard-section {
+  margin-bottom: 32px;
+}
+
+.dashboard-grid {
+  display: grid;
+  gap: 24px;
+}
+
+.dashboard-grid-2 {
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.dashboard-grid-3 {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.dashboard-grid-4 {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* Animaciones suaves */
+.fade-in-light {
+  animation: fadeInLight 0.6s ease-out;
+}
+
+@keyframes fadeInLight {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up-light {
+  animation: slideUpLight 0.4s ease-out;
+}
+
+@keyframes slideUpLight {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Efectos para elementos interactivos */
+.interactive-element {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.interactive-element:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Mejoras para accesibilidad */
+.focus-visible {
+  outline: 2px solid #007BFF;
+  outline-offset: 2px;
+}
+
+/* Estilos específicos para gráficos de Recharts */
+.recharts-wrapper {
+  font-family: 'Inter', sans-serif;
+}
+
+.recharts-text {
+  fill: #495057;
+  font-size: 12px;
+}
+
+.recharts-cartesian-axis-line {
+  stroke: #DEE2E6;
+}
+
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: #F1F3F4;
+  stroke-opacity: 0.8;
+}
+
+.recharts-tooltip-wrapper {
+  background: white !important;
+  border: 1px solid #DEE2E6 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .dashboard-card,
+  .kpi-card-enhanced,
+  .chart-wrapper {
+    margin: 0 -8px;
+    border-radius: 8px;
+  }
+  
+  .dashboard-grid {
+    gap: 16px;
+  }
+  
+  .dashboard-grid-2,
+  .dashboard-grid-3,
+  .dashboard-grid-4 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Estilos para elementos de carga */
+.loading-skeleton {
+  background: linear-gradient(90deg, #F1F3F4 25%, #E9ECEF 50%, #F1F3F4 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
