@@ -6,64 +6,57 @@
 
 @layer base {
   :root {
-    /* Light Theme Variables */
-    --background: 0 0% 98%; /* #F8F9FA - Blanco hueso suave */
-    --foreground: 210 11% 15%; /* #212529 - Gris oscuro para texto */
+    /* Steel Blue and Light Gray Theme */
+    --background: 0 0% 98%; /* Very light gray background */
+    --foreground: 216 13% 20%; /* Dark gray for text */
 
-    --card: 0 0% 100%; /* Blanco puro para tarjetas */
-    --card-foreground: 210 11% 15%;
+    --card: 0 0% 100%; /* Pure white for cards */
+    --card-foreground: 216 13% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 210 11% 15%;
+    --popover-foreground: 216 13% 20%;
 
-    --primary: 210 100% 50%; /* #007BFF - Azul corporativo */
+    --primary: 210 44% 45%; /* Steel Blue #4682B4 */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 16% 93%; /* #E9ECEF - Gris muy claro */
-    --secondary-foreground: 210 11% 15%;
+    --secondary: 210 9% 83%; /* Light Gray #D3D3D3 */
+    --secondary-foreground: 216 13% 20%;
 
-    --muted: 210 16% 93%;
-    --muted-foreground: 215 16% 47%; /* #6C757D - Gris medio */
+    --muted: 210 9% 90%; /* Very light gray */
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 165 100% 40%; /* #20C997 - Teal */
+    --accent: 210 44% 45%; /* Steel Blue accent */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%; /* #DC3545 - Rojo de error */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%; /* #DEE2E6 - Bordes sutiles */
+    --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 210 100% 50%;
+    --ring: 210 44% 45%; /* Steel Blue for focus rings */
 
     --radius: 0.5rem;
 
-    /* Variables específicas para el dashboard financiero */
-    --success: 134 61% 41%; /* #28A745 - Verde éxito */
-    --warning: 45 100% 51%; /* #FFC107 - Amarillo advertencia */
-    --info: 195 100% 39%; /* #17A2B8 - Cian información */
-    --orange: 25 95% 53%; /* #FD7E14 - Naranja */
-    --indigo: 263 90% 51%; /* #6610F2 - Índigo */
+    /* Custom Steel Blue variations */
+    --steel-blue: 210 44% 45%; /* #4682B4 */
+    --steel-blue-light: 210 44% 85%;
+    --steel-blue-dark: 210 44% 35%;
+    
+    /* Custom Light Gray variations */
+    --light-gray: 210 9% 83%; /* #D3D3D3 */
+    --light-gray-50: 210 9% 95%;
+    --light-gray-100: 210 9% 90%;
+    --light-gray-200: 210 9% 83%;
+    --light-gray-300: 210 9% 75%;
 
-    /* Colores específicos para gráficos */
-    --chart-1: 210 100% 50%; /* Azul principal */
-    --chart-2: 134 61% 41%; /* Verde */
-    --chart-3: 195 100% 39%; /* Cian */
-    --chart-4: 45 100% 51%; /* Amarillo */
-    --chart-5: 25 95% 53%; /* Naranja */
-    --chart-6: 263 90% 51%; /* Índigo */
-    --chart-7: 348 83% 47%; /* Rosa */
-
-    /* Grises para elementos auxiliares */
-    --gray-50: 210 20% 98%;
-    --gray-100: 220 14% 96%;
-    --gray-200: 220 13% 91%;
-    --gray-300: 216 12% 84%;
-    --gray-400: 218 11% 65%;
-    --gray-500: 220 9% 46%;
-    --gray-600: 215 14% 34%;
-    --gray-700: 217 19% 27%;
-    --gray-800: 215 28% 17%;
-    --gray-900: 221 39% 11%;
+    /* Chart colors based on steel blue palette */
+    --chart-1: 210 44% 45%; /* Steel Blue */
+    --chart-2: 210 44% 35%; /* Darker Steel Blue */
+    --chart-3: 210 44% 55%; /* Lighter Steel Blue */
+    --chart-4: 210 9% 75%; /* Medium Gray */
+    --chart-5: 210 9% 60%; /* Darker Gray */
+    --chart-6: 210 44% 65%; /* Very Light Steel Blue */
+    --chart-7: 210 9% 40%; /* Dark Gray */
   }
 }
 
@@ -75,195 +68,206 @@
   body {
     @apply bg-background text-foreground font-inter;
     font-size: 14px;
-    line-height: 1.5;
+    line-height: 1.6;
+    color: hsl(var(--foreground));
+    background-color: hsl(var(--background));
   }
 
   h1 {
-    @apply text-3xl font-bold tracking-tight text-gray-900;
+    @apply text-3xl font-bold tracking-tight;
+    color: hsl(var(--steel-blue-dark));
     line-height: 1.2;
   }
 
   h2 {
-    @apply text-xl font-semibold text-gray-900;
+    @apply text-xl font-semibold;
+    color: hsl(var(--steel-blue));
     line-height: 1.3;
   }
 
   h3 {
-    @apply text-lg font-medium text-gray-900;
+    @apply text-lg font-medium;
+    color: hsl(var(--steel-blue));
     line-height: 1.4;
   }
 
   h4 {
-    @apply text-base font-medium text-gray-800;
+    @apply text-base font-medium;
+    color: hsl(var(--foreground));
     line-height: 1.4;
-  }
-
-  /* Mejoras para accesibilidad */
-  @media (prefers-reduced-motion: reduce) {
-    .animate-fade-in,
-    .animate-pulse-glow,
-    .data-wave-bg {
-      animation: none !important;
-    }
   }
 }
 
 @layer components {
-  /* Tarjetas KPI con diseño claro */
-  .kpi-card {
-    @apply bg-white border border-gray-200 rounded-xl p-6 shadow-sm transition-all duration-300 hover:shadow-md hover:border-primary/30;
+  /* Steel Blue Theme Components */
+  .steel-blue-primary {
+    background-color: hsl(var(--steel-blue));
+    color: white;
   }
 
-  /* Tarjetas de gráficos */
-  .chart-container {
-    @apply bg-white border border-gray-200 rounded-xl p-6 shadow-sm;
+  .steel-blue-secondary {
+    background-color: hsl(var(--steel-blue-light));
+    color: hsl(var(--steel-blue-dark));
   }
 
-  /* Panel de insights */
-  .insight-panel {
-    @apply bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6;
+  .light-gray-bg {
+    background-color: hsl(var(--light-gray-50));
   }
 
-  /* Efectos sutiles para datos en tiempo real */
-  .data-wave-bg {
-    position: relative;
-    overflow: hidden;
+  .light-gray-border {
+    border-color: hsl(var(--light-gray-200));
   }
 
-  .data-wave-bg::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(0, 123, 255, 0.05) 25%,
-      rgba(32, 201, 151, 0.05) 50%,
-      rgba(0, 123, 255, 0.05) 75%,
-      transparent
-    );
-    animation: data-wave 8s ease-in-out infinite;
-    pointer-events: none;
+  /* Enhanced card styles */
+  .dashboard-card {
+    @apply bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300;
+    border-color: hsl(var(--light-gray-200));
   }
 
-  /* Estilos para tooltips accesibles */
-  .tooltip {
-    @apply bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm shadow-lg text-gray-900;
+  .dashboard-card:hover {
+    border-color: hsl(var(--steel-blue));
+    box-shadow: 0 4px 12px hsla(var(--steel-blue), 0.1);
   }
 
-  /* Estilos mejorados para tablas */
-  .financial-table {
-    @apply bg-white border border-gray-200 rounded-lg overflow-hidden;
+  /* Professional buttons */
+  .btn-steel-primary {
+    background-color: hsl(var(--steel-blue));
+    color: white;
+    border: none;
+    @apply px-6 py-2.5 rounded-lg font-medium transition-all duration-200;
   }
 
-  .financial-table th {
-    @apply bg-gray-50 text-gray-700 font-medium text-sm;
+  .btn-steel-primary:hover {
+    background-color: hsl(var(--steel-blue-dark));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px hsla(var(--steel-blue), 0.3);
   }
 
-  .financial-table td {
-    @apply text-gray-900 text-sm;
+  .btn-steel-secondary {
+    background-color: transparent;
+    color: hsl(var(--steel-blue));
+    border: 2px solid hsl(var(--steel-blue));
+    @apply px-6 py-2 rounded-lg font-medium transition-all duration-200;
   }
 
-  /* Estados de éxito, advertencia y error */
-  .status-success {
-    @apply bg-green-50 text-green-800 border-green-200;
+  .btn-steel-secondary:hover {
+    background-color: hsl(var(--steel-blue));
+    color: white;
   }
 
-  .status-warning {
-    @apply bg-yellow-50 text-yellow-800 border-yellow-200;
+  /* Navigation styles */
+  .nav-active {
+    background-color: hsl(var(--steel-blue-light));
+    color: hsl(var(--steel-blue-dark));
+    border-left: 3px solid hsl(var(--steel-blue));
   }
 
-  .status-error {
-    @apply bg-red-50 text-red-800 border-red-200;
+  .nav-hover:hover {
+    background-color: hsl(var(--light-gray-100));
+    color: hsl(var(--steel-blue));
   }
 
-  /* Botones con diseño claro */
-  .btn-primary {
-    @apply bg-primary text-white hover:bg-primary/90 border-0 shadow-sm;
+  /* Status indicators */
+  .status-positive {
+    color: #059669; /* Green-600 */
+    background-color: #ecfdf5; /* Green-50 */
   }
 
-  .btn-secondary {
-    @apply bg-white text-primary border border-primary hover:bg-primary/5;
+  .status-negative {
+    color: #dc2626; /* Red-600 */
+    background-color: #fef2f2; /* Red-50 */
   }
 
-  .btn-outline {
-    @apply bg-transparent text-gray-700 border border-gray-300 hover:bg-gray-50;
+  .status-neutral {
+    color: hsl(var(--steel-blue));
+    background-color: hsl(var(--steel-blue-light));
+  }
+
+  /* Professional spacing */
+  .professional-spacing {
+    @apply space-y-6;
+  }
+
+  .section-spacing {
+    @apply mb-8;
+  }
+
+  /* Enhanced typography */
+  .text-professional {
+    @apply text-gray-700 leading-relaxed;
+  }
+
+  .text-emphasis {
+    @apply font-semibold;
+    color: hsl(var(--steel-blue-dark));
+  }
+
+  /* Sidebar specific styles */
+  .sidebar-steel {
+    background-color: white;
+    border-right: 1px solid hsl(var(--light-gray-200));
+    box-shadow: 2px 0 8px hsla(var(--steel-blue), 0.05);
+  }
+
+  /* Alert and notification styles */
+  .alert-info {
+    background-color: hsl(var(--steel-blue-light));
+    border: 1px solid hsl(var(--steel-blue));
+    color: hsl(var(--steel-blue-dark));
+  }
+
+  .alert-success {
+    @apply bg-green-50 border-green-200 text-green-800;
+  }
+
+  .alert-warning {
+    @apply bg-yellow-50 border-yellow-200 text-yellow-800;
+  }
+
+  .alert-error {
+    @apply bg-red-50 border-red-200 text-red-800;
   }
 }
 
-/* Animaciones suaves y profesionales */
-@keyframes data-wave {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-@keyframes fade-in {
-  0% {
-    opacity: 0;
-    transform: translateY(10px);
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .dashboard-card {
+    @apply mx-2 rounded-lg;
   }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
+  
+  .professional-spacing {
+    @apply space-y-4;
   }
 }
 
-@keyframes pulse-glow {
-  0%, 100% { 
-    box-shadow: 0 0 5px rgba(0, 123, 255, 0.3); 
-  }
-  50% { 
-    box-shadow: 0 0 20px rgba(0, 123, 255, 0.6); 
-  }
+/* Loading animations */
+.loading-shimmer {
+  background: linear-gradient(90deg, 
+    hsl(var(--light-gray-100)) 25%, 
+    hsl(var(--light-gray-50)) 50%, 
+    hsl(var(--light-gray-100)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 
-/* Utilidades personalizadas para el dashboard financiero */
-.financial-positive {
-  @apply text-green-600;
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
-.financial-negative {
-  @apply text-red-600;
+/* Focus states for accessibility */
+.focus-steel:focus {
+  outline: 2px solid hsl(var(--steel-blue));
+  outline-offset: 2px;
 }
 
-.financial-neutral {
-  @apply text-gray-600;
+/* Interactive elements */
+.interactive-steel {
+  @apply transition-all duration-200 cursor-pointer;
 }
 
-/* Espaciado generoso para componentes */
-.dashboard-spacing {
-  @apply space-y-8;
-}
-
-.card-spacing {
-  @apply space-y-6;
-}
-
-/* Mejoras para formularios */
-.form-input {
-  @apply border-gray-300 focus:border-primary focus:ring-primary/20;
-}
-
-/* Estilos para iconos */
-.icon-primary {
-  @apply text-primary;
-}
-
-.icon-muted {
-  @apply text-gray-500;
-}
-
-.icon-success {
-  @apply text-green-600;
-}
-
-.icon-warning {
-  @apply text-yellow-600;
-}
-
-.icon-error {
-  @apply text-red-600;
+.interactive-steel:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px hsla(var(--steel-blue), 0.15);
 }
