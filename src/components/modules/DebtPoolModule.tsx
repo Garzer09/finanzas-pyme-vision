@@ -83,7 +83,7 @@ export const DebtPoolModule = () => {
   const debtByEntity = debtItems.map(item => ({
     name: item.entidad,
     value: item.capitalPendiente,
-    color: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'][debtItems.indexOf(item) % 5]
+    color: ['#4682B4', '#6495ED', '#87CEEB', '#B0C4DE', '#D3D3D3'][debtItems.indexOf(item) % 5]
   }));
 
   const debtByType = debtItems.reduce((acc: any[], item) => {
@@ -94,7 +94,7 @@ export const DebtPoolModule = () => {
       acc.push({
         name: item.tipo,
         value: item.capitalPendiente,
-        color: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'][acc.length % 5]
+        color: ['#4682B4', '#6495ED', '#87CEEB', '#B0C4DE', '#D3D3D3'][acc.length % 5]
       });
     }
     return acc;
@@ -120,24 +120,22 @@ export const DebtPoolModule = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-navy-800" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+    <div className="flex min-h-screen bg-white" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
         <DashboardHeader />
         
-        <main className="flex-1 p-6 space-y-6 overflow-auto">
-          <div className="data-wave-bg absolute inset-0 pointer-events-none opacity-10" />
-          
-          <section className="relative z-10">
+        <main className="flex-1 p-6 space-y-6 overflow-auto bg-light-gray-50">
+          <section>
             <div className="mb-6 flex justify-between items-center">
               <div>
-                <h1 className="text-2xl font-bold text-white mb-2">Pool Bancario y Detalle del Endeudamiento</h1>
-                <p className="text-gray-400">Gestión y análisis detallado de todas las deudas financieras</p>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">Pool Bancario y Detalle del Endeudamiento</h1>
+                <p className="text-gray-600">Gestión y análisis detallado de todas las deudas financieras</p>
               </div>
               <Button 
                 onClick={() => setShowAddForm(true)}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                className="bg-steel-blue hover:bg-steel-blue-dark text-white"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Añadir Deuda
@@ -146,7 +144,7 @@ export const DebtPoolModule = () => {
           </section>
 
           {/* Resumen KPIs */}
-          <section className="relative z-10">
+          <section>
             <DebtPoolKPIs
               totalCapitalPendiente={totalCapitalPendiente}
               tipoInteresPromedio={tipoInteresPromedio}
@@ -156,12 +154,12 @@ export const DebtPoolModule = () => {
           </section>
 
           {/* Tabla detallada de deudas */}
-          <section className="relative z-10">
+          <section>
             <DebtPoolTable debtItems={debtItems} />
           </section>
 
           {/* Gráficos de composición */}
-          <section className="relative z-10">
+          <section>
             <DebtPoolCharts
               debtByEntity={debtByEntity}
               debtByType={debtByType}
@@ -169,7 +167,7 @@ export const DebtPoolModule = () => {
           </section>
 
           {/* Timeline de vencimientos */}
-          <section className="relative z-10">
+          <section>
             <DebtPoolTimeline vencimientos={vencimientos} />
           </section>
         </main>

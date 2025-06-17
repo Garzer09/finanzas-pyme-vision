@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
@@ -131,158 +130,168 @@ export const FinancialRatiosCurrentModule = () => {
     }
   ];
 
-  const getStatusIcon = (value: number, threshold: any) => {
-    if (value >= threshold.optimal[0] && value <= threshold.optimal[1]) {
-      return <CheckCircle className="h-5 w-5 text-emerald-400" />;
-    } else if (value >= threshold.warning[0] && value <= threshold.warning[1]) {
-      return <AlertTriangle className="h-5 w-5 text-yellow-400" />;
-    } else {
-      return <XCircle className="h-5 w-5 text-red-400" />;
+  const categories = [
+    { id: 'all', label: 'Todos', color: 'steel-blue' },
+    { id: 'liquidity', label: 'Liquidez', color: 'steel-blue-light' },
+    { id: 'solvency', label: 'Solvencia', color: 'steel-blue-dark' },
+    { id: 'efficiency', label: 'Eficiencia', color: 'gray-600' },
+    { id: 'profitability', label: 'Rentabilidad', color: 'gray-700' }
+  ];
+
+  const getStatusIcon = (ratio: FinancialRatio) => {
+    const { currentValue, threshold } = ratio;
+    if (currentValue >= threshold.optimal[0] && currentValue <= threshold.optimal[1]) {
+      return <CheckCircle className="h-4 w-4 text-steel-blue" />;
     }
+    if (currentValue >= threshold.warning[0] && currentValue <= threshold.warning[1]) {
+      return <AlertTriangle className="h-4 w-4 text-gray-600" />;
+    }
+    return <XCircle className="h-4 w-4 text-steel-blue-dark" />;
   };
 
-  const getStatusColor = (value: number, threshold: any) => {
-    if (value >= threshold.optimal[0] && value <= threshold.optimal[1]) {
-      return 'text-emerald-400 border-emerald-400';
-    } else if (value >= threshold.warning[0] && value <= threshold.warning[1]) {
-      return 'text-yellow-400 border-yellow-400';
-    } else {
-      return 'text-red-400 border-red-400';
+  const getStatusColor = (ratio: FinancialRatio) => {
+    const { currentValue, threshold } = ratio;
+    if (currentValue >= threshold.optimal[0] && currentValue <= threshold.optimal[1]) {
+      return 'bg-steel-blue/10 text-steel-blue border-steel-blue/30';
     }
-  };
-
-  const getGaugeData = (ratio: FinancialRatio) => {
-    const max = Math.max(ratio.threshold.warning[1], ratio.currentValue * 1.2);
-    const percentage = (ratio.currentValue / max) * 100;
-    
-    return [
-      {
-        name: ratio.name,
-        value: percentage,
-        fill: ratio.currentValue >= ratio.threshold.optimal[0] && ratio.currentValue <= ratio.threshold.optimal[1] 
-          ? '#10b981' 
-          : ratio.currentValue >= ratio.threshold.warning[0] && ratio.currentValue <= ratio.threshold.warning[1]
-          ? '#f59e0b' 
-          : '#ef4444'
-      }
-    ];
+    if (currentValue >= threshold.warning[0] && currentValue <= threshold.warning[1]) {
+      return 'bg-gray-100 text-gray-700 border-gray-300';
+    }
+    return 'bg-steel-blue-dark/10 text-steel-blue-dark border-steel-blue-dark/30';
   };
 
   const filteredRatios = selectedCategory === 'all' 
     ? ratiosData 
     : ratiosData.filter(ratio => ratio.category === selectedCategory);
 
-  const categories = [
-    { id: 'all', name: 'Todos', color: 'bg-gray-600' },
-    { id: 'liquidity', name: 'Liquidez', color: 'bg-blue-600' },
-    { id: 'solvency', name: 'Solvencia', color: 'bg-purple-600' },
-    { id: 'efficiency', name: 'Eficiencia', color: 'bg-green-600' },
-    { id: 'profitability', name: 'Rentabilidad', color: 'bg-yellow-600' }
-  ];
-
   return (
-    <div className="flex min-h-screen bg-navy-800">
+    <div className="flex min-h-screen bg-white" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
         <DashboardHeader />
         
-        <main className="flex-1 p-6 space-y-6 overflow-auto">
-          <div className="data-wave-bg absolute inset-0 pointer-events-none opacity-10" />
-          
-          {/* Header */}
-          <section className="relative z-10">
-            <div className="flex items-center justify-between mb-6">
+        <main className="flex-1 p-6 space-y-6 overflow-auto bg-light-gray-50">
+          <section>
+            <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-purple-500/20 border border-purple-400/30">
-                    <Calculator className="h-6 w-6 text-purple-400" />
-                  </div>
-                  Análisis de Ratios Financieros - Situación Actual
-                </h1>
-                <p className="text-gray-400">Indicadores clave de liquidez, solvencia, eficiencia y rentabilidad</p>
+                <h1 className="text-2xl font-bold text-gray-900 mb-2">Ratios Financieros Actualizados</h1>
+                <p className="text-gray-600">Análisis en tiempo real de los principales indicadores financieros</p>
               </div>
               
-              <div className="flex gap-2">
-                <Button
-                  variant={viewMode === 'table' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('table')}
-                  className="border-gray-600"
-                >
-                  <Calculator className="h-4 w-4 mr-2" />
-                  Tabla
-                </Button>
-                <Button
-                  variant={viewMode === 'gauges' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('gauges')}
-                  className="border-gray-600"
-                >
-                  <Activity className="h-4 w-4 mr-2" />
-                  Velocímetros
-                </Button>
+              <div className="flex gap-3">
+                {categories.map((category) => (
+                  <Button
+                    key={category.id}
+                    variant={selectedCategory === category.id ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category.id)}
+                    className={selectedCategory === category.id 
+                      ? 'bg-steel-blue hover:bg-steel-blue-dark text-white border-steel-blue'
+                      : 'bg-white hover:bg-steel-blue/10 border-light-gray-200 text-gray-700 hover:text-steel-blue'
+                    }
+                  >
+                    {category.label}
+                  </Button>
+                ))}
               </div>
             </div>
           </section>
 
-          {/* Filtros por categoría */}
-          <section className="relative z-10">
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
+          <section>
+            <div className="flex gap-3 mb-6">
+              {['table', 'gauges', 'heatmap'].map((mode) => (
                 <Button
-                  key={category.id}
-                  variant={selectedCategory === category.id ? 'default' : 'outline'}
-                  onClick={() => setSelectedCategory(category.id)}
-                  className={`border-gray-600 ${selectedCategory === category.id ? category.color : ''}`}
+                  key={mode}
+                  variant={viewMode === mode ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setViewMode(mode as any)}
+                  className={viewMode === mode 
+                    ? 'bg-steel-blue hover:bg-steel-blue-dark text-white'
+                    : 'bg-white hover:bg-steel-blue/10 border-light-gray-200 text-gray-700'
+                  }
                 >
-                  {category.name}
+                  {mode === 'table' ? 'Tabla' : mode === 'gauges' ? 'Medidores' : 'Mapa de Calor'}
                 </Button>
               ))}
             </div>
           </section>
 
-          {/* Vista de Tabla */}
           {viewMode === 'table' && (
-            <section className="relative z-10">
-              <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50">
+            <section>
+              <Card className="bg-white border border-light-gray-200 shadow-sm">
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold text-white mb-4">Análisis Detallado de Ratios</h3>
-                  
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-gray-600">
-                          <TableHead className="text-white font-semibold">Ratio</TableHead>
-                          <TableHead className="text-white font-semibold">Fórmula</TableHead>
-                          <TableHead className="text-white font-semibold text-right">Valor Actual</TableHead>
-                          <TableHead className="text-white font-semibold text-right">Anterior</TableHead>
-                          <TableHead className="text-white font-semibold text-center">Estado</TableHead>
-                          <TableHead className="text-white font-semibold text-center">Tendencia</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredRatios.map((ratio) => (
-                          <TableRow key={ratio.id} className="border-gray-600 hover:bg-white/5">
-                            <TableCell className="text-white font-medium">{ratio.name}</TableCell>
-                            <TableCell className="text-gray-300 text-sm font-mono">{ratio.formula}</TableCell>
-                            <TableCell className="text-right">
-                              <Badge variant="outline" className={getStatusColor(ratio.currentValue, ratio.threshold)}>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-gray-900 font-semibold">Ratio</TableHead>
+                        <TableHead className="text-gray-900 font-semibold">Valor Actual</TableHead>
+                        <TableHead className="text-gray-900 font-semibold">Valor Anterior</TableHead>
+                        <TableHead className="text-gray-900 font-semibold">Cambio</TableHead>
+                        <TableHead className="text-gray-900 font-semibold">Estado</TableHead>
+                        <TableHead className="text-gray-900 font-semibold">Tendencia</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRatios.map((ratio) => {
+                        const change = ratio.currentValue - ratio.previousValue;
+                        const changePercent = ((change / ratio.previousValue) * 100).toFixed(1);
+                        
+                        return (
+                          <TableRow key={ratio.id} className="hover:bg-light-gray-50">
+                            <TableCell>
+                              <div>
+                                <div className="font-medium text-gray-900">{ratio.name}</div>
+                                <div className="text-sm text-gray-600">{ratio.formula}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="font-semibold text-gray-900">
                                 {ratio.currentValue.toFixed(2)}{ratio.unit}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-gray-600">
+                                {ratio.previousValue.toFixed(2)}{ratio.unit}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className={`flex items-center gap-1 ${
+                                change >= 0 ? 'text-steel-blue' : 'text-steel-blue-dark'
+                              }`}>
+                                <TrendingUp className={`h-3 w-3 ${change < 0 ? 'rotate-180' : ''}`} />
+                                <span className="font-medium">
+                                  {change >= 0 ? '+' : ''}{change.toFixed(2)} ({changePercent}%)
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={getStatusColor(ratio)}>
+                                <div className="flex items-center gap-1">
+                                  {getStatusIcon(ratio)}
+                                  <span className="text-xs">
+                                    {(() => {
+                                      const { currentValue, threshold } = ratio;
+                                      if (currentValue >= threshold.optimal[0] && currentValue <= threshold.optimal[1]) {
+                                        return 'Óptimo';
+                                      }
+                                      if (currentValue >= threshold.warning[0] && currentValue <= threshold.warning[1]) {
+                                        return 'Aceptable';
+                                      }
+                                      return 'Atención';
+                                    })()}
+                                  </span>
+                                </div>
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-right text-gray-300">
-                              {ratio.previousValue.toFixed(2)}{ratio.unit}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              {getStatusIcon(ratio.currentValue, ratio.threshold)}
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <div className="h-8 w-16 mx-auto">
+                            <TableCell>
+                              <div className="w-20 h-8">
                                 <ResponsiveContainer width="100%" height="100%">
-                                  <LineChart data={ratio.sparklineData.map(value => ({ value }))}>
+                                  <LineChart data={ratio.sparklineData.map((value, index) => ({ value, index }))}>
                                     <Line 
                                       type="monotone" 
                                       dataKey="value" 
-                                      stroke={ratio.currentValue > ratio.previousValue ? '#10b981' : '#ef4444'}
+                                      stroke="#4682B4" 
                                       strokeWidth={2}
                                       dot={false}
                                     />
@@ -291,75 +300,47 @@ export const FinancialRatiosCurrentModule = () => {
                               </div>
                             </TableCell>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </div>
               </Card>
             </section>
           )}
 
-          {/* Vista de Velocímetros */}
           {viewMode === 'gauges' && (
-            <section className="relative z-10">
+            <section>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredRatios.map((ratio) => (
-                  <Card key={ratio.id} className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50 p-6">
+                  <Card key={ratio.id} className="bg-white border border-light-gray-200 p-6 shadow-sm">
                     <div className="text-center">
-                      <h3 className="text-lg font-semibold text-white mb-2">{ratio.name}</h3>
-                      <div className="h-48 relative">
+                      <h3 className="font-semibold text-gray-900 mb-2">{ratio.name}</h3>
+                      <div className="h-32 mb-4">
                         <ResponsiveContainer width="100%" height="100%">
-                          <RadialBarChart 
-                            cx="50%" 
-                            cy="50%" 
-                            innerRadius="60%" 
-                            outerRadius="90%" 
-                            data={getGaugeData(ratio)}
-                            startAngle={180} 
-                            endAngle={0}
-                          >
-                            <RadialBar 
-                              dataKey="value" 
-                              cornerRadius={10} 
-                              fill={getGaugeData(ratio)[0].fill}
-                            />
+                          <RadialBarChart cx="50%" cy="50%" innerRadius="40%" outerRadius="80%" 
+                            data={[{ value: (ratio.currentValue / ratio.threshold.optimal[1]) * 100 }]}>
+                            <RadialBar dataKey="value" cornerRadius={10} fill="#4682B4" />
                           </RadialBarChart>
                         </ResponsiveContainer>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="text-center mt-12">
-                            <div className="text-2xl font-bold text-white">
-                              {ratio.currentValue.toFixed(2)}
-                            </div>
-                            <div className="text-sm text-gray-400">{ratio.unit}</div>
-                          </div>
-                        </div>
                       </div>
-                      
-                      <div className="mt-4 space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">Óptimo:</span>
-                          <span className="text-emerald-400">
-                            {ratio.threshold.optimal[0]} - {ratio.threshold.optimal[1]}{ratio.unit}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-400">Anterior:</span>
-                          <span className="text-gray-300">
-                            {ratio.previousValue.toFixed(2)}{ratio.unit}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-center gap-2 mt-3">
-                          {getStatusIcon(ratio.currentValue, ratio.threshold)}
-                          <span className={`text-sm font-medium ${getStatusColor(ratio.currentValue, ratio.threshold).split(' ')[0]}`}>
-                            {ratio.currentValue >= ratio.threshold.optimal[0] && ratio.currentValue <= ratio.threshold.optimal[1] 
-                              ? 'Óptimo' 
-                              : ratio.currentValue >= ratio.threshold.warning[0] && ratio.currentValue <= ratio.threshold.warning[1]
-                              ? 'Aceptable'
-                              : 'Crítico'
+                      <div className="text-2xl font-bold text-gray-900 mb-1">
+                        {ratio.currentValue.toFixed(2)}{ratio.unit}
+                      </div>
+                      <div className="flex items-center justify-center gap-1">
+                        {getStatusIcon(ratio)}
+                        <Badge className={getStatusColor(ratio)}>
+                          {(() => {
+                            const { currentValue, threshold } = ratio;
+                            if (currentValue >= threshold.optimal[0] && currentValue <= threshold.optimal[1]) {
+                              return 'Óptimo';
                             }
-                          </span>
-                        </div>
+                            if (currentValue >= threshold.warning[0] && currentValue <= threshold.warning[1]) {
+                              return 'Aceptable';
+                            }
+                            return 'Atención';
+                          })()}
+                        </Badge>
                       </div>
                     </div>
                   </Card>
