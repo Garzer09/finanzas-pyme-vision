@@ -1,4 +1,3 @@
-
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { Card } from '@/components/ui/card';
@@ -38,36 +37,36 @@ export const ValuationModule = () => {
       value: '€8.5M',
       method: 'DCF Ponderado',
       icon: DollarSign,
-      color: 'text-steel-blue',
-      bgGradient: 'from-steel-blue/20 to-steel-blue-light/20',
-      borderColor: 'border-steel-blue/30'
+      gradient: 'from-steel-blue/10 via-steel-blue/5 to-transparent',
+      iconBg: 'bg-steel-blue/10',
+      iconColor: 'text-steel-blue'
     },
     {
       title: 'Valor por Acción',
       value: '€42.50',
       method: 'Base: 200K acciones',
       icon: TrendingUp,
-      color: 'text-steel-blue-dark',
-      bgGradient: 'from-steel-blue-light/20 to-light-gray-100/30',
-      borderColor: 'border-steel-blue-light/30'
+      gradient: 'from-steel-blue-dark/10 via-steel-blue-dark/5 to-transparent',
+      iconBg: 'bg-steel-blue-dark/10',
+      iconColor: 'text-steel-blue-dark'
     },
     {
       title: 'Prima/Descuento',
       value: '-5.2%',
       method: 'vs. Sector',
       icon: Percent,
-      color: 'text-gray-700',
-      bgGradient: 'from-light-gray-100/30 to-light-gray-200/20',
-      borderColor: 'border-light-gray-200/30'
+      gradient: 'from-gray-100/50 via-gray-50/30 to-transparent',
+      iconBg: 'bg-gray-100/50',
+      iconColor: 'text-gray-600'
     },
     {
       title: 'Rango Valoración',
       value: '€7.8M - €9.2M',
       method: 'IC 80%',
       icon: Target,
-      color: 'text-steel-blue',
-      bgGradient: 'from-steel-blue-dark/20 to-steel-blue/20',
-      borderColor: 'border-steel-blue/30'
+      gradient: 'from-steel-blue-light/15 via-steel-blue-light/8 to-transparent',
+      iconBg: 'bg-steel-blue-light/10',
+      iconColor: 'text-steel-blue'
     }
   ];
 
@@ -78,22 +77,27 @@ export const ValuationModule = () => {
   }));
 
   return (
-    <div className="flex min-h-screen bg-white" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-100" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
         <DashboardHeader />
         
-        <main className="flex-1 p-6 space-y-6 overflow-auto bg-light-gray-50">
-          {/* Header Section */}
-          <section>
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Valoración de la Empresa</h1>
-              <p className="text-gray-600">Análisis integral de valor mediante múltiples metodologías</p>
+        <main className="flex-1 p-6 space-y-8 overflow-auto">
+          {/* Header Section with Glass Effect */}
+          <section className="relative">
+            <div className="relative bg-white/70 backdrop-blur-xl border border-white/20 rounded-2xl p-8 shadow-2xl shadow-steel-blue/10">
+              <div className="absolute inset-0 bg-gradient-to-r from-steel-blue/5 to-steel-blue-light/5 rounded-2xl"></div>
+              <div className="relative z-10">
+                <h1 className="text-3xl font-bold text-gray-900 mb-3 bg-gradient-to-r from-steel-blue to-steel-blue-dark bg-clip-text text-transparent">
+                  Valoración de la Empresa
+                </h1>
+                <p className="text-gray-600 text-lg">Análisis integral de valor mediante múltiples metodologías</p>
+              </div>
             </div>
           </section>
 
-          {/* Valuation Summary Cards */}
+          {/* Enhanced Valuation Summary Cards */}
           <section>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {valuationSummary.map((item, index) => {
@@ -102,24 +106,32 @@ export const ValuationModule = () => {
                 return (
                   <Card 
                     key={index} 
-                    className={`bg-gradient-to-br ${item.bgGradient} backdrop-blur-sm border ${item.borderColor} hover:scale-105 transition-all duration-300 p-6`}
+                    className="group relative bg-white/80 backdrop-blur-xl border border-white/30 hover:border-steel-blue/30 rounded-2xl p-6 shadow-xl hover:shadow-2xl hover:shadow-steel-blue/20 transition-all duration-500 hover:-translate-y-1 overflow-hidden"
                   >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-white border border-steel-blue/20">
-                          <Icon className={`h-5 w-5 ${item.color}`} />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 text-sm">{item.title}</h3>
-                          <p className="text-xs text-gray-600">{item.method}</p>
+                    {/* Gradient Background */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-50 group-hover:opacity-70 transition-opacity duration-300`}></div>
+                    
+                    {/* Glass reflection effect */}
+                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent"></div>
+                    
+                    <div className="relative z-10">
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                          <div className={`p-3 rounded-xl ${item.iconBg} backdrop-blur-sm border border-white/40 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                            <Icon className={`h-6 w-6 ${item.iconColor}`} />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-gray-900 text-sm mb-1">{item.title}</h3>
+                            <p className="text-xs text-gray-600 font-medium">{item.method}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="space-y-2">
-                      <span className="text-2xl font-bold text-gray-900">
-                        {item.value}
-                      </span>
+                      <div className="space-y-2">
+                        <span className="text-3xl font-bold text-gray-900 tracking-tight">
+                          {item.value}
+                        </span>
+                      </div>
                     </div>
                   </Card>
                 );
@@ -127,132 +139,157 @@ export const ValuationModule = () => {
             </div>
           </section>
 
-          {/* Charts Grid */}
+          {/* Enhanced Charts Grid */}
           <section>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Valuation Methods */}
-              <Card className="bg-white border border-light-gray-200 p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-steel-blue/10 border border-steel-blue/20">
-                    <PieIcon className="h-5 w-5 text-steel-blue" />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Valuation Methods Chart */}
+              <Card className="bg-white/80 backdrop-blur-xl border border-white/30 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 group overflow-hidden">
+                {/* Glass reflection */}
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-steel-blue/3 to-transparent opacity-50 group-hover:opacity-70 transition-opacity duration-300"></div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 rounded-xl bg-steel-blue/10 backdrop-blur-sm border border-steel-blue/20 shadow-lg">
+                      <PieIcon className="h-6 w-6 text-steel-blue" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900 text-lg">Métodos de Valoración</h3>
                   </div>
-                  <h3 className="font-semibold text-gray-900">Métodos de Valoración</h3>
-                </div>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={80}
-                        dataKey="value"
-                        label={({ name, value }) => `${name}: ${value}%`}
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'white', 
-                          border: '1px solid #E5E7EB',
-                          borderRadius: '8px',
-                          color: '#374151'
-                        }} 
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={90}
+                          dataKey="value"
+                          label={({ name, value }) => `${name}: ${value}%`}
+                        >
+                          {pieData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                            borderRadius: '12px',
+                            color: '#374151',
+                            backdropFilter: 'blur(12px)',
+                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+                          }} 
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </Card>
 
-              {/* Valuation by Method */}
-              <Card className="bg-white border border-light-gray-200 p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-steel-blue/10 border border-steel-blue/20">
-                    <Calculator className="h-5 w-5 text-steel-blue" />
+              {/* Valuation by Method Chart */}
+              <Card className="bg-white/80 backdrop-blur-xl border border-white/30 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 group overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-steel-blue-dark/3 to-transparent opacity-50 group-hover:opacity-70 transition-opacity duration-300"></div>
+                
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 rounded-xl bg-steel-blue-dark/10 backdrop-blur-sm border border-steel-blue-dark/20 shadow-lg">
+                      <Calculator className="h-6 w-6 text-steel-blue-dark" />
+                    </div>
+                    <h3 className="font-semibold text-gray-900 text-lg">Valoración por Método</h3>
                   </div>
-                  <h3 className="font-semibold text-gray-900">Valoración por Método</h3>
-                </div>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={valuationMethods}>
-                      <XAxis dataKey="method" tick={{ fill: '#6B7280' }} />
-                      <YAxis tick={{ fill: '#6B7280' }} />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'white', 
-                          border: '1px solid #E5E7EB',
-                          borderRadius: '8px',
-                          color: '#374151'
-                        }} 
-                      />
-                      <Bar dataKey="value" fill="#4682B4" />
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div className="h-72">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={valuationMethods}>
+                        <XAxis dataKey="method" tick={{ fill: '#6B7280' }} />
+                        <YAxis tick={{ fill: '#6B7280' }} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                            border: '1px solid rgba(255, 255, 255, 0.3)',
+                            borderRadius: '12px',
+                            color: '#374151',
+                            backdropFilter: 'blur(12px)',
+                            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
+                          }} 
+                        />
+                        <Bar dataKey="value" fill="#4682B4" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </Card>
             </div>
           </section>
 
-          {/* Multiples Analysis */}
+          {/* Enhanced Multiples Analysis */}
           <section>
-            <Card className="bg-white border border-light-gray-200 p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-2 rounded-lg bg-steel-blue/10 border border-steel-blue/20">
-                  <TrendingUp className="h-5 w-5 text-steel-blue" />
+            <Card className="bg-white/80 backdrop-blur-xl border border-white/30 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 group overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-steel-blue/3 to-transparent opacity-50 group-hover:opacity-70 transition-opacity duration-300"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="p-3 rounded-xl bg-steel-blue/10 backdrop-blur-sm border border-steel-blue/20 shadow-lg">
+                    <TrendingUp className="h-6 w-6 text-steel-blue" />
+                  </div>
+                  <h3 className="font-semibold text-gray-900 text-xl">Análisis de Múltiplos</h3>
                 </div>
-                <h3 className="font-semibold text-gray-900">Análisis de Múltiplos</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-gray-900">
-                  <thead>
-                    <tr className="border-b border-light-gray-200">
-                      <th className="text-left py-3 px-4 text-gray-600">Múltiplo</th>
-                      <th className="text-right py-3 px-4 text-gray-600">Sector</th>
-                      <th className="text-right py-3 px-4 text-gray-600">Empresa</th>
-                      <th className="text-right py-3 px-4 text-gray-600">Diferencia</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {multiples.map((row, index) => (
-                      <tr key={index} className="border-b border-light-gray-100">
-                        <td className="py-3 px-4 font-medium">{row.multiple}</td>
-                        <td className="py-3 px-4 text-right">{row.sector}x</td>
-                        <td className="py-3 px-4 text-right">{row.empresa}x</td>
-                        <td className={`py-3 px-4 text-right font-medium ${
-                          row.diferencia >= 0 ? 'text-steel-blue' : 'text-gray-700'
-                        }`}>
-                          {row.diferencia >= 0 ? '+' : ''}{row.diferencia}%
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-gray-900">
+                    <thead>
+                      <tr className="border-b border-gray-200/50">
+                        <th className="text-left py-4 px-6 text-gray-600 font-semibold">Múltiplo</th>
+                        <th className="text-right py-4 px-6 text-gray-600 font-semibold">Sector</th>
+                        <th className="text-right py-4 px-6 text-gray-600 font-semibold">Empresa</th>
+                        <th className="text-right py-4 px-6 text-gray-600 font-semibold">Diferencia</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {multiples.map((row, index) => (
+                        <tr key={index} className="border-b border-gray-100/50 hover:bg-gray-50/30 transition-colors duration-200">
+                          <td className="py-4 px-6 font-medium">{row.multiple}</td>
+                          <td className="py-4 px-6 text-right">{row.sector}x</td>
+                          <td className="py-4 px-6 text-right">{row.empresa}x</td>
+                          <td className={`py-4 px-6 text-right font-medium ${
+                            row.diferencia >= 0 ? 'text-steel-blue' : 'text-gray-700'
+                          }`}>
+                            {row.diferencia >= 0 ? '+' : ''}{row.diferencia}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </Card>
           </section>
 
-          {/* DCF Summary */}
+          {/* Enhanced DCF Summary */}
           <section>
-            <Card className="bg-white border border-light-gray-200 p-6 shadow-sm">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6">Resumen DCF</h2>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-gray-900">
-                <div>
-                  <p className="text-gray-600 text-sm">Valor Presente FCF</p>
-                  <p className="text-2xl font-bold">€6.8M</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm">Valor Terminal</p>
-                  <p className="text-2xl font-bold">€4.2M</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm">Valor Empresa</p>
-                  <p className="text-2xl font-bold">€11.0M</p>
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm">Menos: Deuda Neta</p>
-                  <p className="text-2xl font-bold text-gray-700">-€2.5M</p>
+            <Card className="bg-white/80 backdrop-blur-xl border border-white/30 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 group overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-steel-blue-light/5 to-transparent opacity-50 group-hover:opacity-70 transition-opacity duration-300"></div>
+              
+              <div className="relative z-10">
+                <h2 className="text-2xl font-semibold text-gray-900 mb-8">Resumen DCF</h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-gray-900">
+                  <div className="text-center p-6 rounded-xl bg-white/50 backdrop-blur-sm border border-white/40 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <p className="text-gray-600 text-sm mb-2 font-medium">Valor Presente FCF</p>
+                    <p className="text-3xl font-bold text-steel-blue">€6.8M</p>
+                  </div>
+                  <div className="text-center p-6 rounded-xl bg-white/50 backdrop-blur-sm border border-white/40 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <p className="text-gray-600 text-sm mb-2 font-medium">Valor Terminal</p>
+                    <p className="text-3xl font-bold text-steel-blue-dark">€4.2M</p>
+                  </div>
+                  <div className="text-center p-6 rounded-xl bg-white/50 backdrop-blur-sm border border-white/40 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <p className="text-gray-600 text-sm mb-2 font-medium">Valor Empresa</p>
+                    <p className="text-3xl font-bold text-steel-blue">€11.0M</p>
+                  </div>
+                  <div className="text-center p-6 rounded-xl bg-white/50 backdrop-blur-sm border border-white/40 shadow-lg hover:shadow-xl transition-all duration-300">
+                    <p className="text-gray-600 text-sm mb-2 font-medium">Menos: Deuda Neta</p>
+                    <p className="text-3xl font-bold text-gray-700">-€2.5M</p>
+                  </div>
                 </div>
               </div>
             </Card>
