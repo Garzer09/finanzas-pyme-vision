@@ -35,7 +35,7 @@ serve(async (req) => {
     const fileBuffer = await file.arrayBuffer()
     const base64Content = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)))
 
-    // Llamar a Anthropic para procesar el archivo
+    // Llamar a Claude para procesar el archivo financiero
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
     if (!anthropicKey) {
       return new Response('Anthropic API key not configured', { status: 500, headers: corsHeaders })
@@ -53,13 +53,74 @@ serve(async (req) => {
         max_tokens: 4000,
         messages: [{
           role: 'user',
-          content: `Analiza este archivo Excel financiero y extrae los datos estructurados de P&G, Balance y Flujo de Caja. 
-          Devuelve los datos en formato JSON con las siguientes estructuras:
-          - pyg: {ingresos, costes, ebitda, beneficio_neto, etc.}
-          - balance: {activo, pasivo, patrimonio_neto, etc.}
-          - cash_flow: {operativo, inversion, financiacion, etc.}
+          content: `Analiza este archivo Excel financiero y extrae los datos estructurados. 
           
-          El archivo está en base64: ${base64Content.substring(0, 1000)}...`
+          Busca específicamente:
+          1. **Estados Financieros**:
+             - Cuenta de Pérdidas y Ganancias (P&G)
+             - Balance de Situación
+             - Estado de Flujos de Efectivo
+             - Estado de Cambios en el Patrimonio Neto
+          
+          2. **Datos de Auditoría y Modelos**:
+             - Información de auditoría
+             - Modelos 200 IS, 303, 347
+             - CIRBE (Central de Información de Riesgos del Banco de España)
+             - AET+SS (Agencia Estatal de Administración Tributaria + Seguridad Social)
+          
+          3. **Pool Financiero**:
+             - Estructura de endeudamiento
+             - Amortización de deudas
+             - Tipo de interés por líneas de crédito
+             - Vencimientos y garantías
+          
+          4. **Ratios Financieros**:
+             - Ratios de liquidez
+             - Ratios de solvencia
+             - Ratios de rentabilidad
+             - Ratios de endeudamiento
+          
+          5. **Proyecciones y Análisis**:
+             - Proyecciones de flujo de caja
+             - Análisis de sensibilidad
+             - Escenarios optimista/pesimista/realista
+          
+          Devuelve los datos en formato JSON estructurado con estas categorías principales:
+          {
+            "estados_financieros": {
+              "pyg": {...},
+              "balance": {...},
+              "flujos_efectivo": {...},
+              "patrimonio_neto": {...}
+            },
+            "auditoria_modelos": {
+              "auditoria": {...},
+              "modelo_200": {...},
+              "modelo_303": {...},
+              "modelo_347": {...},
+              "cirbe": {...},
+              "aet_ss": {...}
+            },
+            "pool_financiero": {
+              "estructura_deuda": {...},
+              "amortizacion": {...},
+              "tipos_interes": {...},
+              "vencimientos": {...}
+            },
+            "ratios_financieros": {
+              "liquidez": {...},
+              "solvencia": {...},
+              "rentabilidad": {...},
+              "endeudamiento": {...}
+            },
+            "proyecciones": {
+              "flujos_futuros": {...},
+              "escenarios": {...},
+              "sensibilidad": {...}
+            }
+          }
+          
+          Archivo en base64: ${base64Content.substring(0, 2000)}...`
         }]
       })
     })
@@ -68,15 +129,18 @@ serve(async (req) => {
     let processedData = {}
     
     try {
-      // Intentar extraer JSON de la respuesta de Anthropic
+      // Intentar extraer JSON de la respuesta de Claude
       const content = anthropicResult.content[0].text
       const jsonMatch = content.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         processedData = JSON.parse(jsonMatch[0])
       }
     } catch (e) {
-      console.error('Error parsing Anthropic response:', e)
-      processedData = { error: 'No se pudo procesar el archivo automáticamente' }
+      console.error('Error parsing Claude response:', e)
+      processedData = { 
+        error: 'No se pudo procesar el archivo automáticamente',
+        raw_response: anthropicResult.content[0]?.text?.substring(0, 500) 
+      }
     }
 
     // Guardar el archivo en la base de datos
@@ -97,40 +161,57 @@ serve(async (req) => {
       throw fileError
     }
 
-    // Guardar los datos financieros procesados
+    // Guardar los datos financieros procesados de forma estructurada
     if (processedData && !processedData.error) {
       const financialDataInserts = []
       
-      if (processedData.pyg) {
-        financialDataInserts.push({
-          user_id: user.id,
-          excel_file_id: fileRecord.id,
-          data_type: 'pyg',
-          period_type: 'annual',
-          period_date: new Date().getFullYear() + '-12-31',
-          data_content: processedData.pyg
+      // Estados financieros
+      if (processedData.estados_financieros) {
+        Object.entries(processedData.estados_financieros).forEach(([type, data]) => {
+          financialDataInserts.push({
+            user_id: user.id,
+            excel_file_id: fileRecord.id,
+            data_type: `estado_${type}`,
+            period_type: 'annual',
+            period_date: new Date().getFullYear() + '-12-31',
+            data_content: data
+          })
         })
       }
       
-      if (processedData.balance) {
+      // Pool financiero
+      if (processedData.pool_financiero) {
         financialDataInserts.push({
           user_id: user.id,
           excel_file_id: fileRecord.id,
-          data_type: 'balance',
+          data_type: 'pool_financiero',
           period_type: 'annual',
           period_date: new Date().getFullYear() + '-12-31',
-          data_content: processedData.balance
+          data_content: processedData.pool_financiero
         })
       }
       
-      if (processedData.cash_flow) {
+      // Ratios financieros
+      if (processedData.ratios_financieros) {
         financialDataInserts.push({
           user_id: user.id,
           excel_file_id: fileRecord.id,
-          data_type: 'cash_flow',
+          data_type: 'ratios_financieros',
           period_type: 'annual',
           period_date: new Date().getFullYear() + '-12-31',
-          data_content: processedData.cash_flow
+          data_content: processedData.ratios_financieros
+        })
+      }
+      
+      // Proyecciones
+      if (processedData.proyecciones) {
+        financialDataInserts.push({
+          user_id: user.id,
+          excel_file_id: fileRecord.id,
+          data_type: 'proyecciones',
+          period_type: 'projection',
+          period_date: (new Date().getFullYear() + 3) + '-12-31',
+          data_content: processedData.proyecciones
         })
       }
       
@@ -145,15 +226,20 @@ serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         file_id: fileRecord.id,
-        processed_data: processedData 
+        processed_data: processedData,
+        message: 'Archivo procesado exitosamente con análisis financiero completo'
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       },
     )
   } catch (error) {
+    console.error('Error in process-excel function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: 'Error procesando archivo Excel con Claude'
+      }),
       { 
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
