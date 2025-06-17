@@ -6,24 +6,24 @@
 
 @layer base {
   :root {
-    /* Steel Blue and Light Gray Theme */
+    /* Next Consultor-IA Steel Blue and Light Gray Theme */
     --background: 0 0% 98%; /* Very light gray background */
-    --foreground: 216 13% 20%; /* Dark gray for text */
+    --foreground: 30 8% 15%; /* Darker text for better contrast */
 
     --card: 0 0% 100%; /* Pure white for cards */
-    --card-foreground: 216 13% 20%;
+    --card-foreground: 30 8% 15%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 216 13% 20%;
+    --popover-foreground: 30 8% 15%;
 
     --primary: 210 44% 45%; /* Steel Blue #4682B4 */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 210 9% 83%; /* Light Gray #D3D3D3 */
-    --secondary-foreground: 216 13% 20%;
+    --secondary-foreground: 30 8% 15%;
 
-    --muted: 210 9% 90%; /* Very light gray */
-    --muted-foreground: 215 16% 47%;
+    --muted: 210 9% 94%; /* Very light gray */
+    --muted-foreground: 215 16% 35%; /* Darker for better contrast */
 
     --accent: 210 44% 45%; /* Steel Blue accent */
     --accent-foreground: 0 0% 100%;
@@ -31,32 +31,42 @@
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
+    --border: 220 13% 88%; /* Slightly darker borders */
+    --input: 220 13% 88%;
     --ring: 210 44% 45%; /* Steel Blue for focus rings */
 
     --radius: 0.5rem;
 
-    /* Custom Steel Blue variations */
+    /* Custom Steel Blue variations - Enhanced for Next Consultor-IA */
     --steel-blue: 210 44% 45%; /* #4682B4 */
-    --steel-blue-light: 210 44% 85%;
-    --steel-blue-dark: 210 44% 35%;
+    --steel-blue-light: 210 44% 90%;
+    --steel-blue-dark: 210 44% 30%;
     
-    /* Custom Light Gray variations */
+    /* Custom Light Gray variations - Improved contrast */
     --light-gray: 210 9% 83%; /* #D3D3D3 */
-    --light-gray-50: 210 9% 95%;
-    --light-gray-100: 210 9% 90%;
-    --light-gray-200: 210 9% 83%;
-    --light-gray-300: 210 9% 75%;
+    --light-gray-50: 210 9% 97%;
+    --light-gray-100: 210 9% 92%;
+    --light-gray-200: 210 9% 85%;
+    --light-gray-300: 210 9% 70%;
 
     /* Chart colors based on steel blue palette */
     --chart-1: 210 44% 45%; /* Steel Blue */
     --chart-2: 210 44% 35%; /* Darker Steel Blue */
     --chart-3: 210 44% 55%; /* Lighter Steel Blue */
-    --chart-4: 210 9% 75%; /* Medium Gray */
-    --chart-5: 210 9% 60%; /* Darker Gray */
-    --chart-6: 210 44% 65%; /* Very Light Steel Blue */
-    --chart-7: 210 9% 40%; /* Dark Gray */
+    --chart-4: 210 9% 65%; /* Medium Gray */
+    --chart-5: 210 9% 50%; /* Darker Gray */
+    --chart-6: 210 44% 70%; /* Very Light Steel Blue */
+    --chart-7: 210 9% 35%; /* Dark Gray */
+
+    /* Sidebar specific colors */
+    --sidebar-background: 0 0% 100%; /* White sidebar */
+    --sidebar-foreground: 30 8% 15%; /* Dark text */
+    --sidebar-primary: 210 44% 45%; /* Steel Blue */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 9% 97%; /* Very light gray accent */
+    --sidebar-accent-foreground: 30 8% 15%;
+    --sidebar-border: 220 13% 88%;
+    --sidebar-ring: 210 44% 45%;
   }
 }
 
@@ -75,13 +85,13 @@
 
   h1 {
     @apply text-3xl font-bold tracking-tight;
-    color: hsl(var(--steel-blue-dark));
+    color: hsl(30 8% 15%); /* Darker for better contrast */
     line-height: 1.2;
   }
 
   h2 {
     @apply text-xl font-semibold;
-    color: hsl(var(--steel-blue));
+    color: hsl(var(--steel-blue-dark));
     line-height: 1.3;
   }
 
@@ -93,13 +103,28 @@
 
   h4 {
     @apply text-base font-medium;
-    color: hsl(var(--foreground));
+    color: hsl(30 8% 15%); /* Darker for better contrast */
     line-height: 1.4;
+  }
+
+  /* Enhanced text contrast for accessibility */
+  .text-professional {
+    @apply text-gray-800 leading-relaxed; /* Darker gray for better readability */
+  }
+
+  .text-emphasis {
+    @apply font-semibold;
+    color: hsl(var(--steel-blue-dark));
+  }
+
+  /* Better contrast for muted text */
+  .text-muted {
+    color: hsl(215 16% 35%); /* Darker muted text */
   }
 }
 
 @layer components {
-  /* Steel Blue Theme Components */
+  /* Next Consultor-IA Brand Components */
   .steel-blue-primary {
     background-color: hsl(var(--steel-blue));
     color: white;
@@ -118,48 +143,51 @@
     border-color: hsl(var(--light-gray-200));
   }
 
-  /* Enhanced card styles */
+  /* Enhanced card styles with better contrast */
   .dashboard-card {
-    @apply bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-all duration-300;
+    @apply bg-white border border-gray-300 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300;
     border-color: hsl(var(--light-gray-200));
   }
 
   .dashboard-card:hover {
     border-color: hsl(var(--steel-blue));
-    box-shadow: 0 4px 12px hsla(var(--steel-blue), 0.1);
+    box-shadow: 0 8px 25px hsla(var(--steel-blue), 0.15);
+    transform: translateY(-2px);
   }
 
-  /* Professional buttons */
+  /* Professional buttons with enhanced visibility */
   .btn-steel-primary {
     background-color: hsl(var(--steel-blue));
     color: white;
     border: none;
-    @apply px-6 py-2.5 rounded-lg font-medium transition-all duration-200;
+    @apply px-6 py-3 rounded-lg font-semibold transition-all duration-200 shadow-sm;
   }
 
   .btn-steel-primary:hover {
     background-color: hsl(var(--steel-blue-dark));
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px hsla(var(--steel-blue), 0.3);
+    box-shadow: 0 6px 20px hsla(var(--steel-blue), 0.4);
   }
 
   .btn-steel-secondary {
     background-color: transparent;
     color: hsl(var(--steel-blue));
     border: 2px solid hsl(var(--steel-blue));
-    @apply px-6 py-2 rounded-lg font-medium transition-all duration-200;
+    @apply px-6 py-2.5 rounded-lg font-semibold transition-all duration-200;
   }
 
   .btn-steel-secondary:hover {
     background-color: hsl(var(--steel-blue));
     color: white;
+    transform: translateY(-1px);
   }
 
-  /* Navigation styles */
+  /* Navigation styles with improved contrast */
   .nav-active {
-    background-color: hsl(var(--steel-blue-light));
+    background-color: hsl(210 44% 92%); /* Lighter blue background */
     color: hsl(var(--steel-blue-dark));
-    border-left: 3px solid hsl(var(--steel-blue));
+    border-left: 4px solid hsl(var(--steel-blue));
+    font-weight: 600;
   }
 
   .nav-hover:hover {
@@ -167,107 +195,140 @@
     color: hsl(var(--steel-blue));
   }
 
-  /* Status indicators */
+  /* Status indicators with better contrast */
   .status-positive {
-    color: #059669; /* Green-600 */
+    color: #047857; /* Darker green for better contrast */
     background-color: #ecfdf5; /* Green-50 */
+    border: 1px solid #a7f3d0; /* Green-200 */
   }
 
   .status-negative {
-    color: #dc2626; /* Red-600 */
+    color: #b91c1c; /* Darker red for better contrast */
     background-color: #fef2f2; /* Red-50 */
+    border: 1px solid #fecaca; /* Red-200 */
   }
 
   .status-neutral {
-    color: hsl(var(--steel-blue));
-    background-color: hsl(var(--steel-blue-light));
-  }
-
-  /* Professional spacing */
-  .professional-spacing {
-    @apply space-y-6;
-  }
-
-  .section-spacing {
-    @apply mb-8;
-  }
-
-  /* Enhanced typography */
-  .text-professional {
-    @apply text-gray-700 leading-relaxed;
-  }
-
-  .text-emphasis {
-    @apply font-semibold;
     color: hsl(var(--steel-blue-dark));
+    background-color: hsl(var(--steel-blue-light));
+    border: 1px solid hsl(var(--steel-blue));
   }
 
-  /* Sidebar specific styles */
+  /* Enhanced sidebar styles */
   .sidebar-steel {
     background-color: white;
     border-right: 1px solid hsl(var(--light-gray-200));
-    box-shadow: 2px 0 8px hsla(var(--steel-blue), 0.05);
+    box-shadow: 2px 0 12px hsla(var(--steel-blue), 0.08);
   }
 
-  /* Alert and notification styles */
+  /* Alert and notification styles with better contrast */
   .alert-info {
-    background-color: hsl(var(--steel-blue-light));
+    background-color: hsl(210 44% 95%);
     border: 1px solid hsl(var(--steel-blue));
     color: hsl(var(--steel-blue-dark));
   }
 
   .alert-success {
-    @apply bg-green-50 border-green-200 text-green-800;
+    @apply bg-green-50 border-green-300 text-green-800;
   }
 
   .alert-warning {
-    @apply bg-yellow-50 border-yellow-200 text-yellow-800;
+    @apply bg-yellow-50 border-yellow-300 text-yellow-800;
   }
 
   .alert-error {
-    @apply bg-red-50 border-red-200 text-red-800;
+    @apply bg-red-50 border-red-300 text-red-800;
+  }
+
+  /* Enhanced interactive elements */
+  .interactive-steel {
+    @apply transition-all duration-300 cursor-pointer;
+  }
+
+  .interactive-steel:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px hsla(var(--steel-blue), 0.2);
+  }
+
+  /* Focus states for accessibility */
+  .focus-steel:focus {
+    outline: 3px solid hsl(var(--steel-blue));
+    outline-offset: 2px;
+  }
+
+  /* Loading states */
+  .loading-shimmer {
+    background: linear-gradient(90deg, 
+      hsl(var(--light-gray-100)) 25%, 
+      hsl(var(--light-gray-50)) 50%, 
+      hsl(var(--light-gray-100)) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
   }
 }
 
-/* Responsive improvements */
+/* Professional spacing with better structure */
+.professional-spacing {
+  @apply space-y-8;
+}
+
+.section-spacing {
+  @apply mb-10;
+}
+
+/* Responsive improvements for mobile */
 @media (max-width: 768px) {
   .dashboard-card {
-    @apply mx-2 rounded-lg;
+    @apply mx-3 rounded-lg;
   }
   
   .professional-spacing {
-    @apply space-y-4;
+    @apply space-y-6;
+  }
+
+  h1 {
+    @apply text-2xl;
+  }
+
+  h2 {
+    @apply text-lg;
   }
 }
 
-/* Loading animations */
-.loading-shimmer {
-  background: linear-gradient(90deg, 
-    hsl(var(--light-gray-100)) 25%, 
-    hsl(var(--light-gray-50)) 50%, 
-    hsl(var(--light-gray-100)) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
+/* Animations */
 @keyframes shimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
 
-/* Focus states for accessibility */
-.focus-steel:focus {
-  outline: 2px solid hsl(var(--steel-blue));
-  outline-offset: 2px;
+/* Pulse animation for active states */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
-/* Interactive elements */
-.interactive-steel {
-  @apply transition-all duration-200 cursor-pointer;
+.animate-pulse-glow {
+  animation: pulse-glow 2s infinite;
 }
 
-.interactive-steel:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px hsla(var(--steel-blue), 0.15);
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --foreground: 0 0% 0%;
+    --muted-foreground: 0 0% 20%;
+    --border: 0 0% 30%;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .interactive-steel {
+    transform: none;
+    transition: none;
+  }
+  
+  .loading-shimmer {
+    animation: none;
+  }
 }
