@@ -120,27 +120,40 @@ export const DebtPoolModule = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-white" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+    <div className="flex min-h-screen bg-gradient-to-br from-light-gray-50 via-white to-steel-blue-light/20" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
         <DashboardHeader />
         
-        <main className="flex-1 p-6 space-y-6 overflow-auto bg-light-gray-50">
-          <section>
-            <div className="mb-6 flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Pool Bancario y Detalle del Endeudamiento</h1>
-                <p className="text-gray-600">Gestión y análisis detallado de todas las deudas financieras</p>
+        <main className="flex-1 p-6 space-y-8 overflow-auto">
+          {/* Header Section with Enhanced Glass Effect */}
+          <section className="relative">
+            <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel-blue/10 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-steel-blue/8 via-steel-blue-light/5 to-light-gray-100/8 rounded-3xl"></div>
+              {/* Enhanced glass reflection */}
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"></div>
+              <div className="absolute top-0 left-0 w-32 h-32 bg-steel-blue/10 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 right-0 w-40 h-40 bg-light-gray-200/8 rounded-full blur-3xl"></div>
+              
+              <div className="relative z-10">
+                <h1 className="text-4xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-steel-blue to-steel-blue-dark bg-clip-text text-transparent">
+                  Pool Bancario y Detalle del Endeudamiento
+                </h1>
+                <p className="text-gray-700 text-lg font-medium">Gestión y análisis detallado de todas las deudas financieras</p>
               </div>
-              <Button 
-                onClick={() => setShowAddForm(true)}
-                className="bg-steel-blue hover:bg-steel-blue-dark text-white"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Añadir Deuda
-              </Button>
             </div>
+          </section>
+
+          {/* Action Button */}
+          <section className="flex justify-end">
+            <Button 
+              onClick={() => setShowAddForm(true)}
+              className="bg-steel-blue/90 backdrop-blur-sm hover:bg-steel-blue hover:shadow-xl hover:shadow-steel-blue/20 text-white border border-white/20 transition-all duration-300 hover:-translate-y-1 rounded-2xl px-6 py-3"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Añadir Deuda
+            </Button>
           </section>
 
           {/* Resumen KPIs */}

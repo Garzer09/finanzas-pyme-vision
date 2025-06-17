@@ -28,99 +28,144 @@ export const MetodologiaSensibilidadModule = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-navy-800" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+    <div className="flex min-h-screen bg-gradient-to-br from-light-gray-50 via-white to-steel-blue-light/20" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
         <DashboardHeader />
         
-        <main className="flex-1 p-6 space-y-6 overflow-auto">
-          <div className="data-wave-bg absolute inset-0 pointer-events-none opacity-10" />
-          
-          <section className="relative z-10">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-white mb-2">6.1. Metodología de Análisis de Sensibilidad</h1>
-              <p className="text-gray-400">Análisis del impacto de variables clave en los resultados financieros</p>
+        <main className="flex-1 p-6 space-y-8 overflow-auto">
+          {/* Header Section with Enhanced Glass Effect */}
+          <section className="relative">
+            <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel-blue/10 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-steel-blue/8 via-steel-blue-light/5 to-light-gray-100/8 rounded-3xl"></div>
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"></div>
+              <div className="absolute top-0 left-0 w-32 h-32 bg-steel-blue/10 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 right-0 w-40 h-40 bg-light-gray-200/8 rounded-full blur-3xl"></div>
+              
+              <div className="relative z-10">
+                <h1 className="text-4xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-steel-blue to-steel-blue-dark bg-clip-text text-transparent">
+                  6.1. Metodología de Análisis de Sensibilidad
+                </h1>
+                <p className="text-gray-700 text-lg font-medium">Análisis del impacto de variables clave en los resultados financieros</p>
+              </div>
             </div>
           </section>
 
-          <section className="relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50 p-6">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Target className="h-5 w-5 text-teal-400" />
+          {/* Enhanced Charts Grid */}
+          <section>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Variables Simulator */}
+              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel-blue/30 rounded-3xl p-8 shadow-2xl hover:shadow-2xl hover:shadow-steel-blue/20 transition-all duration-500 group overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-steel-blue/5 via-white/20 to-light-gray-100/5 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+                <div className="absolute top-4 left-4 w-24 h-24 bg-steel-blue/10 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-4 right-4 w-32 h-32 bg-light-gray-200/8 rounded-full blur-3xl"></div>
+                
+                <CardHeader className="relative z-10">
+                  <CardTitle className="text-gray-900 flex items-center gap-3">
+                    <div className="p-3 rounded-2xl bg-steel-blue/20 backdrop-blur-sm border border-steel-blue/30 shadow-xl">
+                      <Target className="h-6 w-6 text-steel-blue-dark" />
+                    </div>
                     Simulador de Variables
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Variación de Ventas: {ventasVariacion[0] > 0 ? '+' : ''}{ventasVariacion[0]}%
-                    </label>
-                    <Slider
-                      value={ventasVariacion}
-                      onValueChange={setVentasVariacion}
-                      max={30}
-                      min={-30}
-                      step={1}
-                      className="w-full"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Variación de Costes: {costesVariacion[0] > 0 ? '+' : ''}{costesVariacion[0]}%
-                    </label>
-                    <Slider
-                      value={costesVariacion}
-                      onValueChange={setCostesVariacion}
-                      max={20}
-                      min={-20}
-                      step={1}
-                      className="w-full"
-                    />
-                  </div>
+                <CardContent className="space-y-8 relative z-10">
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-3">
+                        Variación de Ventas: {ventasVariacion[0] > 0 ? '+' : ''}{ventasVariacion[0]}%
+                      </label>
+                      <Slider
+                        value={ventasVariacion}
+                        onValueChange={setVentasVariacion}
+                        max={30}
+                        min={-30}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-900 mb-3">
+                        Variación de Costes: {costesVariacion[0] > 0 ? '+' : ''}{costesVariacion[0]}%
+                      </label>
+                      <Slider
+                        value={costesVariacion}
+                        onValueChange={setCostesVariacion}
+                        max={20}
+                        min={-20}
+                        step={1}
+                        className="w-full"
+                      />
+                    </div>
 
-                  <div className="bg-gray-700/50 p-4 rounded-lg">
-                    <h4 className="text-white font-semibold mb-2">Impacto Simulado</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-gray-300">
-                        <span>EBITDA Base:</span>
-                        <span>€450K</span>
-                      </div>
-                      <div className="flex justify-between text-teal-300">
-                        <span>EBITDA Simulado:</span>
-                        <span>€{(450 + (ventasVariacion[0] * 25) - (costesVariacion[0] * 15)).toFixed(0)}K</span>
+                    <div className="bg-white/60 backdrop-blur-sm p-6 rounded-2xl border border-white/50 shadow-lg">
+                      <h4 className="text-gray-900 font-semibold mb-4">Impacto Simulado</h4>
+                      <div className="space-y-3">
+                        <div className="flex justify-between text-gray-700">
+                          <span>EBITDA Base:</span>
+                          <span className="font-bold">€450K</span>
+                        </div>
+                        <div className="flex justify-between text-steel-blue">
+                          <span>EBITDA Simulado:</span>
+                          <span className="font-bold">€{(450 + (ventasVariacion[0] * 25) - (costesVariacion[0] * 15)).toFixed(0)}K</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50 p-6">
-                <CardHeader>
-                  <CardTitle className="text-white flex items-center gap-2">
-                    <Calculator className="h-5 w-5 text-emerald-400" />
+              {/* Scenarios Analysis */}
+              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel-blue/30 rounded-3xl p-8 shadow-2xl hover:shadow-2xl hover:shadow-steel-blue/20 transition-all duration-500 group overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-light-gray-100/5 via-white/20 to-steel-blue/5 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+                <div className="absolute top-4 right-4 w-28 h-28 bg-light-gray-200/8 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-4 left-4 w-24 h-24 bg-steel-blue/10 rounded-full blur-3xl"></div>
+                
+                <CardHeader className="relative z-10">
+                  <CardTitle className="text-gray-900 flex items-center gap-3">
+                    <div className="p-3 rounded-2xl bg-steel-blue-light/20 backdrop-blur-sm border border-steel-blue-light/30 shadow-xl">
+                      <Calculator className="h-6 w-6 text-steel-blue" />
+                    </div>
                     Escenarios de Análisis
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
-                  <div className="h-80">
+                <CardContent className="relative z-10">
+                  <div className="h-80 relative">
+                    <div className="absolute inset-0 bg-white/30 backdrop-blur-sm rounded-2xl border border-white/40"></div>
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={escenarios}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                        <XAxis dataKey="escenario" stroke="#9CA3AF" />
-                        <YAxis stroke="#9CA3AF" />
+                        <defs>
+                          <linearGradient id="escenariosGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#10B981" stopOpacity={0.8}/>
+                            <stop offset="100%" stopColor="#34D399" stopOpacity={0.6}/>
+                          </linearGradient>
+                          <filter id="escenariosShadow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#10B981" floodOpacity="0.2"/>
+                          </filter>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                        <XAxis dataKey="escenario" stroke="#6B7280" />
+                        <YAxis stroke="#6B7280" />
                         <Tooltip 
                           contentStyle={{ 
-                            backgroundColor: '#1F2937', 
-                            border: '1px solid #374151',
-                            borderRadius: '8px',
-                            color: '#fff'
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                            border: '1px solid rgba(255, 255, 255, 0.4)',
+                            borderRadius: '16px',
+                            color: '#374151',
+                            backdropFilter: 'blur(20px)',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
                           }} 
                         />
-                        <Bar dataKey="ebitda" fill="#10B981" name="EBITDA (K€)" />
+                        <Bar 
+                          dataKey="ebitda" 
+                          fill="url(#escenariosGradient)" 
+                          name="EBITDA (K€)" 
+                          radius={[8, 8, 0, 0]} 
+                          filter="url(#escenariosShadow)"
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -129,30 +174,56 @@ export const MetodologiaSensibilidadModule = () => {
             </div>
           </section>
 
-          <section className="relative z-10">
-            <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50 p-6">
-              <CardHeader>
-                <CardTitle className="text-white flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-orange-400" />
+          {/* Enhanced Sensitivity Analysis */}
+          <section>
+            <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel-blue/30 rounded-3xl p-8 shadow-2xl hover:shadow-2xl hover:shadow-steel-blue/20 transition-all duration-500 group overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-steel-blue/3 via-white/20 to-light-gray-100/5 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+              <div className="absolute top-6 right-6 w-32 h-32 bg-steel-blue/8 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-6 left-6 w-40 h-40 bg-light-gray-200/6 rounded-full blur-3xl"></div>
+              
+              <CardHeader className="relative z-10">
+                <CardTitle className="text-gray-900 flex items-center gap-3">
+                  <div className="p-3 rounded-2xl bg-steel-blue/20 backdrop-blur-sm border border-steel-blue/30 shadow-xl">
+                    <AlertTriangle className="h-6 w-6 text-steel-blue-dark" />
+                  </div>
                   Análisis de Sensibilidad por Variable
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-80">
+              <CardContent className="relative z-10">
+                <div className="h-80 relative">
+                  <div className="absolute inset-0 bg-white/30 backdrop-blur-sm rounded-2xl border border-white/40"></div>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={sensibilidadData} layout="horizontal">
-                      <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                      <XAxis type="number" stroke="#9CA3AF" />
-                      <YAxis dataKey="variable" type="category" stroke="#9CA3AF" width={100} />
+                      <defs>
+                        <linearGradient id="sensibilidadGradient" x1="0" y1="0" x2="1" y2="0">
+                          <stop offset="0%" stopColor="#F59E0B" stopOpacity={0.8}/>
+                          <stop offset="100%" stopColor="#FBBF24" stopOpacity={0.6}/>
+                        </linearGradient>
+                        <filter id="sensibilidadShadow" x="-50%" y="-50%" width="200%" height="200%">
+                          <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor="#F59E0B" floodOpacity="0.2"/>
+                        </filter>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                      <XAxis type="number" stroke="#6B7280" />
+                      <YAxis dataKey="variable" type="category" stroke="#6B7280" width={100} />
                       <Tooltip 
                         contentStyle={{ 
-                          backgroundColor: '#1F2937', 
-                          border: '1px solid #374151',
-                          borderRadius: '8px',
-                          color: '#fff'
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                          border: '1px solid rgba(255, 255, 255, 0.4)',
+                          borderRadius: '16px',
+                          color: '#374151',
+                          backdropFilter: 'blur(20px)',
+                          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
                         }} 
                       />
-                      <Bar dataKey="impacto" fill="#F59E0B" name="Impacto EBITDA (K€)" />
+                      <Bar 
+                        dataKey="impacto" 
+                        fill="url(#sensibilidadGradient)" 
+                        name="Impacto EBITDA (K€)" 
+                        radius={[0, 8, 8, 0]} 
+                        filter="url(#sensibilidadShadow)"
+                      />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
