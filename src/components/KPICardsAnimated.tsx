@@ -20,10 +20,9 @@ export const KPICardsAnimated = () => {
       change: '+15%',
       sparklineData: liquidityData,
       icon: Droplets,
-      color: 'text-blue-400',
-      bgGradient: 'from-blue-500/30 to-cyan-500/30',
-      borderColor: 'border-blue-400/50',
-      sparklineColor: '#60a5fa'
+      bgColor: 'bg-steel-blue-light',
+      borderColor: 'border-steel-blue/30',
+      sparklineColor: 'hsl(var(--steel-blue))'
     },
     {
       title: 'Rentabilidad Neta',
@@ -35,10 +34,9 @@ export const KPICardsAnimated = () => {
       change: '+3.2%',
       sparklineData: profitabilityData,
       icon: Percent,
-      color: 'text-emerald-400',
-      bgGradient: 'from-emerald-500/30 to-teal-500/30',
-      borderColor: 'border-emerald-400/50',
-      sparklineColor: '#34d399'
+      bgColor: 'bg-light-gray-100',
+      borderColor: 'border-light-gray-200',
+      sparklineColor: 'hsl(var(--steel-blue-dark))'
     },
     {
       title: 'Endeudamiento',
@@ -50,32 +48,31 @@ export const KPICardsAnimated = () => {
       change: '-0.15',
       sparklineData: debtData,
       icon: PieChart,
-      color: 'text-orange-400',
-      bgGradient: 'from-orange-500/30 to-red-500/30',
-      borderColor: 'border-orange-400/50',
-      sparklineColor: '#fb923c'
+      bgColor: 'bg-steel-blue-light',
+      borderColor: 'border-steel-blue/30',
+      sparklineColor: 'hsl(var(--steel-blue))'
     }
   ];
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case 'up':
-        return <TrendingUp className="h-4 w-4 text-emerald-400" />;
+        return <TrendingUp className="h-4 w-4 text-green-700" />;
       case 'down':
-        return <TrendingDown className="h-4 w-4 text-red-400" />;
+        return <TrendingDown className="h-4 w-4 text-red-600" />;
       default:
-        return <Minus className="h-4 w-4 text-gray-400" />;
+        return <Minus className="h-4 w-4 text-gray-600" />;
     }
   };
 
   const getTrendColor = (trend: string) => {
     switch (trend) {
       case 'up':
-        return 'text-emerald-400';
+        return 'text-green-700';
       case 'down':
-        return 'text-red-400';
+        return 'text-red-600';
       default:
-        return 'text-gray-400';
+        return 'text-gray-600';
     }
   };
 
@@ -88,17 +85,17 @@ export const KPICardsAnimated = () => {
         return (
           <Card 
             key={index} 
-            className={`bg-gradient-to-br ${kpi.bgGradient} backdrop-blur-sm border ${kpi.borderColor} hover:scale-105 transition-all duration-300 animate-fade-in group p-6`}
+            className={`${kpi.bgColor} border ${kpi.borderColor} hover:border-steel-blue hover:shadow-lg transition-all duration-300 animate-fade-in group p-6`}
             style={{ animationDelay: `${index * 100}ms` }}
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg bg-white/10 border border-white/20`}>
-                  <Icon className={`h-5 w-5 ${kpi.color}`} />
+                <div className="p-2 rounded-lg bg-white/80 border border-steel-blue/20">
+                  <Icon className="h-5 w-5 text-steel-blue-dark" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-white">{kpi.title}</h3>
-                  <p className="text-sm text-gray-300">{kpi.subtitle}</p>
+                  <h3 className="font-semibold text-gray-900">{kpi.title}</h3>
+                  <p className="text-sm text-gray-600">{kpi.subtitle}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -111,27 +108,27 @@ export const KPICardsAnimated = () => {
 
             <div className="space-y-4">
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-white">
+                <span className="text-2xl font-bold text-gray-900">
                   {kpi.current.toFixed(kpi.unit === '%' ? 1 : 2)}
                 </span>
-                <span className="text-lg text-gray-300">{kpi.unit}</span>
-                <span className="text-sm text-gray-400 ml-auto">
+                <span className="text-lg text-gray-600">{kpi.unit}</span>
+                <span className="text-sm text-gray-500 ml-auto">
                   Meta: {kpi.target}{kpi.unit}
                 </span>
               </div>
 
               {/* Barra de progreso */}
               <div className="relative">
-                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                   <div 
-                    className={`h-full bg-gradient-to-r ${kpi.bgGradient} transition-all duration-1000 ease-out opacity-80`}
+                    className="h-full bg-steel-blue transition-all duration-1000 ease-out"
                     style={{ 
                       width: `${Math.min(progressPercentage, 100)}%`,
                       animationDelay: `${index * 200}ms`
                     }}
                   />
                 </div>
-                <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
                   <span>0</span>
                   <span>{kpi.target}{kpi.unit}</span>
                 </div>

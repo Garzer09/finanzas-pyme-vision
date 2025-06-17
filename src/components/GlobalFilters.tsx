@@ -25,19 +25,19 @@ export const GlobalFilters = () => {
   ];
 
   return (
-    <Card className="bg-card/30 backdrop-blur-sm border border-border/50 p-4">
+    <Card className="bg-white border border-light-gray-200 p-4 shadow-sm">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         {/* Título */}
         <div className="flex items-center gap-2">
-          <Filter className="h-5 w-5 text-teal-400" />
-          <span className="font-medium text-foreground">Filtros Globales</span>
+          <Filter className="h-5 w-5 text-steel-blue" />
+          <span className="font-semibold text-gray-900">Filtros Globales</span>
         </div>
 
         {/* Filtros */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full lg:w-auto">
           {/* Filtro de Período */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm text-muted-foreground flex items-center gap-1">
+            <label className="text-sm text-gray-600 flex items-center gap-1 font-medium">
               <CalendarDays className="h-4 w-4" />
               Período
             </label>
@@ -50,8 +50,8 @@ export const GlobalFilters = () => {
                   onClick={() => setSelectedPeriod(period.value)}
                   className={`text-xs transition-all duration-200 ${
                     selectedPeriod === period.value
-                      ? 'bg-teal-500 hover:bg-teal-600 text-white border-teal-500'
-                      : 'bg-card/50 hover:bg-teal-500/20 border-border/50 hover:border-teal-500/50'
+                      ? 'bg-steel-blue hover:bg-steel-blue-dark text-white border-steel-blue'
+                      : 'bg-white hover:bg-steel-blue-light border-light-gray-200 hover:border-steel-blue text-gray-700 hover:text-steel-blue-dark'
                   }`}
                 >
                   {period.label}
@@ -62,7 +62,7 @@ export const GlobalFilters = () => {
 
           {/* Filtro de Segmento */}
           <div className="flex flex-col gap-2">
-            <label className="text-sm text-muted-foreground flex items-center gap-1">
+            <label className="text-sm text-gray-600 flex items-center gap-1 font-medium">
               <TrendingUp className="h-4 w-4" />
               Segmento
             </label>
@@ -75,8 +75,8 @@ export const GlobalFilters = () => {
                   onClick={() => setSelectedSegment(segment.value)}
                   className={`text-xs transition-all duration-200 ${
                     selectedSegment === segment.value
-                      ? 'bg-coral-500 hover:bg-coral-600 text-white border-coral-500'
-                      : 'bg-card/50 hover:bg-coral-500/20 border-border/50 hover:border-coral-500/50'
+                      ? 'bg-steel-blue-dark hover:bg-steel-blue text-white border-steel-blue-dark'
+                      : 'bg-white hover:bg-light-gray-100 border-light-gray-200 hover:border-steel-blue text-gray-700 hover:text-steel-blue-dark'
                   }`}
                 >
                   {segment.label}
@@ -95,7 +95,7 @@ export const GlobalFilters = () => {
               setSelectedPeriod('ytd');
               setSelectedSegment('all');
             }}
-            className="bg-card/50 hover:bg-card/70 border-border/50"
+            className="bg-white hover:bg-light-gray-100 border-light-gray-200 text-gray-700 hover:text-steel-blue-dark"
           >
             Reset
           </Button>
