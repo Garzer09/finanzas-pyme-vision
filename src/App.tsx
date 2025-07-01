@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +7,11 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ExcelUploadPage from "./pages/ExcelUploadPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
+// Core Financial Analysis Pages
+import { CuentaPyGPage } from "./pages/CuentaPyGPage";
+import { BalanceSituacionPage } from "./pages/BalanceSituacionPage";
+import { RatiosFinancierosPage } from "./pages/RatiosFinancierosPage";
+// Existing modules
 import { KeyFinancialAssumptionsModule } from "./components/modules/KeyFinancialAssumptionsModule";
 import { FinancialAnalysisModule } from "./components/modules/FinancialAnalysisModule";
 import { ProjectionsModule } from "./components/modules/ProjectionsModule";
@@ -37,6 +41,11 @@ const App = () => (
           <Route path="/subir-excel" element={<ExcelUploadPage />} />
           <Route path="/suscripcion" element={<SubscriptionPage />} />
           <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
+          
+          {/* Core Financial Analysis - NEW */}
+          <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />
+          <Route path="/balance-situacion" element={<BalanceSituacionPage />} />
+          <Route path="/ratios-financieros" element={<RatiosFinancierosPage />} />
           
           {/* Sección 3 - Situación Actual */}
           <Route path="/situacion-actual" element={<SituacionActualModule />} />

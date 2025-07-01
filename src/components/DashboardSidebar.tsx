@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
@@ -35,7 +34,7 @@ import { cn } from '@/lib/utils';
 export const DashboardSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
-    situacion: false,
+    situacion: true,
     supuestos: false,
     proyecciones: false,
     sensibilidad: false,
@@ -76,73 +75,73 @@ export const DashboardSidebar = () => {
       ]
     },
     {
-      title: '3. Situación Actual (Año 0)',
+      title: '3. Análisis Situación Actual',
       key: 'situacion',
       expandable: true,
       items: [
         {
-          path: '/pyg-actual',
-          label: '3.1. P&G Actual (PGC)',
+          path: '/cuenta-pyg',
+          label: 'Cuenta P&G',
           icon: FileText,
           color: 'text-steel-500'
         },
         {
-          path: '/pyg-analitico-actual',
-          label: '3.2. P&G Analítico Actual',
-          icon: BarChart3,
-          color: 'text-cadet-500'
-        },
-        {
-          path: '/balance-actual',
-          label: '3.3. Balance Actual (PGC)',
+          path: '/balance-situacion',
+          label: 'Balance Situación',
           icon: CreditCard,
           color: 'text-steel-600'
         },
         {
-          path: '/flujos-actual',
-          label: '3.4. Flujos de Caja Actual',
-          icon: Wallet,
-          color: 'text-success-600'
-        },
-        {
-          path: '/ratios-actual',
-          label: '3.5. Ratios Financieros',
+          path: '/ratios-financieros',
+          label: 'Ratios Financieros',
           icon: Activity,
           color: 'text-warning-600'
         },
         {
+          path: '/pyg-analitico-actual',
+          label: 'P&G Analítico Actual',
+          icon: BarChart3,
+          color: 'text-cadet-500'
+        },
+        {
+          path: '/flujos-actual',
+          label: 'Flujos de Caja Actual',
+          icon: Wallet,
+          color: 'text-success-600'
+        },
+        {
           path: '/punto-muerto-actual',
-          label: '3.6. Punto Muerto Actual',
+          label: 'Punto Muerto Actual',
           icon: Target,
           color: 'text-danger-500'
         },
         {
           path: '/endeudamiento-actual',
-          label: '3.7. Endeudamiento Actual',
+          label: 'Endeudamiento Actual',
           icon: Database,
           color: 'text-steel-700'
         },
         {
           path: '/servicio-deuda-actual',
-          label: '3.8. Servicio Deuda Actual',
+          label: 'Servicio Deuda Actual',
           icon: AlertTriangle,
           color: 'text-warning-500'
         },
         {
           path: '/tesoreria-actual',
-          label: '3.9. Tesorería Actual',
+          label: 'Tesorería Actual',
           icon: DollarSign,
           color: 'text-success-500'
         },
         {
           path: '/nof-actual',
-          label: '3.10. NOF Actual',
+          label: 'NOF Actual',
           icon: CircleDot,
           color: 'text-cadet-600'
         },
         {
           path: '/segmentos-actual',
-          label: '3.11. Ventas por Segmentos',
+          label: 'Ventas por Segmentos',
           icon: Users,
           color: 'text-steel-400'
         }
@@ -320,8 +319,8 @@ export const DashboardSidebar = () => {
               <TrendingUp className="h-5 w-5 text-white" />
             </div>
             <div>
-              <span className="font-bold text-slate-900 text-lg tracking-tight">Next Consultor-IA</span>
-              <p className="text-sm text-slate-600 font-medium">Análisis Financiero Profesional</p>
+              <span className="font-bold text-slate-900 text-lg tracking-tight">FinSight Pro</span>
+              <p className="text-sm text-slate-600 font-medium">Análisis Financiero Integral</p>
             </div>
           </div>
         )}
