@@ -22,3 +22,5 @@ export { PremisasIngresosModule } from './PremisasIngresosModule';
 export { MetodologiaSensibilidadModule } from './MetodologiaSensibilidadModule';
 export { EVAValuationModule } from './EVAValuationModule';
 export { RentabilityModule } from './RentabilityModule';
+export { ConclusionsModule } from './ConclusionsModule';
+export { FinancialDashboardEnhancer } from './FinancialDashboardEnhancer';

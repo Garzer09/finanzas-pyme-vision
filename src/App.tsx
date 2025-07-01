@@ -33,6 +33,7 @@ import { FinancialRatiosCurrentModule } from "./components/modules/FinancialRati
 import { CompanyDescriptionModule } from "./components/modules/CompanyDescriptionModule";
 import { AnalyticalPLCurrentModule } from "./components/modules/AnalyticalPLCurrentModule";
 import { RentabilityModule } from "./components/modules/RentabilityModule";
+import ConclusionsPage from "./pages/ConclusionsPage";
 
 const queryClient = new QueryClient();
 
@@ -104,6 +105,9 @@ const App = () => (
           
           {/* Simulador */}
           <Route path="/simulador" element={<SimulatorModule />} />
+          
+          {/* Conclusiones */}
+          <Route path="/conclusiones" element={<ConclusionsPage />} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>

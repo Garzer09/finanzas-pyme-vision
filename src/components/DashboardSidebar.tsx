@@ -294,6 +294,17 @@ export const DashboardSidebar = () => {
           color: 'text-steel-700'
         }
       ]
+    },
+    {
+      title: '8. Conclusiones',
+      items: [
+        {
+          path: '/conclusiones',
+          label: 'Conclusiones y Recomendaciones',
+          icon: FileText,
+          color: 'text-steel-600'
+        }
+      ]
     }
   ];
 

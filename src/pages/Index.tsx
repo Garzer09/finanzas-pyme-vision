@@ -1,11 +1,7 @@
 
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { CompanyHealthStatus } from '@/components/CompanyHealthStatus';
-import { ExecutiveSummaryKPIs } from '@/components/ExecutiveSummaryKPIs';
-import { GlobalFilters } from '@/components/GlobalFilters';
-import { MainCharts } from '@/components/MainCharts';
-import { AlertPanel } from '@/components/AlertPanel';
+import { FinancialDashboardEnhancer } from '@/components/modules/FinancialDashboardEnhancer';
 import { ModuleAccessControl } from '@/components/ModuleAccessControl';
 import { Card } from '@/components/ui/card';
 import { Upload, Settings, FileText, TrendingUp } from 'lucide-react';
@@ -54,21 +50,7 @@ const Index = () => {
           </section>
 
           <ModuleAccessControl moduleId="resumen-ejecutivo">
-            <section className="relative z-10">
-              <CompanyHealthStatus />
-            </section>
-            
-            <section className="relative z-10">
-              <ExecutiveSummaryKPIs />
-            </section>
-            
-            <section className="relative z-10">
-              <GlobalFilters />
-            </section>
-            
-            <section className="relative z-10">
-              <MainCharts />
-            </section>
+            <FinancialDashboardEnhancer />
 
             {/* Resumen Ejecutivo Text Section */}
             <section className="relative z-10">
@@ -160,9 +142,6 @@ const Index = () => {
               </Card>
             </section>
             
-            <section className="relative z-10">
-              <AlertPanel />
-            </section>
           </ModuleAccessControl>
         </main>
       </div>
