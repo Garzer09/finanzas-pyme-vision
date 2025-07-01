@@ -98,46 +98,46 @@ export const DashboardSidebar = () => {
           color: 'text-warning-600'
         },
         {
+          path: '/flujos-caja',
+          label: 'Estado Flujos Caja',
+          icon: Wallet,
+          color: 'text-success-600'
+        },
+        {
+          path: '/analisis-nof',
+          label: 'Análisis NOF',
+          icon: CircleDot,
+          color: 'text-cadet-600'
+        },
+        {
+          path: '/punto-muerto',
+          label: 'Punto Muerto',
+          icon: Target,
+          color: 'text-danger-500'
+        },
+        {
+          path: '/endeudamiento',
+          label: 'Endeudamiento',
+          icon: Database,
+          color: 'text-steel-700'
+        },
+        {
+          path: '/servicio-deuda',
+          label: 'Servicio Deuda',
+          icon: AlertTriangle,
+          color: 'text-warning-500'
+        },
+        {
           path: '/pyg-analitico-actual',
           label: 'P&G Analítico Actual',
           icon: BarChart3,
           color: 'text-cadet-500'
         },
         {
-          path: '/flujos-actual',
-          label: 'Flujos de Caja Actual',
-          icon: Wallet,
-          color: 'text-success-600'
-        },
-        {
-          path: '/punto-muerto-actual',
-          label: 'Punto Muerto Actual',
-          icon: Target,
-          color: 'text-danger-500'
-        },
-        {
-          path: '/endeudamiento-actual',
-          label: 'Endeudamiento Actual',
-          icon: Database,
-          color: 'text-steel-700'
-        },
-        {
-          path: '/servicio-deuda-actual',
-          label: 'Servicio Deuda Actual',
-          icon: AlertTriangle,
-          color: 'text-warning-500'
-        },
-        {
           path: '/tesoreria-actual',
           label: 'Tesorería Actual',
           icon: DollarSign,
           color: 'text-success-500'
-        },
-        {
-          path: '/nof-actual',
-          label: 'NOF Actual',
-          icon: CircleDot,
-          color: 'text-cadet-600'
         },
         {
           path: '/segmentos-actual',

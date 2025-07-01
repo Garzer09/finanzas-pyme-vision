@@ -11,6 +11,12 @@ import SubscriptionPage from "./pages/SubscriptionPage";
 import { CuentaPyGPage } from "./pages/CuentaPyGPage";
 import { BalanceSituacionPage } from "./pages/BalanceSituacionPage";
 import { RatiosFinancierosPage } from "./pages/RatiosFinancierosPage";
+// Advanced Financial Analysis Pages
+import CashFlowPage from "./pages/CashFlowPage";
+import NOFAnalysisPage from "./pages/NOFAnalysisPage";
+import BreakEvenPage from "./pages/BreakEvenPage";
+import DebtPoolPage from "./pages/DebtPoolPage";
+import DebtServicePage from "./pages/DebtServicePage";
 // Existing modules
 import { KeyFinancialAssumptionsModule } from "./components/modules/KeyFinancialAssumptionsModule";
 import { FinancialAnalysisModule } from "./components/modules/FinancialAnalysisModule";
@@ -42,10 +48,17 @@ const App = () => (
           <Route path="/suscripcion" element={<SubscriptionPage />} />
           <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
           
-          {/* Core Financial Analysis - NEW */}
+          {/* Core Financial Analysis */}
           <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />
           <Route path="/balance-situacion" element={<BalanceSituacionPage />} />
           <Route path="/ratios-financieros" element={<RatiosFinancierosPage />} />
+          
+          {/* Advanced Financial Analysis - NEW */}
+          <Route path="/flujos-caja" element={<CashFlowPage />} />
+          <Route path="/analisis-nof" element={<NOFAnalysisPage />} />
+          <Route path="/punto-muerto" element={<BreakEvenPage />} />
+          <Route path="/endeudamiento" element={<DebtPoolPage />} />
+          <Route path="/servicio-deuda" element={<DebtServicePage />} />
           
           {/* Sección 3 - Situación Actual */}
           <Route path="/situacion-actual" element={<SituacionActualModule />} />
