@@ -21,6 +21,8 @@ import { ProfitLossCurrentModule } from "./components/modules/ProfitLossCurrentM
 import { BalanceSheetCurrentModule } from "./components/modules/BalanceSheetCurrentModule";
 import { FinancialRatiosCurrentModule } from "./components/modules/FinancialRatiosCurrentModule";
 import { CompanyDescriptionModule } from "./components/modules/CompanyDescriptionModule";
+import { AnalyticalPLCurrentModule } from "./components/modules/AnalyticalPLCurrentModule";
+import { RentabilityModule } from "./components/modules/RentabilityModule";
 
 const queryClient = new QueryClient();
 
@@ -40,11 +42,11 @@ const App = () => (
             {/* Sección 3 - Situación Actual */}
             <Route path="/situacion-actual" element={<SituacionActualModule />} />
             <Route path="/pyg-actual" element={<ProfitLossCurrentModule />} />
-            <Route path="/pyg-analitico-actual" element={<FinancialAnalysisModule />} />
+            <Route path="/pyg-analitico-actual" element={<AnalyticalPLCurrentModule />} />
             <Route path="/balance-actual" element={<BalanceSheetCurrentModule />} />
             <Route path="/flujos-actual" element={<FinancialAnalysisModule />} />
             <Route path="/ratios-actual" element={<FinancialRatiosCurrentModule />} />
-            <Route path="/punto-muerto-actual" element={<FinancialAnalysisModule />} />
+            <Route path="/punto-muerto-actual" element={<RentabilityModule />} />
             <Route path="/endeudamiento-actual" element={<FinancialAnalysisModule />} />
             <Route path="/servicio-deuda-actual" element={<FinancialAnalysisModule />} />
             <Route path="/tesoreria-actual" element={<FinancialAnalysisModule />} />
