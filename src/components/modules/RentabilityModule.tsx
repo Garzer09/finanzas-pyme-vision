@@ -283,6 +283,3 @@ export const RentabilityModule = () => {
     </div>
   );
 };
-
-// Importamos el componente AlertCircle que necesitamos
-import { AlertCircle } from 'lucide-react';
