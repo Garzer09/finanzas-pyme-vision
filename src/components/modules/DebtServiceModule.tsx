@@ -1,6 +1,7 @@
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { Card } from '@/components/ui/card';
+import { ModernKPICard } from '@/components/ui/modern-kpi-card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,93 +72,76 @@ export const DebtServiceModule = () => {
     return 'text-steel-blue-dark';
   };
 
+  const kpiData = [
+    {
+      title: 'Servicio de Deuda Anual',
+      value: '€353K',
+      subtitle: 'Principal + intereses',
+      trend: 'neutral' as const,  
+      trendValue: '0%',
+      icon: CreditCard,
+      variant: 'default' as const
+    },
+    {
+      title: 'DSCR Promedio',
+      value: '1.18x',
+      subtitle: 'Cobertura media',
+      trend: dscrPromedio >= 1.2 ? 'up' as const : 'down' as const,
+      trendValue: dscrPromedio >= 1.2 ? 'Bueno' : 'Mejorable',
+      icon: Calculator,
+      variant: dscrPromedio >= 1.2 ? 'success' as const : 'warning' as const
+    },
+    {
+      title: 'DSCR Mínimo',
+      value: '0.96x',
+      subtitle: 'Peor mes del año',
+      trend: 'down' as const,
+      trendValue: 'Riesgo',
+      icon: AlertTriangle,
+      variant: 'danger' as const
+    },
+    {
+      title: 'Meses en Riesgo',
+      value: '1',
+      subtitle: 'DSCR menor a 1.0',
+      trend: 'down' as const,
+      trendValue: 'Crítico',
+      icon: Shield,
+      variant: 'danger' as const
+    }
+  ];
+
   return (
-    <div className="flex min-h-screen bg-white" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
         <DashboardHeader />
         
-        <main className="flex-1 p-6 space-y-6 overflow-auto bg-light-gray-50">
-          <section>
-            <div className="mb-6 flex justify-between items-center">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Análisis del Servicio de Deuda</h1>
-                <p className="text-gray-600">Evaluación de la capacidad para hacer frente a las obligaciones de deuda</p>
-              </div>
-              <div className="flex gap-3">
-                <Select value={periodo} onValueChange={setPeriodo}>
-                  <SelectTrigger className="w-40 bg-white border-light-gray-200 text-gray-900">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white border-light-gray-200">
-                    <SelectItem value="mensual">Mensual</SelectItem>
-                    <SelectItem value="trimestral">Trimestral</SelectItem>
-                    <SelectItem value="anual">Anual</SelectItem>
-                  </SelectContent>
-                </Select>
+        <main className="flex-1 p-6 space-y-8 overflow-auto">
+          {/* Header Section */}
+          <section className="relative">
+            <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel/10 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-steel/5 via-cadet/3 to-slate-100/5 rounded-3xl"></div>
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"></div>
+              <div className="absolute top-0 left-0 w-32 h-32 bg-steel/10 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 right-0 w-40 h-40 bg-cadet/8 rounded-full blur-3xl"></div>
+              
+              <div className="relative z-10">
+                <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
+                  Análisis del Servicio de Deuda
+                </h1>
+                <p className="text-slate-700 text-lg font-medium">Evaluación de la capacidad para hacer frente a las obligaciones de deuda</p>
               </div>
             </div>
           </section>
 
-          {/* KPIs principales */}
+          {/* KPIs Grid */}
           <section>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="bg-gradient-to-br from-steel-blue/20 to-steel-blue-light/20 border border-steel-blue/30 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white border border-steel-blue/20">
-                    <CreditCard className="h-5 w-5 text-steel-blue" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900">Servicio de Deuda Anual</h3>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-gray-900">{formatCurrency(servicioDeudaAnual)}</p>
-                  <p className="text-sm text-gray-600">principal + intereses</p>
-                </div>
-              </Card>
-
-              <Card className={`border p-6 ${dscrPromedio >= 1.2 
-                ? 'bg-gradient-to-br from-steel-blue-light/20 to-light-gray-100/30 border-steel-blue-light/30' 
-                : dscrPromedio >= 1.0 
-                ? 'bg-gradient-to-br from-light-gray-100/30 to-light-gray-200/20 border-light-gray-200/30'
-                : 'bg-gradient-to-br from-steel-blue-dark/20 to-steel-blue/20 border-steel-blue/30'}`}>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white border border-steel-blue/20">
-                    <Calculator className="h-5 w-5 text-steel-blue" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900">DSCR Promedio</h3>
-                </div>
-                <div className="space-y-2">
-                  <p className={`text-2xl font-bold ${getDSCRColor(dscrPromedio)}`}>{dscrPromedio.toFixed(2)}x</p>
-                  <p className="text-sm text-gray-600">cobertura media</p>
-                </div>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-light-gray-200/20 to-light-gray-300/20 border border-light-gray-200/30 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white border border-steel-blue/20">
-                    <AlertTriangle className="h-5 w-5 text-gray-700" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900">DSCR Mínimo</h3>
-                </div>
-                <div className="space-y-2">
-                  <p className={`text-2xl font-bold ${getDSCRColor(dscrMinimo)}`}>{dscrMinimo.toFixed(2)}x</p>
-                  <p className="text-sm text-gray-600">peor mes del año</p>
-                </div>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-steel-blue-dark/20 to-steel-blue/20 border border-steel-blue/30 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white border border-steel-blue/20">
-                    <Shield className="h-5 w-5 text-steel-blue-dark" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900">Meses en Riesgo</h3>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-gray-900">{mesesEnRiesgo}</p>
-                  <p className="text-sm text-gray-600">DSCR menor a 1.0</p>
-                </div>
-              </Card>
+              {kpiData.map((kpi, index) => (
+                <ModernKPICard key={index} {...kpi} />
+              ))}
             </div>
           </section>
 

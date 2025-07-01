@@ -1,498 +1,230 @@
-import React, { useState } from 'react';
+
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Treemap, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, PieChart, Pie, Cell } from 'recharts';
-import { Building2, TrendingUp, Layers, BarChart3, PieChart as PieChartIcon } from 'lucide-react';
-
-interface BalanceItem {
-  concept: string;
-  currentYear: number;
-  previousYear: number;
-  verticalPercent: number;
-  horizontalPercent: number;
-  category: 'asset' | 'liability' | 'equity';
-  subCategory: string;
-}
-
-const CustomTreemapContent = (props: any) => {
-  const { x, y, width, height, name, size, payload } = props;
-  const data = payload?.size || size;
-  
-  if (width < 100 || height < 50) return null;
-  
-  const formatCurrency = (value: number | undefined) => {
-    // Add safety check for undefined values
-    if (value === undefined || value === null || isNaN(value)) {
-      return '0€';
-    }
-    
-    if (Math.abs(value) >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M€`;
-    } else if (Math.abs(value) >= 1000) {
-      return `${(value / 1000).toFixed(0)}K€`;
-    }
-    return `${value.toLocaleString()}€`;
-  };
-
-  return (
-    <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        fill={payload?.color || '#3b82f6'}
-        fillOpacity={0.8}
-        stroke="#fff"
-        strokeWidth={2}
-      />
-      <text
-        x={x + width / 2}
-        y={y + height / 2 - 10}
-        textAnchor="middle"
-        fill="#fff"
-        fontSize="12"
-        fontWeight="bold"
-      >
-        {name}
-      </text>
-      <text
-        x={x + width / 2}
-        y={y + height / 2 + 10}
-        textAnchor="middle"
-        fill="#fff"
-        fontSize="10"
-      >
-        {formatCurrency(data)}
-      </text>
-    </g>
-  );
-};
+import { ModernKPICard } from '@/components/ui/modern-kpi-card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
+import { Building, TrendingUp, Shield, CreditCard } from 'lucide-react';
 
 export const BalanceSheetCurrentModule = () => {
-  const [viewMode, setViewMode] = useState<'table' | 'structure' | 'treemap'>('table');
-  const [showPercentages, setShowPercentages] = useState<'vertical' | 'horizontal'>('vertical');
-
-  const balanceData: BalanceItem[] = [
-    // ACTIVO
+  const kpiData = [
     {
-      concept: 'ACTIVO NO CORRIENTE',
-      currentYear: 1250000,
-      previousYear: 1180000,
-      verticalPercent: 52.1,
-      horizontalPercent: 5.9,
-      category: 'asset',
-      subCategory: 'non_current'
+      title: 'Activo Total',
+      value: '€3,200,000',
+      subtitle: 'Total de activos',
+      trend: 'up' as const,
+      trendValue: '+8%',
+      icon: Building,
+      variant: 'success' as const
     },
     {
-      concept: 'Inmovilizado Material',
-      currentYear: 980000,
-      previousYear: 920000,
-      verticalPercent: 40.8,
-      horizontalPercent: 6.5,
-      category: 'asset',
-      subCategory: 'tangible'
+      title: 'Patrimonio Neto',
+      value: '€1,800,000',
+      subtitle: '56.25% del activo',
+      trend: 'up' as const,
+      trendValue: '+12%',
+      icon: Shield,
+      variant: 'success' as const
     },
     {
-      concept: 'Inmovilizado Intangible',
-      currentYear: 150000,
-      previousYear: 140000,
-      verticalPercent: 6.3,
-      horizontalPercent: 7.1,
-      category: 'asset',
-      subCategory: 'intangible'
+      title: 'Deuda Total',
+      value: '€1,400,000',
+      subtitle: '43.75% del activo',
+      trend: 'down' as const,
+      trendValue: '-5%',
+      icon: CreditCard,
+      variant: 'warning' as const
     },
     {
-      concept: 'Inversiones Financieras L/P',
-      currentYear: 120000,
-      previousYear: 120000,
-      verticalPercent: 5.0,
-      horizontalPercent: 0.0,
-      category: 'asset',
-      subCategory: 'financial'
-    },
-    {
-      concept: 'ACTIVO CORRIENTE',
-      currentYear: 1150000,
-      previousYear: 1020000,
-      verticalPercent: 47.9,
-      horizontalPercent: 12.7,
-      category: 'asset',
-      subCategory: 'current'
-    },
-    {
-      concept: 'Existencias',
-      currentYear: 380000,
-      previousYear: 350000,
-      verticalPercent: 15.8,
-      horizontalPercent: 8.6,
-      category: 'asset',
-      subCategory: 'inventory'
-    },
-    {
-      concept: 'Deudores Comerciales',
-      currentYear: 420000,
-      previousYear: 380000,
-      verticalPercent: 17.5,
-      horizontalPercent: 10.5,
-      category: 'asset',
-      subCategory: 'receivables'
-    },
-    {
-      concept: 'Tesorería',
-      currentYear: 350000,
-      previousYear: 290000,
-      verticalPercent: 14.6,
-      horizontalPercent: 20.7,
-      category: 'asset',
-      subCategory: 'cash'
-    },
-    // PASIVO
-    {
-      concept: 'PATRIMONIO NETO',
-      currentYear: 960000,
-      previousYear: 850000,
-      verticalPercent: 40.0,
-      horizontalPercent: 12.9,
-      category: 'equity',
-      subCategory: 'equity'
-    },
-    {
-      concept: 'Capital Social',
-      currentYear: 600000,
-      previousYear: 600000,
-      verticalPercent: 25.0,
-      horizontalPercent: 0.0,
-      category: 'equity',
-      subCategory: 'capital'
-    },
-    {
-      concept: 'Reservas',
-      currentYear: 150000,
-      previousYear: 60000,
-      verticalPercent: 6.3,
-      horizontalPercent: 150.0,
-      category: 'equity',
-      subCategory: 'reserves'
-    },
-    {
-      concept: 'Resultado del Ejercicio',
-      currentYear: 210000,
-      previousYear: 190000,
-      verticalPercent: 8.8,
-      horizontalPercent: 10.5,
-      category: 'equity',
-      subCategory: 'profit'
-    },
-    {
-      concept: 'PASIVO NO CORRIENTE',
-      currentYear: 850000,
-      previousYear: 800000,
-      verticalPercent: 35.4,
-      horizontalPercent: 6.3,
-      category: 'liability',
-      subCategory: 'non_current'
-    },
-    {
-      concept: 'Deudas L/P con Entidades de Crédito',
-      currentYear: 720000,
-      previousYear: 680000,
-      verticalPercent: 30.0,
-      horizontalPercent: 5.9,
-      category: 'liability',
-      subCategory: 'long_debt'
-    },
-    {
-      concept: 'Otras Deudas L/P',
-      currentYear: 130000,
-      previousYear: 120000,
-      verticalPercent: 5.4,
-      horizontalPercent: 8.3,
-      category: 'liability',
-      subCategory: 'other_long'
-    },
-    {
-      concept: 'PASIVO CORRIENTE',
-      currentYear: 590000,
-      previousYear: 550000,
-      verticalPercent: 24.6,
-      horizontalPercent: 7.3,
-      category: 'liability',
-      subCategory: 'current'
-    },
-    {
-      concept: 'Deudas C/P con Entidades de Crédito',
-      currentYear: 280000,
-      previousYear: 260000,
-      verticalPercent: 11.7,
-      horizontalPercent: 7.7,
-      category: 'liability',
-      subCategory: 'short_debt'
-    },
-    {
-      concept: 'Acreedores Comerciales',
-      currentYear: 310000,
-      previousYear: 290000,
-      verticalPercent: 12.9,
-      horizontalPercent: 6.9,
-      category: 'liability',
-      subCategory: 'payables'
+      title: 'Ratio Solvencia',
+      value: '1.29',
+      subtitle: 'Activo/Pasivo',
+      trend: 'up' as const,
+      trendValue: '+0.15',
+      icon: TrendingUp,
+      variant: 'success' as const
     }
   ];
 
-  const treemapData = [
-    { name: 'Inmovilizado Material', size: 980000, color: '#3b82f6', parent: 'Activo No Corriente' },
-    { name: 'Inmovilizado Intangible', size: 150000, color: '#1d4ed8', parent: 'Activo No Corriente' },
-    { name: 'Inversiones Financieras', size: 120000, color: '#1e40af', parent: 'Activo No Corriente' },
-    { name: 'Existencias', size: 380000, color: '#10b981', parent: 'Activo Corriente' },
-    { name: 'Deudores', size: 420000, color: '#059669', parent: 'Activo Corriente' },
-    { name: 'Tesorería', size: 350000, color: '#047857', parent: 'Activo Corriente' }
+  const activoData = [
+    { name: 'Inmovilizado', value: 1800000, color: '#4682B4' },
+    { name: 'Existencias', value: 650000, color: '#5F9EA0' },
+    { name: 'Clientes', value: 420000, color: '#87CEEB' },
+    { name: 'Tesorería', value: 330000, color: '#B0C4DE' }
   ];
 
-  const structureData = [
-    { name: 'Patrimonio Neto', value: 960000, percentage: 40.0, color: '#10b981' },
-    { name: 'Pasivo No Corriente', value: 850000, percentage: 35.4, color: '#f59e0b' },
-    { name: 'Pasivo Corriente', value: 590000, percentage: 24.6, color: '#ef4444' }
+  const pasivoData = [
+    { name: 'Patrimonio Neto', value: 1800000, color: '#10B981' },
+    { name: 'Deuda LP', value: 900000, color: '#F59E0B' },
+    { name: 'Deuda CP', value: 500000, color: '#EF4444' }
+  ];
+
+  const evolucionBalance = [
+    { año: '2021', activo: 2800000, pasivo: 1200000, patrimonio: 1600000 },
+    { año: '2022', activo: 3000000, pasivo: 1350000, patrimonio: 1650000 },
+    { año: '2023', activo: 3200000, pasivo: 1400000, patrimonio: 1800000 }
   ];
 
   const formatCurrency = (value: number) => {
-    if (Math.abs(value) >= 1000000) {
-      return `${(value / 1000000).toFixed(1)}M€`;
-    } else if (Math.abs(value) >= 1000) {
-      return `${(value / 1000).toFixed(0)}K€`;
-    }
-    return `${value.toLocaleString()}€`;
-  };
-
-  const getRowStyle = (category: string) => {
-    switch (category) {
-      case 'asset': return 'bg-blue-500/10 border-l-4 border-blue-400';
-      case 'liability': return 'bg-red-500/10 border-l-4 border-red-400';
-      case 'equity': return 'bg-emerald-500/10 border-l-4 border-emerald-400';
-      default: return '';
-    }
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
   };
 
   return (
-    <div className="flex min-h-screen bg-navy-800">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
         <DashboardHeader />
         
-        <main className="flex-1 p-6 space-y-6 overflow-auto">
-          <div className="data-wave-bg absolute inset-0 pointer-events-none opacity-10" />
-          
-          {/* Header */}
-          <section className="relative z-10">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/20 border border-blue-400/30">
-                    <Building2 className="h-6 w-6 text-blue-400" />
-                  </div>
-                  Balance de Situación - Actual
-                </h1>
-                <p className="text-gray-400">Análisis de la estructura patrimonial según Plan General Contable</p>
-              </div>
+        <main className="flex-1 p-6 space-y-8 overflow-auto">
+          {/* Header Section */}
+          <section className="relative">
+            <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel/10 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-steel/5 via-cadet/3 to-slate-100/5 rounded-3xl"></div>
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"></div>
+              <div className="absolute top-0 left-0 w-32 h-32 bg-steel/10 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 right-0 w-40 h-40 bg-cadet/8 rounded-full blur-3xl"></div>
               
-              <div className="flex gap-2">
-                <Button
-                  variant={viewMode === 'table' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('table')}
-                  className="border-gray-600"
-                >
-                  <Layers className="h-4 w-4 mr-2" />
-                  Tabla
-                </Button>
-                <Button
-                  variant={viewMode === 'structure' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('structure')}
-                  className="border-gray-600"
-                >
-                  <PieChartIcon className="h-4 w-4 mr-2" />
-                  Estructura
-                </Button>
-                <Button
-                  variant={viewMode === 'treemap' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('treemap')}
-                  className="border-gray-600"
-                >
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Treemap
-                </Button>
+              <div className="relative z-10">
+                <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
+                  Balance de Situación Actual
+                </h1>
+                <p className="text-slate-700 text-lg font-medium">Análisis de la estructura patrimonial y financiera</p>
               </div>
             </div>
           </section>
 
-          {/* Vista de Tabla */}
-          {viewMode === 'table' && (
-            <section className="relative z-10">
-              <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50">
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white">Balance de Situación Detallado</h3>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={showPercentages === 'vertical' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setShowPercentages('vertical')}
-                        className="border-gray-600"
-                      >
-                        % Vertical
-                      </Button>
-                      <Button
-                        variant={showPercentages === 'horizontal' ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setShowPercentages('horizontal')}
-                        className="border-gray-600"
-                      >
-                        % Horizontal
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="border-gray-600">
-                          <TableHead className="text-white font-semibold">Concepto</TableHead>
-                          <TableHead className="text-white font-semibold text-right">Año Actual</TableHead>
-                          <TableHead className="text-white font-semibold text-right">Año Anterior</TableHead>
-                          <TableHead className="text-white font-semibold text-right">
-                            {showPercentages === 'vertical' ? '% s/Total' : '% Variación'}
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {balanceData.map((item, index) => (
-                          <TableRow key={index} className={`border-gray-600 hover:bg-white/5 ${getRowStyle(item.category)}`}>
-                            <TableCell className="text-white font-medium">{item.concept}</TableCell>
-                            <TableCell className="text-right text-white">
-                              {formatCurrency(item.currentYear)}
-                            </TableCell>
-                            <TableCell className="text-right text-gray-300">
-                              {formatCurrency(item.previousYear)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <span className={`font-semibold ${
-                                showPercentages === 'vertical' 
-                                  ? 'text-blue-400' 
-                                  : item.horizontalPercent >= 0 
-                                    ? 'text-emerald-400' 
-                                    : 'text-red-400'
-                              }`}>
-                                {showPercentages === 'vertical' 
-                                  ? `${item.verticalPercent.toFixed(1)}%`
-                                  : `${item.horizontalPercent >= 0 ? '+' : ''}${item.horizontalPercent.toFixed(1)}%`
-                                }
-                              </span>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </div>
-              </Card>
-            </section>
-          )}
+          {/* KPIs Grid */}
+          <section>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {kpiData.map((kpi, index) => (
+                <ModernKPICard key={index} {...kpi} />
+              ))}
+            </div>
+          </section>
 
-          {/* Vista de Estructura */}
-          {viewMode === 'structure' && (
-            <section className="relative z-10">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50 p-6">
-                  <h3 className="text-lg font-semibold text-white mb-6">Estructura de Financiación</h3>
-                  <div className="h-64">
+          {/* Balance Structure Charts */}
+          <section>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Estructura del Activo */}
+              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-steel/5 via-white/20 to-cadet/5 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+                <div className="absolute top-4 left-4 w-24 h-24 bg-steel/10 rounded-full blur-3xl"></div>
+                
+                <CardHeader className="relative z-10">
+                  <CardTitle className="text-slate-900 flex items-center gap-3">
+                    <div className="p-3 rounded-2xl bg-steel/20 backdrop-blur-sm border border-steel/30 shadow-xl">
+                      <Building className="h-6 w-6 text-steel-700" />
+                    </div>
+                    Estructura del Activo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative z-10">
+                  <div className="h-80 relative">
+                    <div className="absolute inset-0 bg-white/30 backdrop-blur-sm rounded-2xl border border-white/40"></div>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
-                          data={structureData}
+                          data={activoData}
                           cx="50%"
                           cy="50%"
-                          innerRadius={60}
                           outerRadius={100}
-                          paddingAngle={2}
+                          fill="#8884d8"
                           dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                         >
-                          {structureData.map((entry, index) => (
+                          {activoData.map((entry, index) => (
                             <Cell key={`cell-${index}`} fill={entry.color} />
                           ))}
                         </Pie>
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'rgba(30, 41, 59, 0.9)', 
-                            border: '1px solid rgba(148, 163, 184, 0.2)',
-                            borderRadius: '8px',
-                            color: '#fff'
-                          }} 
-                          formatter={(value: any) => [`${formatCurrency(value)} (${structureData.find(s => s.value === value)?.percentage}%)`, 'Importe']}
-                        />
+                        <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>
-                </Card>
+                </CardContent>
+              </Card>
 
-                <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50 p-6">
-                  <h3 className="text-lg font-semibold text-white mb-6">Ratios de Estructura</h3>
-                  <div className="space-y-6">
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-300">Ratio de Autonomía</span>
-                        <span className="text-white font-semibold">40.0%</span>
-                      </div>
-                      <div className="h-2 bg-gray-700 rounded-full">
-                        <div className="h-2 bg-emerald-400 rounded-full" style={{width: '40%'}}></div>
-                      </div>
+              {/* Estructura del Pasivo */}
+              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-cadet/5 via-white/20 to-steel/5 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+                <div className="absolute bottom-4 right-4 w-32 h-32 bg-cadet/8 rounded-full blur-3xl"></div>
+                
+                <CardHeader className="relative z-10">
+                  <CardTitle className="text-slate-900 flex items-center gap-3">
+                    <div className="p-3 rounded-2xl bg-cadet/20 backdrop-blur-sm border border-cadet/30 shadow-xl">
+                      <Shield className="h-6 w-6 text-cadet-700" />
                     </div>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-300">Ratio de Endeudamiento</span>
-                        <span className="text-white font-semibold">60.0%</span>
-                      </div>
-                      <div className="h-2 bg-gray-700 rounded-full">
-                        <div className="h-2 bg-orange-400 rounded-full" style={{width: '60%'}}></div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-gray-300">Ratio de Liquidez</span>
-                        <span className="text-white font-semibold">1.95x</span>
-                      </div>
-                      <div className="h-2 bg-gray-700 rounded-full">
-                        <div className="h-2 bg-blue-400 rounded-full" style={{width: '95%'}}></div>
-                      </div>
-                    </div>
+                    Estructura del Pasivo
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative z-10">
+                  <div className="h-80 relative">
+                    <div className="absolute inset-0 bg-white/30 backdrop-blur-sm rounded-2xl border border-white/40"></div>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={pasivoData}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={100}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {pasivoData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                      </PieChart>
+                    </ResponsiveContainer>
                   </div>
-                </Card>
-              </div>
-            </section>
-          )}
+                </CardContent>
+              </Card>
+            </div>
+          </section>
 
-          {/* Vista Treemap */}
-          {viewMode === 'treemap' && (
-            <section className="relative z-10">
-              <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50 p-6">
-                <h3 className="text-lg font-semibold text-white mb-6">Composición del Activo (Treemap)</h3>
-                <div className="h-96">
+          {/* Evolution Chart */}
+          <section>
+            <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-br from-steel/3 via-white/20 to-cadet/3 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+              <div className="absolute top-6 right-6 w-32 h-32 bg-steel/8 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-6 left-6 w-40 h-40 bg-cadet/6 rounded-full blur-3xl"></div>
+              
+              <CardHeader className="relative z-10">
+                <CardTitle className="text-slate-900 flex items-center gap-3">
+                  <div className="p-3 rounded-2xl bg-steel/20 backdrop-blur-sm border border-steel/30 shadow-xl">
+                    <TrendingUp className="h-6 w-6 text-steel-700" />
+                  </div>
+                  Evolución del Balance
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="relative z-10">
+                <div className="h-80 relative">
+                  <div className="absolute inset-0 bg-white/30 backdrop-blur-sm rounded-2xl border border-white/40"></div>
                   <ResponsiveContainer width="100%" height="100%">
-                    <Treemap
-                      data={treemapData}
-                      dataKey="size"
-                      stroke="#fff"
-                      content={<CustomTreemapContent />}
-                    />
+                    <BarChart data={evolucionBalance}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="año" stroke="#64748b" />
+                      <YAxis stroke="#64748b" tickFormatter={(value) => `€${(value / 1000000).toFixed(1)}M`} />
+                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                      <Bar dataKey="activo" fill="#4682B4" name="Activo" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="pasivo" fill="#EF4444" name="Pasivo" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="patrimonio" fill="#10B981" name="Patrimonio" radius={[4, 4, 0, 0]} />
+                    </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </Card>
-            </section>
-          )}
+              </CardContent>
+            </Card>
+          </section>
         </main>
       </div>
     </div>

@@ -1,7 +1,7 @@
-
 import { useState } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
@@ -11,6 +11,45 @@ import { Target, TrendingUp, AlertTriangle, Calculator } from 'lucide-react';
 export const MetodologiaSensibilidadModule = () => {
   const [ventasVariacion, setVentasVariacion] = useState([0]);
   const [costesVariacion, setCostesVariacion] = useState([0]);
+
+  const kpiData = [
+    {
+      title: 'EBITDA Base',
+      value: '€450K',
+      subtitle: 'Escenario actual',
+      trend: 'neutral' as const,
+      trendValue: '0%',
+      icon: Target,
+      variant: 'default' as const
+    },
+    {
+      title: 'Sensibilidad Ventas',
+      value: '±25K',
+      subtitle: 'Por cada 1%',
+      trend: 'up' as const,
+      trendValue: 'Alto impacto',
+      icon: TrendingUp,
+      variant: 'success' as const
+    },
+    {
+      title: 'Sensibilidad Costes',
+      value: '±15K',
+      subtitle: 'Por cada 1%',
+      trend: 'down' as const,
+      trendValue: 'Medio impacto',
+      icon: AlertTriangle,
+      variant: 'warning' as const
+    },
+    {
+      title: 'EBITDA Simulado',
+      value: `€${(450 + (ventasVariacion[0] * 25) - (costesVariacion[0] * 15)).toFixed(0)}K`,
+      subtitle: 'Con variaciones',
+      trend: (450 + (ventasVariacion[0] * 25) - (costesVariacion[0] * 15)) > 450 ? 'up' as const : 'down' as const,
+      trendValue: `${((450 + (ventasVariacion[0] * 25) - (costesVariacion[0] * 15) - 450) / 450 * 100).toFixed(1)}%`,
+      icon: Calculator,
+      variant: (450 + (ventasVariacion[0] * 25) - (costesVariacion[0] * 15)) > 450 ? 'success' as const : 'danger' as const
+    }
+  ];
 
   const escenarios = [
     { escenario: 'Pesimista', ebitda: 350, margen: 14, probabilidad: 20 },
@@ -28,27 +67,36 @@ export const MetodologiaSensibilidadModule = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-light-gray-50 via-white to-steel-blue-light/20" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
         <DashboardHeader />
         
         <main className="flex-1 p-6 space-y-8 overflow-auto">
-          {/* Header Section with Enhanced Glass Effect */}
+          {/* Header Section */}
           <section className="relative">
-            <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel-blue/10 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-steel-blue/8 via-steel-blue-light/5 to-light-gray-100/8 rounded-3xl"></div>
+            <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel/10 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-steel/5 via-cadet/3 to-slate-100/5 rounded-3xl"></div>
               <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"></div>
-              <div className="absolute top-0 left-0 w-32 h-32 bg-steel-blue/10 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-0 right-0 w-40 h-40 bg-light-gray-200/8 rounded-full blur-3xl"></div>
+              <div className="absolute top-0 left-0 w-32 h-32 bg-steel/10 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 right-0 w-40 h-40 bg-cadet/8 rounded-full blur-3xl"></div>
               
               <div className="relative z-10">
-                <h1 className="text-4xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-steel-blue to-steel-blue-dark bg-clip-text text-transparent">
-                  6.1. Metodología de Análisis de Sensibilidad
+                <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
+                  Metodología de Análisis de Sensibilidad
                 </h1>
-                <p className="text-gray-700 text-lg font-medium">Análisis del impacto de variables clave en los resultados financieros</p>
+                <p className="text-slate-700 text-lg font-medium">Análisis del impacto de variables clave en los resultados financieros</p>
               </div>
+            </div>
+          </section>
+
+          {/* KPIs Grid */}
+          <section>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {kpiData.map((kpi, index) => (
+                <ModernKPICard key={index} {...kpi} />
+              ))}
             </div>
           </section>
 

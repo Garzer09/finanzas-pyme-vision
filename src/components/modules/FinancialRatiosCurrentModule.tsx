@@ -1,353 +1,248 @@
-import React, { useState } from 'react';
+
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { LineChart, Line, ResponsiveContainer, RadialBarChart, RadialBar, Legend, Cell } from 'recharts';
-import { Calculator, Activity, AlertTriangle, CheckCircle, XCircle, TrendingUp } from 'lucide-react';
-
-interface FinancialRatio {
-  id: string;
-  name: string;
-  formula: string;
-  currentValue: number;
-  previousValue: number;
-  threshold: { optimal: [number, number]; warning: [number, number] };
-  sparklineData: number[];
-  category: 'liquidity' | 'solvency' | 'efficiency' | 'profitability';
-  unit: string;
-}
+import { ModernKPICard } from '@/components/ui/modern-kpi-card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { TrendingUp, Shield, Zap, Calculator } from 'lucide-react';
 
 export const FinancialRatiosCurrentModule = () => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'table' | 'gauges' | 'heatmap'>('table');
-
-  const ratiosData: FinancialRatio[] = [
-    // Ratios de Liquidez
+  const kpiData = [
     {
-      id: 'current_ratio',
-      name: 'Ratio de Liquidez',
-      formula: 'Activo Corriente / Pasivo Corriente',
-      currentValue: 1.95,
-      previousValue: 1.85,
-      threshold: { optimal: [1.2, 2.0], warning: [1.0, 2.5] },
-      sparklineData: [1.6, 1.65, 1.7, 1.75, 1.8, 1.85, 1.9, 1.95],
-      category: 'liquidity',
-      unit: 'x'
+      title: 'ROE',
+      value: '13.5%',
+      subtitle: 'Rentabilidad fondos propios',
+      trend: 'up' as const,
+      trendValue: '+2.1%',
+      icon: TrendingUp,
+      variant: 'success' as const
     },
     {
-      id: 'quick_ratio',
-      name: 'Ratio de Liquidez Inmediata',
-      formula: '(Activo Corriente - Existencias) / Pasivo Corriente',
-      currentValue: 1.31,
-      previousValue: 1.22,
-      threshold: { optimal: [0.8, 1.5], warning: [0.6, 2.0] },
-      sparklineData: [1.1, 1.15, 1.2, 1.25, 1.28, 1.3, 1.31, 1.31],
-      category: 'liquidity',
-      unit: 'x'
+      title: 'ROA',
+      value: '7.6%',
+      subtitle: 'Rentabilidad activos',
+      trend: 'up' as const,
+      trendValue: '+1.2%',
+      icon: Calculator,
+      variant: 'success' as const
     },
     {
-      id: 'cash_ratio',
-      name: 'Ratio de Tesorería',
-      formula: 'Tesorería / Pasivo Corriente',
-      currentValue: 0.59,
-      previousValue: 0.53,
-      threshold: { optimal: [0.2, 0.8], warning: [0.1, 1.0] },
-      sparklineData: [0.45, 0.48, 0.5, 0.52, 0.55, 0.57, 0.58, 0.59],
-      category: 'liquidity',
-      unit: 'x'
-    },
-    // Ratios de Solvencia
-    {
-      id: 'debt_equity',
-      name: 'Ratio Deuda/Patrimonio',
-      formula: 'Pasivo Total / Patrimonio Neto',
-      currentValue: 1.5,
-      previousValue: 1.59,
-      threshold: { optimal: [0.5, 1.0], warning: [0.3, 1.5] },
-      sparklineData: [1.7, 1.68, 1.65, 1.62, 1.6, 1.58, 1.55, 1.5],
-      category: 'solvency',
-      unit: 'x'
+      title: 'Ratio Liquidez',
+      value: '1.35',
+      subtitle: 'Capacidad de pago',
+      trend: 'up' as const,
+      trendValue: '+0.15',
+      icon: Shield,
+      variant: 'success' as const
     },
     {
-      id: 'debt_assets',
-      name: 'Ratio de Endeudamiento',
-      formula: 'Pasivo Total / Activo Total',
-      currentValue: 0.6,
-      previousValue: 0.61,
-      threshold: { optimal: [0.3, 0.6], warning: [0.2, 0.7] },
-      sparklineData: [0.63, 0.625, 0.62, 0.615, 0.61, 0.608, 0.605, 0.6],
-      category: 'solvency',
-      unit: '%'
-    },
-    // Ratios de Eficiencia
-    {
-      id: 'receivables_turnover',
-      name: 'Rotación de Clientes',
-      formula: 'Ventas / Clientes',
-      currentValue: 5.95,
-      previousValue: 5.87,
-      threshold: { optimal: [4.0, 8.0], warning: [3.0, 10.0] },
-      sparklineData: [5.6, 5.65, 5.7, 5.75, 5.8, 5.85, 5.9, 5.95],
-      category: 'efficiency',
-      unit: 'x'
-    },
-    {
-      id: 'inventory_turnover',
-      name: 'Rotación de Existencias',
-      formula: 'Coste de Ventas / Existencias',
-      currentValue: 3.16,
-      previousValue: 3.06,
-      threshold: { optimal: [3.0, 6.0], warning: [2.0, 8.0] },
-      sparklineData: [2.9, 2.95, 3.0, 3.05, 3.08, 3.1, 3.13, 3.16],
-      category: 'efficiency',
-      unit: 'x'
-    },
-    // Ratios de Rentabilidad
-    {
-      id: 'roe',
-      name: 'Rentabilidad sobre Patrimonio (ROE)',
-      formula: 'Beneficio Neto / Patrimonio Neto',
-      currentValue: 21.9,
-      previousValue: 22.4,
-      threshold: { optimal: [15.0, 25.0], warning: [10.0, 30.0] },
-      sparklineData: [21.5, 21.8, 22.0, 22.2, 22.1, 21.9, 21.8, 21.9],
-      category: 'profitability',
-      unit: '%'
-    },
-    {
-      id: 'roa',
-      name: 'Rentabilidad sobre Activos (ROA)',
-      formula: 'Beneficio Neto / Activo Total',
-      currentValue: 8.75,
-      previousValue: 8.64,
-      threshold: { optimal: [5.0, 12.0], warning: [3.0, 15.0] },
-      sparklineData: [8.2, 8.3, 8.4, 8.5, 8.6, 8.65, 8.7, 8.75],
-      category: 'profitability',
-      unit: '%'
+      title: 'Rotación Activos',
+      value: '0.78x',
+      subtitle: 'Eficiencia activos',
+      trend: 'neutral' as const,
+      trendValue: '0%',
+      icon: Zap,
+      variant: 'default' as const
     }
   ];
 
-  const categories = [
-    { id: 'all', label: 'Todos', color: 'steel-blue' },
-    { id: 'liquidity', label: 'Liquidez', color: 'steel-blue-light' },
-    { id: 'solvency', label: 'Solvencia', color: 'steel-blue-dark' },
-    { id: 'efficiency', label: 'Eficiencia', color: 'gray-600' },
-    { id: 'profitability', label: 'Rentabilidad', color: 'gray-700' }
+  const ratiosRadar = [
+    { ratio: 'Liquidez', value: 85, fullMark: 100 },
+    { ratio: 'Solvencia', value: 78, fullMark: 100 },
+    { ratio: 'Rentabilidad', value: 82, fullMark: 100 },
+    { ratio: 'Eficiencia', value: 75, fullMark: 100 },
+    { ratio: 'Endeudamiento', value: 70, fullMark: 100 },
+    { ratio: 'Actividad', value: 73, fullMark: 100 }
   ];
 
-  const getStatusIcon = (ratio: FinancialRatio) => {
-    const { currentValue, threshold } = ratio;
-    if (currentValue >= threshold.optimal[0] && currentValue <= threshold.optimal[1]) {
-      return <CheckCircle className="h-4 w-4 text-steel-blue" />;
-    }
-    if (currentValue >= threshold.warning[0] && currentValue <= threshold.warning[1]) {
-      return <AlertTriangle className="h-4 w-4 text-gray-600" />;
-    }
-    return <XCircle className="h-4 w-4 text-steel-blue-dark" />;
-  };
+  const ratiosComparison = [
+    { categoria: 'Liquidez', empresa: 1.35, sector: 1.25, benchmark: 1.50 },
+    { categoria: 'Solvencia', empresa: 1.29, sector: 1.15, benchmark: 1.40 },
+    { categoria: 'ROE', empresa: 13.5, sector: 11.2, benchmark: 15.0 },
+    { categoria: 'ROA', empresa: 7.6, sector: 6.8, benchmark: 9.0 },
+    { categoria: 'Endeudamiento', empresa: 43.8, sector: 52.3, benchmark: 40.0 },
+    { categoria: 'Rotación', empresa: 0.78, sector: 0.85, benchmark: 0.90 }
+  ];
 
-  const getStatusColor = (ratio: FinancialRatio) => {
-    const { currentValue, threshold } = ratio;
-    if (currentValue >= threshold.optimal[0] && currentValue <= threshold.optimal[1]) {
-      return 'bg-steel-blue/10 text-steel-blue border-steel-blue/30';
-    }
-    if (currentValue >= threshold.warning[0] && currentValue <= threshold.warning[1]) {
-      return 'bg-gray-100 text-gray-700 border-gray-300';
-    }
-    return 'bg-steel-blue-dark/10 text-steel-blue-dark border-steel-blue-dark/30';
-  };
-
-  const filteredRatios = selectedCategory === 'all' 
-    ? ratiosData 
-    : ratiosData.filter(ratio => ratio.category === selectedCategory);
+  const ratiosDetalle = [
+    { grupo: 'LIQUIDEZ', ratios: [
+      { nombre: 'Ratio de Liquidez', valor: 1.35, benchmark: 1.5, formula: 'Activo Corriente / Pasivo Corriente' },
+      { nombre: 'Test Ácido', valor: 0.92, benchmark: 1.0, formula: '(AC - Existencias) / PC' },
+      { nombre: 'Ratio Tesorería', valor: 0.33, benchmark: 0.3, formula: 'Disponible / Pasivo Corriente' }
+    ]},
+    { grupo: 'RENTABILIDAD', ratios: [
+      { nombre: 'ROE', valor: 13.5, benchmark: 15.0, formula: 'Beneficio Neto / Patrimonio Neto' },
+      { nombre: 'ROA', valor: 7.6, benchmark: 9.0, formula: 'Beneficio Neto / Activo Total' },
+      { nombre: 'Margen Neto', valor: 9.75, benchmark: 12.0, formula: 'Beneficio Neto / Ventas' }
+    ]},
+    { grupo: 'EFICIENCIA', ratios: [
+      { nombre: 'Rotación Activos', valor: 0.78, benchmark: 0.9, formula: 'Ventas / Activo Total' },
+      { nombre: 'Rotación Existencias', valor: 8.2, benchmark: 10.0, formula: 'Coste Ventas / Existencias' },
+      { nombre: 'Rotación Clientes', valor: 5.9, benchmark: 7.2, formula: 'Ventas / Clientes' }
+    ]},
+    { grupo: 'ENDEUDAMIENTO', ratios: [
+      { nombre: 'Ratio Endeudamiento', valor: 43.8, benchmark: 40.0, formula: 'Pasivo Total / Activo Total' },
+      { nombre: 'Ratio Autonomía', valor: 56.3, benchmark: 60.0, formula: 'Patrimonio Neto / Activo Total' },
+      { nombre: 'Cobertura Intereses', valor: 8.2, benchmark: 10.0, formula: 'EBIT / Gastos Financieros' }
+    ]}
+  ];
 
   return (
-    <div className="flex min-h-screen bg-white" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
         <DashboardHeader />
         
-        <main className="flex-1 p-6 space-y-6 overflow-auto bg-light-gray-50">
-          <section>
-            <div className="mb-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 mb-2">Ratios Financieros Actualizados</h1>
-                <p className="text-gray-600">Análisis en tiempo real de los principales indicadores financieros</p>
-              </div>
+        <main className="flex-1 p-6 space-y-8 overflow-auto">
+          {/* Header Section */}
+          <section className="relative">
+            <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel/10 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-steel/5 via-cadet/3 to-slate-100/5 rounded-3xl"></div>
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"></div>
+              <div className="absolute top-0 left-0 w-32 h-32 bg-steel/10 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 right-0 w-40 h-40 bg-cadet/8 rounded-full blur-3xl"></div>
               
-              <div className="flex gap-3">
-                {categories.map((category) => (
-                  <Button
-                    key={category.id}
-                    variant={selectedCategory === category.id ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedCategory(category.id)}
-                    className={selectedCategory === category.id 
-                      ? 'bg-steel-blue hover:bg-steel-blue-dark text-white border-steel-blue'
-                      : 'bg-white hover:bg-steel-blue/10 border-light-gray-200 text-gray-700 hover:text-steel-blue'
-                    }
-                  >
-                    {category.label}
-                  </Button>
-                ))}
+              <div className="relative z-10">
+                <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
+                  Ratios Financieros Actuales
+                </h1>
+                <p className="text-slate-700 text-lg font-medium">Análisis integral de la salud financiera mediante ratios clave</p>
               </div>
             </div>
           </section>
 
+          {/* KPIs Grid */}
           <section>
-            <div className="flex gap-3 mb-6">
-              {['table', 'gauges', 'heatmap'].map((mode) => (
-                <Button
-                  key={mode}
-                  variant={viewMode === mode ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setViewMode(mode as any)}
-                  className={viewMode === mode 
-                    ? 'bg-steel-blue hover:bg-steel-blue-dark text-white'
-                    : 'bg-white hover:bg-steel-blue/10 border-light-gray-200 text-gray-700'
-                  }
-                >
-                  {mode === 'table' ? 'Tabla' : mode === 'gauges' ? 'Medidores' : 'Mapa de Calor'}
-                </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {kpiData.map((kpi, index) => (
+                <ModernKPICard key={index} {...kpi} />
               ))}
             </div>
           </section>
 
-          {viewMode === 'table' && (
-            <section>
-              <Card className="bg-white border border-light-gray-200 shadow-sm">
-                <div className="p-6">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="text-gray-900 font-semibold">Ratio</TableHead>
-                        <TableHead className="text-gray-900 font-semibold">Valor Actual</TableHead>
-                        <TableHead className="text-gray-900 font-semibold">Valor Anterior</TableHead>
-                        <TableHead className="text-gray-900 font-semibold">Cambio</TableHead>
-                        <TableHead className="text-gray-900 font-semibold">Estado</TableHead>
-                        <TableHead className="text-gray-900 font-semibold">Tendencia</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredRatios.map((ratio) => {
-                        const change = ratio.currentValue - ratio.previousValue;
-                        const changePercent = ((change / ratio.previousValue) * 100).toFixed(1);
-                        
-                        return (
-                          <TableRow key={ratio.id} className="hover:bg-light-gray-50">
-                            <TableCell>
-                              <div>
-                                <div className="font-medium text-gray-900">{ratio.name}</div>
-                                <div className="text-sm text-gray-600">{ratio.formula}</div>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <span className="font-semibold text-gray-900">
-                                {ratio.currentValue.toFixed(2)}{ratio.unit}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <span className="text-gray-600">
-                                {ratio.previousValue.toFixed(2)}{ratio.unit}
-                              </span>
-                            </TableCell>
-                            <TableCell>
-                              <div className={`flex items-center gap-1 ${
-                                change >= 0 ? 'text-steel-blue' : 'text-steel-blue-dark'
-                              }`}>
-                                <TrendingUp className={`h-3 w-3 ${change < 0 ? 'rotate-180' : ''}`} />
-                                <span className="font-medium">
-                                  {change >= 0 ? '+' : ''}{change.toFixed(2)} ({changePercent}%)
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge className={getStatusColor(ratio)}>
-                                <div className="flex items-center gap-1">
-                                  {getStatusIcon(ratio)}
-                                  <span className="text-xs">
-                                    {(() => {
-                                      const { currentValue, threshold } = ratio;
-                                      if (currentValue >= threshold.optimal[0] && currentValue <= threshold.optimal[1]) {
-                                        return 'Óptimo';
-                                      }
-                                      if (currentValue >= threshold.warning[0] && currentValue <= threshold.warning[1]) {
-                                        return 'Aceptable';
-                                      }
-                                      return 'Atención';
-                                    })()}
-                                  </span>
-                                </div>
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="w-20 h-8">
-                                <ResponsiveContainer width="100%" height="100%">
-                                  <LineChart data={ratio.sparklineData.map((value, index) => ({ value, index }))}>
-                                    <Line 
-                                      type="monotone" 
-                                      dataKey="value" 
-                                      stroke="#4682B4" 
-                                      strokeWidth={2}
-                                      dot={false}
-                                    />
-                                  </LineChart>
-                                </ResponsiveContainer>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </Card>
-            </section>
-          )}
-
-          {viewMode === 'gauges' && (
-            <section>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredRatios.map((ratio) => (
-                  <Card key={ratio.id} className="bg-white border border-light-gray-200 p-6 shadow-sm">
-                    <div className="text-center">
-                      <h3 className="font-semibold text-gray-900 mb-2">{ratio.name}</h3>
-                      <div className="h-32 mb-4">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <RadialBarChart cx="50%" cy="50%" innerRadius="40%" outerRadius="80%" 
-                            data={[{ value: (ratio.currentValue / ratio.threshold.optimal[1]) * 100 }]}>
-                            <RadialBar dataKey="value" cornerRadius={10} fill="#4682B4" />
-                          </RadialBarChart>
-                        </ResponsiveContainer>
-                      </div>
-                      <div className="text-2xl font-bold text-gray-900 mb-1">
-                        {ratio.currentValue.toFixed(2)}{ratio.unit}
-                      </div>
-                      <div className="flex items-center justify-center gap-1">
-                        {getStatusIcon(ratio)}
-                        <Badge className={getStatusColor(ratio)}>
-                          {(() => {
-                            const { currentValue, threshold } = ratio;
-                            if (currentValue >= threshold.optimal[0] && currentValue <= threshold.optimal[1]) {
-                              return 'Óptimo';
-                            }
-                            if (currentValue >= threshold.warning[0] && currentValue <= threshold.warning[1]) {
-                              return 'Aceptable';
-                            }
-                            return 'Atención';
-                          })()}
-                        </Badge>
-                      </div>
+          {/* Radar Chart and Comparison */}
+          <section>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Radar Chart */}
+              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-steel/5 via-white/20 to-cadet/5 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+                <div className="absolute top-4 left-4 w-24 h-24 bg-steel/10 rounded-full blur-3xl"></div>
+                
+                <CardHeader className="relative z-10">
+                  <CardTitle className="text-slate-900 flex items-center gap-3">
+                    <div className="p-3 rounded-2xl bg-steel/20 backdrop-blur-sm border border-steel/30 shadow-xl">
+                      <TrendingUp className="h-6 w-6 text-steel-700" />
                     </div>
-                  </Card>
-                ))}
-              </div>
-            </section>
-          )}
+                    Perfil de Ratios
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative z-10">
+                  <div className="h-80 relative">
+                    <div className="absolute inset-0 bg-white/30 backdrop-blur-sm rounded-2xl border border-white/40"></div>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RadarChart data={ratiosRadar}>
+                        <PolarGrid />
+                        <PolarAngleAxis dataKey="ratio" className="text-sm" />
+                        <PolarRadiusAxis angle={90} domain={[0, 100]} />
+                        <Radar
+                          name="Empresa"
+                          dataKey="value"
+                          stroke="#4682B4"
+                          fill="#4682B4"
+                          fillOpacity={0.3}
+                          strokeWidth={3}
+                        />
+                      </RadarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Comparison Chart */}
+              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-cadet/5 via-white/20 to-steel/5 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+                <div className="absolute bottom-4 right-4 w-32 h-32 bg-cadet/8 rounded-full blur-3xl"></div>
+                
+                <CardHeader className="relative z-10">
+                  <CardTitle className="text-slate-900 flex items-center gap-3">
+                    <div className="p-3 rounded-2xl bg-cadet/20 backdrop-blur-sm border border-cadet/30 shadow-xl">
+                      <Calculator className="h-6 w-6 text-cadet-700" />
+                    </div>
+                    Comparativa Sectorial
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative z-10">
+                  <div className="h-80 relative">
+                    <div className="absolute inset-0 bg-white/30 backdrop-blur-sm rounded-2xl border border-white/40"></div>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={ratiosComparison}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="categoria" stroke="#64748b" angle={-45} textAnchor="end" height={80} />
+                        <YAxis stroke="#64748b" />
+                        <Tooltip />
+                        <Bar dataKey="empresa" fill="#4682B4" name="Empresa" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="sector" fill="#5F9EA0" name="Sector" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="benchmark" fill="#10B981" name="Benchmark" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+
+          {/* Detailed Ratios */}
+          <section>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {ratiosDetalle.map((grupo, index) => (
+                <Card key={index} className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
+                  <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+                  <div className="absolute inset-0 bg-gradient-to-br from-steel/3 via-white/20 to-cadet/3 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+                  <div className="absolute top-6 right-6 w-32 h-32 bg-steel/8 rounded-full blur-3xl"></div>
+                  <div className="absolute bottom-6 left-6 w-40 h-40 bg-cadet/6 rounded-full blur-3xl"></div>
+                  
+                  <CardHeader className="relative z-10">
+                    <CardTitle className="text-slate-900 text-lg">{grupo.grupo}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="relative z-10">
+                    <div className="space-y-4">
+                      {grupo.ratios.map((ratio, ratioIndex) => (
+                        <div key={ratioIndex} className="bg-white/50 backdrop-blur-sm p-4 rounded-2xl border border-white/40 shadow-lg hover:shadow-xl transition-all duration-300">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-semibold text-slate-900">{ratio.nombre}</span>
+                            <div className="flex space-x-4">
+                              <span className="font-bold text-steel-600">
+                                {ratio.nombre.includes('%') || ratio.nombre.includes('Margen') ? `${ratio.valor}%` : ratio.valor}
+                              </span>
+                              <span className="text-sm text-slate-500">
+                                Target: {ratio.nombre.includes('%') || ratio.nombre.includes('Margen') ? `${ratio.benchmark}%` : ratio.benchmark}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="bg-slate-200/50 rounded-full h-2 overflow-hidden">
+                            <div 
+                              className={`h-2 rounded-full ${
+                                ratio.valor >= ratio.benchmark
+                                  ? 'bg-gradient-to-r from-success-500 to-success-600' 
+                                  : 'bg-gradient-to-r from-warning-500 to-warning-600'
+                              }`}
+                              style={{ 
+                                width: `${Math.min((ratio.valor / ratio.benchmark) * 100, 100)}%` 
+                              }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-slate-600 mt-2">{ratio.formula}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </section>
         </main>
       </div>
     </div>
