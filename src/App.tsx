@@ -20,6 +20,7 @@ import { MetodologiaSensibilidadModule } from "./components/modules/MetodologiaS
 import { ProfitLossCurrentModule } from "./components/modules/ProfitLossCurrentModule";
 import { BalanceSheetCurrentModule } from "./components/modules/BalanceSheetCurrentModule";
 import { FinancialRatiosCurrentModule } from "./components/modules/FinancialRatiosCurrentModule";
+import { CompanyDescriptionModule } from "./components/modules/CompanyDescriptionModule";
 
 const queryClient = new QueryClient();
 
@@ -34,9 +35,10 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/subir-excel" element={<ExcelUploadPage />} />
             <Route path="/suscripcion" element={<SubscriptionPage />} />
-            <Route path="/descripcion-empresa" element={<SituacionActualModule />} />
+            <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
             
             {/* Sección 3 - Situación Actual */}
+            <Route path="/situacion-actual" element={<SituacionActualModule />} />
             <Route path="/pyg-actual" element={<ProfitLossCurrentModule />} />
             <Route path="/pyg-analitico-actual" element={<FinancialAnalysisModule />} />
             <Route path="/balance-actual" element={<BalanceSheetCurrentModule />} />

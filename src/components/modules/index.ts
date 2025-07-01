@@ -1,5 +1,6 @@
 
 // Export all analysis modules
+export { CompanyDescriptionModule } from './CompanyDescriptionModule';
 export { SituacionActualModule } from './SituacionActualModule';
 export { ProfitLossCurrentModule } from './ProfitLossCurrentModule';
 export { AnalyticalPLCurrentModule } from './AnalyticalPLCurrentModule';
