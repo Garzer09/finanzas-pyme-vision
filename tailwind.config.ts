@@ -53,85 +53,105 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
-				// Colores específicos para el dashboard financiero
-				success: 'hsl(var(--success))',
-				warning: 'hsl(var(--warning))',
-				info: 'hsl(var(--info))',
-				orange: 'hsl(var(--orange))',
-				indigo: 'hsl(var(--indigo))',
-				// Paleta de grises profesional
-				gray: {
-					50: 'hsl(var(--gray-50))',
-					100: 'hsl(var(--gray-100))',
-					200: 'hsl(var(--gray-200))',
-					300: 'hsl(var(--gray-300))',
-					400: 'hsl(var(--gray-400))',
-					500: 'hsl(var(--gray-500))',
-					600: 'hsl(var(--gray-600))',
-					700: 'hsl(var(--gray-700))',
-					800: 'hsl(var(--gray-800))',
-					900: 'hsl(var(--gray-900))',
-				},
-				// Colores para gráficos y visualizaciones
-				chart: {
-					1: 'hsl(var(--chart-1))',
-					2: 'hsl(var(--chart-2))',
-					3: 'hsl(var(--chart-3))',
-					4: 'hsl(var(--chart-4))',
-					5: 'hsl(var(--chart-5))',
-					6: 'hsl(var(--chart-6))',
-					7: 'hsl(var(--chart-7))',
-				},
-				// Steel Blue and Light Gray palette
-				'steel-blue': {
+				// Steel Blue Palette - Primarios
+				'steel': {
 					DEFAULT: '#4682B4',
-					50: '#f0f6fb',
-					100: '#dfeaf6',
-					200: '#c6dbee',
-					300: '#a0c5e2',
-					400: '#74a8d3',
-					500: '#4682B4',
-					600: '#3a6fa0',
-					700: '#315a84',
-					800: '#2c4d6e',
-					900: '#27425c',
-					950: '#1a2b3c'
+					50: '#f0f8ff',
+					100: '#e0f0fe',
+					200: '#bae1fd',
+					300: '#7cc7fb',
+					400: '#36aaf7',
+					500: '#0d8ee8',
+					600: '#0172c6',
+					700: '#025ba0',
+					800: '#064e85',
+					900: '#0b426e',
+					950: '#072949'
 				},
-				'light-gray': {
-					DEFAULT: '#D3D3D3',
-					50: '#fafafa',
-					100: '#f4f4f5',
-					200: '#e4e4e7',
-					300: '#D3D3D3',
-					400: '#a1a1aa',
-					500: '#71717a',
-					600: '#52525b',
-					700: '#3f3f46',
-					800: '#27272a',
-					900: '#18181b'
+				'cadet': {
+					DEFAULT: '#5F9EA0',
+					50: '#f0fdfd',
+					100: '#ccf7f8',
+					200: '#99eff2',
+					300: '#5fdde2',
+					400: '#27c3cb',
+					500: '#5F9EA0',
+					600: '#0e7c86',
+					700: '#10646e',
+					800: '#13525a',
+					900: '#15444c',
+					950: '#052b31'
+				},
+				// Light Gray Palette - Secundarios
+				'light': {
+					DEFAULT: '#E5E7EB',
+					50: '#F9FAFB',
+					100: '#F3F4F6',
+					200: '#E5E7EB',
+					300: '#D1D5DB',
+					400: '#9CA3AF',
+					500: '#6B7280',
+					600: '#4B5563',
+					700: '#374151',
+					800: '#1F2937',
+					900: '#111827'
+				},
+				// Estados Específicos
+				success: {
+					DEFAULT: '#10B981',
+					50: '#ECFDF5',
+					100: '#D1FAE5',
+					500: '#10B981',
+					600: '#059669',
+					700: '#047857'
+				},
+				warning: {
+					DEFAULT: '#F59E0B',
+					50: '#FFFBEB',
+					100: '#FEF3C7',
+					500: '#F59E0B',
+					600: '#D97706',
+					700: '#B45309'
+				},
+				danger: {
+					DEFAULT: '#EF4444',
+					50: '#FEF2F2',
+					100: '#FEE2E2',
+					500: '#EF4444',
+					600: '#DC2626',
+					700: '#B91C1C'
+				},
+				// Paleta profesional para gráficos
+				chart: {
+					1: 'hsl(210, 44%, 45%)', // Steel Blue
+					2: 'hsl(184, 25%, 50%)', // Cadet Blue
+					3: 'hsl(210, 44%, 65%)', // Light Steel Blue
+					4: 'hsl(158, 64%, 52%)', // Success Green
+					5: 'hsl(43, 96%, 56%)', // Warning Yellow
+					6: 'hsl(0, 84%, 60%)', // Danger Red
+					7: 'hsl(220, 9%, 46%)' // Neutral Gray
 				}
 			},
 			fontFamily: {
-				sans: ['"SF Pro Display"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
-				display: ['"SF Pro Display"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
-				text: ['"SF Pro Text"', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'sans-serif'],
-				inter: ['Inter', 'system-ui', 'sans-serif'],
+				sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+				display: ['Inter', 'system-ui', 'sans-serif'],
+				mono: ['"JetBrains Mono"', 'Monaco', 'Cascadia Code', '"Roboto Mono"', 'Consolas', 'monospace'],
 			},
 			fontSize: {
-				'xs': ['0.75rem', { lineHeight: '1rem', letterSpacing: '-0.005em' }],
-				'sm': ['0.875rem', { lineHeight: '1.25rem', letterSpacing: '-0.005em' }],
-				'base': ['1rem', { lineHeight: '1.5rem', letterSpacing: '-0.01em' }],
-				'lg': ['1.125rem', { lineHeight: '1.75rem', letterSpacing: '-0.01em' }],
-				'xl': ['1.25rem', { lineHeight: '1.75rem', letterSpacing: '-0.015em' }],
-				'2xl': ['1.5rem', { lineHeight: '2rem', letterSpacing: '-0.02em' }],
-				'3xl': ['1.875rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em' }],
-				'4xl': ['2.25rem', { lineHeight: '2.5rem', letterSpacing: '-0.025em' }],
-				// Tamaños específicos para el dashboard
-				'h1': ['2rem', { lineHeight: '2.5rem', fontWeight: '700', letterSpacing: '-0.02em' }],
-				'h2': ['1.5rem', { lineHeight: '2rem', fontWeight: '600', letterSpacing: '-0.015em' }],
-				'h3': ['1.25rem', { lineHeight: '1.75rem', fontWeight: '500', letterSpacing: '-0.01em' }],
-				'body': ['0.875rem', { lineHeight: '1.5rem', fontWeight: '400', letterSpacing: '-0.005em' }],
-				'caption': ['0.75rem', { lineHeight: '1rem', fontWeight: '400', letterSpacing: '-0.005em' }],
+				'xs': ['0.75rem', { lineHeight: '1rem', fontWeight: '400' }],
+				'sm': ['0.875rem', { lineHeight: '1.25rem', fontWeight: '400' }],
+				'base': ['1rem', { lineHeight: '1.5rem', fontWeight: '400' }],
+				'lg': ['1.125rem', { lineHeight: '1.75rem', fontWeight: '500' }],
+				'xl': ['1.25rem', { lineHeight: '1.75rem', fontWeight: '500' }],
+				'2xl': ['1.5rem', { lineHeight: '2rem', fontWeight: '600' }],
+				'3xl': ['1.875rem', { lineHeight: '2.25rem', fontWeight: '700' }],
+				'4xl': ['2.25rem', { lineHeight: '2.5rem', fontWeight: '700' }],
+				'5xl': ['3rem', { lineHeight: '1', fontWeight: '800' }],
+				'6xl': ['3.75rem', { lineHeight: '1', fontWeight: '800' }],
+				// KPI números grandes
+				'kpi-sm': ['2rem', { lineHeight: '2.25rem', fontWeight: '800' }],
+				'kpi-md': ['2.5rem', { lineHeight: '2.75rem', fontWeight: '800' }],
+				'kpi-lg': ['3.5rem', { lineHeight: '3.75rem', fontWeight: '900' }],
 			},
 			spacing: {
 				'18': '4.5rem',
@@ -147,77 +167,59 @@ export default {
 				'3xl': '1.5rem',
 			},
 			boxShadow: {
-				'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
-				'soft-lg': '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 20px 40px -10px rgba(0, 0, 0, 0.1)',
+				'soft': '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+				'soft-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+				'professional': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+				'kpi': '0 10px 25px -5px rgba(70, 130, 180, 0.15), 0 4px 6px -2px rgba(70, 130, 180, 0.05)',
+				'steel': '0 10px 25px -5px rgba(70, 130, 180, 0.25), 0 4px 6px -2px rgba(70, 130, 180, 0.1)',
 				'glass': '0 8px 32px rgba(31, 38, 135, 0.37)',
-				'glass-sm': '0 4px 16px rgba(31, 38, 135, 0.2)',
 			},
 			backdropBlur: {
 				xs: '2px',
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
 				},
 				'fade-in': {
-					'0%': {
-						opacity: '0',
-						transform: 'translateY(10px)'
-					},
-					'100%': {
-						opacity: '1',
-						transform: 'translateY(0)'
-					}
+					'0%': { opacity: '0', transform: 'translateY(10px)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' }
 				},
 				'slide-up': {
-					'0%': {
-						opacity: '0',
-						transform: 'translateY(20px)'
-					},
-					'100%': {
-						opacity: '1',
-						transform: 'translateY(0)'
-					}
+					'0%': { opacity: '0', transform: 'translateY(20px)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' }
 				},
-				'data-wave': {
-					'0%': { transform: 'translateX(-100%)' },
-					'100%': { transform: 'translateX(100%)' }
+				'scale-in': {
+					'0%': { opacity: '0', transform: 'scale(0.95)' },
+					'100%': { opacity: '1', transform: 'scale(1)' }
 				},
-				'pulse-glow': {
-					'0%, 100%': { boxShadow: '0 0 5px rgba(0, 123, 255, 0.3)' },
-					'50%': { boxShadow: '0 0 20px rgba(0, 123, 255, 0.6)' }
+				'counter': {
+					'0%': { transform: 'translateY(10px)', opacity: '0' },
+					'100%': { transform: 'translateY(0)', opacity: '1' }
 				},
 				'float': {
 					'0%, 100%': { transform: 'translateY(0px)' },
-					'50%': { transform: 'translateY(-10px)' }
+					'50%': { transform: 'translateY(-5px)' }
 				},
-				'shimmer': {
-					'0%': { backgroundPosition: '200% 0' },
-					'100%': { backgroundPosition: '-200% 0' }
+				'pulse-glow': {
+					'0%, 100%': { boxShadow: '0 0 5px rgba(70, 130, 180, 0.3)' },
+					'50%': { boxShadow: '0 0 20px rgba(70, 130, 180, 0.6)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'fade-in': 'fade-in 0.6s ease-out',
-				'slide-up': 'slide-up 0.4s ease-out',
-				'data-wave': 'data-wave 8s ease-in-out infinite',
-				'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
+				'fade-in': 'fade-in 0.3s ease-out',
+				'slide-up': 'slide-up 0.3s ease-out',
+				'scale-in': 'scale-in 0.2s ease-out',
+				'counter': 'counter 0.6s ease-out',
 				'float': 'float 3s ease-in-out infinite',
-				'shimmer': 'shimmer 1.5s infinite'
+				'pulse-glow': 'pulse-glow 2s ease-in-out infinite'
 			}
 		}
 	},
