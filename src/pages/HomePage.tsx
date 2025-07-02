@@ -163,17 +163,35 @@ const HomePage = () => {
           </CardHeader>
           <CardContent className="flex justify-center">
             <div className="text-center space-y-4">
-              <Gauge 
-                value={healthScore} 
-                max={100}
-                label="Salud Financiera"
-                size="lg" 
-                className="mx-auto"
-              />
-              <div>
-                <div className="text-3xl font-bold text-steel-blue">{healthScore}/100</div>
-                <div className="text-sm text-professional">Saludable</div>
+              <div className="w-32 h-32 mx-auto relative">
+                <svg viewBox="0 0 120 120" className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="50"
+                    stroke="hsl(220 13% 91%)"
+                    strokeWidth="8"
+                    fill="none"
+                  />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="50"
+                    stroke="hsl(210 44% 45%)"
+                    strokeWidth="8"
+                    fill="none"
+                    strokeDasharray={`${(healthScore / 100) * 314} 314`}
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-steel-blue">{healthScore}</div>
+                    <div className="text-xs text-professional">/ 100</div>
+                  </div>
+                </div>
               </div>
+              <div className="text-sm text-professional">Saludable</div>
             </div>
           </CardContent>
         </Card>

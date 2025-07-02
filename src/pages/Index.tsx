@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-steel-blue flex items-center justify-center" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+    <div className="min-h-screen bg-steel flex items-center justify-center" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
       <div className="text-center">
         <h1 className="text-6xl font-bold text-white mb-4">
           FinSight
