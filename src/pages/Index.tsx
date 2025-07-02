@@ -9,10 +9,18 @@ import { Link } from 'react-router-dom';
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen bg-background" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+    <div className="flex min-h-screen bg-background relative" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+      {/* Background Image */}
+      <div 
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-10"
+        style={{ 
+          backgroundImage: 'url(https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80)'
+        }}
+      />
+      
       <DashboardSidebar />
       
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col relative z-10">
         <DashboardHeader />
         
         <main className="flex-1 p-6 space-y-6 overflow-auto bg-light-gray-bg">
@@ -54,12 +62,12 @@ const Index = () => {
 
             {/* Resumen Ejecutivo Text Section */}
             <section className="relative z-10">
-              <Card className="dashboard-card bg-white p-8">
-                <h2 className="text-2xl font-bold text-steel-blue-dark mb-6 flex items-center gap-3" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+              <Card className="dashboard-card bg-white/95 backdrop-blur-sm p-8">
+                <h2 className="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-3" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
                   <div className="p-2 rounded-lg bg-steel-blue-light border border-steel-blue/30">
                     <FileText className="h-6 w-6 text-steel-blue" />
                   </div>
-                  Resumen Ejecutivo del Análisis Financiero
+                  Transforma el Análisis Financiero de tu PYME
                 </h2>
                 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>

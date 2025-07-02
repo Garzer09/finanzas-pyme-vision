@@ -50,8 +50,8 @@ const App = () => (
           <Sonner />
           <Routes>
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/" element={<Index />} />
+            <Route path="/home" element={<HomePage />} />
           <Route path="/subir-excel" element={<ProtectedRoute><ExcelUploadPage /></ProtectedRoute>} />
           <Route path="/suscripcion" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
           <Route path="/descripcion-empresa" element={<ProtectedRoute><CompanyDescriptionModule /></ProtectedRoute>} />
