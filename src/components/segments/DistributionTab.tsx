@@ -91,12 +91,12 @@ export function DistributionTab({ segmentType, data }: DistributionTabProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="h-96">
+          <div className="h-96 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={data}
                 layout="horizontal"
-                margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
+                margin={{ top: 20, right: 30, left: 120, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                 <XAxis 
@@ -111,8 +111,8 @@ export function DistributionTab({ segmentType, data }: DistributionTabProps) {
                   type="category" 
                   dataKey="name" 
                   stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  width={95}
+                  fontSize={11}
+                  width={110}
                   axisLine={{ stroke: "hsl(var(--border))" }}
                   tickLine={{ stroke: "hsl(var(--border))" }}
                 />
@@ -121,8 +121,6 @@ export function DistributionTab({ segmentType, data }: DistributionTabProps) {
                   dataKey={metric === "euros" ? "sales" : "participation"}
                   fill="hsl(var(--primary))"
                   radius={[0, 4, 4, 0]}
-                  stroke="hsl(var(--primary-dark))"
-                  strokeWidth={2}
                 />
               </BarChart>
             </ResponsiveContainer>

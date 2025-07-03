@@ -42,33 +42,99 @@ export const SalesSegmentsModule = memo(() => {
     }
   }
 
-  // Stabilized mock data to prevent unnecessary re-renders
-  const distributionData = useMemo(() => [
-    { name: "Productos Premium", sales: 850000, participation: 34.2, yoyGrowth: 18.5 },
-    { name: "Productos Estándar", sales: 620000, participation: 25.1, yoyGrowth: 12.3 },
-    { name: "Productos Básicos", sales: 480000, participation: 19.4, yoyGrowth: 8.7 },
-    { name: "Servicios", sales: 350000, participation: 14.1, yoyGrowth: 22.1 },
-    { name: "Accesorios", sales: 150000, participation: 7.2, yoyGrowth: -12.4 }
-  ], [filters.segmentType])
+  // Helper function to generate data by segment type
+  const generateDataBySegmentType = useCallback((segmentType: "producto" | "region" | "cliente") => {
+    switch (segmentType) {
+      case "producto":
+        return {
+          distribution: [
+            { name: "Productos Premium", sales: 850000, participation: 34.2, yoyGrowth: 18.5 },
+            { name: "Productos Estándar", sales: 620000, participation: 25.1, yoyGrowth: 12.3 },
+            { name: "Productos Básicos", sales: 480000, participation: 19.4, yoyGrowth: 8.7 },
+            { name: "Servicios", sales: 350000, participation: 14.1, yoyGrowth: 22.1 },
+            { name: "Accesorios", sales: 150000, participation: 7.2, yoyGrowth: -12.4 }
+          ],
+          evolution: [
+            { period: "Ene", "Productos Premium": 95000, "Productos Estándar": 78000, "Productos Básicos": 65000, "Servicios": 45000 },
+            { period: "Feb", "Productos Premium": 88000, "Productos Estándar": 72000, "Productos Básicos": 58000, "Servicios": 42000 },
+            { period: "Mar", "Productos Premium": 102000, "Productos Estándar": 85000, "Productos Básicos": 71000, "Servicios": 51000 },
+            { period: "Abr", "Productos Premium": 97000, "Productos Estándar": 80000, "Productos Básicos": 67000, "Servicios": 48000 },
+            { period: "May", "Productos Premium": 105000, "Productos Estándar": 87000, "Productos Básicos": 73000, "Servicios": 53000 },
+            { period: "Jun", "Productos Premium": 112000, "Productos Estándar": 92000, "Productos Básicos": 78000, "Servicios": 57000 }
+          ],
+          segments: ["Productos Premium", "Productos Estándar", "Productos Básicos", "Servicios"],
+          topBottom: [
+            { id: "1", name: "Productos Premium", sales: 850000, yoyGrowth: 18.5, averageTicket: 1250 },
+            { id: "2", name: "Productos Estándar", sales: 620000, yoyGrowth: 12.3, averageTicket: 780 },
+            { id: "3", name: "Productos Básicos", sales: 480000, yoyGrowth: 8.7, averageTicket: 450 },
+            { id: "4", name: "Servicios", sales: 350000, yoyGrowth: 22.1, averageTicket: 890 },
+            { id: "5", name: "Accesorios", sales: 150000, yoyGrowth: -12.4, averageTicket: 125 }
+          ]
+        }
+      case "region":
+        return {
+          distribution: [
+            { name: "Norte", sales: 720000, participation: 29.1, yoyGrowth: 15.2 },
+            { name: "Centro", sales: 680000, participation: 27.5, yoyGrowth: 11.8 },
+            { name: "Sur", sales: 520000, participation: 21.0, yoyGrowth: 9.5 },
+            { name: "Este", sales: 380000, participation: 15.4, yoyGrowth: 13.7 },
+            { name: "Internacional", sales: 170000, participation: 7.0, yoyGrowth: 25.3 }
+          ],
+          evolution: [
+            { period: "Ene", "Norte": 85000, "Centro": 82000, "Sur": 63000, "Este": 45000 },
+            { period: "Feb", "Norte": 78000, "Centro": 75000, "Sur": 58000, "Este": 42000 },
+            { period: "Mar", "Norte": 92000, "Centro": 88000, "Sur": 67000, "Este": 48000 },
+            { period: "Abr", "Norte": 87000, "Centro": 83000, "Sur": 62000, "Este": 44000 },
+            { period: "May", "Norte": 95000, "Centro": 91000, "Sur": 69000, "Este": 50000 },
+            { period: "Jun", "Norte": 102000, "Centro": 98000, "Sur": 74000, "Este": 53000 }
+          ],
+          segments: ["Norte", "Centro", "Sur", "Este"],
+          topBottom: [
+            { id: "1", name: "Norte", sales: 720000, yoyGrowth: 15.2, averageTicket: 950 },
+            { id: "2", name: "Centro", sales: 680000, yoyGrowth: 11.8, averageTicket: 880 },
+            { id: "3", name: "Sur", sales: 520000, yoyGrowth: 9.5, averageTicket: 720 },
+            { id: "4", name: "Este", sales: 380000, yoyGrowth: 13.7, averageTicket: 650 },
+            { id: "5", name: "Internacional", sales: 170000, yoyGrowth: 25.3, averageTicket: 1350 }
+          ]
+        }
+      case "cliente":
+        return {
+          distribution: [
+            { name: "Empresas", sales: 920000, participation: 37.1, yoyGrowth: 14.8 },
+            { name: "Particulares", sales: 680000, participation: 27.4, yoyGrowth: 8.2 },
+            { name: "Instituciones", sales: 450000, participation: 18.2, yoyGrowth: 19.5 },
+            { name: "Mayoristas", sales: 280000, participation: 11.3, yoyGrowth: 6.7 },
+            { name: "Online", sales: 150000, participation: 6.0, yoyGrowth: 35.2 }
+          ],
+          evolution: [
+            { period: "Ene", "Empresas": 105000, "Particulares": 78000, "Instituciones": 52000, "Mayoristas": 32000 },
+            { period: "Feb", "Empresas": 98000, "Particulares": 72000, "Instituciones": 48000, "Mayoristas": 28000 },
+            { period: "Mar", "Empresas": 112000, "Particulares": 85000, "Instituciones": 55000, "Mayoristas": 35000 },
+            { period: "Abr", "Empresas": 107000, "Particulares": 80000, "Instituciones": 51000, "Mayoristas": 31000 },
+            { period: "May", "Empresas": 115000, "Particulares": 87000, "Instituciones": 58000, "Mayoristas": 37000 },
+            { period: "Jun", "Empresas": 122000, "Particulares": 92000, "Instituciones": 62000, "Mayoristas": 39000 }
+          ],
+          segments: ["Empresas", "Particulares", "Instituciones", "Mayoristas"],
+          topBottom: [
+            { id: "1", name: "Empresas", sales: 920000, yoyGrowth: 14.8, averageTicket: 2850 },
+            { id: "2", name: "Particulares", sales: 680000, yoyGrowth: 8.2, averageTicket: 420 },
+            { id: "3", name: "Instituciones", sales: 450000, yoyGrowth: 19.5, averageTicket: 4500 },
+            { id: "4", name: "Mayoristas", sales: 280000, yoyGrowth: 6.7, averageTicket: 1680 },
+            { id: "5", name: "Online", sales: 150000, yoyGrowth: 35.2, averageTicket: 180 }
+          ]
+        }
+      default:
+        return generateDataBySegmentType("producto")
+    }
+  }, [])
 
-  const evolutionData = useMemo(() => [
-    { period: "Ene", "Productos Premium": 95000, "Productos Estándar": 78000, "Productos Básicos": 65000, "Servicios": 45000 },
-    { period: "Feb", "Productos Premium": 88000, "Productos Estándar": 72000, "Productos Básicos": 58000, "Servicios": 42000 },
-    { period: "Mar", "Productos Premium": 102000, "Productos Estándar": 85000, "Productos Básicos": 71000, "Servicios": 51000 },
-    { period: "Abr", "Productos Premium": 97000, "Productos Estándar": 80000, "Productos Básicos": 67000, "Servicios": 48000 },
-    { period: "May", "Productos Premium": 105000, "Productos Estándar": 87000, "Productos Básicos": 73000, "Servicios": 53000 },
-    { period: "Jun", "Productos Premium": 112000, "Productos Estándar": 92000, "Productos Básicos": 78000, "Servicios": 57000 }
-  ], [filters.segmentType])
-
-  const segments = useMemo(() => ["Productos Premium", "Productos Estándar", "Productos Básicos", "Servicios"], [])
-
-  const topBottomData = useMemo(() => [
-    { id: "1", name: "Productos Premium", sales: 850000, yoyGrowth: 18.5, averageTicket: 1250 },
-    { id: "2", name: "Productos Estándar", sales: 620000, yoyGrowth: 12.3, averageTicket: 780 },
-    { id: "3", name: "Productos Básicos", sales: 480000, yoyGrowth: 8.7, averageTicket: 450 },
-    { id: "4", name: "Servicios", sales: 350000, yoyGrowth: 22.1, averageTicket: 890 },
-    { id: "5", name: "Accesorios", sales: 150000, yoyGrowth: -12.4, averageTicket: 125 }
-  ], [filters.segmentType])
+  // Dynamic data based on segment type
+  const segmentData = useMemo(() => generateDataBySegmentType(filters.segmentType), [filters.segmentType, generateDataBySegmentType])
+  
+  const distributionData = segmentData.distribution
+  const evolutionData = segmentData.evolution
+  const segments = segmentData.segments
+  const topBottomData = segmentData.topBottom
 
   // Generate insights based on distribution data
   const { insights, isLoading: insightsLoading } = useSalesInsights({
