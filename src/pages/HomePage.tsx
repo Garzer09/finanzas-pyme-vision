@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Gauge } from '@/components/ui/gauge';
+import { RealTimeKPICards } from '@/components/RealTimeKPICards';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -241,46 +242,8 @@ const HomePage = () => {
           </CardContent>
         </Card>
 
-        {/* KPIs Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {kpis.map((kpi, index) => {
-            const IconComponent = kpi.icon;
-            return (
-              <Card key={index} className="dashboard-card hover:shadow-lg transition-all duration-300">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <IconComponent className="h-5 w-5 text-steel-blue" />
-                      <CardTitle className="text-sm font-medium text-steel-blue-dark">{kpi.title}</CardTitle>
-                    </div>
-                    <Badge variant={kpi.trend > 0 ? 'default' : 'secondary'} className="text-xs">
-                      {kpi.trend > 0 ? '+' : ''}{kpi.trend}%
-                    </Badge>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="space-y-2">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-2xl font-bold text-steel-blue-dark">{kpi.value}</span>
-                      <span className="text-sm text-professional">{kpi.unit}</span>
-                    </div>
-                    <p className="text-xs text-professional">{kpi.description}</p>
-                    <div className="flex items-center gap-1">
-                      {kpi.trend > 0 ? (
-                        <TrendingUp className="h-3 w-3 text-green-500" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3 text-red-500" />
-                      )}
-                      <span className={`text-xs ${kpi.trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {Math.abs(kpi.trend)}% vs anterior
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        {/* Real-time KPIs */}
+        <RealTimeKPICards />
 
         {/* Alerts Panel */}
         <Card className="dashboard-card">
