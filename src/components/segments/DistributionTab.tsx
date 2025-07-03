@@ -96,27 +96,33 @@ export function DistributionTab({ segmentType, data }: DistributionTabProps) {
               <BarChart
                 data={data}
                 layout="horizontal"
-                margin={{ top: 20, right: 30, left: 80, bottom: 5 }}
+                margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
               >
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                 <XAxis 
                   type="number" 
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
                   tickFormatter={metric === "euros" ? formatCurrency : (value) => `${value}%`}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
+                  tickLine={{ stroke: "hsl(var(--border))" }}
                 />
                 <YAxis 
                   type="category" 
                   dataKey="name" 
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
-                  width={75}
+                  width={95}
+                  axisLine={{ stroke: "hsl(var(--border))" }}
+                  tickLine={{ stroke: "hsl(var(--border))" }}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Bar 
                   dataKey={metric === "euros" ? "sales" : "participation"}
                   fill="hsl(var(--primary))"
                   radius={[0, 4, 4, 0]}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={1}
                 />
               </BarChart>
             </ResponsiveContainer>
