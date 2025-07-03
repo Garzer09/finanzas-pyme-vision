@@ -20,8 +20,13 @@ import {
 
 // Lazy load tab components for better performance
 const PLProyectadoTab = lazy(() => import('@/components/projections/tabs/PLProyectadoTab').then(module => ({ default: module.PLProyectadoTab })));
+const PLAnaliticoTab = lazy(() => import('@/components/projections/tabs/PLAnaliticoTab').then(module => ({ default: module.PLAnaliticoTab })));
+const BalanceProyectadoTab = lazy(() => import('@/components/projections/tabs/BalanceProyectadoTab').then(module => ({ default: module.BalanceProyectadoTab })));
 const CashFlowTab = lazy(() => import('@/components/projections/tabs/CashFlowTab').then(module => ({ default: module.CashFlowTab })));
 const RatiosTab = lazy(() => import('@/components/projections/tabs/RatiosTab').then(module => ({ default: module.RatiosTab })));
+const NOFTab = lazy(() => import('@/components/projections/tabs/NOFTab').then(module => ({ default: module.NOFTab })));
+const ServicioDeudaTab = lazy(() => import('@/components/projections/tabs/ServicioDeudaTab').then(module => ({ default: module.ServicioDeudaTab })));
+const VentasSegmentosTab = lazy(() => import('@/components/projections/tabs/VentasSegmentosTab').then(module => ({ default: module.VentasSegmentosTab })));
 
 // Skeleton component for loading states
 const TabSkeleton = () => (
@@ -51,13 +56,13 @@ export const ProjectionsModule = () => {
   // Tab configuration
   const tabs = [
     { id: 'pl-proyectado', label: 'P&G Proyectado', icon: FileText, component: PLProyectadoTab },
-    { id: 'pl-analitico', label: 'P&G Analítico', icon: BarChart3, component: () => <div className="p-8 text-center text-muted-foreground">P&G Analítico - En desarrollo</div> },
-    { id: 'balance-proyectado', label: 'Balance Proyectado', icon: Building2, component: () => <div className="p-8 text-center text-muted-foreground">Balance Proyectado - En desarrollo</div> },
+    { id: 'pl-analitico', label: 'P&G Analítico', icon: BarChart3, component: PLAnaliticoTab },
+    { id: 'balance-proyectado', label: 'Balance Proyectado', icon: Building2, component: BalanceProyectadoTab },
     { id: 'cash-flow', label: 'Flujos de Caja', icon: Activity, component: CashFlowTab },
     { id: 'ratios', label: 'Ratios Financieros', icon: TrendingUp, component: RatiosTab },
-    { id: 'nof', label: 'NOF', icon: CircleDot, component: () => <div className="p-8 text-center text-muted-foreground">NOF Proyectado - En desarrollo</div> },
-    { id: 'servicio-deuda', label: 'Servicio Deuda', icon: AlertTriangle, component: () => <div className="p-8 text-center text-muted-foreground">Servicio Deuda - En desarrollo</div> },
-    { id: 'ventas-segmentos', label: 'Ventas Segmentos', icon: Users, component: () => <div className="p-8 text-center text-muted-foreground">Ventas Segmentos - En desarrollo</div> }
+    { id: 'nof', label: 'NOF', icon: CircleDot, component: NOFTab },
+    { id: 'servicio-deuda', label: 'Servicio Deuda', icon: AlertTriangle, component: ServicioDeudaTab },
+    { id: 'ventas-segmentos', label: 'Ventas Segmentos', icon: Users, component: VentasSegmentosTab }
   ];
 
   // Export handlers
