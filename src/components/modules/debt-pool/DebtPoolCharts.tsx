@@ -1,16 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
   Treemap,
+  ResponsiveContainer,
+  Tooltip,
   Cell
 } from 'recharts';
 import { Building2, PieChart } from 'lucide-react';
+import { ComposicionEntidadChart } from './ComposicionEntidadChart';
 
 interface ChartData {
   name: string;
@@ -34,23 +30,6 @@ export const DebtPoolCharts = ({ debtByEntity, debtByType }: DebtPoolChartsProps
     }).format(value);
   };
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
-      return (
-        <div className="bg-white p-3 border border-slate-200 rounded-lg shadow-lg">
-          <p className="font-semibold text-slate-800">{data.name}</p>
-          <p className="text-slate-600">
-            Importe: <span className="font-medium">{formatCurrency(data.value)}</span>
-          </p>
-          <p className="text-slate-600">
-            Porcentaje: <span className="font-medium">{data.percentage.toFixed(1)}%</span>
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   const TreemapTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
@@ -94,7 +73,7 @@ export const DebtPoolCharts = ({ debtByEntity, debtByType }: DebtPoolChartsProps
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Barra horizontal apilada por entidad */}
+      {/* Composición por entidad - Nuevo componente */}
       <Card className="bg-white border-slate-200">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -103,40 +82,7 @@ export const DebtPoolCharts = ({ debtByEntity, debtByType }: DebtPoolChartsProps
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={debtByEntity} 
-                layout="horizontal"
-                margin={{ top: 20, right: 30, left: 140, bottom: 20 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis 
-                  type="number" 
-                  stroke="#64748b"
-                  fontSize={12}
-                  tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M€`}
-                />
-                <YAxis 
-                  type="category" 
-                  dataKey="name" 
-                  stroke="#64748b"
-                  fontSize={11}
-                  width={120}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar 
-                  dataKey="value" 
-                  radius={[0, 4, 4, 0]}
-                  fill="#005E8A"
-                >
-                  {debtByEntity.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          <ComposicionEntidadChart debtByEntity={debtByEntity} />
         </CardContent>
       </Card>
 

@@ -24,3 +24,6 @@ export { EVAValuationModule } from './EVAValuationModule';
 export { RentabilityModule } from './RentabilityModule';
 export { ConclusionsModule } from './ConclusionsModule';
 export { FinancialDashboardEnhancer } from './FinancialDashboardEnhancer';
+
+// Debt Pool Components
+export { ComposicionEntidadChart } from './debt-pool/ComposicionEntidadChart';
