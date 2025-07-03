@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, LineChart } from 'recharts';
 import { 
   Calendar, FileDown, Plus, TrendingUp, TrendingDown, 
@@ -23,6 +24,8 @@ export default function CashFlowPage() {
   const [selectedPeriods, setSelectedPeriods] = useState(['2023']); // Simular que solo hay un período
   const [activeTab, setActiveTab] = useState('operativo');
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [scenarioApplied, setScenarioApplied] = useState(false);
   const [simulatorValues, setSimulatorValues] = useState({
     diasCobro: 0,
     diasPago: 0,
@@ -635,8 +638,23 @@ export default function CashFlowPage() {
                           <p className="text-success-700">{formatCurrency(simulatorImpact)} en FCO</p>
                         </div>
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">Ver detalle</Button>
-                          <Button size="sm" className="bg-success-600 hover:bg-success-700">Aplicar escenario</Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => setIsDetailModalOpen(true)}
+                          >
+                            Ver detalle
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            className="bg-success-600 hover:bg-success-700"
+                            onClick={() => {
+                              setScenarioApplied(true);
+                              setTimeout(() => setScenarioApplied(false), 3000);
+                            }}
+                          >
+                            {scenarioApplied ? 'Escenario aplicado ✓' : 'Aplicar escenario'}
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -727,6 +745,71 @@ export default function CashFlowPage() {
               </CardContent>
             </Card>
           </section>
+
+          {/* Modal de Detalle del Simulador */}
+          <Dialog open={isDetailModalOpen} onOpenChange={setIsDetailModalOpen}>
+            <DialogContent className="max-w-4xl">
+              <DialogHeader>
+                <DialogTitle>Detalle del Impacto del Simulador</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="p-4 bg-slate-50 rounded-xl">
+                    <h4 className="font-semibold text-slate-800 mb-2">Impacto por Días de Cobro</h4>
+                    <div className="text-2xl font-bold text-steel-800">
+                      {formatCurrency((simulatorValues.diasCobro * 2400000) / 365)}
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      {simulatorValues.diasCobro} días × €2.4M ventas ÷ 365
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 bg-slate-50 rounded-xl">
+                    <h4 className="font-semibold text-slate-800 mb-2">Impacto por Días de Pago</h4>
+                    <div className="text-2xl font-bold text-cadet-800">
+                      {formatCurrency((simulatorValues.diasPago * 2400000 * 0.6) / 365)}
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      {simulatorValues.diasPago} días × €1.44M compras ÷ 365
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 bg-slate-50 rounded-xl">
+                    <h4 className="font-semibold text-slate-800 mb-2">Impacto por Inventario</h4>
+                    <div className="text-2xl font-bold text-success-800">
+                      {formatCurrency((simulatorValues.inventario * 300000) / 100)}
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      {simulatorValues.inventario}% × €300K inventario actual
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="bg-gradient-to-r from-steel-50 to-cadet-50 p-6 rounded-xl">
+                  <h4 className="font-bold text-slate-900 mb-4">Resumen del Impacto Total</h4>
+                  <div className="text-3xl font-bold text-steel-800 mb-2">
+                    {formatCurrency(simulatorImpact)}
+                  </div>
+                  <p className="text-slate-700">
+                    Este es el impacto estimado en el Flujo de Caja Operativo basado en los cambios propuestos en el capital circulante.
+                  </p>
+                  
+                  <div className="mt-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <div className="text-sm text-slate-600">NOF Actual</div>
+                      <div className="text-lg font-bold text-slate-800">€340,000</div>
+                    </div>
+                    <div>
+                      <div className="text-sm text-slate-600">NOF Simulado</div>
+                      <div className="text-lg font-bold text-steel-800">
+                        {formatCurrency(340000 - simulatorImpact)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     </div>
