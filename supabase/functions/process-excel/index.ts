@@ -198,14 +198,11 @@ serve(async (req) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { data: { user } } = await supabaseClient.auth.getUser()
-    if (!user) {
-      return new Response('Unauthorized', { status: 401, headers: corsHeaders })
-    }
+    // Use temporary user ID for anonymous uploads
+    const tempUserId = 'temp-user-' + crypto.randomUUID()
 
     const formData = await req.formData()
     const file = formData.get('file') as File
@@ -291,9 +288,9 @@ serve(async (req) => {
     const { data: fileRecord, error: fileError } = await supabaseClient
       .from('excel_files')
       .insert({
-        user_id: user.id,
+        user_id: tempUserId,
         file_name: file.name,
-        file_path: `uploads/${user.id}/${Date.now()}_${file.name}`,
+        file_path: `uploads/${tempUserId}/${Date.now()}_${file.name}`,
         file_size: file.size,
         processing_status: 'completed',
         processing_result: processedData
@@ -313,7 +310,7 @@ serve(async (req) => {
       if (processedData.estados_financieros) {
         Object.entries(processedData.estados_financieros).forEach(([type, data]) => {
           financialDataInserts.push({
-            user_id: user.id,
+            user_id: tempUserId,
             excel_file_id: fileRecord.id,
             data_type: `estado_${type}`,
             period_type: 'annual',
@@ -326,7 +323,7 @@ serve(async (req) => {
       // Pool financiero
       if (processedData.pool_financiero) {
         financialDataInserts.push({
-          user_id: user.id,
+          user_id: tempUserId,
           excel_file_id: fileRecord.id,
           data_type: 'pool_financiero',
           period_type: 'annual',
@@ -338,7 +335,7 @@ serve(async (req) => {
       // Ratios financieros
       if (processedData.ratios_financieros) {
         financialDataInserts.push({
-          user_id: user.id,
+          user_id: tempUserId,
           excel_file_id: fileRecord.id,
           data_type: 'ratios_financieros',
           period_type: 'annual',
@@ -350,7 +347,7 @@ serve(async (req) => {
       // Proyecciones
       if (processedData.proyecciones) {
         financialDataInserts.push({
-          user_id: user.id,
+          user_id: tempUserId,
           excel_file_id: fileRecord.id,
           data_type: 'proyecciones',
           period_type: 'projection',
