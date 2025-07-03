@@ -53,11 +53,15 @@ export const useFinancialData = (dataType?: string) => {
   };
 
   const calculateGrowth = (current: any, previous: any, field: string) => {
+    if (!current || !previous) return 0;
+    
     const currentValue = Number(current?.[field]) || 0;
     const previousValue = Number(previous?.[field]) || 0;
     
-    if (previousValue === 0) return 0;
-    return ((currentValue - previousValue) / previousValue) * 100;
+    if (previousValue === 0 || isNaN(currentValue) || isNaN(previousValue)) return 0;
+    
+    const growth = ((currentValue - previousValue) / previousValue) * 100;
+    return isNaN(growth) ? 0 : growth;
   };
 
   return {

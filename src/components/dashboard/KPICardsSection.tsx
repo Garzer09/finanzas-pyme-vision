@@ -40,25 +40,28 @@ export const KPICardsSection: React.FC = () => {
     {
       title: 'Facturación Total',
       value: pygData?.data_content?.ingresos_explotacion 
-        ? (pygData.data_content.ingresos_explotacion / 1000000).toFixed(1)
+        ? (Number(pygData.data_content.ingresos_explotacion) / 1000000).toFixed(1)
         : 'N/A',
       unit: 'M€',
-      trend: calculateGrowth(
-        getPeriodComparison('estado_pyg')[0]?.data_content,
-        getPeriodComparison('estado_pyg')[1]?.data_content,
-        'ingresos_explotacion'
-      ),
+      trend: (() => {
+        const growth = calculateGrowth(
+          getPeriodComparison('estado_pyg')[0]?.data_content,
+          getPeriodComparison('estado_pyg')[1]?.data_content,
+          'ingresos_explotacion'
+        );
+        return isNaN(growth) ? undefined : growth;
+      })(),
       status: 'good',
       icon: DollarSign,
       description: 'Ingresos totales del período'
     },
     {
       title: 'Margen EBITDA',
-      value: pygData?.data_content?.resultado_explotacion 
-        ? ((pygData.data_content.resultado_explotacion / pygData.data_content.ingresos_explotacion) * 100).toFixed(1)
+      value: pygData?.data_content?.resultado_explotacion && pygData?.data_content?.ingresos_explotacion
+        ? ((Number(pygData.data_content.resultado_explotacion) / Number(pygData.data_content.ingresos_explotacion)) * 100).toFixed(1)
         : 'N/A',
       unit: '%',
-      trend: 2.4, // Calculado
+      trend: 2.4, // Calculado como fallback
       status: 'good',
       icon: Percent,
       description: 'Margen de beneficio operativo'
@@ -66,48 +69,61 @@ export const KPICardsSection: React.FC = () => {
     {
       title: 'Beneficio Neto',
       value: pygData?.data_content?.resultado_neto 
-        ? (pygData.data_content.resultado_neto / 1000).toFixed(0)
+        ? (Number(pygData.data_content.resultado_neto) / 1000).toFixed(0)
         : 'N/A',
       unit: 'K€',
-      trend: calculateGrowth(
-        getPeriodComparison('estado_pyg')[0]?.data_content,
-        getPeriodComparison('estado_pyg')[1]?.data_content,
-        'resultado_neto'
-      ),
-      status: (pygData?.data_content?.resultado_neto || 0) > 0 ? 'good' : 'warning',
+      trend: (() => {
+        const growth = calculateGrowth(
+          getPeriodComparison('estado_pyg')[0]?.data_content,
+          getPeriodComparison('estado_pyg')[1]?.data_content,
+          'resultado_neto'
+        );
+        return isNaN(growth) ? undefined : growth;
+      })(),
+      status: (Number(pygData?.data_content?.resultado_neto) || 0) > 0 ? 'good' : 'warning',
       icon: TrendingUp,
       description: 'Rentabilidad final del período'
     },
     {
       title: 'Ratio Liquidez General',
-      value: ratiosData?.data_content?.liquidez?.ratio_corriente || 'N/A',
+      value: ratiosData?.data_content?.liquidez?.ratio_corriente 
+        ? Number(ratiosData.data_content.liquidez.ratio_corriente).toFixed(2)
+        : 'N/A',
       unit: 'x',
-      trend: calculateGrowth(
-        getPeriodComparison('ratios_financieros')[0]?.data_content?.liquidez,
-        getPeriodComparison('ratios_financieros')[1]?.data_content?.liquidez,
-        'ratio_corriente'
-      ),
-      status: (ratiosData?.data_content?.liquidez?.ratio_corriente || 0) > 1.5 ? 'good' : 'warning',
+      trend: (() => {
+        const growth = calculateGrowth(
+          getPeriodComparison('ratios_financieros')[0]?.data_content?.liquidez,
+          getPeriodComparison('ratios_financieros')[1]?.data_content?.liquidez,
+          'ratio_corriente'
+        );
+        return isNaN(growth) ? undefined : growth;
+      })(),
+      status: (Number(ratiosData?.data_content?.liquidez?.ratio_corriente) || 0) > 1.5 ? 'good' : 'warning',
       icon: Activity,
       description: 'Capacidad de pago a corto plazo'
     },
     {
       title: 'Ratio Endeudamiento',
-      value: ratiosData?.data_content?.endeudamiento?.ratio_endeudamiento || 'N/A',
+      value: ratiosData?.data_content?.endeudamiento?.ratio_endeudamiento 
+        ? Number(ratiosData.data_content.endeudamiento.ratio_endeudamiento).toFixed(1)
+        : 'N/A',
       unit: '%',
-      trend: calculateGrowth(
-        getPeriodComparison('ratios_financieros')[0]?.data_content?.endeudamiento,
-        getPeriodComparison('ratios_financieros')[1]?.data_content?.endeudamiento,
-        'ratio_endeudamiento'
-      ),
-      status: (ratiosData?.data_content?.endeudamiento?.ratio_endeudamiento || 0) < 40 ? 'good' : 'warning',
+      trend: (() => {
+        const growth = calculateGrowth(
+          getPeriodComparison('ratios_financieros')[0]?.data_content?.endeudamiento,
+          getPeriodComparison('ratios_financieros')[1]?.data_content?.endeudamiento,
+          'ratio_endeudamiento'
+        );
+        return isNaN(growth) ? undefined : growth;
+      })(),
+      status: (Number(ratiosData?.data_content?.endeudamiento?.ratio_endeudamiento) || 0) < 40 ? 'good' : 'warning',
       icon: Building,
       description: 'Deuda Neta / EBITDA'
     },
     {
       title: 'Fondo de Maniobra',
       value: balanceData?.data_content?.activo_corriente && balanceData?.data_content?.pasivo_corriente
-        ? ((balanceData.data_content.activo_corriente - balanceData.data_content.pasivo_corriente) / 1000).toFixed(0)
+        ? ((Number(balanceData.data_content.activo_corriente) - Number(balanceData.data_content.pasivo_corriente)) / 1000).toFixed(0)
         : 'N/A',
       unit: 'K€',
       trend: 1.8,
