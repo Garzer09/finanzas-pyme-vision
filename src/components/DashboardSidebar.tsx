@@ -57,9 +57,7 @@ export const DashboardSidebar = () => {
     }
     
     // Section 4: Supuestos y Plan Inversiones
-    if (path.includes('/premisas-ingresos') || path.includes('/estructura-costes') || 
-        path.includes('/capital-trabajo') || path.includes('/endeudamiento-coste') || 
-        path.includes('/inversiones') || path.includes('/supuestos')) {
+    if (path.includes('/supuestos-financieros')) {
       return 'supuestos';
     }
     
@@ -223,40 +221,10 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: '/premisas-ingresos',
-          label: '4.1. Premisas de Ingresos',
-          icon: TrendingUp,
-          color: 'text-success-600'
-        },
-        {
-          path: '/estructura-costes',
-          label: '4.2. Estructura de Costes',
-          icon: Layers,
-          color: 'text-steel-600'
-        },
-        {
-          path: '/capital-trabajo',
-          label: '4.3. Capital de Trabajo',
-          icon: RotateCcw,
-          color: 'text-cadet-600'
-        },
-        {
-          path: '/endeudamiento-coste',
-          label: '4.4. Endeudamiento y Coste',
-          icon: Percent,
-          color: 'text-warning-600'
-        },
-        {
-          path: '/inversiones',
-          label: '4.5. Plan Inversiones (CAPEX)',
-          icon: Briefcase,
-          color: 'text-steel-700'
-        },
-        {
-          path: '/supuestos',
-          label: '4.6. Tasa Impositiva y Otros',
+          path: '/supuestos-financieros',
+          label: 'Supuestos Financieros Clave',
           icon: Calculator,
-          color: 'text-cadet-500'
+          color: 'text-primary'
         }
       ]
     },
