@@ -37,7 +37,7 @@ import { BalanceSheetCurrentModule } from "./components/modules/BalanceSheetCurr
 import { FinancialRatiosCurrentModule } from "./components/modules/FinancialRatiosCurrentModule";
 import { CompanyDescriptionModule } from "./components/modules/CompanyDescriptionModule";
 import { AnalyticalPLCurrentModule } from "./components/modules/AnalyticalPLCurrentModule";
-import { RentabilityModule } from "./components/modules/RentabilityModule";
+import { SalesSegmentsModule } from "./components/modules/SalesSegmentsModule";
 import ConclusionsPage from "./pages/ConclusionsPage";
 
 const queryClient = new QueryClient();
@@ -77,12 +77,12 @@ const App = () => (
           <Route path="/balance-actual" element={<BalanceSheetCurrentModule />} />
           <Route path="/flujos-actual" element={<FinancialAnalysisModule />} />
           <Route path="/ratios-actual" element={<FinancialRatiosCurrentModule />} />
-          <Route path="/punto-muerto-actual" element={<RentabilityModule />} />
+          <Route path="/punto-muerto-actual" element={<FinancialAnalysisModule />} />
           <Route path="/endeudamiento-actual" element={<FinancialAnalysisModule />} />
           <Route path="/servicio-deuda-actual" element={<FinancialAnalysisModule />} />
           
           <Route path="/nof-actual" element={<FinancialAnalysisModule />} />
-          <Route path="/segmentos-actual" element={<FinancialAnalysisModule />} />
+          <Route path="/segmentos-actual" element={<SalesSegmentsModule />} />
           
           {/* Sección 4 - Supuestos */}
           <Route path="/supuestos-financieros" element={<KeyFinancialAssumptionsModule />} />
