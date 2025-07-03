@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense } from "react"
+import { useState, lazy, Suspense, memo } from "react"
 import { DashboardHeader } from '@/components/DashboardHeader'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,7 +18,7 @@ const DistributionTab = lazy(() => import("@/components/segments/DistributionTab
 const EvolutionTab = lazy(() => import("@/components/segments/EvolutionTab").then(module => ({ default: module.EvolutionTab })))
 const TopBottomTab = lazy(() => import("@/components/segments/TopBottomTab").then(module => ({ default: module.TopBottomTab })))
 
-export const SalesSegmentsModule = () => {
+export const SalesSegmentsModule = memo(() => {
   const { toast } = useToast()
   
   // State for filters
@@ -329,4 +329,4 @@ export const SalesSegmentsModule = () => {
       </div>
     </div>
   )
-}
+})

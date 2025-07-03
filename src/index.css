@@ -45,6 +45,13 @@
 
     --radius: 0.75rem;
 
+    /* Chart colors for recharts */
+    --chart-1: 200 43% 48%; /* Primary steel blue */
+    --chart-2: 158 64% 52%; /* Teal #0D9488 */
+    --chart-3: 31 81% 56%; /* Orange #F59E0B */
+    --chart-4: 270 95% 75%; /* Purple #A855F7 */
+    --chart-5: 346 77% 60%; /* Pink #EC4899 */
+
     /* Corporate gradients */
     --gradient-steel: linear-gradient(135deg, hsl(200 43% 48%) 0%, hsl(200 43% 63%) 100%);
     --gradient-steel-dark: linear-gradient(135deg, hsl(200 43% 33%) 0%, hsl(200 43% 48%) 100%);

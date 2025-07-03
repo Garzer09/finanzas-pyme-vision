@@ -28,11 +28,11 @@ export function EvolutionTab({ segmentType, data, segments }: EvolutionTabProps)
     }).format(value)
 
   const colors = [
-    "hsl(var(--primary))",
-    "hsl(var(--chart-2))",
-    "hsl(var(--chart-3))",
-    "hsl(var(--chart-4))",
-    "hsl(var(--chart-5))",
+    "hsl(200 43% 48%)", // Primary steel blue
+    "hsl(158 64% 52%)", // Teal
+    "hsl(31 81% 56%)",  // Orange
+    "hsl(270 95% 75%)", // Purple
+    "hsl(346 77% 60%)", // Pink
   ]
 
   const CustomTooltip = ({ active, payload, label }: any) => {
