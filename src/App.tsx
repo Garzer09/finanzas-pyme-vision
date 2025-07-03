@@ -26,7 +26,7 @@ import DebtServicePage from "./pages/DebtServicePage";
 import { KeyFinancialAssumptionsModule } from "./components/modules/KeyFinancialAssumptionsModule";
 import { FinancialAnalysisModule } from "./components/modules/FinancialAnalysisModule";
 import { ProjectionsModule } from "./components/modules/ProjectionsModule";
-import { SensitivityModule } from "./components/modules/SensitivityModule";
+import { SensitivityModuleNew } from "./components/modules/SensitivityModuleNew";
 import { ValuationModule } from "./components/modules/ValuationModule";
 import { SituacionActualModule } from "./components/modules/SituacionActualModule";
 import { SimulatorModule } from "./components/modules/SimulatorModule";
@@ -99,7 +99,7 @@ const App = () => (
           
           {/* Sección 6 - Sensibilidad */}
           <Route path="/metodologia-sensibilidad" element={<MetodologiaSensibilidadModule />} />
-          <Route path="/escenarios" element={<SensitivityModule />} />
+          <Route path="/escenarios" element={<SensitivityModuleNew />} />
           
           {/* Sección 7 - Valoración EVA */}
           <Route path="/introduccion-eva" element={<ValuationModule />} />
