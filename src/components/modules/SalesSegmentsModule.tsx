@@ -52,7 +52,7 @@ export const SalesSegmentsModule = memo(() => {
             { name: "Productos Estándar", sales: 620000, participation: 25.1, yoyGrowth: 12.3 },
             { name: "Productos Básicos", sales: 480000, participation: 19.4, yoyGrowth: 8.7 },
             { name: "Servicios", sales: 350000, participation: 14.1, yoyGrowth: 22.1 },
-            { name: "Accesorios", sales: 150000, participation: 7.2, yoyGrowth: -12.4 }
+            { name: "Accesorios", sales: 180000, participation: 7.2, yoyGrowth: -12.4 }
           ],
           evolution: [
             { period: "Ene", "Productos Premium": 95000, "Productos Estándar": 78000, "Productos Básicos": 65000, "Servicios": 45000 },
@@ -68,7 +68,7 @@ export const SalesSegmentsModule = memo(() => {
             { id: "2", name: "Productos Estándar", sales: 620000, yoyGrowth: 12.3, averageTicket: 780 },
             { id: "3", name: "Productos Básicos", sales: 480000, yoyGrowth: 8.7, averageTicket: 450 },
             { id: "4", name: "Servicios", sales: 350000, yoyGrowth: 22.1, averageTicket: 890 },
-            { id: "5", name: "Accesorios", sales: 150000, yoyGrowth: -12.4, averageTicket: 125 }
+            { id: "5", name: "Accesorios", sales: 180000, yoyGrowth: -12.4, averageTicket: 125 }
           ]
         }
       case "region":
@@ -104,7 +104,7 @@ export const SalesSegmentsModule = memo(() => {
             { name: "Particulares", sales: 680000, participation: 27.4, yoyGrowth: 8.2 },
             { name: "Instituciones", sales: 450000, participation: 18.2, yoyGrowth: 19.5 },
             { name: "Mayoristas", sales: 280000, participation: 11.3, yoyGrowth: 6.7 },
-            { name: "Online", sales: 150000, participation: 6.0, yoyGrowth: 35.2 }
+            { name: "Canal Online", sales: 150000, participation: 6.0, yoyGrowth: 35.2 }
           ],
           evolution: [
             { period: "Ene", "Empresas": 105000, "Particulares": 78000, "Instituciones": 52000, "Mayoristas": 32000 },
@@ -120,7 +120,7 @@ export const SalesSegmentsModule = memo(() => {
             { id: "2", name: "Particulares", sales: 680000, yoyGrowth: 8.2, averageTicket: 420 },
             { id: "3", name: "Instituciones", sales: 450000, yoyGrowth: 19.5, averageTicket: 4500 },
             { id: "4", name: "Mayoristas", sales: 280000, yoyGrowth: 6.7, averageTicket: 1680 },
-            { id: "5", name: "Online", sales: 150000, yoyGrowth: 35.2, averageTicket: 180 }
+            { id: "5", name: "Canal Online", sales: 150000, yoyGrowth: 35.2, averageTicket: 180 }
           ]
         }
       default:
