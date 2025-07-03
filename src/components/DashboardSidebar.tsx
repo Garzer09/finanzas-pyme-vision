@@ -51,7 +51,7 @@ export const DashboardSidebar = () => {
         path.includes('/ratios-financieros') || path.includes('/flujos-caja') || 
         path.includes('/analisis-nof') || path.includes('/punto-muerto') || 
         path.includes('/endeudamiento') || path.includes('/servicio-deuda') || 
-        path.includes('/pyg-analitico-actual') || path.includes('/tesoreria-actual') || 
+        path.includes('/pyg-analitico-actual') || 
         path.includes('/segmentos-actual')) {
       return 'situacion';
     }
@@ -200,12 +200,6 @@ export const DashboardSidebar = () => {
           label: 'P&G Analítico Actual',
           icon: BarChart3,
           color: 'text-cadet-500'
-        },
-        {
-          path: '/tesoreria-actual',
-          label: 'Tesorería Actual',
-          icon: DollarSign,
-          color: 'text-success-500'
         },
         {
           path: '/segmentos-actual',
