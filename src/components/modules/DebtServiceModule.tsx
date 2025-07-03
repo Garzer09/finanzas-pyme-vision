@@ -272,7 +272,7 @@ export const DebtServiceModule = () => {
             </CardHeader>
             <CardContent className="p-0">
               <div className="h-96">
-                <ResponsiveContainer width="100%" height="100%" aspect={2/1}>
+                <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={monthlyData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis 
@@ -344,7 +344,7 @@ export const DebtServiceModule = () => {
             </CardHeader>
             <CardContent className="p-0">
               <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%" aspect={2/1}>
+                <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={monthlyData}>
                     {/* Bandas de fondo */}
                     <defs>
