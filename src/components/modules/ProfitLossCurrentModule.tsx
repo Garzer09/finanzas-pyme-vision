@@ -5,9 +5,16 @@ import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { TrendingUp, DollarSign, Percent, Calculator } from 'lucide-react';
+import { useFinancialData } from '@/hooks/useFinancialData';
+import { useEffect, useState } from 'react';
 
 export const ProfitLossCurrentModule = () => {
-  const kpiData = [
+  const { data, loading, error, getLatestData } = useFinancialData();
+  const [plData, setPlData] = useState<any[]>([]);
+  const [kpiData, setKpiData] = useState<any[]>([]);
+
+  // Default data as fallback
+  const defaultKpiData = [
     {
       title: 'Ingresos Totales',
       value: '€2,500,000',
@@ -46,7 +53,7 @@ export const ProfitLossCurrentModule = () => {
     }
   ];
 
-  const plData = [
+  const defaultPlData = [
     { concepto: 'Ventas Netas', valor: 2500000, porcentaje: 100 },
     { concepto: 'Coste de Ventas', valor: -1500000, porcentaje: -60 },
     { concepto: 'MARGEN BRUTO', valor: 1000000, porcentaje: 40, destacar: true },
@@ -67,6 +74,28 @@ export const ProfitLossCurrentModule = () => {
     { trimestre: 'Q3', ingresos: 650000, gastos: 570000, beneficio: 80000 },
     { trimestre: 'Q4', ingresos: 650000, gastos: 560000, beneficio: 90000 }
   ];
+
+  useEffect(() => {
+    // Try to get P&G data from the database
+    const pygData = getLatestData('estado_pyg');
+    
+    if (pygData && pygData.data_content) {
+      // Process real data from database
+      const content = pygData.data_content;
+      console.log('P&G Data from database:', content);
+      
+      // Map real data to our format if available
+      const realPlData = content.datos_financieros || defaultPlData;
+      const realKpiData = content.kpis || defaultKpiData;
+      
+      setPlData(realPlData);
+      setKpiData(realKpiData);
+    } else {
+      // Use default data as fallback
+      setPlData(defaultPlData);
+      setKpiData(defaultKpiData);
+    }
+  }, [data]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -104,11 +133,15 @@ export const ProfitLossCurrentModule = () => {
 
           {/* KPIs Grid */}
           <section>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {kpiData.map((kpi, index) => (
-                <ModernKPICard key={index} {...kpi} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="text-center">Cargando datos financieros...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {kpiData.map((kpi, index) => (
+                  <ModernKPICard key={index} {...kpi} />
+                ))}
+              </div>
+            )}
           </section>
 
           {/* P&L Statement */}

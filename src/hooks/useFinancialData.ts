@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 export interface FinancialDataPoint {
   id: string;
@@ -15,22 +14,19 @@ export const useFinancialData = (dataType?: string) => {
   const [data, setData] = useState<FinancialDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      fetchFinancialData();
-    }
-  }, [user, dataType]);
+    fetchFinancialData();
+  }, [dataType]);
 
   const fetchFinancialData = async () => {
     try {
       setLoading(true);
+      // Get latest financial data without user filtering for anonymous uploads
       let query = supabase
         .from('financial_data')
         .select('*')
-        .eq('user_id', user?.id)
-        .order('period_date', { ascending: false });
+        .order('created_at', { ascending: false });
 
       if (dataType) {
         query = query.eq('data_type', dataType);
