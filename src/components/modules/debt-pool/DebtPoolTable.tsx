@@ -52,8 +52,8 @@ export const DebtPoolTable = ({ debtItems, onEdit, onDelete }: DebtPoolTableProp
     let filtered = debtItems.filter(item => {
       const matchesSearch = item.entidad.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            item.tipo.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesEntity = !entityFilter || item.entidad === entityFilter;
-      const matchesType = !typeFilter || item.tipo === typeFilter;
+      const matchesEntity = !entityFilter || entityFilter === 'all-entities' || item.entidad === entityFilter;
+      const matchesType = !typeFilter || typeFilter === 'all-types' || item.tipo === typeFilter;
       
       return matchesSearch && matchesEntity && matchesType;
     });
@@ -134,7 +134,7 @@ export const DebtPoolTable = ({ debtItems, onEdit, onDelete }: DebtPoolTableProp
               <SelectValue placeholder="Filtrar por entidad" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todas las entidades</SelectItem>
+              <SelectItem value="all-entities">Todas las entidades</SelectItem>
               {entities.map(entity => (
                 <SelectItem key={entity} value={entity}>{entity}</SelectItem>
               ))}
@@ -146,7 +146,7 @@ export const DebtPoolTable = ({ debtItems, onEdit, onDelete }: DebtPoolTableProp
               <SelectValue placeholder="Filtrar por tipo" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos los tipos</SelectItem>
+              <SelectItem value="all-types">Todos los tipos</SelectItem>
               {types.map(type => (
                 <SelectItem key={type} value={type}>{type}</SelectItem>
               ))}
