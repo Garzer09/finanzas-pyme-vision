@@ -1,4 +1,5 @@
 
+import { DashboardPageHeader } from '@/components/DashboardPageHeader';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { ModernKPICard } from '@/components/ui/modern-kpi-card';
@@ -36,28 +37,20 @@ export const CompanyDescriptionModule = () => {
         
         <main className="flex-1 p-8 space-y-8 overflow-auto">
           {/* Header Section */}
-          <section className="relative">
-            <div className="modern-card p-8 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-steel-50/50 via-cadet-50/30 to-steel-50/20"></div>
-              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-steel-500 to-cadet-500"></div>
-              
-              <div className="relative z-10 flex items-center justify-between">
-                <div>
-                  <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-cadet-600 bg-clip-text text-transparent">
-                    Descripción de la Empresa
-                  </h1>
-                  <p className="text-slate-700 text-lg font-medium">Información detallada sobre la organización y su contexto empresarial</p>
-                </div>
-                <Button 
-                  onClick={() => setIsEditing(!isEditing)}
-                  className="btn-steel hover:shadow-steel rounded-2xl px-6 py-3 font-semibold"
-                >
-                  {isEditing ? <Save className="h-4 w-4 mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
-                  {isEditing ? 'Guardar' : 'Editar'}
-                </Button>
-              </div>
-            </div>
-          </section>
+          <DashboardPageHeader
+            title="Descripción de la Empresa"
+            subtitle="Información detallada sobre la organización y su contexto empresarial"
+          />
+          
+          <div className="flex justify-end mb-6">
+            <Button 
+              onClick={() => setIsEditing(!isEditing)}
+              className="btn-steel hover:shadow-steel rounded-2xl px-6 py-3 font-semibold"
+            >
+              {isEditing ? <Save className="h-4 w-4 mr-2" /> : <Edit className="h-4 w-4 mr-2" />}
+              {isEditing ? 'Guardar' : 'Editar'}
+            </Button>
+          </div>
 
           {/* KPI Cards */}
           <section>

@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense, memo, useMemo, useCallback } from "react"
+import { DashboardPageHeader } from '@/components/DashboardPageHeader'
 import { DashboardHeader } from '@/components/DashboardHeader'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -168,25 +169,19 @@ export const SalesSegmentsModule = memo(() => {
           {/* Main Content */}
           <main className="flex-1 p-6 space-y-6 overflow-auto">
             {/* Header */}
-            <div className="space-y-4">
-              <div>
-                <h1 className="text-3xl font-bold text-foreground">
-                  Análisis por Segmentos
-                </h1>
-                <p className="text-muted-foreground">
-                  Facturación detallada por producto, región y tipo de cliente
-                </p>
-              </div>
+            <DashboardPageHeader
+              title="Análisis por Segmentos"
+              subtitle="Facturación detallada por producto, región y tipo de cliente"
+            />
 
-              {/* Segment Filter */}
-              <div className="max-w-md">
-                <SegmentFilter
-                  segmentType={filters.segmentType}
-                  onSegmentTypeChange={(segmentType) => 
-                    setFilters(prev => ({ ...prev, segmentType }))
-                  }
-                />
-              </div>
+            {/* Segment Filter */}
+            <div className="max-w-md">
+              <SegmentFilter
+                segmentType={filters.segmentType}
+                onSegmentTypeChange={(segmentType) => 
+                  setFilters(prev => ({ ...prev, segmentType }))
+                }
+              />
             </div>
 
             {/* KPI Header Cards */}

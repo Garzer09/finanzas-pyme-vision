@@ -1,8 +1,9 @@
 
 import { useState } from 'react';
+import { DashboardPageHeader } from '@/components/DashboardPageHeader';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -113,14 +114,10 @@ export const ProjectionsModule = () => {
           <div className="data-wave-bg absolute inset-0 pointer-events-none opacity-10" />
           
           {/* Header */}
-          <section className="relative z-10">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-white mb-2">Proyecciones Financieras (Año 1-5)</h1>
-                <p className="text-gray-400">Análisis prospectivo generado automáticamente desde datos del Año 0</p>
-              </div>
-            </div>
-          </section>
+          <DashboardPageHeader
+            title="Proyecciones Financieras (Año 1-5)"
+            subtitle="Análisis prospectivo generado automáticamente desde datos del Año 0"
+          />
 
           {/* Navigation Tabs */}
           <section className="relative z-10">
