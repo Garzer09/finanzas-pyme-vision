@@ -67,7 +67,7 @@ export const DashboardSidebar = () => {
     }
     
     // Section 6: Análisis de Sensibilidad
-    if (path.includes('/metodologia-sensibilidad') || path.includes('/escenarios')) {
+    if (path.includes('/escenarios')) {
       return 'sensibilidad';
     }
     
@@ -237,14 +237,8 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: '/metodologia-sensibilidad',
-          label: '6.1. Metodología',
-          icon: Target,
-          color: 'text-steel-600'
-        },
-        {
           path: '/escenarios',
-          label: '6.2. Escenarios y Resultados',
+          label: 'Escenarios y Sensibilidad',
           icon: TrendingDown,
           color: 'text-warning-600'
         }

@@ -391,39 +391,160 @@ export const SensitivityModuleNew = () => {
               </div>
             </TabsContent>
 
-            {/* Other tabs - placeholder content for now */}
+            {/* Comparativa Tab */}
             <TabsContent value="comparativa" className="space-y-6 mt-6">
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <BarChart3 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Análisis Comparativo</h3>
-                  <p className="text-muted-foreground">
-                    Esta sección se implementará en el siguiente paso
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5 text-primary" />
+                      Comparación de Escenarios
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {scenarios.map((scenario) => (
+                        <div key={scenario.id} className="flex justify-between items-center p-3 border rounded-lg">
+                          <div>
+                            <span className="font-medium">{scenario.name}</span>
+                            <p className="text-sm text-muted-foreground">
+                              Ventas: {scenario.salesDelta > 0 ? '+' : ''}{scenario.salesDelta}% | 
+                              Costes: {scenario.costsDelta > 0 ? '+' : ''}{scenario.costsDelta}%
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold">
+                              €{(baseData.ebitda + (scenario.salesDelta * 2.5) - (scenario.costsDelta * 1.5)).toFixed(0)}K
+                            </div>
+                            <div className="text-sm text-muted-foreground">EBITDA</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Resumen de Impactos</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span>Escenario más favorable:</span>
+                        <span className="text-success font-medium">Optimista</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Mayor riesgo:</span>
+                        <span className="text-destructive font-medium">Pesimista</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Rango de variación:</span>
+                        <span className="font-medium">±{Math.max(...scenarios.map(s => Math.abs(s.salesDelta)))}%</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </TabsContent>
 
+            {/* Tornado Tab */}
             <TabsContent value="tornado" className="space-y-6 mt-6">
               <Card>
-                <CardContent className="p-8 text-center">
-                  <Gauge className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Análisis Tornado</h3>
-                  <p className="text-muted-foreground">
-                    Esta sección se implementará en el siguiente paso
-                  </p>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Gauge className="h-5 w-5 text-primary" />
+                    Análisis de Sensibilidad Tornado
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="text-center">
+                      <p className="text-muted-foreground mb-4">
+                        Impacto de cada variable en el EBITDA (ordenado por magnitud)
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      {[
+                        { variable: 'Ventas ±10%', impact: '±25K', color: 'bg-primary' },
+                        { variable: 'Costes Variables ±5%', impact: '±15K', color: 'bg-warning' },
+                        { variable: 'Precio ±3%', impact: '±7.5K', color: 'bg-success' },
+                        { variable: 'Volumen ±8%', impact: '±20K', color: 'bg-destructive' }
+                      ].map((item, index) => (
+                        <div key={index} className="flex items-center gap-4">
+                          <div className="w-32 text-sm font-medium">{item.variable}</div>
+                          <div className="flex-1 relative">
+                            <div className="h-8 bg-muted rounded-lg flex items-center justify-center">
+                              <div className={`h-6 ${item.color} rounded opacity-70`} style={{width: `${60 + index * 10}%`}}></div>
+                            </div>
+                          </div>
+                          <div className="w-20 text-sm font-medium text-right">{item.impact}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
+            {/* Unifactorial Tab */}
             <TabsContent value="unifactorial" className="space-y-6 mt-6">
               <Card>
-                <CardContent className="p-8 text-center">
-                  <TrendingUp className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Análisis Unifactorial</h3>
-                  <p className="text-muted-foreground">
-                    Esta sección se implementará en el siguiente paso
-                  </p>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-primary" />
+                    Análisis Unifactorial
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Variable a Analizar</h4>
+                        <div className="space-y-2">
+                          {['Ventas', 'Costes Variables', 'Precio de Venta', 'Volumen'].map((variable) => (
+                            <label key={variable} className="flex items-center space-x-2">
+                              <input type="radio" name="variable" value={variable} defaultChecked={variable === 'Ventas'} />
+                              <span className="text-sm">{variable}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Rango de Análisis</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <Label>Desde: -20%</Label>
+                            <Slider defaultValue={[-20]} max={0} min={-50} step={1} />
+                          </div>
+                          <div>
+                            <Label>Hasta: +20%</Label>
+                            <Slider defaultValue={[20]} max={50} min={0} step={1} />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-6 p-4 bg-muted rounded-lg">
+                      <h4 className="font-medium mb-3">Resultados del Análisis</h4>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-2xl font-bold text-destructive">€360K</div>
+                          <div className="text-sm text-muted-foreground">Escenario -20%</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold">€450K</div>
+                          <div className="text-sm text-muted-foreground">Base</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold text-success">€540K</div>
+                          <div className="text-sm text-muted-foreground">Escenario +20%</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

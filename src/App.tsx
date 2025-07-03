@@ -31,7 +31,7 @@ import { EVAValuationModule } from "./components/modules/EVAValuationModule";
 import { SituacionActualModule } from "./components/modules/SituacionActualModule";
 import { SimulatorModule } from "./components/modules/SimulatorModule";
 import { PremisasIngresosModule } from "./components/modules/PremisasIngresosModule";
-import { MetodologiaSensibilidadModule } from "./components/modules/MetodologiaSensibilidadModule";
+
 import { ProfitLossCurrentModule } from "./components/modules/ProfitLossCurrentModule";
 import { BalanceSheetCurrentModule } from "./components/modules/BalanceSheetCurrentModule";
 import { FinancialRatiosCurrentModule } from "./components/modules/FinancialRatiosCurrentModule";
@@ -91,7 +91,6 @@ const App = () => (
           <Route path="/proyecciones" element={<ProjectionsModule />} />
           
           {/* Sección 6 - Sensibilidad */}
-          <Route path="/metodologia-sensibilidad" element={<MetodologiaSensibilidadModule />} />
           <Route path="/escenarios" element={<SensitivityModuleNew />} />
           
           {/* Sección 7 - Valoración EVA */}
