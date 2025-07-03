@@ -1,30 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { DashboardHeader } from '@/components/DashboardHeader';
+import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Gauge } from '@/components/ui/gauge';
-import { RealTimeKPICards } from '@/components/RealTimeKPICards';
+import { KPICardsSection } from '@/components/dashboard/KPICardsSection';
+import { EvolutionChartsSection } from '@/components/dashboard/EvolutionChartsSection';
 import { 
   TrendingUp, 
-  TrendingDown, 
+  TrendingDown,
   AlertTriangle, 
   CheckCircle, 
-  DollarSign, 
-  Percent, 
-  Calendar,
-  Users,
-  Building,
   BarChart3,
   PieChart,
   LineChart,
-  Activity,
   Target,
-  Zap,
-  Clock
+  Upload,
+  Database,
+  Settings,
+  Clock,
+  Activity,
+  Calendar,
+  Percent
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -187,212 +185,142 @@ const HomePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-light-gray-bg">
-      <DashboardHeader />
+    <div className="min-h-screen bg-light-gray-bg flex">
+      {/* Sidebar */}
+      <DashboardSidebar />
       
-      <div className="container mx-auto p-6 space-y-8">
-        {/* Welcome Section */}
-        <div className="text-center space-y-4">
-          <h1 className="text-3xl font-bold text-steel-blue-dark">
-            ¡Bienvenido/a, {user?.user_metadata?.full_name || 'Usuario'}!
-          </h1>
-          <p className="text-professional text-lg">
-            Dashboard principal de análisis financiero para {user?.user_metadata?.company_name || 'tu empresa'}
-          </p>
-        </div>
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        <div className="container mx-auto p-6 space-y-8">
+          {/* Welcome Section */}
+          <div className="text-center space-y-4">
+            <h1 className="text-3xl font-bold text-steel-blue-dark">
+              ¡Bienvenido/a, {user?.user_metadata?.full_name || 'Usuario'}!
+            </h1>
+            <p className="text-professional text-lg">
+              Resumen Ejecutivo - Dashboard FinSight Pro
+            </p>
+          </div>
 
-        {/* Health Score */}
-        <Card className="dashboard-card">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl text-steel-blue-dark">Salud Financiera Global</CardTitle>
-            <CardDescription>Score integral basado en liquidez, rentabilidad, solvencia y eficiencia</CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <div className="text-center space-y-4">
-              <div className="w-32 h-32 mx-auto relative">
-                <svg viewBox="0 0 120 120" className="w-full h-full transform -rotate-90">
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="50"
-                    stroke="hsl(220 13% 91%)"
-                    strokeWidth="8"
-                    fill="none"
-                  />
-                  <circle
-                    cx="60"
-                    cy="60"
-                    r="50"
-                    stroke="hsl(210 44% 45%)"
-                    strokeWidth="8"
-                    fill="none"
-                    strokeDasharray={`${(healthScore / 100) * 314} 314`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-steel-blue">{healthScore}</div>
-                    <div className="text-xs text-professional">/ 100</div>
-                  </div>
-                </div>
-              </div>
-              <div className="text-sm text-professional">Saludable</div>
+          {/* Sección 1: Resumen Ejecutivo */}
+          <section className="space-y-6">
+            {/* Panel de KPIs Principales */}
+            <KPICardsSection />
+            
+            {/* Gráficos de Evolución y Comparativas */}
+            <EvolutionChartsSection />
+          </section>
+
+          {/* Quick Actions */}
+          <section>
+            <h3 className="text-xl font-semibold text-steel-blue-dark mb-6">Acceso Rápido a Análisis</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Link to="/subir-excel" className="block">
+                <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
+                  <CardContent className="p-6 text-center space-y-3">
+                    <Upload className="h-8 w-8 text-steel-blue mx-auto" />
+                    <h3 className="font-semibold text-steel-blue-dark">Cargar Datos</h3>
+                    <p className="text-sm text-professional">Sube archivos Excel para análisis</p>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link to="/cuenta-pyg" className="block">
+                <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
+                  <CardContent className="p-6 text-center space-y-3">
+                    <BarChart3 className="h-8 w-8 text-steel-blue mx-auto" />
+                    <h3 className="font-semibold text-steel-blue-dark">Análisis P&G</h3>
+                    <p className="text-sm text-professional">Cuenta de Pérdidas y Ganancias</p>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link to="/balance-situacion" className="block">
+                <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
+                  <CardContent className="p-6 text-center space-y-3">
+                    <PieChart className="h-8 w-8 text-steel-blue mx-auto" />
+                    <h3 className="font-semibold text-steel-blue-dark">Balance</h3>
+                    <p className="text-sm text-professional">Situación patrimonial</p>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link to="/ratios-financieros" className="block">
+                <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
+                  <CardContent className="p-6 text-center space-y-3">
+                    <Target className="h-8 w-8 text-steel-blue mx-auto" />
+                    <h3 className="font-semibold text-steel-blue-dark">Ratios</h3>
+                    <p className="text-sm text-professional">Análisis de ratios financieros</p>
+                  </CardContent>
+                </Card>
+              </Link>
             </div>
-          </CardContent>
-        </Card>
+          </section>
 
-        {/* Real-time KPIs */}
-        <RealTimeKPICards />
+          {/* Navegación a Secciones Principales */}
+          <section>
+            <h3 className="text-xl font-semibold text-steel-blue-dark mb-6">Secciones del Análisis Financiero</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
+                <CardContent className="p-6 text-center space-y-3">
+                  <BarChart3 className="h-8 w-8 text-cadet-blue mx-auto" />
+                  <h3 className="font-semibold text-steel-blue-dark">2. Descripción Empresa</h3>
+                  <p className="text-sm text-professional">Información general y contexto</p>
+                </CardContent>
+              </Card>
 
-        {/* Alerts Panel */}
-        <Card className="dashboard-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-steel-blue-dark">
-              <AlertTriangle className="h-5 w-5" />
-              Centro de Alertas Inteligentes
-            </CardTitle>
-            <CardDescription>Alertas automáticas basadas en tus datos financieros</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {alerts.map((alert, index) => (
-              <div key={index} className={`p-4 rounded-lg border ${getAlertStyle(alert.type)}`}>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <h4 className="font-semibold text-steel-blue-dark">{alert.title}</h4>
-                    <p className="text-sm text-professional">{alert.description}</p>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    {alert.action}
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
+                <CardContent className="p-6 text-center space-y-3">
+                  <LineChart className="h-8 w-8 text-steel-blue mx-auto" />
+                  <h3 className="font-semibold text-steel-blue-dark">3. Situación Actual</h3>
+                  <p className="text-sm text-professional">Estados financieros y análisis</p>
+                </CardContent>
+              </Card>
 
-        {/* Companies/Projects */}
-        <Card className="dashboard-card">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2 text-steel-blue-dark">
-                  <Building className="h-5 w-5" />
-                  Empresas Analizadas
-                </CardTitle>
-                <CardDescription>Gestiona y analiza múltiples empresas</CardDescription>
-              </div>
-              <Button>
-                <span className="mr-2">+</span>
-                Nueva Empresa
-              </Button>
+              <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
+                <CardContent className="p-6 text-center space-y-3">
+                  <Settings className="h-8 w-8 text-cadet-blue mx-auto" />
+                  <h3 className="font-semibold text-steel-blue-dark">4. Supuestos</h3>
+                  <p className="text-sm text-professional">Premisas y plan de inversiones</p>
+                </CardContent>
+              </Card>
+
+              <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
+                <CardContent className="p-6 text-center space-y-3">
+                  <TrendingUp className="h-8 w-8 text-steel-blue mx-auto" />
+                  <h3 className="font-semibold text-steel-blue-dark">5. Proyecciones</h3>
+                  <p className="text-sm text-professional">Análisis prospectivo 1-3 años</p>
+                </CardContent>
+              </Card>
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4">
-              {companies.map((company, index) => (
-                <div key={index} className="p-4 border rounded-lg hover:bg-light-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-steel-blue-light rounded-lg flex items-center justify-center">
-                          <span className="font-semibold text-steel-blue">{company.name.charAt(0)}</span>
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-steel-blue-dark">{company.name}</h3>
-                          <p className="text-sm text-professional">{company.sector}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-6 text-sm">
-                        <span>Facturación: <strong>{company.revenue}</strong></span>
-                        <span>EBITDA: <strong>{company.ebitda}</strong></span>
-                        <span>Liquidez: <strong>{company.liquidity}x</strong></span>
-                      </div>
+          </section>
+
+          {/* Alertas Inteligentes */}
+          <Card className="dashboard-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-steel-blue-dark">
+                <AlertTriangle className="h-5 w-5" />
+                Centro de Alertas Inteligentes
+              </CardTitle>
+              <CardDescription>Indicadores automáticos basados en el análisis de datos</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {alerts.map((alert, index) => (
+                <div key={index} className={`p-4 rounded-lg border ${getAlertStyle(alert.type)}`}>
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-1">
+                      <h4 className="font-semibold text-steel-blue-dark">{alert.title}</h4>
+                      <p className="text-sm text-professional">{alert.description}</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-professional">Act. {company.lastUpdate}</span>
-                      <Link to="/" className="inline-block">
-                        <Button variant="outline" size="sm">Ver Análisis</Button>
-                      </Link>
-                    </div>
+                    <Button variant="outline" size="sm">
+                      {alert.action}
+                    </Button>
                   </div>
                 </div>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Link to="/" className="block">
-            <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-              <CardContent className="p-6 text-center space-y-3">
-                <BarChart3 className="h-8 w-8 text-steel-blue mx-auto" />
-                <h3 className="font-semibold text-steel-blue-dark">Dashboard Completo</h3>
-                <p className="text-sm text-professional">Accede al análisis financiero completo</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-            <CardContent className="p-6 text-center space-y-3">
-              <PieChart className="h-8 w-8 text-steel-blue mx-auto" />
-              <h3 className="font-semibold text-steel-blue-dark">Nuevo Análisis</h3>
-              <p className="text-sm text-professional">Inicia un nuevo análisis financiero</p>
             </CardContent>
           </Card>
-
-          <Link to="/subir-excel" className="block">
-            <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-              <CardContent className="p-6 text-center space-y-3">
-                <LineChart className="h-8 w-8 text-steel-blue mx-auto" />
-                <h3 className="font-semibold text-steel-blue-dark">Cargar Datos</h3>
-                <p className="text-sm text-professional">Sube archivos Excel o PDF</p>
-              </CardContent>
-            </Card>
-          </Link>
-
-          <Link to="/archivos" className="block">
-            <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-              <CardContent className="p-6 text-center space-y-3">
-                <Target className="h-8 w-8 text-steel-blue mx-auto" />
-                <h3 className="font-semibold text-steel-blue-dark">Gestión Archivos</h3>
-                <p className="text-sm text-professional">Revisa archivos procesados</p>
-              </CardContent>
-            </Card>
-          </Link>
         </div>
-
-        {/* Recent Activity */}
-        <Card className="dashboard-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-steel-blue-dark">
-              <Activity className="h-5 w-5" />
-              Actividad Reciente
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { action: 'Análisis P&G completado', time: 'hace 2 horas', type: 'success' },
-                { action: 'Archivo balance.xlsx subido', time: 'hace 1 día', type: 'info' },
-                { action: 'Reporte mensual generado', time: 'hace 3 días', type: 'success' },
-                { action: 'Alerta: Liquidez baja detectada', time: 'hace 1 semana', type: 'warning' }
-              ].map((activity, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-light-gray-50">
-                  <div className={`w-2 h-2 rounded-full ${
-                    activity.type === 'success' ? 'bg-green-500' :
-                    activity.type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
-                  }`} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-steel-blue-dark">{activity.action}</p>
-                    <p className="text-xs text-professional">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
