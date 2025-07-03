@@ -1,180 +1,333 @@
-
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { 
+  Plus, 
+  Download, 
+  FileSpreadsheet, 
+  Copy,
+  CreditCard,
+  TrendingUp,
+  Calendar,
+  Info,
+  Building2,
+  Target,
+  Shield
+} from 'lucide-react';
 import { useState } from 'react';
-import { DebtPoolKPIs } from './debt-pool/DebtPoolKPIs';
+import { useDebtData } from '@/hooks/useDebtData';
 import { DebtPoolTable } from './debt-pool/DebtPoolTable';
 import { DebtPoolCharts } from './debt-pool/DebtPoolCharts';
 import { DebtPoolTimeline } from './debt-pool/DebtPoolTimeline';
 
-interface DebtItem {
-  id: string;
-  entidad: string;
-  tipo: string;
-  capitalInicial: number;
-  capitalPendiente: number;
-  tipoInteres: number;
-  plazoRestante: number;
-  cuota: number;
-  proximoVencimiento: string;
-  ultimoVencimiento: string;
-  frecuencia: string;
-  garantias?: string;
-}
-
 export const DebtPoolModule = () => {
-  const [debtItems, setDebtItems] = useState<DebtItem[]>([
-    {
-      id: '1',
-      entidad: 'Banco Santander',
-      tipo: 'Préstamo ICO',
-      capitalInicial: 500000,
-      capitalPendiente: 320000,
-      tipoInteres: 3.5,
-      plazoRestante: 36,
-      cuota: 9500,
-      proximoVencimiento: '2024-02-15',
-      ultimoVencimiento: '2027-02-15',
-      frecuencia: 'Mensual',
-      garantias: 'Hipoteca sobre inmueble'
-    },
-    {
-      id: '2',
-      entidad: 'BBVA',
-      tipo: 'Línea de Crédito',
-      capitalInicial: 200000,
-      capitalPendiente: 150000,
-      tipoInteres: 4.2,
-      plazoRestante: 12,
-      cuota: 0,
-      proximoVencimiento: '2024-12-31',
-      ultimoVencimiento: '2024-12-31',
-      frecuencia: 'A vencimiento',
-      garantias: 'Aval personal'
-    },
-    {
-      id: '3',
-      entidad: 'CaixaBank',
-      tipo: 'Leasing',
-      capitalInicial: 180000,
-      capitalPendiente: 95000,
-      tipoInteres: 3.8,
-      plazoRestante: 24,
-      cuota: 4200,
-      proximoVencimiento: '2024-02-01',
-      ultimoVencimiento: '2026-02-01',
-      frecuencia: 'Mensual',
-      garantias: 'Bien objeto de leasing'
-    }
-  ]);
+  const {
+    debtItems,
+    totalCapitalPendiente,
+    tirPromedio,
+    cuotaMensualTotal,
+    debtByEntity,
+    debtByType,
+    vencimientos,
+    riskMetrics,
+    addDebtItem,
+    updateDebtItem,
+    deleteDebtItem
+  } = useDebtData();
 
   const [showAddForm, setShowAddForm] = useState(false);
 
-  // Cálculos del pool bancario
-  const totalCapitalPendiente = debtItems.reduce((sum, item) => sum + item.capitalPendiente, 0);
-  const totalCuotasMensuales = debtItems.reduce((sum, item) => 
-    sum + (item.frecuencia === 'Mensual' ? item.cuota : 0), 0);
-  const tipoInteresPromedio = debtItems.reduce((sum, item, _, arr) => 
-    sum + (item.tipoInteres * item.capitalPendiente) / totalCapitalPendiente, 0);
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
 
-  // Datos para gráficos
-  const debtByEntity = debtItems.map(item => ({
-    name: item.entidad,
-    value: item.capitalPendiente,
-    color: ['#4682B4', '#6495ED', '#87CEEB', '#B0C4DE', '#D3D3D3'][debtItems.indexOf(item) % 5]
-  }));
+  const formatRatio = (value: number, decimals: number = 2) => {
+    return value.toFixed(decimals) + 'x';
+  };
 
-  const debtByType = debtItems.reduce((acc: any[], item) => {
-    const existing = acc.find(d => d.name === item.tipo);
-    if (existing) {
-      existing.value += item.capitalPendiente;
-    } else {
-      acc.push({
-        name: item.tipo,
-        value: item.capitalPendiente,
-        color: ['#4682B4', '#6495ED', '#87CEEB', '#B0C4DE', '#D3D3D3'][acc.length % 5]
-      });
-    }
-    return acc;
-  }, []);
+  const handleExportPDF = () => {
+    console.log('Exporting debt analysis to PDF...');
+  };
 
-  // Timeline de vencimientos
-  const vencimientos = debtItems
-    .filter(item => item.cuota > 0)
-    .map(item => ({
-      entidad: item.entidad,
-      fecha: item.proximoVencimiento,
-      cuota: item.cuota,
-      tipo: item.tipo,
-      urgencia: getDaysUntil(item.proximoVencimiento)
-    }))
-    .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+  const handleExportExcel = () => {
+    console.log('Exporting debt data to Excel...');
+  };
 
-  function getDaysUntil(dateStr: string): 'alta' | 'media' | 'baja' {
-    const days = Math.ceil((new Date(dateStr).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-    if (days <= 7) return 'alta';
-    if (days <= 30) return 'media';
-    return 'baja';
-  }
+  const handleDuplicateScenario = () => {
+    console.log('Duplicating current scenario...');
+  };
 
   return (
-    <main className="flex-1 p-6 space-y-8 overflow-auto bg-gradient-to-br from-light-gray-50 via-white to-steel-blue-light/20" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
-          {/* Header Section with Enhanced Glass Effect */}
-          <section className="relative">
-            <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel-blue/10 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-steel-blue/8 via-steel-blue-light/5 to-light-gray-100/8 rounded-3xl"></div>
-              {/* Enhanced glass reflection */}
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"></div>
-              <div className="absolute top-0 left-0 w-32 h-32 bg-steel-blue/10 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-0 right-0 w-40 h-40 bg-light-gray-200/8 rounded-full blur-3xl"></div>
-              
-              <div className="relative z-10">
-                <h1 className="text-4xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-steel-blue to-steel-blue-dark bg-clip-text text-transparent">
-                  Pool Bancario y Detalle del Endeudamiento
-                </h1>
-                <p className="text-gray-700 text-lg font-medium">Gestión y análisis detallado de todas las deudas financieras</p>
-              </div>
+    <TooltipProvider>
+      <main className="flex-1 p-6 space-y-6 overflow-auto bg-background">
+        {/* Header Section */}
+        <section className="space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">
+                Pool Bancario y Detalle del Endeudamiento
+              </h1>
+              <p className="text-muted-foreground">
+                Gestión y análisis detallado de todas las deudas financieras
+              </p>
             </div>
-          </section>
+          </div>
+        </section>
 
-          {/* Action Button */}
-          <section className="flex justify-end">
-            <Button 
-              onClick={() => setShowAddForm(true)}
-              className="bg-steel-blue/90 backdrop-blur-sm hover:bg-steel-blue hover:shadow-xl hover:shadow-steel-blue/20 text-white border border-white/20 transition-all duration-300 hover:-translate-y-1 rounded-2xl px-6 py-3"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Añadir Deuda
-            </Button>
-          </section>
+        {/* KPI Header - 3 tarjetas principales */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Capital Pendiente Total - Primaria */}
+          <Card className="bg-white border-slate-200 relative">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-[#005E8A]" />
+                  <CardTitle className="text-sm font-medium text-slate-700">
+                    Capital Pendiente Total
+                  </CardTitle>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Suma de todo el capital pendiente de amortizar</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-4xl font-bold text-[#005E8A]">
+                  {formatCurrency(totalCapitalPendiente)}
+                </p>
+                <Badge variant="outline" className="text-xs">
+                  {debtItems.length} instrumentos
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Resumen KPIs */}
-          <section>
-            <DebtPoolKPIs
-              totalCapitalPendiente={totalCapitalPendiente}
-              tipoInteresPromedio={tipoInteresPromedio}
-              totalCuotasMensuales={totalCuotasMensuales}
-              debtItemsCount={debtItems.length}
-            />
-          </section>
+          {/* TIR Promedio */}
+          <Card className="bg-white border-slate-200">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-[#005E8A] opacity-70" />
+                  <CardTitle className="text-sm font-medium text-slate-700">
+                    TIR Promedio
+                  </CardTitle>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Tipo de interés promedio ponderado por capital</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-2xl font-bold text-slate-900">
+                  {tirPromedio.toFixed(2)}%
+                </p>
+                <p className="text-sm text-slate-500">ponderado por capital</p>
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Tabla detallada de deudas */}
-          <section>
-            <DebtPoolTable debtItems={debtItems} />
-          </section>
+          {/* Cuota Mensual */}
+          <Card className="bg-white border-slate-200">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-[#005E8A] opacity-70" />
+                  <CardTitle className="text-sm font-medium text-slate-700">
+                    Cuota Mensual
+                  </CardTitle>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">Suma de todas las cuotas mensuales</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-2xl font-bold text-slate-900">
+                  {formatCurrency(cuotaMensualTotal)}
+                </p>
+                <p className="text-sm text-slate-500">compromisos regulares</p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
-          {/* Gráficos de composición */}
-          <section>
-            <DebtPoolCharts
-              debtByEntity={debtByEntity}
-              debtByType={debtByType}
-            />
-          </section>
+        {/* Acciones Rápidas */}
+        <section className="flex flex-wrap gap-3 justify-end">
+          <Button 
+            onClick={() => setShowAddForm(true)}
+            className="bg-[#005E8A] hover:bg-[#004a6b] text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Añadir Deuda
+          </Button>
+          
+          <Button variant="outline" onClick={handleExportPDF}>
+            <Download className="h-4 w-4 mr-2" />
+            Exportar PDF
+          </Button>
+          
+          <Button variant="outline" onClick={handleExportExcel}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Exportar Excel
+          </Button>
+          
+          <Button variant="outline" onClick={handleDuplicateScenario}>
+            <Copy className="h-4 w-4 mr-2" />
+            Duplicar Escenario
+          </Button>
+        </section>
 
-          {/* Timeline de vencimientos */}
-          <section>
-            <DebtPoolTimeline vencimientos={vencimientos} />
-          </section>
-    </main>
+        {/* Tabla Pool Bancario */}
+        <section>
+          <DebtPoolTable 
+            debtItems={debtItems}
+            onEdit={updateDebtItem}
+            onDelete={deleteDebtItem}
+          />
+        </section>
+
+        {/* Gráficos de Composición */}
+        <section>
+          <DebtPoolCharts
+            debtByEntity={debtByEntity}
+            debtByType={debtByType}
+          />
+        </section>
+
+        {/* Calendario de Vencimientos */}
+        <section>
+          <DebtPoolTimeline vencimientos={vencimientos} />
+        </section>
+
+        {/* Métricas de Riesgo */}
+        <section>
+          <Card className="bg-white border-slate-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-[#005E8A]" />
+                Métricas de Riesgo
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* DSCR */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-[#005E8A]" />
+                    <span className="text-sm font-medium text-slate-700">DSCR</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-3 w-3 text-slate-400" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">
+                          <strong>Fórmula:</strong> EBITDA ÷ Servicio de Deuda
+                        </p>
+                        <p className="text-xs mt-1">
+                          <strong>Benchmark:</strong> &gt; 1.25x (sector)
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {formatRatio(riskMetrics.dscr)}
+                  </p>
+                  <Badge 
+                    variant={riskMetrics.dscr >= 1.25 ? "default" : "destructive"}
+                    className="text-xs"
+                  >
+                    {riskMetrics.dscr >= 1.25 ? 'Saludable' : 'Atención'}
+                  </Badge>
+                </div>
+
+                {/* Net Debt / EBITDA */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Target className="h-4 w-4 text-[#005E8A]" />
+                    <span className="text-sm font-medium text-slate-700">Net Debt / EBITDA</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-3 w-3 text-slate-400" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">
+                          <strong>Fórmula:</strong> Deuda Neta ÷ EBITDA
+                        </p>
+                        <p className="text-xs mt-1">
+                          <strong>Benchmark:</strong> &lt; 3x (sector)
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {formatRatio(riskMetrics.netDebtEbitda)}
+                  </p>
+                  <Badge 
+                    variant={riskMetrics.netDebtEbitda <= 3 ? "default" : "destructive"}
+                    className="text-xs"
+                  >
+                    {riskMetrics.netDebtEbitda <= 3 ? 'Controlado' : 'Elevado'}
+                  </Badge>
+                </div>
+
+                {/* Cobertura de Intereses */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-[#005E8A]" />
+                    <span className="text-sm font-medium text-slate-700">Cobertura Intereses</span>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-3 w-3 text-slate-400" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="text-xs">
+                          <strong>Fórmula:</strong> EBITDA ÷ Gastos Financieros
+                        </p>
+                        <p className="text-xs mt-1">
+                          <strong>Benchmark:</strong> &gt; 5x (sector)
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                  <p className="text-2xl font-bold text-slate-900">
+                    {formatRatio(riskMetrics.interestCoverage)}
+                  </p>
+                  <Badge 
+                    variant={riskMetrics.interestCoverage >= 5 ? "default" : "secondary"}
+                    className="text-xs"
+                  >
+                    {riskMetrics.interestCoverage >= 5 ? 'Sólida' : 'Moderada'}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      </main>
+    </TooltipProvider>
   );
 };

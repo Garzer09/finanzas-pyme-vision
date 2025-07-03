@@ -1,13 +1,17 @@
-
-import { Card } from '@/components/ui/card';
-import { AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Badge } from '@/components/ui/badge';
+import { AlertTriangle, Calendar, CreditCard } from 'lucide-react';
 
 interface VencimientoItem {
+  id: string;
   entidad: string;
-  fecha: string;
-  cuota: number;
   tipo: string;
-  urgencia: 'alta' | 'media' | 'baja';
+  importe: number;
+  fecha: string;
+  daysUntil: number;
+  urgency: 'alta' | 'media' | 'baja';
 }
 
 interface DebtPoolTimelineProps {
@@ -24,38 +28,148 @@ export const DebtPoolTimeline = ({ vencimientos }: DebtPoolTimelineProps) => {
     }).format(value);
   };
 
-  const getUrgencyColor = (urgencia: string) => {
-    switch (urgencia) {
-      case 'alta': return 'text-red-400 bg-red-500/20';
-      case 'media': return 'text-yellow-400 bg-yellow-500/20';
-      case 'baja': return 'text-green-400 bg-green-500/20';
-      default: return 'text-gray-400 bg-gray-500/20';
+  const getUrgencyConfig = (urgency: 'alta' | 'media' | 'baja') => {
+    switch (urgency) {
+      case 'alta': 
+        return {
+          color: 'text-red-700 bg-red-50 border-red-200',
+          badge: 'destructive',
+          iconColor: 'text-red-600',
+          label: '< 30 días'
+        };
+      case 'media': 
+        return {
+          color: 'text-amber-700 bg-amber-50 border-amber-200',
+          badge: 'secondary',
+          iconColor: 'text-amber-600',
+          label: '30-90 días'
+        };
+      case 'baja': 
+        return {
+          color: 'text-green-700 bg-green-50 border-green-200',
+          badge: 'default',
+          iconColor: 'text-green-600',
+          label: '> 90 días'
+        };
     }
   };
 
+  const formatDaysLabel = (days: number) => {
+    if (days < 0) return `Vencido hace ${Math.abs(days)} días`;
+    if (days === 0) return 'Vence hoy';
+    if (days === 1) return 'Vence mañana';
+    return `En ${days} días`;
+  };
+
+  const handlePay = (id: string) => {
+    console.log(`Processing payment for debt ${id}`);
+    // TODO: Implement payment processing
+  };
+
+  // Group by urgency
+  const groupedVencimientos = vencimientos.reduce((acc, item) => {
+    if (!acc[item.urgency]) {
+      acc[item.urgency] = [];
+    }
+    acc[item.urgency].push(item);
+    return acc;
+  }, {} as Record<'alta' | 'media' | 'baja', VencimientoItem[]>);
+
   return (
-    <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
-      <h2 className="text-xl font-semibold text-white mb-6">Calendario de Vencimientos</h2>
+    <Card className="bg-white border-slate-200">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-[#005E8A]" />
+          Calendario de Vencimientos
+        </CardTitle>
+      </CardHeader>
       
-      <div className="space-y-4">
-        {vencimientos.map((venc, index) => (
-          <div key={index} className="flex items-center justify-between p-4 bg-black/20 rounded-lg border border-gray-600">
-            <div className="flex items-center gap-4">
-              <div className={`p-2 rounded-lg ${getUrgencyColor(venc.urgencia)}`}>
-                <AlertTriangle className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="text-white font-medium">{venc.entidad}</p>
-                <p className="text-gray-400 text-sm">{venc.tipo}</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-white font-medium">{formatCurrency(venc.cuota)}</p>
-              <p className="text-gray-400 text-sm">{venc.fecha}</p>
-            </div>
+      <CardContent>
+        <Accordion type="multiple" defaultValue={['alta', 'media']} className="w-full">
+          {(['alta', 'media', 'baja'] as const).map((urgency) => {
+            const items = groupedVencimientos[urgency] || [];
+            const config = getUrgencyConfig(urgency);
+            
+            if (items.length === 0) return null;
+
+            return (
+              <AccordionItem key={urgency} value={urgency}>
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg border ${config.color}`}>
+                      <AlertTriangle className={`h-4 w-4 ${config.iconColor}`} />
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">
+                          {urgency === 'alta' ? 'Urgente' : urgency === 'media' ? 'Próximo' : 'Futuro'}
+                        </span>
+                        <Badge variant={config.badge as any} className="text-xs">
+                          {config.label}
+                        </Badge>
+                      </div>
+                      <span className="text-sm text-slate-500">
+                        {items.length} vencimiento{items.length !== 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                </AccordionTrigger>
+                
+                <AccordionContent>
+                  <div className="space-y-3 pt-2">
+                    {items.map((item) => (
+                      <div 
+                        key={item.id} 
+                        className={`p-4 rounded-lg border ${config.color} hover:shadow-sm transition-shadow`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <CreditCard className={`h-4 w-4 ${config.iconColor}`} />
+                            <div>
+                              <div className="font-medium text-slate-900">
+                                {item.entidad}
+                              </div>
+                              <div className="text-sm text-slate-600">
+                                {item.tipo}
+                              </div>
+                              <div className="text-xs text-slate-500">
+                                {formatDaysLabel(item.daysUntil)}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <div className="font-semibold text-slate-900">
+                              {formatCurrency(item.importe)}
+                            </div>
+                            <div className="text-sm text-slate-600">
+                              {new Date(item.fecha).toLocaleDateString('es-ES')}
+                            </div>
+                            <Button 
+                              size="sm" 
+                              variant="outline" 
+                              className="mt-2 h-6 px-2 text-xs"
+                              onClick={() => handlePay(item.id)}
+                            >
+                              Pagar
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            );
+          })}
+        </Accordion>
+        
+        {vencimientos.length === 0 && (
+          <div className="text-center py-8 text-slate-500">
+            No hay vencimientos próximos registrados.
           </div>
-        ))}
-      </div>
+        )}
+      </CardContent>
     </Card>
   );
 };
