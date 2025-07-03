@@ -96,23 +96,27 @@ export function DistributionTab({ segmentType, data }: DistributionTabProps) {
               <BarChart
                 data={data}
                 layout="horizontal"
-                margin={{ top: 20, right: 30, left: 120, bottom: 20 }}
+                margin={{ top: 20, right: 40, left: 130, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                 <XAxis 
                   type="number" 
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={12}
-                  tickFormatter={metric === "euros" ? formatCurrency : (value) => `${value}%`}
+                  tickFormatter={metric === "euros" ? 
+                    (value) => value >= 1000000 ? `${(value/1000000).toFixed(1)}M €` : `${(value/1000).toFixed(0)}K €`
+                    : (value) => `${value}%`
+                  }
                   axisLine={{ stroke: "hsl(var(--border))" }}
                   tickLine={{ stroke: "hsl(var(--border))" }}
+                  domain={metric === "euros" ? [0, 'dataMax'] : [0, 'dataMax']}
                 />
                 <YAxis 
                   type="category" 
                   dataKey="name" 
                   stroke="hsl(var(--muted-foreground))"
                   fontSize={11}
-                  width={110}
+                  width={120}
                   axisLine={{ stroke: "hsl(var(--border))" }}
                   tickLine={{ stroke: "hsl(var(--border))" }}
                 />
@@ -121,6 +125,8 @@ export function DistributionTab({ segmentType, data }: DistributionTabProps) {
                   dataKey={metric === "euros" ? "sales" : "participation"}
                   fill="hsl(var(--primary))"
                   radius={[0, 4, 4, 0]}
+                  stroke="hsl(var(--primary))"
+                  strokeWidth={1}
                 />
               </BarChart>
             </ResponsiveContainer>
