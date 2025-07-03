@@ -39,8 +39,8 @@ export const ComposicionEntidadChart = ({ debtByEntity }: ComposicionEntidadChar
   // Colores corporativos fijos
   const CORPORATE_COLORS = ['#005E8A', '#6BD1FF', '#93C5FD', '#C1DBFF'];
 
-  // Procesar datos: ordenar y agrupar entidades <5%
-  const processedData = () => {
+  // Procesar datos: ordenar y agrupar entidades <5% para gráfico apilado
+  const processedEntities = () => {
     // Ordenar por importe descendente
     const sorted = [...debtByEntity].sort((a, b) => b.value - a.value);
     
@@ -52,20 +52,31 @@ export const ComposicionEntidadChart = ({ debtByEntity }: ComposicionEntidadChar
     const otherEntities = minorEntities.length > 0 ? [{
       name: 'Otros',
       value: minorEntities.reduce((sum, item) => sum + item.value, 0),
-      percentage: minorEntities.reduce((sum, item) => sum + item.percentage, 0),
-      color: CORPORATE_COLORS[3] // Último color para "Otros"
+      percentage: minorEntities.reduce((sum, item) => sum + item.percentage, 0)
     }] : [];
     
-    // Combinar y asignar colores corporativos
-    const finalData = [...mainEntities, ...otherEntities].map((item, index) => ({
-      ...item,
-      color: CORPORATE_COLORS[index % CORPORATE_COLORS.length]
-    }));
-    
-    return finalData;
+    // Combinar entidades finales
+    return [...mainEntities, ...otherEntities];
   };
 
-  const chartData = processedData();
+  // Transformar datos para barra apilada horizontal al 100%
+  const stackedData = () => {
+    const entities = processedEntities();
+    
+    // Crear un objeto con todas las entidades como propiedades
+    const dataPoint: any = { category: 'Capital Pendiente' };
+    
+    entities.forEach((entity, index) => {
+      dataPoint[entity.name] = entity.value;
+      dataPoint[`${entity.name}_percentage`] = entity.percentage;
+      dataPoint[`${entity.name}_color`] = CORPORATE_COLORS[index % CORPORATE_COLORS.length];
+    });
+    
+    return [dataPoint];
+  };
+
+  const chartData = stackedData();
+  const entities = processedEntities();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -76,18 +87,22 @@ export const ComposicionEntidadChart = ({ debtByEntity }: ComposicionEntidadChar
     }).format(value);
   };
 
-  // Tooltip minimal en esquina derecha
-  const CustomTooltip = ({ active, payload }: any) => {
+  // Tooltip minimal para gráfico apilado
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const data = payload[0].payload;
+      const data = payload[0];
+      const entidad = data.dataKey;
+      const value = data.value;
+      const percentage = data.payload[`${entidad}_percentage`];
+      
       return (
         <div className="bg-white p-2 border border-slate-200 rounded-md shadow-lg text-xs min-w-[140px]">
-          <p className="font-semibold text-slate-800 mb-1">{data.name}</p>
+          <p className="font-semibold text-slate-800 mb-1">{entidad}</p>
           <p className="text-slate-600">
-            <span className="font-medium">{formatCurrency(data.value)}</span>
+            <span className="font-medium">{formatCurrency(value)}</span>
           </p>
           <p className="text-slate-600">
-            <span className="font-medium">{data.percentage.toFixed(1)}%</span>
+            <span className="font-medium">{percentage?.toFixed(1)}%</span>
           </p>
         </div>
       );
@@ -95,15 +110,19 @@ export const ComposicionEntidadChart = ({ debtByEntity }: ComposicionEntidadChar
     return null;
   };
 
-  // Etiquetas internas con contraste AA
-  const CustomLabel = (props: any) => {
-    const { x, y, width, height, value, payload } = props;
+  // Etiquetas internas para segmentos apilados
+  const renderCustomLabel = (props: any) => {
+    const { x, y, width, height, value } = props;
     
-    // Solo mostrar etiqueta si hay espacio suficiente
-    if (width < 60) return null;
+    // Solo mostrar etiqueta si el segmento es lo suficientemente grande
+    if (width < 80) return null;
     
     const labelX = x + width / 2;
     const labelY = y + height / 2;
+    
+    // Encontrar la entidad correspondiente para obtener el porcentaje
+    const entity = entities.find(e => e.value === value);
+    if (!entity) return null;
     
     return (
       <g>
@@ -125,7 +144,7 @@ export const ComposicionEntidadChart = ({ debtByEntity }: ComposicionEntidadChar
           fontSize={isMobile ? "9" : "10"}
           fontWeight="500"
         >
-          {`${payload.percentage.toFixed(1)}%`}
+          {`${entity.percentage.toFixed(1)}%`}
         </text>
       </g>
     );
@@ -144,7 +163,7 @@ export const ComposicionEntidadChart = ({ debtByEntity }: ComposicionEntidadChar
           margin={{ 
             top: 20, 
             right: 30, 
-            left: isMobile ? 100 : 120, 
+            left: isMobile ? 40 : 60, 
             bottom: 20 
           }}
         >
@@ -157,25 +176,26 @@ export const ComposicionEntidadChart = ({ debtByEntity }: ComposicionEntidadChar
           />
           <YAxis 
             type="category" 
-            dataKey="name" 
+            dataKey="category" 
             stroke="#64748b"
             fontSize={isMobile ? 10 : 11}
-            width={isMobile ? 90 : 110}
+            width={isMobile ? 30 : 50}
           />
           <Tooltip 
             content={<CustomTooltip />}
             position={{ x: -10, y: 10 }}
             offset={10}
           />
-          <Bar 
-            dataKey="value" 
-            radius={[0, 4, 4, 0]}
-            label={<CustomLabel />}
-          >
-            {chartData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Bar>
+          {entities.map((entity, index) => (
+            <Bar
+              key={entity.name}
+              dataKey={entity.name}
+              stackId="debt"
+              fill={CORPORATE_COLORS[index % CORPORATE_COLORS.length]}
+              radius={index === 0 ? [4, 0, 0, 4] : index === entities.length - 1 ? [0, 4, 4, 0] : [0, 0, 0, 0]}
+              label={renderCustomLabel}
+            />
+          ))}
         </BarChart>
       </ResponsiveContainer>
     </div>
