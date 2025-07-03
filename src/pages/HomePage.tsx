@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardHeader } from '@/components/DashboardHeader';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -28,8 +29,52 @@ import { Link } from 'react-router-dom';
 
 const HomePage = () => {
   const { user } = useAuth();
+  const [realKPIs, setRealKPIs] = useState<any[]>([]);
+  const [recentFiles, setRecentFiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Demo data
+  useEffect(() => {
+    if (user) {
+      fetchRealData();
+    }
+  }, [user]);
+
+  const fetchRealData = async () => {
+    try {
+      // Fetch user KPIs
+      const { data: kpisData } = await supabase
+        .from('user_kpis')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('is_active', true)
+        .order('display_order');
+
+      // Fetch recent files
+      const { data: filesData } = await supabase
+        .from('excel_files')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('upload_date', { ascending: false })
+        .limit(5);
+
+      // Fetch recent financial data
+      const { data: financialData } = await supabase
+        .from('financial_data')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      setRealKPIs(kpisData || []);
+      setRecentFiles(filesData || []);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Demo data (fallback when no real data available)
   const healthScore = 72;
   const kpis = [
     {

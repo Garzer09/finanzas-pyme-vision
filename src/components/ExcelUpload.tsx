@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Upload, FileSpreadsheet, Loader2, CheckCircle, AlertCircle, Brain } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { DataValidationPreview } from './DataValidationPreview';
+import { saveDataToModules, createModuleNotifications } from '@/utils/moduleMapping';
 
 interface ExcelUploadProps {
   onUploadComplete?: (fileId: string, processedData: any) => void;
@@ -13,6 +15,8 @@ interface ExcelUploadProps {
 export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) => {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [processedFile, setProcessedFile] = useState<{id: string, name: string, data: any} | null>(null);
   const { toast } = useToast();
 
   const handleFileUpload = async (file: File) => {
@@ -50,14 +54,18 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
       const result = await response.json();
 
       if (result.success) {
-        toast({
-          title: "Archivo procesado exitosamente",
-          description: "Claude ha analizado los datos financieros y están listos para el análisis",
+        // Mostrar preview en lugar de notificación directa
+        setProcessedFile({
+          id: result.file_id,
+          name: file.name,
+          data: result.processed_data
         });
+        setShowPreview(true);
         
-        if (onUploadComplete) {
-          onUploadComplete(result.file_id, result.processed_data);
-        }
+        toast({
+          title: "Archivo procesado",
+          description: "Revisa los datos extraídos antes de confirmar",
+        });
       } else {
         throw new Error(result.error || 'Error procesando el archivo');
       }
@@ -89,6 +97,85 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
       handleFileUpload(files[0]);
     }
   };
+
+  const handleConfirmData = async () => {
+    if (!processedFile) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('No hay sesión activa');
+
+      // Guardar datos automáticamente en módulos
+      const result = await saveDataToModules(processedFile.id, processedFile.data, session.user.id);
+      
+      // Crear notificaciones de módulos disponibles
+      const notifications = createModuleNotifications(processedFile.data);
+      
+      toast({
+        title: notifications.title,
+        description: notifications.message,
+      });
+
+      // Completar el proceso
+      if (onUploadComplete) {
+        onUploadComplete(processedFile.id, processedFile.data);
+      }
+
+      // Resetear estados
+      setShowPreview(false);
+      setProcessedFile(null);
+
+    } catch (error) {
+      console.error('Error confirming data:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo guardar la información automáticamente",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRejectData = async () => {
+    if (!processedFile) return;
+
+    try {
+      // Marcar archivo como rechazado pero mantenerlo para revisión manual
+      await supabase
+        .from('excel_files')
+        .update({ processing_status: 'rejected' })
+        .eq('id', processedFile.id);
+
+      toast({
+        title: "Datos rechazados",
+        description: "El archivo se mantuvo para revisión manual",
+      });
+
+      // Resetear estados
+      setShowPreview(false);
+      setProcessedFile(null);
+
+    } catch (error) {
+      console.error('Error rejecting data:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo rechazar el archivo",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Si está mostrando preview, mostrar el componente de validación
+  if (showPreview && processedFile) {
+    return (
+      <DataValidationPreview
+        fileId={processedFile.id}
+        fileName={processedFile.name}
+        processedData={processedFile.data}
+        onConfirm={handleConfirmData}
+        onReject={handleRejectData}
+      />
+    );
+  }
 
   return (
     <Card className="dashboard-card bg-white p-8">
