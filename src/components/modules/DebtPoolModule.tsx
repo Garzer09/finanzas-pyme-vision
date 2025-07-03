@@ -1,6 +1,4 @@
 
-import { DashboardHeader } from '@/components/DashboardHeader';
-import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
@@ -120,13 +118,7 @@ export const DebtPoolModule = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-light-gray-50 via-white to-steel-blue-light/20" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
-      <DashboardSidebar />
-      
-      <div className="flex-1 flex flex-col">
-        <DashboardHeader />
-        
-        <main className="flex-1 p-6 space-y-8 overflow-auto">
+    <main className="flex-1 p-6 space-y-8 overflow-auto bg-gradient-to-br from-light-gray-50 via-white to-steel-blue-light/20" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
           {/* Header Section with Enhanced Glass Effect */}
           <section className="relative">
             <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel-blue/10 overflow-hidden">
@@ -183,8 +175,6 @@ export const DebtPoolModule = () => {
           <section>
             <DebtPoolTimeline vencimientos={vencimientos} />
           </section>
-        </main>
-      </div>
-    </div>
+    </main>
   );
 };

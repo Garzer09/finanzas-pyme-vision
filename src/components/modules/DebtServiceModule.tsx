@@ -1,5 +1,3 @@
-import { DashboardHeader } from '@/components/DashboardHeader';
-import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -112,13 +110,7 @@ export const DebtServiceModule = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <DashboardSidebar />
-      
-      <div className="flex-1 flex flex-col">
-        <DashboardHeader />
-        
-        <main className="flex-1 p-6 space-y-8 overflow-auto">
+    <main className="flex-1 p-6 space-y-8 overflow-auto bg-gradient-to-br from-slate-50 via-white to-steel-50" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
           {/* Header Section */}
           <section className="relative">
             <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel/10 overflow-hidden">
@@ -269,8 +261,6 @@ export const DebtServiceModule = () => {
               </div>
             </Card>
           </section>
-        </main>
-      </div>
-    </div>
+    </main>
   );
 };

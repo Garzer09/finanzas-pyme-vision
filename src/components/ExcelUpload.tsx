@@ -38,16 +38,8 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
       const formData = new FormData();
       formData.append('file', file);
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No hay sesión activa');
-      }
-
       const response = await fetch(`https://hlwchpmogvwmpuvwmvwv.supabase.co/functions/v1/process-excel`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
         body: formData,
       });
 
@@ -102,11 +94,8 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
     if (!processedFile) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('No hay sesión activa');
-
       // Guardar datos automáticamente en módulos
-      const result = await saveDataToModules(processedFile.id, processedFile.data, session.user.id);
+      const result = await saveDataToModules(processedFile.id, processedFile.data, 'temp-user');
       
       // Crear notificaciones de módulos disponibles
       const notifications = createModuleNotifications(processedFile.data);

@@ -1,6 +1,4 @@
 
-import { DashboardHeader } from '@/components/DashboardHeader';
-import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -102,13 +100,7 @@ export const NOFModule = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-navy-800" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
-      <DashboardSidebar />
-      
-      <div className="flex-1 flex flex-col">
-        <DashboardHeader />
-        
-        <main className="flex-1 p-6 space-y-6 overflow-auto">
+    <main className="flex-1 p-6 space-y-6 overflow-auto bg-navy-800" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
           <div className="data-wave-bg absolute inset-0 pointer-events-none opacity-10" />
           
           <section className="relative z-10">
@@ -394,8 +386,6 @@ export const NOFModule = () => {
               </div>
             </Card>
           </section>
-        </main>
-      </div>
-    </div>
+    </main>
   );
 };
