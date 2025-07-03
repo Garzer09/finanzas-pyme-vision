@@ -138,15 +138,15 @@ export const BalanceSituacionPage = () => {
 
   // Waterfall chart data for balance comparison
   const waterfallData = [
-    { name: 'Inmovilizado Material', value: 800000, category: 'activo', color: 'hsl(var(--steel-500))' },
-    { name: 'Inmovilizado Intangible', value: 300000, category: 'activo', color: 'hsl(var(--steel-400))' },
-    { name: 'Inversiones Financieras', value: 100000, category: 'activo', color: 'hsl(var(--steel-300))' },
-    { name: 'Existencias', value: 300000, category: 'activo', color: 'hsl(var(--cadet-500))' },
-    { name: 'Deudores Comerciales', value: 400000, category: 'activo', color: 'hsl(var(--cadet-400))' },
-    { name: 'Tesorería', value: 120000, category: 'activo', color: 'hsl(var(--cadet-300))' },
-    { name: 'Patrimonio Neto', value: -840000, category: 'patrimonio', color: 'hsl(var(--success-500))' },
-    { name: 'Deuda L/P', value: -720000, category: 'deuda', color: 'hsl(var(--warning-500))' },
-    { name: 'Deuda C/P', value: -540000, category: 'deuda', color: 'hsl(var(--danger-500))' }
+    { name: 'Inmovilizado Material', value: 800000, category: 'activo' },
+    { name: 'Inmovilizado Intangible', value: 300000, category: 'activo' },
+    { name: 'Inversiones Financieras', value: 100000, category: 'activo' },
+    { name: 'Existencias', value: 300000, category: 'activo' },
+    { name: 'Deudores Comerciales', value: 400000, category: 'activo' },
+    { name: 'Tesorería', value: 120000, category: 'activo' },
+    { name: 'Patrimonio Neto', value: -840000, category: 'patrimonio' },
+    { name: 'Deuda L/P', value: -720000, category: 'deuda' },
+    { name: 'Deuda C/P', value: -540000, category: 'deuda' }
   ];
 
   // Pie chart data for asset structure
@@ -416,14 +416,14 @@ export const BalanceSituacionPage = () => {
                               borderRadius: '8px'
                             }}
                           />
-                          <Bar 
-                            dataKey="value" 
-                            fill="hsl(var(--steel-500))"
-                            radius={[0, 4, 4, 0]}
-                          >
-                            {waterfallData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
+                          <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                            {waterfallData.map((entry, index) => {
+                              let color = 'hsl(var(--steel-500))';
+                              if (entry.category === 'activo') color = 'hsl(var(--steel-500))';
+                              else if (entry.category === 'patrimonio') color = 'hsl(var(--success-500))';
+                              else if (entry.category === 'deuda') color = 'hsl(var(--warning-500))';
+                              return <Cell key={`cell-${index}`} fill={color} />;
+                            })}
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
