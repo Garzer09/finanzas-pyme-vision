@@ -1,59 +1,45 @@
-
-import { Card } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Target, Calculator, TrendingUp, AlertCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Target, 
+  Calculator, 
+  TrendingUp, 
+  AlertCircle, 
+  Info, 
+  Download,
+  BarChart3 
+} from 'lucide-react';
 import {
   LineChart,
   Line,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   ResponsiveContainer,
   ReferenceLine,
-  Area,
-  AreaChart
+  Legend
 } from 'recharts';
 import { useState } from 'react';
+import { useBreakeven } from '@/hooks/useBreakeven';
 
 export const BreakevenCurrentModule = () => {
-  const [costesFijos, setCostesFijos] = useState(300000);
-  const [costesVariables, setCostesVariables] = useState(70); // % sobre ventas
-  const [precioVentaUnitario, setPrecioVentaUnitario] = useState(25);
-  const [unidadesVendidas, setUnidadesVendidas] = useState(120000);
-
-  // Cálculos del punto muerto
-  const margenContribucion = 100 - costesVariables;
-  const puntoMuertoUnidades = Math.round(costesFijos / (precioVentaUnitario * (margenContribucion / 100)));
-  const puntoMuertoValor = puntoMuertoUnidades * precioVentaUnitario;
-  const ventasActuales = unidadesVendidas * precioVentaUnitario;
-  const margenSeguridad = ((ventasActuales - puntoMuertoValor) / ventasActuales) * 100;
-
-  // Datos para el gráfico
-  const generateChartData = () => {
-    const maxUnidades = Math.max(puntoMuertoUnidades * 1.5, unidadesVendidas * 1.2);
-    const step = maxUnidades / 20;
-    const data = [];
-    
-    for (let unidades = 0; unidades <= maxUnidades; unidades += step) {
-      const ingresos = unidades * precioVentaUnitario;
-      const costesTotales = costesFijos + (ingresos * costesVariables / 100);
-      
-      data.push({
-        unidades: Math.round(unidades),
-        ingresos,
-        costesTotales,
-        costesFijos,
-        beneficio: ingresos - costesTotales
-      });
-    }
-    return data;
+  const [scenario, setScenario] = useState('base');
+  
+  const initialInputs = {
+    fixedCost: 300000,
+    variableCostPct: 70,
+    pricePerUnit: 25,
+    unitsSold: 120000
   };
 
-  const chartData = generateChartData();
+  const { inputs, results, updateInput } = useBreakeven(initialInputs);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -64,282 +50,459 @@ export const BreakevenCurrentModule = () => {
     }).format(value);
   };
 
+  const formatUnits = (value: number) => {
+    return new Intl.NumberFormat('es-ES').format(value);
+  };
+
+  const getMarginColor = (margin: number) => {
+    if (margin >= 20) return 'bg-green-50 border-green-200';
+    if (margin >= 10) return 'bg-yellow-50 border-yellow-200';
+    return 'bg-red-50 border-red-200';
+  };
+
+  const getMarginTextColor = (margin: number) => {
+    if (margin >= 20) return 'text-green-700';
+    if (margin >= 10) return 'text-yellow-700';
+    return 'text-red-700';
+  };
+
+  const handleExportPDF = () => {
+    console.log('Exporting breakeven analysis to PDF...');
+    // TODO: Implement PDF export functionality
+  };
+
   return (
-    <main className="flex-1 p-6 space-y-6 overflow-auto bg-navy-800" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
-          <div className="data-wave-bg absolute inset-0 pointer-events-none opacity-10" />
-          
-          <section className="relative z-10">
-            <div className="mb-6">
-              <h1 className="text-2xl font-bold text-white mb-2">Análisis del Punto Muerto Actual</h1>
-              <p className="text-gray-400">Determinación del nivel de ventas donde la empresa no incurre en pérdidas ni obtiene beneficios</p>
+    <TooltipProvider>
+      <main className="flex-1 p-6 space-y-6 overflow-auto bg-background">
+        {/* Header Section */}
+        <section className="space-y-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">
+                Análisis del Punto Muerto
+              </h1>
+              <p className="text-muted-foreground">
+                Determinación del nivel de ventas donde la empresa no incurre en pérdidas ni obtiene beneficios
+              </p>
             </div>
-          </section>
-
-          {/* KPI Cards */}
-          <section className="relative z-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card className="bg-gradient-to-br from-emerald-500/30 to-teal-500/30 backdrop-blur-sm border border-emerald-400/50 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-                    <Target className="h-5 w-5 text-emerald-400" />
-                  </div>
-                  <h3 className="font-semibold text-white">Punto Muerto (Unidades)</h3>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-white">{puntoMuertoUnidades.toLocaleString()}</p>
-                  <p className="text-sm text-gray-300">unidades</p>
-                </div>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-blue-500/30 to-cyan-500/30 backdrop-blur-sm border border-blue-400/50 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-                    <Calculator className="h-5 w-5 text-blue-400" />
-                  </div>
-                  <h3 className="font-semibold text-white">Punto Muerto (Valor)</h3>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-white">{formatCurrency(puntoMuertoValor)}</p>
-                  <p className="text-sm text-gray-300">en ventas</p>
-                </div>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-orange-500/30 to-red-500/30 backdrop-blur-sm border border-orange-400/50 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-                    <TrendingUp className="h-5 w-5 text-orange-400" />
-                  </div>
-                  <h3 className="font-semibold text-white">Margen de Seguridad</h3>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-white">{margenSeguridad.toFixed(1)}%</p>
-                  <p className="text-sm text-gray-300">sobre ventas actuales</p>
-                </div>
-              </Card>
-
-              <Card className="bg-gradient-to-br from-purple-500/30 to-pink-500/30 backdrop-blur-sm border border-purple-400/50 p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 rounded-lg bg-white/10 border border-white/20">
-                    <AlertCircle className="h-5 w-5 text-purple-400" />
-                  </div>
-                  <h3 className="font-semibold text-white">Margen Contribución</h3>
-                </div>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold text-white">{margenContribucion.toFixed(1)}%</p>
-                  <p className="text-sm text-gray-300">por unidad vendida</p>
-                </div>
-              </Card>
-            </div>
-          </section>
-
-          {/* Interactive Controls */}
-          <section className="relative z-10">
-            <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
-              <h2 className="text-xl font-semibold text-white mb-6">Simulación Interactiva</h2>
+            
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select value={scenario} onValueChange={setScenario}>
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="base">Escenario Base</SelectItem>
+                  <SelectItem value="optimista">Optimista</SelectItem>
+                  <SelectItem value="pesimista">Pesimista</SelectItem>
+                </SelectContent>
+              </Select>
               
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Button variant="outline" onClick={handleExportPDF}>
+                <Download className="h-4 w-4 mr-2" />
+                Exportar PDF
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* KPIs Grid */}
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {/* Punto Muerto (Unidades) - Destacado */}
+          <Card className="bg-white border-slate-200 relative">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Target className="h-5 w-5 text-[#005E8A]" />
+                  <CardTitle className="text-sm font-medium text-slate-700">
+                    Punto Muerto (Unidades)
+                  </CardTitle>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">
+                      <strong>Fórmula:</strong> Costes Fijos ÷ Margen de Contribución por unidad
+                    </p>
+                    <p className="text-xs mt-1">
+                      <strong>Fuente:</strong> Estados Financieros
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-4xl font-bold text-[#005E8A]">
+                  {formatUnits(results.breakevenUnits)}
+                </p>
+                <p className="text-sm text-slate-500">unidades</p>
+                <Badge variant="outline" className="text-xs">
+                  Nivel crítico
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Punto Muerto (Valor) */}
+          <Card className="bg-white border-slate-200">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Calculator className="h-5 w-5 text-[#005E8A] opacity-70" />
+                  <CardTitle className="text-sm font-medium text-slate-700">
+                    Valor
+                  </CardTitle>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">
+                      <strong>Fórmula:</strong> Punto Muerto (unidades) × Precio unitario
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-2xl font-bold text-slate-900">
+                  {formatCurrency(results.breakevenValue)}
+                </p>
+                <p className="text-sm text-slate-500">en ventas</p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Margen de Seguridad */}
+          <Card className={`border ${getMarginColor(results.marginOfSafety)}`}>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-[#005E8A] opacity-70" />
+                  <CardTitle className="text-sm font-medium text-slate-700">
+                    Margen de Seguridad
+                  </CardTitle>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">
+                      <strong>Fórmula:</strong> (Ventas actuales - Punto muerto) ÷ Ventas actuales × 100
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className={`text-2xl font-bold ${getMarginTextColor(results.marginOfSafety)}`}>
+                  {results.marginOfSafety.toFixed(1)}%
+                </p>
+                <p className="text-sm text-slate-500">sobre ventas actuales</p>
+                <Badge 
+                  variant={results.marginOfSafety >= 20 ? "default" : results.marginOfSafety >= 10 ? "secondary" : "destructive"}
+                  className="text-xs"
+                >
+                  {results.marginOfSafety >= 20 ? 'Seguro' : results.marginOfSafety >= 10 ? 'Moderado' : 'Riesgo'}
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Margen de Contribución */}
+          <Card className="bg-white border-slate-200">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-5 w-5 text-[#005E8A] opacity-70" />
+                  <CardTitle className="text-sm font-medium text-slate-700">
+                    Margen Contribución
+                  </CardTitle>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Info className="h-4 w-4 text-slate-400 hover:text-slate-600" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="text-xs">
+                      <strong>Fórmula:</strong> 100% - % Costes Variables
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <p className="text-2xl font-bold text-slate-900">
+                  {results.contributionMargin.toFixed(1)}%
+                </p>
+                <p className="text-sm text-slate-500">por unidad vendida</p>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Simulación Interactiva */}
+        <section>
+          <Card className="bg-white border-slate-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-[#005E8A]" />
+                Simulación Interactiva
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-6">
-                  <div>
-                    <Label className="text-white text-sm font-medium mb-2 block">Costes Fijos Totales</Label>
-                    <div className="flex items-center gap-4">
+                  {/* Costes Fijos */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-slate-700">
+                      Costes Fijos Totales
+                    </Label>
+                    <div className="space-y-3">
                       <Slider
-                        value={[costesFijos]}
-                        onValueChange={(value) => setCostesFijos(value[0])}
+                        value={[inputs.fixedCost]}
+                        onValueChange={(value) => updateInput('fixedCost', value[0])}
                         max={500000}
                         min={100000}
                         step={10000}
-                        className="flex-1"
+                        className="w-full"
                       />
-                      <Input
-                        type="number"
-                        value={costesFijos}
-                        onChange={(e) => setCostesFijos(Number(e.target.value))}
-                        className="w-32 bg-black/20 border-gray-600 text-white"
-                      />
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="number"
+                          value={inputs.fixedCost}
+                          onChange={(e) => updateInput('fixedCost', Number(e.target.value))}
+                          className="flex-1"
+                          min={100000}
+                          max={500000}
+                          step={10000}
+                        />
+                        <span className="text-sm text-slate-500 min-w-0 flex-shrink-0">
+                          {formatCurrency(inputs.fixedCost)}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">{formatCurrency(costesFijos)}</p>
                   </div>
 
-                  <div>
-                    <Label className="text-white text-sm font-medium mb-2 block">Costes Variables (% sobre ventas)</Label>
-                    <div className="flex items-center gap-4">
+                  {/* Costes Variables */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-slate-700">
+                      Costes Variables (% sobre ventas)
+                    </Label>
+                    <div className="space-y-3">
                       <Slider
-                        value={[costesVariables]}
-                        onValueChange={(value) => setCostesVariables(value[0])}
+                        value={[inputs.variableCostPct]}
+                        onValueChange={(value) => updateInput('variableCostPct', value[0])}
                         max={90}
                         min={30}
                         step={1}
-                        className="flex-1"
+                        className="w-full"
                       />
-                      <Input
-                        type="number"
-                        value={costesVariables}
-                        onChange={(e) => setCostesVariables(Number(e.target.value))}
-                        className="w-32 bg-black/20 border-gray-600 text-white"
-                      />
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="number"
+                          value={inputs.variableCostPct}
+                          onChange={(e) => updateInput('variableCostPct', Number(e.target.value))}
+                          className="flex-1"
+                          min={30}
+                          max={90}
+                          step={1}
+                        />
+                        <span className="text-sm text-slate-500 min-w-0 flex-shrink-0">
+                          {inputs.variableCostPct}%
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">{costesVariables}%</p>
                   </div>
                 </div>
 
                 <div className="space-y-6">
-                  <div>
-                    <Label className="text-white text-sm font-medium mb-2 block">Precio de Venta Unitario</Label>
-                    <div className="flex items-center gap-4">
+                  {/* Precio Unitario */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-slate-700">
+                      Precio de Venta Unitario
+                    </Label>
+                    <div className="space-y-3">
                       <Slider
-                        value={[precioVentaUnitario]}
-                        onValueChange={(value) => setPrecioVentaUnitario(value[0])}
+                        value={[inputs.pricePerUnit]}
+                        onValueChange={(value) => updateInput('pricePerUnit', value[0])}
                         max={50}
                         min={10}
                         step={0.5}
-                        className="flex-1"
+                        className="w-full"
                       />
-                      <Input
-                        type="number"
-                        value={precioVentaUnitario}
-                        onChange={(e) => setPrecioVentaUnitario(Number(e.target.value))}
-                        className="w-32 bg-black/20 border-gray-600 text-white"
-                        step="0.5"
-                      />
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="number"
+                          value={inputs.pricePerUnit}
+                          onChange={(e) => updateInput('pricePerUnit', Number(e.target.value))}
+                          className="flex-1"
+                          min={10}
+                          max={50}
+                          step={0.5}
+                        />
+                        <span className="text-sm text-slate-500 min-w-0 flex-shrink-0">
+                          {formatCurrency(inputs.pricePerUnit)}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">{formatCurrency(precioVentaUnitario)}</p>
                   </div>
 
-                  <div>
-                    <Label className="text-white text-sm font-medium mb-2 block">Unidades Vendidas Actuales</Label>
-                    <div className="flex items-center gap-4">
+                  {/* Unidades Vendidas */}
+                  <div className="space-y-3">
+                    <Label className="text-sm font-medium text-slate-700">
+                      Unidades Vendidas Actuales
+                    </Label>
+                    <div className="space-y-3">
                       <Slider
-                        value={[unidadesVendidas]}
-                        onValueChange={(value) => setUnidadesVendidas(value[0])}
+                        value={[inputs.unitsSold]}
+                        onValueChange={(value) => updateInput('unitsSold', value[0])}
                         max={200000}
                         min={50000}
                         step={5000}
-                        className="flex-1"
+                        className="w-full"
                       />
-                      <Input
-                        type="number"
-                        value={unidadesVendidas}
-                        onChange={(e) => setUnidadesVendidas(Number(e.target.value))}
-                        className="w-32 bg-black/20 border-gray-600 text-white"
-                      />
+                      <div className="flex items-center gap-3">
+                        <Input
+                          type="number"
+                          value={inputs.unitsSold}
+                          onChange={(e) => updateInput('unitsSold', Number(e.target.value))}
+                          className="flex-1"
+                          min={50000}
+                          max={200000}
+                          step={5000}
+                        />
+                        <span className="text-sm text-slate-500 min-w-0 flex-shrink-0">
+                          {formatUnits(inputs.unitsSold)} unidades
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">{unidadesVendidas.toLocaleString()} unidades</p>
                   </div>
                 </div>
               </div>
-            </Card>
-          </section>
+            </CardContent>
+          </Card>
+        </section>
 
-          {/* Breakeven Chart */}
-          <section className="relative z-10">
-            <Card className="bg-gradient-to-br from-teal-500/20 to-cyan-500/20 backdrop-blur-sm border border-teal-400/30 p-6">
-              <h2 className="text-xl font-semibold text-white mb-6">Gráfico de Punto Muerto</h2>
-              
-              <div className="h-96">
+        {/* Gráfico Break-Even */}
+        <section>
+          <Card className="bg-white border-slate-200">
+            <CardHeader>
+              <CardTitle>Gráfico de Punto Muerto</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-96 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
+                  <LineChart data={results.chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                    <CartesianGrid 
+                      strokeDasharray="3 3" 
+                      stroke="#e2e8f0" 
+                      horizontal={true}
+                      vertical={false}
+                    />
                     <XAxis 
-                      dataKey="unidades" 
-                      stroke="#9ca3af"
+                      dataKey="units" 
+                      stroke="#64748b"
+                      fontSize={12}
                       tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                      interval="preserveStartEnd"
                     />
                     <YAxis 
-                      stroke="#9ca3af"
+                      stroke="#64748b"
+                      fontSize={12}
                       tickFormatter={(value) => `${(value / 1000).toFixed(0)}K€`}
                     />
-                    <Tooltip 
+                    <RechartsTooltip 
                       contentStyle={{ 
-                        backgroundColor: '#1f2937', 
-                        border: '1px solid #374151',
-                        borderRadius: '8px',
-                        color: '#fff'
+                        backgroundColor: 'white', 
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '6px',
+                        fontSize: '12px'
                       }}
-                      formatter={(value, name) => {
-                        if (name === 'unidades') return [value.toLocaleString(), 'Unidades'];
-                        return [formatCurrency(Number(value)), name === 'ingresos' ? 'Ingresos Totales' : 
-                               name === 'costesTotales' ? 'Costes Totales' : 
-                               name === 'costesFijos' ? 'Costes Fijos' : 'Beneficio'];
+                      formatter={(value: number, name: string) => {
+                        const formattedValue = name === 'units' 
+                          ? formatUnits(value) 
+                          : formatCurrency(value);
+                        const label = name === 'revenue' ? 'Ingresos' :
+                                     name === 'totalCosts' ? 'Costes Totales' :
+                                     name === 'fixedCosts' ? 'Costes Fijos' : name;
+                        return [formattedValue, label];
                       }}
                     />
+                    <Legend 
+                      verticalAlign="top" 
+                      height={36}
+                      iconType="line"
+                      wrapperStyle={{ fontSize: '12px' }}
+                    />
                     
-                    {/* Área de pérdidas */}
-                    <defs>
-                      <linearGradient id="lossArea" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1}/>
-                      </linearGradient>
-                      <linearGradient id="profitArea" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.1}/>
-                      </linearGradient>
-                    </defs>
-                    
+                    {/* Líneas del gráfico */}
                     <Line 
                       type="monotone" 
-                      dataKey="costesFijos" 
+                      dataKey="fixedCosts" 
                       stroke="#f59e0b" 
                       strokeWidth={2}
                       name="Costes Fijos"
                       strokeDasharray="5 5"
+                      dot={false}
                     />
                     <Line 
                       type="monotone" 
-                      dataKey="costesTotales" 
+                      dataKey="totalCosts" 
                       stroke="#ef4444" 
                       strokeWidth={3}
                       name="Costes Totales"
+                      dot={false}
                     />
                     <Line 
                       type="monotone" 
-                      dataKey="ingresos" 
+                      dataKey="revenue" 
                       stroke="#10b981" 
                       strokeWidth={3}
-                      name="Ingresos Totales"
+                      name="Ingresos"
+                      dot={false}
                     />
                     
+                    {/* Línea vertical del punto muerto */}
                     <ReferenceLine 
-                      x={puntoMuertoUnidades} 
-                      stroke="#3b82f6" 
+                      x={results.breakevenUnits} 
+                      stroke="#005E8A" 
                       strokeWidth={2}
-                      strokeDasharray="3 3"
-                      label={{ value: "Punto Muerto", position: "top", fill: "#3b82f6" }}
+                      strokeDasharray="4 4"
+                      label={{ 
+                        value: "Punto Muerto", 
+                        position: "top",
+                        style: { fill: "#005E8A", fontSize: "12px", fontWeight: "500" }
+                      }}
                     />
+                    
+                    {/* Línea de ventas actuales */}
                     <ReferenceLine 
-                      x={unidadesVendidas} 
-                      stroke="#8b5cf6" 
+                      x={inputs.unitsSold} 
+                      stroke="#6BD1FF" 
                       strokeWidth={2}
-                      strokeDasharray="3 3"
-                      label={{ value: "Ventas Actuales", position: "top", fill: "#8b5cf6" }}
+                      strokeDasharray="4 4"
+                      label={{ 
+                        value: "Ventas Actuales", 
+                        position: "top",
+                        style: { fill: "#6BD1FF", fontSize: "12px", fontWeight: "500" }
+                      }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
-              
-              <div className="mt-4 flex flex-wrap gap-4 justify-center">
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 bg-yellow-400"></div>
-                  <span className="text-sm text-gray-300">Costes Fijos</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 bg-red-400"></div>
-                  <span className="text-sm text-gray-300">Costes Totales</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 bg-green-400"></div>
-                  <span className="text-sm text-gray-300">Ingresos Totales</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 bg-blue-400 border-dashed"></div>
-                  <span className="text-sm text-gray-300">Punto Muerto</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-4 h-0.5 bg-purple-400 border-dashed"></div>
-                  <span className="text-sm text-gray-300">Ventas Actuales</span>
-                </div>
-              </div>
-            </Card>
-          </section>
-    </main>
+            </CardContent>
+          </Card>
+        </section>
+      </main>
+    </TooltipProvider>
   );
 };
