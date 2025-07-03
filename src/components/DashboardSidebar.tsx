@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Home,
@@ -43,6 +43,67 @@ export const DashboardSidebar = () => {
   
   const location = useLocation();
   const currentPath = location.pathname;
+
+  // Function to get the section key based on current path
+  const getSectionFromPath = (path: string): string | null => {
+    // Section 3: Análisis Situación Actual
+    if (path.includes('/cuenta-pyg') || path.includes('/balance-situacion') || 
+        path.includes('/ratios-financieros') || path.includes('/flujos-caja') || 
+        path.includes('/analisis-nof') || path.includes('/punto-muerto') || 
+        path.includes('/endeudamiento') || path.includes('/servicio-deuda') || 
+        path.includes('/pyg-analitico-actual') || path.includes('/tesoreria-actual') || 
+        path.includes('/segmentos-actual')) {
+      return 'situacion';
+    }
+    
+    // Section 4: Supuestos y Plan Inversiones
+    if (path.includes('/premisas-ingresos') || path.includes('/estructura-costes') || 
+        path.includes('/capital-trabajo') || path.includes('/endeudamiento-coste') || 
+        path.includes('/inversiones') || path.includes('/supuestos')) {
+      return 'supuestos';
+    }
+    
+    // Section 5: Proyecciones
+    if (path.includes('/pyg-proyectado') || path.includes('/pyg-analitico-proyectado') || 
+        path.includes('/balance-proyectado') || path.includes('/flujos-proyectado') || 
+        path.includes('/ratios-proyectado') || path.includes('/nof-proyectado') || 
+        path.includes('/servicio-deuda-proyectado') || path.includes('/segmentos-proyectado')) {
+      return 'proyecciones';
+    }
+    
+    // Section 6: Análisis de Sensibilidad
+    if (path.includes('/metodologia-sensibilidad') || path.includes('/escenarios')) {
+      return 'sensibilidad';
+    }
+    
+    // Section 7: Valoración EVA
+    if (path.includes('/introduccion-eva') || path.includes('/calculo-eva') || 
+        path.includes('/interpretacion-eva') || path.includes('/valoracion')) {
+      return 'valoracion';
+    }
+    
+    return null;
+  };
+
+  // Auto-expand section based on current route
+  useEffect(() => {
+    const activeSection = getSectionFromPath(currentPath);
+    if (activeSection) {
+      setExpandedSections(prev => {
+        // Close all sections first
+        const allClosed = Object.keys(prev).reduce((acc, key) => ({
+          ...acc,
+          [key]: false
+        }), {});
+        
+        // Then open only the active section
+        return {
+          ...allClosed,
+          [activeSection]: true
+        };
+      });
+    }
+  }, [currentPath]);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => {
