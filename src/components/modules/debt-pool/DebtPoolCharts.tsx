@@ -5,8 +5,7 @@ import {
   Tooltip,
   Cell
 } from 'recharts';
-import { Building2, PieChart } from 'lucide-react';
-import { ComposicionEntidadChart } from './ComposicionEntidadChart';
+import { PieChart } from 'lucide-react';
 
 interface ChartData {
   name: string;
@@ -16,11 +15,10 @@ interface ChartData {
 }
 
 interface DebtPoolChartsProps {
-  debtByEntity: ChartData[];
   debtByType: ChartData[];
 }
 
-export const DebtPoolCharts = ({ debtByEntity, debtByType }: DebtPoolChartsProps) => {
+export const DebtPoolCharts = ({ debtByType }: DebtPoolChartsProps) => {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
@@ -72,22 +70,9 @@ export const DebtPoolCharts = ({ debtByEntity, debtByType }: DebtPoolChartsProps
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Composición por entidad - Nuevo componente */}
-      <Card className="bg-white border-slate-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-[#005E8A]" />
-            Composición por Entidad
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ComposicionEntidadChart debtByEntity={debtByEntity} />
-        </CardContent>
-      </Card>
-
+    <div className="flex justify-center">
       {/* Treemap por tipo */}
-      <Card className="bg-white border-slate-200">
+      <Card className="bg-white border-slate-200 w-full max-w-2xl">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <PieChart className="h-5 w-5 text-[#005E8A]" />

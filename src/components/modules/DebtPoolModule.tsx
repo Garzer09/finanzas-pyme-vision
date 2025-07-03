@@ -213,7 +213,6 @@ export const DebtPoolModule = () => {
         {/* Gráficos de Composición */}
         <section>
           <DebtPoolCharts
-            debtByEntity={debtByEntity}
             debtByType={debtByType}
           />
         </section>
