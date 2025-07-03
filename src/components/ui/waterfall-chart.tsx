@@ -20,30 +20,39 @@ export const WaterfallChart: React.FC<WaterfallChartProps> = ({
   height = 400,
   className = ''
 }) => {
+  // Función auxiliar para validar números
+  const safeNumber = (value: any, fallback: number = 0): number => {
+    const num = Number(value);
+    return isFinite(num) && !isNaN(num) ? num : fallback;
+  };
+
   // Process data for waterfall effect
   const processedData = data.map((item, index) => {
     let cumulative = 0;
     
-    // Calculate cumulative value up to this point
+    // Calculate cumulative value up to this point - con validaciones
     for (let i = 0; i <= index; i++) {
+      const itemValue = safeNumber(data[i].value, 0);
       if (data[i].type === 'total') {
-        cumulative = data[i].value;
+        cumulative = itemValue;
       } else {
-        cumulative += data[i].value;
+        cumulative += itemValue;
       }
     }
     
-    // For display purposes, we need start and end values
-    const prevCumulative = index === 0 ? 0 : (data[index - 1].cumulative || 0);
+    // For display purposes, we need start and end values - con validaciones
+    const prevCumulative = index === 0 ? 0 : safeNumber(data[index - 1].cumulative, 0);
+    const itemValue = safeNumber(item.value, 0);
     const start = item.type === 'total' ? 0 : prevCumulative;
-    const end = item.type === 'total' ? item.value : cumulative;
+    const end = item.type === 'total' ? itemValue : cumulative;
     
     return {
       ...item,
-      cumulative,
-      start,
-      end,
-      displayValue: Math.abs(item.value)
+      value: itemValue,
+      cumulative: safeNumber(cumulative, 0),
+      start: safeNumber(start, 0),
+      end: safeNumber(end, 0),
+      displayValue: Math.abs(itemValue)
     };
   });
 
@@ -61,12 +70,13 @@ export const WaterfallChart: React.FC<WaterfallChartProps> = ({
   };
 
   const formatCurrency = (value: number) => {
+    const safeValue = safeNumber(value, 0);
     return new Intl.NumberFormat('es-ES', {
       style: 'currency',
       currency: 'EUR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(safeValue);
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -76,11 +86,11 @@ export const WaterfallChart: React.FC<WaterfallChartProps> = ({
         <div className="bg-white p-3 border border-slate-200 rounded-lg shadow-lg">
           <p className="font-semibold text-slate-800">{label}</p>
           <p className="text-slate-600">
-            Valor: <span className="font-medium">{formatCurrency(data.value)}</span>
+            Valor: <span className="font-medium">{formatCurrency(safeNumber(data.value, 0))}</span>
           </p>
           {data.cumulative !== undefined && (
             <p className="text-slate-600">
-              Acumulado: <span className="font-medium">{formatCurrency(data.cumulative)}</span>
+              Acumulado: <span className="font-medium">{formatCurrency(safeNumber(data.cumulative, 0))}</span>
             </p>
           )}
         </div>

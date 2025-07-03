@@ -128,15 +128,30 @@ export const useFinancialData = (dataType?: string) => {
   };
 
   const calculateGrowth = (current: any, previous: any, field: string) => {
-    if (!current || !previous) return 0;
+    // Validaciones robustas para evitar NaN
+    if (!current || !previous || !field) return 0;
     
-    const currentValue = Number(current?.[field]) || 0;
-    const previousValue = Number(previous?.[field]) || 0;
+    const currentValue = Number(current?.[field]);
+    const previousValue = Number(previous?.[field]);
     
-    if (previousValue === 0 || isNaN(currentValue) || isNaN(previousValue)) return 0;
+    // Verificar que ambos valores sean números válidos y finitos
+    if (!isFinite(currentValue) || !isFinite(previousValue)) return 0;
+    if (isNaN(currentValue) || isNaN(previousValue)) return 0;
+    if (previousValue === 0) return 0;
     
     const growth = ((currentValue - previousValue) / previousValue) * 100;
-    return isNaN(growth) ? 0 : growth;
+    
+    // Verificar que el crecimiento calculado sea válido
+    if (!isFinite(growth) || isNaN(growth)) return 0;
+    
+    // Limitar valores extremos para evitar outliers
+    return Math.max(-99.9, Math.min(999.9, growth));
+  };
+
+  // Función auxiliar para validar números
+  const safeNumber = (value: any, fallback: number = 0): number => {
+    const num = Number(value);
+    return isFinite(num) && !isNaN(num) ? num : fallback;
   };
 
   return {
@@ -146,6 +161,7 @@ export const useFinancialData = (dataType?: string) => {
     getLatestData,
     getPeriodComparison,
     calculateGrowth,
+    safeNumber,
     refetch: fetchFinancialData
   };
 };

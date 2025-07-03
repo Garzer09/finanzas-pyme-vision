@@ -1,14 +1,30 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { WaterfallChart } from '@/components/ui/waterfall-chart';
 import { useFinancialData } from '@/hooks/useFinancialData';
 
 export const EvolutionChartsSection: React.FC = () => {
-  const { data, loading } = useFinancialData();
+  const { data, loading, safeNumber } = useFinancialData();
 
-  // Datos simulados para los gráficos de evolución
-  const evolutionData = [
+  // Función para validar y limpiar datos antes de pasarlos a Recharts
+  const validateChartData = (data: any[]): any[] => {
+    return data.map(item => {
+      const cleanItem: any = {};
+      Object.keys(item).forEach(key => {
+        if (typeof item[key] === 'number') {
+          cleanItem[key] = safeNumber(item[key], 0);
+        } else {
+          cleanItem[key] = item[key];
+        }
+      });
+      return cleanItem;
+    });
+  };
+
+  // Datos simulados para los gráficos de evolución - validados para evitar NaN
+  const rawEvolutionData = [
     {
       period: '2022',
       facturacion: 2100000,
@@ -41,8 +57,10 @@ export const EvolutionChartsSection: React.FC = () => {
     }
   ];
 
-  // Datos para gráfico de cascada P&G
-  const waterfallPGData = [
+  const evolutionData = validateChartData(rawEvolutionData);
+
+  // Datos para gráfico de cascada P&G - validados para evitar NaN
+  const rawWaterfallPGData = [
     { name: 'Facturación', value: 2450000, type: 'positive' as const },
     { name: 'Coste Ventas', value: -1470000, type: 'negative' as const },
     { name: 'Margen Bruto', value: 980000, type: 'total' as const },
@@ -54,8 +72,13 @@ export const EvolutionChartsSection: React.FC = () => {
     { name: 'Beneficio Neto', value: 220000, type: 'positive' as const }
   ];
 
-  // Datos para estructura de balance
-  const balanceData = [
+  const waterfallPGData = rawWaterfallPGData.map(item => ({
+    ...item,
+    value: safeNumber(item.value, 0)
+  }));
+
+  // Datos para estructura de balance - validados para evitar NaN
+  const rawBalanceData = [
     {
       category: 'Activo',
       corriente: 850000,
@@ -70,6 +93,8 @@ export const EvolutionChartsSection: React.FC = () => {
       total: 2500000
     }
   ];
+
+  const balanceData = validateChartData(rawBalanceData);
 
   if (loading) {
     return (
@@ -87,9 +112,14 @@ export const EvolutionChartsSection: React.FC = () => {
 
   return (
     <div className="space-y-8">
-      <h3 className="text-xl font-semibold text-steel-blue-dark mb-4">
-        Gráficos de Evolución y Comparativas
-      </h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-semibold text-steel-blue-dark">
+          Gráficos de Evolución y Comparativas
+        </h3>
+        <Badge variant="outline" className="text-xs border-steel-blue text-steel-blue">
+          📊 Datos Demo
+        </Badge>
+      </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gráfico de Evolución de Ingresos y Rentabilidad */}
@@ -121,10 +151,11 @@ export const EvolutionChartsSection: React.FC = () => {
                 />
                 <Tooltip 
                   formatter={(value, name) => {
-                    if (name === 'facturacion') return [`${(Number(value) / 1000000).toFixed(1)}M€`, 'Facturación'];
-                    if (name === 'margenEBITDA') return [`${value}%`, 'Margen EBITDA'];
-                    if (name === 'beneficioNeto') return [`${(Number(value) / 1000).toFixed(0)}K€`, 'Beneficio Neto'];
-                    return [value, name];
+                    const safeValue = safeNumber(value, 0);
+                    if (name === 'facturacion') return [`${(safeValue / 1000000).toFixed(1)}M€`, 'Facturación'];
+                    if (name === 'margenEBITDA') return [`${safeValue.toFixed(1)}%`, 'Margen EBITDA'];
+                    if (name === 'beneficioNeto') return [`${(safeValue / 1000).toFixed(0)}K€`, 'Beneficio Neto'];
+                    return [safeValue, name];
                   }}
                   contentStyle={{
                     backgroundColor: 'hsl(0 0% 100%)',
@@ -198,7 +229,7 @@ export const EvolutionChartsSection: React.FC = () => {
                       domain={[0, 2500000]}
                     />
                     <Tooltip 
-                      formatter={(value) => [`${(Number(value) / 1000000).toFixed(1)}M€`]}
+                      formatter={(value) => [`${(safeNumber(value, 0) / 1000000).toFixed(1)}M€`]}
                       contentStyle={{
                         backgroundColor: 'hsl(0 0% 100%)',
                         border: '1px solid hsl(220 13% 91%)',
@@ -227,7 +258,7 @@ export const EvolutionChartsSection: React.FC = () => {
                       domain={[0, 2500000]}
                     />
                     <Tooltip 
-                      formatter={(value) => [`${(Number(value) / 1000000).toFixed(1)}M€`]}
+                      formatter={(value) => [`${(safeNumber(value, 0) / 1000000).toFixed(1)}M€`]}
                       contentStyle={{
                         backgroundColor: 'hsl(0 0% 100%)',
                         border: '1px solid hsl(220 13% 91%)',
