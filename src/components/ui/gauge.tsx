@@ -84,25 +84,52 @@ export const Gauge: React.FC<GaugeProps> = ({
   return (
     <div className={cn("flex flex-col items-center space-y-4", className)}>
       <div className={cn("relative", sizeClasses[size])}>
-        <svg className="w-full h-full transform -rotate-90" viewBox="-50 -50 100 100">
+        <svg className="w-full h-full" viewBox="-60 -60 120 60">
           {/* Background arc */}
           <path
-            d="M -40 0 A 40 40 0 0 1 40 0"
+            d="M -45 0 A 45 45 0 0 1 45 0"
             fill="none"
             stroke="#E5E7EB"
-            strokeWidth="8"
+            strokeWidth="6"
             strokeLinecap="round"
           />
           
-          {/* Value arc */}
+          {/* Colored ranges */}
+          {ranges.map((range, index) => {
+            const rangeStartAngle = ((range.min - min) / (max - min)) * 180;
+            const rangeEndAngle = ((range.max - min) / (max - min)) * 180;
+            const rangeStartRad = (rangeStartAngle * Math.PI) / 180;
+            const rangeEndRad = (rangeEndAngle * Math.PI) / 180;
+            
+            const x1 = -45 * Math.cos(rangeStartRad);
+            const y1 = -45 * Math.sin(rangeStartRad);
+            const x2 = -45 * Math.cos(rangeEndRad);
+            const y2 = -45 * Math.sin(rangeEndRad);
+            
+            const largeArcFlag = rangeEndAngle - rangeStartAngle > 180 ? 1 : 0;
+            
+            return (
+              <path
+                key={index}
+                d={`M ${x1} ${y1} A 45 45 0 ${largeArcFlag} 1 ${x2} ${y2}`}
+                fill="none"
+                stroke={range.color}
+                strokeWidth="6"
+                strokeLinecap="round"
+                opacity={0.7}
+              />
+            );
+          })}
+          
+          {/* Value indicator arc */}
           <path
-            d="M -40 0 A 40 40 0 0 1 40 0"
+            d="M -45 0 A 45 45 0 0 1 45 0"
             fill="none"
             stroke={valueColor}
             strokeWidth="8"
             strokeLinecap="round"
-            strokeDasharray="125.66" // Approximate circumference of semicircle
-            strokeDashoffset={125.66 - (125.66 * percentage / 100)}
+            strokeDasharray="141.37" // π * 45 (semicircle circumference)
+            strokeDashoffset={141.37 - (141.37 * percentage / 100)}
             className="transition-all duration-1000 ease-out"
           />
           
@@ -110,36 +137,56 @@ export const Gauge: React.FC<GaugeProps> = ({
           <line
             x1="0"
             y1="0"
-            x2="0"
-            y2="-35"
-            stroke="#374151"
-            strokeWidth="2"
+            x2={`${-35 * Math.cos((percentage / 100 * 180) * Math.PI / 180)}`}
+            y2={`${-35 * Math.sin((percentage / 100 * 180) * Math.PI / 180)}`}
+            stroke="#1F2937"
+            strokeWidth="3"
             strokeLinecap="round"
-            transform={`rotate(${angle + 90})`}
-            className="transition-transform duration-1000 ease-out"
+            className="transition-all duration-1000 ease-out"
           />
           
           {/* Center dot */}
           <circle
             cx="0"
             cy="0"
-            r="3"
-            fill="#374151"
+            r="4"
+            fill="#1F2937"
           />
+          
+          {/* Scale marks */}
+          {[0, 25, 50, 75, 100].map((mark) => {
+            const markAngle = (mark / 100 * 180) * Math.PI / 180;
+            const x1 = -40 * Math.cos(markAngle);
+            const y1 = -40 * Math.sin(markAngle);
+            const x2 = -35 * Math.cos(markAngle);
+            const y2 = -35 * Math.sin(markAngle);
+            
+            return (
+              <line
+                key={mark}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="#6B7280"
+                strokeWidth="1"
+              />
+            );
+          })}
         </svg>
         
-        {/* Value display */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center transform rotate-90">
+        {/* Value display - positioned below the gauge */}
+        <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 text-center">
           <div className={cn("font-bold text-slate-800", textSizes[size])}>
-            {typeof value === 'number' ? value.toFixed(1) : value}{unit}
+            {typeof value === 'number' ? value.toFixed(2) : value}{unit}
           </div>
         </div>
       </div>
       
-      <div className="text-center">
+      <div className="text-center space-y-1">
         <div className="font-semibold text-slate-700 text-sm">{label}</div>
         {ranges.length > 0 && (
-          <div className="text-xs text-slate-500 mt-1">
+          <div className="text-xs text-slate-500">
             {ranges.find(r => value >= r.min && value <= r.max)?.label || 'Fuera de rango'}
           </div>
         )}
