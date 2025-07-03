@@ -62,10 +62,7 @@ export const DashboardSidebar = () => {
     }
     
     // Section 5: Proyecciones
-    if (path.includes('/pyg-proyectado') || path.includes('/pyg-analitico-proyectado') || 
-        path.includes('/balance-proyectado') || path.includes('/flujos-proyectado') || 
-        path.includes('/ratios-proyectado') || path.includes('/nof-proyectado') || 
-        path.includes('/servicio-deuda-proyectado') || path.includes('/segmentos-proyectado')) {
+    if (path.includes('/proyecciones')) {
       return 'proyecciones';
     }
     
@@ -228,52 +225,10 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: '/pyg-proyectado',
-          label: '5.1. P&G Proyectado (PGC)',
-          icon: FileText,
+          path: '/proyecciones',
+          label: 'Proyecciones',
+          icon: TrendingUp,
           color: 'text-success-500'
-        },
-        {
-          path: '/pyg-analitico-proyectado',
-          label: '5.2. P&G Analítico Proyectado',
-          icon: BarChart3,
-          color: 'text-steel-500'
-        },
-        {
-          path: '/balance-proyectado',
-          label: '5.3. Balance Proyectado (PGC)',
-          icon: Building2,
-          color: 'text-cadet-500'
-        },
-        {
-          path: '/flujos-proyectado',
-          label: '5.4. Flujos de Caja Proyectado',
-          icon: Wallet,
-          color: 'text-success-600'
-        },
-        {
-          path: '/ratios-proyectado',
-          label: '5.5. Ratios Proyectados',
-          icon: Activity,
-          color: 'text-warning-500'
-        },
-        {
-          path: '/nof-proyectado',
-          label: '5.6. NOF Proyectado',
-          icon: CircleDot,
-          color: 'text-steel-600'
-        },
-        {
-          path: '/servicio-deuda-proyectado',
-          label: '5.7. Servicio Deuda Proyectado',
-          icon: AlertTriangle,
-          color: 'text-danger-500'
-        },
-        {
-          path: '/segmentos-proyectado',
-          label: '5.8. Ventas por Segmentos Proyectado',
-          icon: Users,
-          color: 'text-cadet-600'
         }
       ]
     },

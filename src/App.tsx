@@ -88,14 +88,7 @@ const App = () => (
           <Route path="/supuestos-financieros" element={<KeyFinancialAssumptionsModule />} />
           
           {/* Sección 5 - Proyecciones */}
-          <Route path="/pyg-proyectado" element={<ProjectionsModule />} />
-          <Route path="/pyg-analitico-proyectado" element={<ProjectionsModule />} />
-          <Route path="/balance-proyectado" element={<ProjectionsModule />} />
-          <Route path="/flujos-proyectado" element={<ProjectionsModule />} />
-          <Route path="/ratios-proyectado" element={<ProjectionsModule />} />
-          <Route path="/nof-proyectado" element={<ProjectionsModule />} />
-          <Route path="/servicio-deuda-proyectado" element={<ProjectionsModule />} />
-          <Route path="/segmentos-proyectado" element={<ProjectionsModule />} />
+          <Route path="/proyecciones" element={<ProjectionsModule />} />
           
           {/* Sección 6 - Sensibilidad */}
           <Route path="/metodologia-sensibilidad" element={<MetodologiaSensibilidadModule />} />
