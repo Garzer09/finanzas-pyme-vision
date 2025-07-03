@@ -10,10 +10,10 @@ import { ValuationData } from '@/hooks/useValuation';
 
 interface ValuationMethodsChartProps {
   valuationData: ValuationData;
-  onMethodValueUpdate: (methodId: string, newValue: number) => void;
+  onGrowthRateUpdate: (rate: number) => void;
 }
 
-export const ValuationMethodsChart = ({ valuationData, onMethodValueUpdate }: ValuationMethodsChartProps) => {
+export const ValuationMethodsChart = ({ valuationData, onGrowthRateUpdate }: ValuationMethodsChartProps) => {
   const [selectedMethod, setSelectedMethod] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Record<string, any>>({});
 
@@ -27,7 +27,7 @@ export const ValuationMethodsChart = ({ valuationData, onMethodValueUpdate }: Va
   }));
 
   function getMethodColor(index: number): string {
-    const colors = ['#005E8A', '#6BD1FF', '#16a34a', '#dc2626'];
+    const colors = ['#005E8A', '#6BD1FF', '#94A3B8']; // Corporate colors for 3 methods
     return colors[index % colors.length];
   }
 
@@ -35,37 +35,37 @@ export const ValuationMethodsChart = ({ valuationData, onMethodValueUpdate }: Va
     const method = methods.find(m => m.id === data.id);
     if (method) {
       setSelectedMethod(method.id);
-      // Initialize edit values based on method type
-      setEditValues(getMethodDefaults(method.id, method.value));
+      setEditValues(getMethodDefaults(method.id));
     }
   };
 
-  const getMethodDefaults = (methodId: string, currentValue: number) => {
+  const getMethodDefaults = (methodId: string) => {
+    const { dcfParameters, financialData } = valuationData;
+    
     switch (methodId) {
       case 'dcf':
         return {
-          wacc: 8.5,
-          growthRate: 2.5,
-          horizon: 5,
-          terminalValue: currentValue * 0.7
+          wacc: dcfParameters.wacc,
+          growthRate: dcfParameters.growthRate,
+          horizon: dcfParameters.horizon,
+          netDebt: dcfParameters.netDebt,
+          fcfProjections: dcfParameters.fcfProjections,
+          currentYear: 0
         };
-      case 'multiples':
+      case 'book_value':
         return {
-          ebitdaMultiple: 8.5,
-          currentEbitda: currentValue / 8.5,
-          revenueMultiple: 1.2
-        };
-      case 'assets':
-        return {
-          bookValue: currentValue * 0.8,
-          adjustments: currentValue * 0.2,
-          liquidityDiscount: 10
+          equity: financialData.equity[0],
+          revaluationAdjustment: financialData.fixedAssets[0] * 0.1,
+          totalBookValue: financialData.equity[0] + (financialData.fixedAssets[0] * 0.1)
         };
       case 'liquidation':
         return {
-          assetValue: currentValue * 1.3,
-          liquidationCosts: 15,
-          timeToLiquidate: 12
+          currentAssets: financialData.currentAssets[0],
+          fixedAssets: financialData.fixedAssets[0],
+          totalDebt: financialData.totalDebt[0],
+          currentAssetsCoeff: 80,
+          fixedAssetsCoeff: 60,
+          liquidationCosts: 15
         };
       default:
         return {};
@@ -210,26 +210,11 @@ export const ValuationMethodsChart = ({ valuationData, onMethodValueUpdate }: Va
 
   const handleSave = () => {
     if (selectedMethod) {
-      // Calculate new value based on inputs
-      let newValue = 0;
-      switch (selectedMethod) {
-        case 'dcf':
-          newValue = (editValues.terminalValue || 0) + 5000000; // Simplified calculation
-          break;
-        case 'multiples':
-          newValue = (editValues.ebitdaMultiple || 0) * (editValues.currentEbitda || 0) * 1000000;
-          break;
-        case 'assets':
-          newValue = (editValues.bookValue || 0) + (editValues.adjustments || 0);
-          break;
-        case 'liquidation':
-          newValue = (editValues.assetValue || 0) * (1 - (editValues.liquidationCosts || 0) / 100);
-          break;
+      // Update growth rate if DCF method
+      if (selectedMethod === 'dcf' && editValues.growthRate !== undefined) {
+        onGrowthRateUpdate(editValues.growthRate);
       }
-      
-      if (newValue > 0) {
-        onMethodValueUpdate(selectedMethod, newValue);
-      }
+      // For other methods, values are calculated automatically based on financial data
       setSelectedMethod(null);
     }
   };

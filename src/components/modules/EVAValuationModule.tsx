@@ -15,8 +15,7 @@ export const EVAValuationModule = () => {
   const {
     valuationData,
     updateMethodWeights,
-    updateMethodValue,
-    recalculateDCF
+    updateGrowthRate
   } = useValuation();
 
   const handleSaveValuation = () => {
@@ -112,7 +111,7 @@ export const EVAValuationModule = () => {
                 {/* Valuation Methods Chart */}
                 <ValuationMethodsChart
                   valuationData={valuationData}
-                  onMethodValueUpdate={updateMethodValue}
+                  onGrowthRateUpdate={updateGrowthRate}
                 />
               </div>
             </div>

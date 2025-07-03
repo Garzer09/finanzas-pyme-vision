@@ -27,7 +27,7 @@ export const MethodsWeightPanel = ({ valuationData, onWeightsChange }: MethodsWe
   }));
 
   function getMethodColor(index: number): string {
-    const colors = ['#005E8A', '#6BD1FF', '#16a34a', '#dc2626'];
+    const colors = ['#005E8A', '#6BD1FF', '#94A3B8']; // Corporate colors for 3 methods
     return colors[index % colors.length];
   }
 
@@ -59,10 +59,10 @@ export const MethodsWeightPanel = ({ valuationData, onWeightsChange }: MethodsWe
           <div className="p-3 rounded-xl bg-primary/20 border border-primary/30">
             <PieChartIcon className="h-5 w-5 text-primary" />
           </div>
-          Métodos de Valoración
+          Métodos de Valoración Internos
         </CardTitle>
         <p className="text-sm text-slate-600">
-          Ajusta los pesos de cada método (Total: {currentTotal.toFixed(0)}%)
+          Ajusta los pesos de cada método basado en estados financieros (Total: {currentTotal.toFixed(0)}%)
         </p>
       </CardHeader>
       <CardContent className="space-y-6">

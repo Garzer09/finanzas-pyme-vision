@@ -1,6 +1,6 @@
 import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Building2, TrendingUp, AlertCircle, BarChart3 } from 'lucide-react';
+import { Building2, TrendingUp, BarChart3 } from 'lucide-react';
 import { ValuationData } from '@/hooks/useValuation';
 
 interface ValuationKPIsProps {
@@ -11,8 +11,7 @@ export const ValuationKPIs = ({ valuationData }: ValuationKPIsProps) => {
   const {
     weightedValue,
     valuePerShare,
-    sectorPremium,
-    confidenceInterval
+    valuationRange
   } = valuationData;
 
   const formatCurrency = (value: number) => {
@@ -22,60 +21,54 @@ export const ValuationKPIs = ({ valuationData }: ValuationKPIsProps) => {
     return `€${(value / 1000).toFixed(0)}K`;
   };
 
-  const formatPercentage = (value: number) => {
-    return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`;
-  };
-
-  const getPremiumVariant = () => {
-    if (sectorPremium > 15) return 'success' as const;
-    if (sectorPremium < -15) return 'danger' as const;
-    return 'default' as const;
-  };
-
   const kpiData = [
     {
       title: 'Valor Empresa',
       value: formatCurrency(weightedValue),
-      subtitle: 'DCF ponderado',
+      subtitle: 'Valoración ponderada',
       trend: 'neutral' as const,
-      trendValue: 'Valoración base',
+      trendValue: 'Desde estados financieros',
       icon: Building2,
       variant: 'default' as const,
       className: 'border-t-4 border-t-primary shadow-md',
-      tooltip: 'Valor = Σ(Método × Peso) / 100'
+      tooltip: 'Valor = ∑(Método × Peso) / 100',
+      sources: 'P&G, Balance, Flujos de Caja (Año 0-5)'
     },
     {
       title: 'Valor por Acción',
       value: `€${valuePerShare.toFixed(2)}`,
-      subtitle: `${valuationData.sharesOutstanding.toLocaleString()} acciones`,
+      subtitle: `${valuationData.financialData.sharesOutstanding.toLocaleString()} acciones`,
       trend: 'up' as const,
-      trendValue: 'Por acción',
+      trendValue: 'Por acción ordinaria',
       icon: TrendingUp,
       variant: 'success' as const,
       className: 'border-t-4 border-t-primary shadow-md',
-      tooltip: 'Valor por Acción = Valor Empresa / Nº Acciones'
+      tooltip: 'Valor por Acción = Valor Empresa / Nº Acciones',
+      sources: 'Valor Empresa ÷ Capital social'
     },
     {
-      title: 'Prima vs. Sector',
-      value: formatPercentage(sectorPremium),
-      subtitle: 'Comparación sectorial',
-      trend: sectorPremium > 0 ? 'up' as const : sectorPremium < 0 ? 'down' as const : 'neutral' as const,
-      trendValue: sectorPremium > 0 ? 'Sobrevalorada' : sectorPremium < 0 ? 'Infravalorada' : 'En línea',
-      icon: AlertCircle,
-      variant: getPremiumVariant(),
-      className: 'border-t-4 border-t-primary shadow-md',
-      tooltip: 'Prima = (Valor - Promedio Sector) / Promedio Sector'
-    },
-    {
-      title: 'Rango Valoración',
-      value: `${formatCurrency(confidenceInterval[0])} - ${formatCurrency(confidenceInterval[1])}`,
-      subtitle: 'IC 80%',
+      title: 'WACC Calculado',
+      value: `${valuationData.dcfParameters.wacc.toFixed(1)}%`,
+      subtitle: 'Desde datos internos',
       trend: 'neutral' as const,
-      trendValue: 'Intervalo confianza',
+      trendValue: 'Costo promedio ponderado',
       icon: BarChart3,
       variant: 'default' as const,
       className: 'border-t-4 border-t-primary shadow-md',
-      tooltip: 'Rango basado en dispersión de métodos'
+      tooltip: 'WACC = (Kd×(1-T)×D/V) + (Ke×E/V)',
+      sources: 'Gastos financieros, ROE histórico, estructura de capital'
+    },
+    {
+      title: 'Rango Valoración',
+      value: `${formatCurrency(valuationRange[0])} - ${formatCurrency(valuationRange[1])}`,
+      subtitle: 'Sensibilidad ±10%',
+      trend: 'neutral' as const,
+      trendValue: 'WACC y crecimiento',
+      icon: BarChart3,
+      variant: 'default' as const,
+      className: 'border-t-4 border-t-primary shadow-md',
+      tooltip: 'Rango basado en sensibilidad WACC ±1% y crecimiento ±0.5%',
+      sources: 'Análisis de sensibilidad interno'
     }
   ];
 
@@ -89,8 +82,14 @@ export const ValuationKPIs = ({ valuationData }: ValuationKPIsProps) => {
                 <ModernKPICard {...kpi} />
               </div>
             </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-sm">{kpi.tooltip}</p>
+            <TooltipContent className="max-w-xs p-4 bg-white border shadow-lg rounded-lg">
+              <div className="space-y-2">
+                <p className="font-semibold text-sm text-slate-900">{kpi.tooltip}</p>
+                <div className="text-xs text-slate-600">
+                  <p className="font-medium">Fuentes:</p>
+                  <p>{kpi.sources}</p>
+                </div>
+              </div>
             </TooltipContent>
           </Tooltip>
         ))}
