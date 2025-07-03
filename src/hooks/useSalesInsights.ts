@@ -19,7 +19,7 @@ export function useSalesInsights({ segmentType, data }: UseSalesInsightsProps) {
     const generateInsights = () => {
       setIsLoading(true)
       
-      // Simulate API delay
+      // Reduced delay for better UX
       setTimeout(() => {
         const newInsights: SegmentInsight[] = []
 
@@ -85,7 +85,7 @@ export function useSalesInsights({ segmentType, data }: UseSalesInsightsProps) {
 
         setInsights(newInsights)
         setIsLoading(false)
-      }, 800)
+      }, 200)
     }
 
     generateInsights()

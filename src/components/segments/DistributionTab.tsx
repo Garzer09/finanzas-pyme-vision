@@ -119,9 +119,9 @@ export function DistributionTab({ segmentType, data }: DistributionTabProps) {
                 <Tooltip content={<CustomTooltip />} />
                 <Bar 
                   dataKey={metric === "euros" ? "sales" : "participation"}
-                  fill="hsl(var(--primary))"
+                  fill="hsl(200 43% 48%)"
                   radius={[0, 4, 4, 0]}
-                  stroke="hsl(var(--primary))"
+                  stroke="hsl(200 43% 40%)"
                   strokeWidth={1}
                 />
               </BarChart>
