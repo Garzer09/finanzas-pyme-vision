@@ -255,8 +255,9 @@ const HomePage = () => {
             {/* Panel de KPIs Principales */}
             <KPICardsSection />
             
-            {/* Gráficos de Evolución */}
+            {/* Comentado temporalmente hasta resolver valores NaN en gráficos
             <EvolutionChartsSection />
+            */}
           </section>
 
           {/* Quick Actions */}
