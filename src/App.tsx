@@ -80,7 +80,7 @@ const App = () => (
           <Route path="/punto-muerto-actual" element={<RentabilityModule />} />
           <Route path="/endeudamiento-actual" element={<FinancialAnalysisModule />} />
           <Route path="/servicio-deuda-actual" element={<FinancialAnalysisModule />} />
-          <Route path="/tesoreria-actual" element={<FinancialAnalysisModule />} />
+          
           <Route path="/nof-actual" element={<FinancialAnalysisModule />} />
           <Route path="/segmentos-actual" element={<FinancialAnalysisModule />} />
           
