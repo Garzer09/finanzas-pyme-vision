@@ -1,374 +1,512 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { KPICardsSection } from '@/components/dashboard/KPICardsSection';
-import { EvolutionChartsSection } from '@/components/dashboard/EvolutionChartsSection';
+import { Progress } from '@/components/ui/progress';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { useFinancialData } from '@/hooks/useFinancialData';
 import { 
-  TrendingUp, 
+  Upload,
+  DollarSign,
+  Percent,
+  TrendingUp,
   TrendingDown,
-  AlertTriangle, 
-  CheckCircle, 
+  Activity,
+  Building,
   BarChart3,
   PieChart,
-  LineChart,
   Target,
-  Upload,
-  Database,
   Settings,
+  AlertTriangle,
+  CheckCircle,
   Clock,
-  Activity,
+  FileText,
+  Calculator,
+  LineChart,
   Calendar,
-  Percent
+  ArrowRight
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { RadialBarChart, RadialBar, ResponsiveContainer, AreaChart, Area, Tooltip, Cell } from 'recharts';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const HomePage = () => {
   const { user } = useAuth();
-  const [realKPIs, setRealKPIs] = useState<any[]>([]);
-  const [recentFiles, setRecentFiles] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { data, loading, getLatestData, calculateGrowth, getPeriodComparison, safeNumber } = useFinancialData();
 
-  useEffect(() => {
-    if (user) {
-      fetchRealData();
-    }
-  }, [user]);
+  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || 'Usuario';
+  const lastUpdateDate = new Date('2024-12-01'); // Simulated for demo
+  const daysAgo = formatDistanceToNow(lastUpdateDate, { addSuffix: true, locale: es });
 
-  const fetchRealData = async () => {
-    try {
-      // Fetch user KPIs
-      const { data: kpisData } = await supabase
-        .from('user_kpis')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('is_active', true)
-        .order('display_order');
+  // Get financial data
+  const ratiosData = getLatestData('ratios_financieros');
+  const pygData = getLatestData('estado_pyg');
+  const balanceData = getLatestData('estado_balance');
 
-      // Fetch recent files
-      const { data: filesData } = await supabase
-        .from('excel_files')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('upload_date', { ascending: false })
-        .limit(5);
-
-      // Fetch recent financial data
-      const { data: financialData } = await supabase
-        .from('financial_data')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-
-       setRealKPIs(kpisData || []);
-       setRecentFiles(filesData || demoFiles);
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Demo data (fallback when no real data available)
-  const healthScore = 72;
-  const kpis = [
+  // KPI Data with sparklines
+  const kpiData = [
     {
-      title: 'Cash Runway',
-      value: '8.2',
-      unit: 'meses',
-      trend: 5.2,
-      status: 'good',
-      icon: Clock,
-      description: 'Meses de supervivencia con cash actual'
+      id: 'ingresos',
+      title: 'Ingresos',
+      value: pygData?.data_content?.ingresos_explotacion 
+        ? (safeNumber(pygData.data_content.ingresos_explotacion, 0) / 1000000).toFixed(1)
+        : '2.84',
+      unit: 'M€',
+      trend: calculateGrowth(
+        getPeriodComparison('estado_pyg')[0]?.data_content,
+        getPeriodComparison('estado_pyg')[1]?.data_content,
+        'ingresos_explotacion'
+      ) || 15.9,
+      icon: DollarSign,
+      sparkline: [2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 2.85, 2.84, 2.84],
+      color: '#005E8A'
     },
     {
-      title: 'Burn Rate',
-      value: '45.8',
-      unit: 'K€/mes',
-      trend: -2.1,
-      status: 'good',
-      icon: TrendingDown,
-      description: 'Gasto operativo promedio mensual'
-    },
-    {
-      title: 'Quick Ratio',
-      value: '1.67',
-      unit: '',
-      trend: 8.3,
-      status: 'good',
-      icon: Activity,
-      description: 'Ratio de liquidez inmediata'
-    },
-    {
-      title: 'Días de Cobro',
-      value: '42',
-      unit: 'días',
-      trend: -5.1,
-      status: 'warning',
-      icon: Calendar,
-      description: 'Promedio días cobro a clientes'
-    },
-    {
+      id: 'ebitda',
       title: 'Margen EBITDA',
-      value: '12.8',
+      value: pygData?.data_content?.resultado_explotacion && pygData?.data_content?.ingresos_explotacion
+        ? ((safeNumber(pygData.data_content.resultado_explotacion, 0) / safeNumber(pygData.data_content.ingresos_explotacion, 1)) * 100).toFixed(1)
+        : '26.1',
       unit: '%',
       trend: 2.4,
-      status: 'good',
       icon: Percent,
-      description: '% sobre ventas'
+      sparkline: [22, 23, 24, 25, 24.5, 25.2, 26, 26.5, 26.2, 26.0, 26.1, 26.1],
+      color: '#16a34a'
     },
     {
-      title: 'Revenue Growth',
-      value: '18.5',
-      unit: '% YoY',
-      trend: 3.2,
-      status: 'excellent',
+      id: 'beneficio',
+      title: 'Beneficio Neto',
+      value: pygData?.data_content?.resultado_neto 
+        ? (safeNumber(pygData.data_content.resultado_neto, 0) / 1000).toFixed(0)
+        : '520',
+      unit: 'K€',
+      trend: calculateGrowth(
+        getPeriodComparison('estado_pyg')[0]?.data_content,
+        getPeriodComparison('estado_pyg')[1]?.data_content,
+        'resultado_neto'
+      ) || 23.8,
       icon: TrendingUp,
-      description: 'Crecimiento anual'
+      sparkline: [320, 340, 380, 420, 450, 480, 500, 510, 515, 518, 520, 520],
+      color: '#16a34a'
+    },
+    {
+      id: 'liquidez',
+      title: 'Liquidez',
+      value: ratiosData?.data_content?.liquidez?.ratio_corriente 
+        ? safeNumber(ratiosData.data_content.liquidez.ratio_corriente, 0).toFixed(2)
+        : '1.92',
+      unit: 'x',
+      trend: 8.3,
+      icon: Activity,
+      sparkline: [1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.85, 1.9, 1.91, 1.92, 1.92],
+      color: '#6BD1FF'
+    },
+    {
+      id: 'endeudamiento',
+      title: 'Endeudamiento',
+      value: ratiosData?.data_content?.endeudamiento?.ratio_endeudamiento 
+        ? safeNumber(ratiosData.data_content.endeudamiento.ratio_endeudamiento, 0).toFixed(1)
+        : '52.5',
+      unit: '%',
+      trend: -5.1,
+      icon: Building,
+      sparkline: [65, 63, 61, 58, 56, 55, 54, 53, 52.8, 52.6, 52.5, 52.5],
+      color: '#dc2626'
+    },
+    {
+      id: 'fondo',
+      title: 'Fondo Maniobra',
+      value: balanceData?.data_content?.activo_corriente && balanceData?.data_content?.pasivo_corriente
+        ? ((safeNumber(balanceData.data_content.activo_corriente, 0) - safeNumber(balanceData.data_content.pasivo_corriente, 0)) / 1000).toFixed(0)
+        : '600',
+      unit: 'K€',
+      trend: 12.5,
+      icon: DollarSign,
+      sparkline: [450, 480, 510, 530, 550, 570, 580, 590, 595, 598, 600, 600],
+      color: '#005E8A'
     }
   ];
 
-  const demoFiles = [
-    {
-      id: '1',
-      file_name: 'Estados_Financieros_2024.xlsx',
-      upload_date: '2024-12-01T10:30:00Z',
-      file_size: 1248576,
-      processing_status: 'completed'
-    },
-    {
-      id: '2',
-      file_name: 'Balance_Q3_2024.xlsx',
-      upload_date: '2024-11-15T14:22:00Z',
-      file_size: 856432,
-      processing_status: 'completed'
-    },
-    {
-      id: '3',
-      file_name: 'Cash_Flow_Proyecciones.xlsx',
-      upload_date: '2024-11-08T09:15:00Z',
-      file_size: 2104832,
-      processing_status: 'processing'
-    }
+  // Performance vs Goals data
+  const performanceData = [
+    { name: 'Ingresos', value: 95, goal: 100, fill: '#005E8A' },
+    { name: 'EBITDA', value: 87, goal: 100, fill: '#16a34a' },
+    { name: 'ROE', value: 78, goal: 100, fill: '#6BD1FF' }
   ];
 
-  const demoFinancialData = [
-    {
-      period: 'Q4 2024',
-      revenue: 2840000,
-      ebitda: 364200,
-      netIncome: 185600,
-      cashFlow: 245800
-    },
-    {
-      period: 'Q3 2024',
-      revenue: 2650000,
-      ebitda: 318000,
-      netIncome: 162400,
-      cashFlow: 212300
-    },
-    {
-      period: 'Q2 2024',
-      revenue: 2420000,
-      ebitda: 290400,
-      netIncome: 148200,
-      cashFlow: 198700
-    }
+  // Quick Actions
+  const quickActions = [
+    { title: 'Cargar Datos', icon: Upload, route: '/subir-excel', description: 'Sube archivos Excel' },
+    { title: 'Analizar P&G', icon: BarChart3, route: '/cuenta-pyg', description: 'Cuenta Resultados' },
+    { title: 'Balance', icon: PieChart, route: '/balance-situacion', description: 'Situación patrimonial' },
+    { title: 'Ratios', icon: Target, route: '/ratios-financieros', description: 'Análisis ratios' },
+    { title: 'Supuestos', icon: Settings, route: '/supuestos-financieros', description: 'Premisas clave' },
+    { title: 'Proyecciones', icon: LineChart, route: '/proyecciones', description: 'Análisis prospectivo' }
   ];
 
+  // Alerts
   const alerts = [
     {
+      id: 1,
       type: 'critical',
       title: 'NOF aumentó 22% último mes',
-      description: 'Revisar gestión de inventarios y cobros',
-      action: 'Ver análisis NOF'
+      description: 'Revisar gestión de inventarios y política de cobros',
+      action: 'Ver análisis NOF',
+      route: '/analisis-nof',
+      count: 2
     },
     {
-      type: 'warning',
+      id: 2,
+      type: 'warning', 
       title: 'Concentración cliente 45%',
-      description: 'Alto riesgo de dependencia comercial',
-      action: 'Diversificar cartera'
+      description: 'Alto riesgo de dependencia comercial detectado',
+      action: 'Diversificar cartera',
+      route: '/segmentos-actual',
+      count: 1
     },
     {
+      id: 3,
       type: 'opportunity',
       title: 'DSCR permite financiación adicional',
-      description: 'Capacidad para nuevas inversiones',
-      action: 'Ver opciones'
+      description: 'Capacidad de endeudamiento disponible para inversiones',
+      action: 'Ver opciones',
+      route: '/servicio-deuda',
+      count: 1
     }
   ];
 
-  const companies = [
-    {
-      name: 'TechSolutions SL',
-      sector: 'Tecnología',
-      lastUpdate: '2 días',
-      revenue: '2.4M €',
-      ebitda: '12.8%',
-      liquidity: 1.67,
-      status: 'good'
-    }
+  const totalAlerts = alerts.reduce((sum, alert) => sum + alert.count, 0);
+
+  // Progress roadmap
+  const roadmapSteps = [
+    { title: 'Descripción Empresa', completed: true, route: '/descripcion-empresa' },
+    { title: 'Situación Actual', completed: true, route: '/situacion-actual' },
+    { title: 'Supuestos Financieros', completed: false, route: '/supuestos-financieros' },
+    { title: 'Proyecciones', completed: false, route: '/proyecciones' },
+    { title: 'Análisis Sensibilidad', completed: false, route: '/escenarios' },
+    { title: 'Valoración', completed: false, route: '/valoracion-eva' }
   ];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'excellent': return 'text-green-600';
-      case 'good': return 'text-green-500';
-      case 'warning': return 'text-yellow-500';
-      case 'critical': return 'text-red-500';
-      default: return 'text-gray-500';
-    }
-  };
-
-  const getAlertStyle = (type: string) => {
+  const getAlertColor = (type: string) => {
     switch (type) {
-      case 'critical': return 'border-red-200 bg-red-50';
-      case 'warning': return 'border-yellow-200 bg-yellow-50';
-      case 'opportunity': return 'border-green-200 bg-green-50';
-      default: return 'border-gray-200 bg-gray-50';
+      case 'critical': return 'text-red-600 bg-red-50 border-red-200';
+      case 'warning': return 'text-amber-600 bg-amber-50 border-amber-200';
+      case 'opportunity': return 'text-green-600 bg-green-50 border-green-200';
+      default: return 'text-slate-600 bg-slate-50 border-slate-200';
     }
   };
+
+  const Sparkline = ({ data, color }: { data: number[], color: string }) => (
+    <div className="w-full h-8 mt-2">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={data.map((value, index) => ({ value, index }))}>
+          <Area 
+            type="monotone" 
+            dataKey="value" 
+            stroke={color} 
+            fill={color}
+            fillOpacity={0.1}
+            strokeWidth={2}
+            dot={false}
+          />
+          <Tooltip 
+            content={({ active, payload }) => 
+              active && payload?.[0] ? (
+                <div className="bg-white p-2 border rounded-lg shadow-lg">
+                  <p className="text-sm font-medium">{payload[0].value}</p>
+                </div>
+              ) : null
+            }
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex">
+        <DashboardSidebar />
+        <div className="flex-1 overflow-auto">
+          <div className="container mx-auto p-6">
+            <div className="space-y-6 animate-pulse">
+              <div className="h-32 bg-muted rounded-lg"></div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div key={i} className="h-24 bg-muted rounded-lg"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-light-gray-bg flex">
-      {/* Sidebar */}
+    <div className="min-h-screen bg-background flex">
       <DashboardSidebar />
       
-      {/* Main Content */}
       <div className="flex-1 overflow-auto">
         <div className="container mx-auto p-6 space-y-8">
-          {/* Welcome Section */}
-          <div className="text-center space-y-4">
-            <h1 className="text-3xl font-bold text-steel-blue-dark">
-              ¡Bienvenido/a, {user?.user_metadata?.full_name || 'Usuario'}!
-            </h1>
-            <p className="text-professional text-lg">
-              Resumen Ejecutivo - Dashboard FinSight Pro
-            </p>
-          </div>
-
-          {/* Sección 1: Resumen Ejecutivo */}
-          <section className="space-y-6">
-            {/* Panel de KPIs Principales */}
-            <KPICardsSection />
-            
-            {/* Comentado temporalmente hasta resolver valores NaN en gráficos
-            <EvolutionChartsSection />
-            */}
-          </section>
-
-          {/* Quick Actions */}
-          <section>
-            <h3 className="text-xl font-semibold text-steel-blue-dark mb-6">Acceso Rápido a Análisis</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Link to="/subir-excel" className="block">
-                <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-                  <CardContent className="p-6 text-center space-y-3">
-                    <Upload className="h-8 w-8 text-steel-blue mx-auto" />
-                    <h3 className="font-semibold text-steel-blue-dark">Cargar Datos</h3>
-                    <p className="text-sm text-professional">Sube archivos Excel para análisis</p>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link to="/cuenta-pyg" className="block">
-                <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-                  <CardContent className="p-6 text-center space-y-3">
-                    <BarChart3 className="h-8 w-8 text-steel-blue mx-auto" />
-                    <h3 className="font-semibold text-steel-blue-dark">Análisis P&G</h3>
-                    <p className="text-sm text-professional">Cuenta de Pérdidas y Ganancias</p>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link to="/balance-situacion" className="block">
-                <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-                  <CardContent className="p-6 text-center space-y-3">
-                    <PieChart className="h-8 w-8 text-steel-blue mx-auto" />
-                    <h3 className="font-semibold text-steel-blue-dark">Balance</h3>
-                    <p className="text-sm text-professional">Situación patrimonial</p>
-                  </CardContent>
-                </Card>
-              </Link>
-
-              <Link to="/ratios-financieros" className="block">
-                <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-                  <CardContent className="p-6 text-center space-y-3">
-                    <Target className="h-8 w-8 text-steel-blue mx-auto" />
-                    <h3 className="font-semibold text-steel-blue-dark">Ratios</h3>
-                    <p className="text-sm text-professional">Análisis de ratios financieros</p>
-                  </CardContent>
-                </Card>
-              </Link>
-            </div>
-          </section>
-
-          {/* Navegación a Secciones Principales */}
-          <section>
-            <h3 className="text-xl font-semibold text-steel-blue-dark mb-6">Secciones del Análisis Financiero</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-                <CardContent className="p-6 text-center space-y-3">
-                  <BarChart3 className="h-8 w-8 text-cadet-blue mx-auto" />
-                  <h3 className="font-semibold text-steel-blue-dark">2. Descripción Empresa</h3>
-                  <p className="text-sm text-professional">Información general y contexto</p>
-                </CardContent>
-              </Card>
-
-              <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-                <CardContent className="p-6 text-center space-y-3">
-                  <LineChart className="h-8 w-8 text-steel-blue mx-auto" />
-                  <h3 className="font-semibold text-steel-blue-dark">3. Situación Actual</h3>
-                  <p className="text-sm text-professional">Estados financieros y análisis</p>
-                </CardContent>
-              </Card>
-
-              <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-                <CardContent className="p-6 text-center space-y-3">
-                  <Settings className="h-8 w-8 text-cadet-blue mx-auto" />
-                  <h3 className="font-semibold text-steel-blue-dark">4. Supuestos</h3>
-                  <p className="text-sm text-professional">Premisas y plan de inversiones</p>
-                </CardContent>
-              </Card>
-
-              <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-                <CardContent className="p-6 text-center space-y-3">
-                  <TrendingUp className="h-8 w-8 text-steel-blue mx-auto" />
-                  <h3 className="font-semibold text-steel-blue-dark">5. Proyecciones</h3>
-                  <p className="text-sm text-professional">Análisis prospectivo 1-3 años</p>
-                </CardContent>
-              </Card>
-            </div>
-          </section>
-
-          {/* Alertas Inteligentes */}
-          <Card className="dashboard-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-steel-blue-dark">
-                <AlertTriangle className="h-5 w-5" />
-                Centro de Alertas Inteligentes
-              </CardTitle>
-              <CardDescription>Indicadores automáticos basados en el análisis de datos</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {alerts.map((alert, index) => (
-                <div key={index} className={`p-4 rounded-lg border ${getAlertStyle(alert.type)}`}>
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <h4 className="font-semibold text-steel-blue-dark">{alert.title}</h4>
-                      <p className="text-sm text-professional">{alert.description}</p>
-                    </div>
-                    <Button variant="outline" size="sm">
-                      {alert.action}
-                    </Button>
-                  </div>
+          {/* Hero Executive Snapshot */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative rounded-2xl bg-gradient-to-r from-[#005E8A] to-[#6BD1FF] p-8 text-white overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-black/10"></div>
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="space-y-2">
+                <h1 className="text-4xl font-bold">¡Bienvenido/a, {firstName}!</h1>
+                <p className="text-xl opacity-90">Dashboard Ejecutivo - FinSight Pro</p>
+                <div className="flex items-center gap-3 mt-4">
+                  <Badge variant="secondary" className="bg-white/20 text-white border-white/30">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Actualizado {daysAgo}
+                  </Badge>
                 </div>
-              ))}
-            </CardContent>
-          </Card>
+              </div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  size="lg" 
+                  variant="secondary"
+                  onClick={() => navigate('/subir-excel')}
+                  className="bg-white text-[#005E8A] hover:bg-white/90"
+                >
+                  <Upload className="w-5 h-5 mr-2" />
+                  Subir nuevos datos
+                </Button>
+              </motion.div>
+            </div>
+          </motion.div>
+
+          {/* KPI Carousel */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="space-y-4"
+          >
+            <h2 className="text-2xl font-bold text-foreground">Indicadores Clave</h2>
+            <div className="overflow-x-auto">
+              <div className="flex gap-6 pb-4 snap-x snap-mandatory min-w-max lg:grid lg:grid-cols-3 xl:grid-cols-6">
+                {kpiData.map((kpi, index) => {
+                  const IconComponent = kpi.icon;
+                  return (
+                    <motion.div
+                      key={kpi.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1 + index * 0.05 }}
+                      whileHover={{ scale: 1.02 }}
+                      className="snap-start flex-shrink-0 w-80 lg:w-auto"
+                    >
+                      <Card className="h-full hover:shadow-lg transition-all duration-300">
+                        <CardContent className="p-6">
+                          <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
+                                <IconComponent className="w-5 h-5 text-primary" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-medium text-muted-foreground">{kpi.title}</p>
+                                <div className="flex items-baseline gap-1">
+                                  <span className="text-3xl font-bold text-foreground">{kpi.value}</span>
+                                  <span className="text-sm text-muted-foreground">{kpi.unit}</span>
+                                </div>
+                              </div>
+                            </div>
+                            <Badge 
+                              variant={kpi.trend >= 0 ? "default" : "destructive"}
+                              className="text-xs"
+                            >
+                              {kpi.trend >= 0 ? '+' : ''}{kpi.trend.toFixed(1)}%
+                            </Badge>
+                          </div>
+                          <Sparkline data={kpi.sparkline} color={kpi.color} />
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Performance vs Goals */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-primary" />
+                  Rendimiento vs Objetivos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadialBarChart cx="50%" cy="50%" innerRadius="30%" outerRadius="90%" data={performanceData}>
+                      <RadialBar dataKey="value" cornerRadius={10}>
+                        {performanceData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </RadialBar>
+                      <Tooltip 
+                        content={({ active, payload }) => 
+                          active && payload?.[0] ? (
+                            <div className="bg-white p-3 border rounded-lg shadow-lg">
+                              <p className="font-medium">{payload[0].payload.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {payload[0].value}% de {payload[0].payload.goal}%
+                              </p>
+                            </div>
+                          ) : null
+                        }
+                      />
+                    </RadialBarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Progress Roadmap */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-success" />
+                  Progreso del Análisis
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {roadmapSteps.map((step, index) => (
+                    <div key={index} className="flex items-center gap-3">
+                      <div className={`w-4 h-4 rounded-full flex-shrink-0 ${
+                        step.completed ? 'bg-success' : index === 2 ? 'bg-primary' : 'bg-muted'
+                      }`}>
+                        {step.completed && <CheckCircle className="w-4 h-4 text-white" />}
+                      </div>
+                      <Link 
+                        to={step.route}
+                        className={`text-sm hover:underline ${
+                          step.completed ? 'text-foreground' : 'text-muted-foreground'
+                        }`}
+                      >
+                        {step.title}
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Quick Actions Grid */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-4"
+          >
+            <h2 className="text-2xl font-bold text-foreground">Acceso Rápido</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {quickActions.map((action, index) => {
+                const IconComponent = action.icon;
+                return (
+                  <motion.div
+                    key={action.title}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 + index * 0.05 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Link to={action.route} className="block">
+                      <Card className="h-full hover:shadow-lg transition-all duration-300 cursor-pointer aspect-[4/3] lg:aspect-auto">
+                        <CardContent className="p-6 text-center space-y-4 h-full flex flex-col justify-center">
+                          <IconComponent className="h-8 w-8 text-primary mx-auto" />
+                          <div>
+                            <h3 className="font-semibold text-foreground">{action.title}</h3>
+                            <p className="text-sm text-muted-foreground">{action.description}</p>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
+
+          {/* Alert Center 2.0 */}
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-warning" />
+                    Centro de Alertas Inteligentes
+                  </CardTitle>
+                  {totalAlerts > 0 && (
+                    <Badge variant="destructive" className="rounded-full">
+                      {totalAlerts}
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible className="w-full">
+                  {alerts.map((alert) => (
+                    <AccordionItem key={alert.id} value={`alert-${alert.id}`}>
+                      <AccordionTrigger className={`hover:no-underline px-4 py-3 rounded-lg border ${getAlertColor(alert.type)}`}>
+                        <div className="flex items-center gap-3 w-full">
+                          <div className={`w-3 h-3 rounded-full ${
+                            alert.type === 'critical' ? 'bg-red-500' :
+                            alert.type === 'warning' ? 'bg-amber-500' : 'bg-green-500'
+                          }`} />
+                          <div className="flex-1 text-left">
+                            <p className="font-medium">{alert.title}</p>
+                            <p className="text-sm opacity-75">{alert.description}</p>
+                          </div>
+                          {alert.count > 1 && (
+                            <Badge variant="outline" className="rounded-full">
+                              {alert.count}
+                            </Badge>
+                          )}
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4 pb-4">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => navigate(alert.route)}
+                          className="mt-2"
+                        >
+                          {alert.action}
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
       </div>
     </div>
