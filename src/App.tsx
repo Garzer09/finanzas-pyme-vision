@@ -27,7 +27,7 @@ import { KeyFinancialAssumptionsModule } from "./components/modules/KeyFinancial
 import { FinancialAnalysisModule } from "./components/modules/FinancialAnalysisModule";
 import { ProjectionsModule } from "./components/modules/ProjectionsModule";
 import { SensitivityModuleNew } from "./components/modules/SensitivityModuleNew";
-import { ValuationModule } from "./components/modules/ValuationModule";
+import { EVAValuationModule } from "./components/modules/EVAValuationModule";
 import { SituacionActualModule } from "./components/modules/SituacionActualModule";
 import { SimulatorModule } from "./components/modules/SimulatorModule";
 import { PremisasIngresosModule } from "./components/modules/PremisasIngresosModule";
@@ -95,10 +95,7 @@ const App = () => (
           <Route path="/escenarios" element={<SensitivityModuleNew />} />
           
           {/* Sección 7 - Valoración EVA */}
-          <Route path="/introduccion-eva" element={<ValuationModule />} />
-          <Route path="/calculo-eva" element={<ValuationModule />} />
-          <Route path="/interpretacion-eva" element={<ValuationModule />} />
-          <Route path="/valoracion" element={<ValuationModule />} />
+          <Route path="/valoracion-eva" element={<EVAValuationModule />} />
           
           {/* Simulador */}
           <Route path="/simulador" element={<SimulatorModule />} />

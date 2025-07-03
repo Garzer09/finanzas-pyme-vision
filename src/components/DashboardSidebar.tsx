@@ -72,8 +72,7 @@ export const DashboardSidebar = () => {
     }
     
     // Section 7: Valoración EVA
-    if (path.includes('/introduccion-eva') || path.includes('/calculo-eva') || 
-        path.includes('/interpretacion-eva') || path.includes('/valoracion')) {
+    if (path.includes('/valoracion-eva')) {
       return 'valoracion';
     }
     
@@ -257,26 +256,8 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: '/introduccion-eva',
-          label: '7.1. Introducción al EVA',
-          icon: Zap,
-          color: 'text-steel-500'
-        },
-        {
-          path: '/calculo-eva',
-          label: '7.2. Cálculo del EVA',
-          icon: Calculator,
-          color: 'text-success-600'
-        },
-        {
-          path: '/interpretacion-eva',
-          label: '7.3. Interpretación del EVA',
-          icon: CheckCircle,
-          color: 'text-cadet-600'
-        },
-        {
-          path: '/valoracion',
-          label: '7.4. EVA vs. Métodos Valoración',
+          path: '/valoracion-eva',
+          label: 'Valoración Integral',
           icon: DollarSign,
           color: 'text-steel-700'
         }
