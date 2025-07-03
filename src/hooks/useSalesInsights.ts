@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { SegmentInsight } from "@/schemas/segment-schemas"
 
 interface UseSalesInsightsProps {
@@ -13,8 +13,7 @@ interface UseSalesInsightsProps {
 
 export function useSalesInsights({ segmentType, data }: UseSalesInsightsProps) {
   const [insights, setInsights] = useState<SegmentInsight[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const timeoutRef = useRef<NodeJS.Timeout>()
+  const [isLoading, setIsLoading] = useState(false)
 
   // Memoize expensive calculations
   const calculatedInsights = useMemo(() => {
@@ -85,27 +84,11 @@ export function useSalesInsights({ segmentType, data }: UseSalesInsightsProps) {
     return newInsights
   }, [data])
 
+  // Directly use calculated insights without artificial delay
   useEffect(() => {
-    // Clear previous timeout
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current)
-    }
-
-    setIsLoading(true)
-    
-    // Debounced update with reduced delay
-    timeoutRef.current = setTimeout(() => {
-      setInsights(calculatedInsights)
-      setIsLoading(false)
-    }, 100) // Reduced to 100ms for faster response
-
-    // Cleanup timeout on unmount
-    return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current)
-      }
-    }
-  }, [segmentType, calculatedInsights])
+    setInsights(calculatedInsights)
+    setIsLoading(false)
+  }, [calculatedInsights])
 
   return { insights, isLoading }
 }

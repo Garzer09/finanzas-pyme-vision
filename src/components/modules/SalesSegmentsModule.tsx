@@ -1,4 +1,4 @@
-import { useState, lazy, Suspense, memo } from "react"
+import { useState, lazy, Suspense, memo, useMemo, useCallback } from "react"
 import { DashboardHeader } from '@/components/DashboardHeader'
 import { DashboardSidebar } from '@/components/DashboardSidebar'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -41,33 +41,33 @@ export const SalesSegmentsModule = memo(() => {
     }
   }
 
-  // Mock segment data with yoyGrowth for insights
-  const distributionData = [
+  // Stabilized mock data to prevent unnecessary re-renders
+  const distributionData = useMemo(() => [
     { name: "Productos Premium", sales: 850000, participation: 34.2, yoyGrowth: 18.5 },
     { name: "Productos Estándar", sales: 620000, participation: 25.1, yoyGrowth: 12.3 },
     { name: "Productos Básicos", sales: 480000, participation: 19.4, yoyGrowth: 8.7 },
     { name: "Servicios", sales: 350000, participation: 14.1, yoyGrowth: 22.1 },
     { name: "Accesorios", sales: 150000, participation: 7.2, yoyGrowth: -12.4 }
-  ]
+  ], [filters.segmentType])
 
-  const evolutionData = [
+  const evolutionData = useMemo(() => [
     { period: "Ene", "Productos Premium": 95000, "Productos Estándar": 78000, "Productos Básicos": 65000, "Servicios": 45000 },
     { period: "Feb", "Productos Premium": 88000, "Productos Estándar": 72000, "Productos Básicos": 58000, "Servicios": 42000 },
     { period: "Mar", "Productos Premium": 102000, "Productos Estándar": 85000, "Productos Básicos": 71000, "Servicios": 51000 },
     { period: "Abr", "Productos Premium": 97000, "Productos Estándar": 80000, "Productos Básicos": 67000, "Servicios": 48000 },
     { period: "May", "Productos Premium": 105000, "Productos Estándar": 87000, "Productos Básicos": 73000, "Servicios": 53000 },
     { period: "Jun", "Productos Premium": 112000, "Productos Estándar": 92000, "Productos Básicos": 78000, "Servicios": 57000 }
-  ]
+  ], [filters.segmentType])
 
-  const segments = ["Productos Premium", "Productos Estándar", "Productos Básicos", "Servicios"]
+  const segments = useMemo(() => ["Productos Premium", "Productos Estándar", "Productos Básicos", "Servicios"], [])
 
-  const topBottomData = [
+  const topBottomData = useMemo(() => [
     { id: "1", name: "Productos Premium", sales: 850000, yoyGrowth: 18.5, averageTicket: 1250 },
     { id: "2", name: "Productos Estándar", sales: 620000, yoyGrowth: 12.3, averageTicket: 780 },
     { id: "3", name: "Productos Básicos", sales: 480000, yoyGrowth: 8.7, averageTicket: 450 },
     { id: "4", name: "Servicios", sales: 350000, yoyGrowth: 22.1, averageTicket: 890 },
     { id: "5", name: "Accesorios", sales: 150000, yoyGrowth: -12.4, averageTicket: 125 }
-  ]
+  ], [filters.segmentType])
 
   // Generate insights based on distribution data
   const { insights, isLoading: insightsLoading } = useSalesInsights({
@@ -75,22 +75,22 @@ export const SalesSegmentsModule = memo(() => {
     data: distributionData
   })
 
-  // Export functions
-  const handleExportPDF = () => {
+  // Export functions - memoized to prevent unnecessary re-renders
+  const handleExportPDF = useCallback(() => {
     toast({
       title: "Exportando PDF",
       description: "Se está generando el reporte en formato PDF...",
     })
     // Here you would implement actual PDF export logic
-  }
+  }, [toast])
 
-  const handleExportCSV = () => {
+  const handleExportCSV = useCallback(() => {
     toast({
       title: "Descargando CSV",
       description: "Los datos se están descargando en formato CSV...",
     })
     // Here you would implement actual CSV export logic
-  }
+  }, [toast])
 
   const formatCurrency = (value: number) => 
     new Intl.NumberFormat('es-ES', { 
