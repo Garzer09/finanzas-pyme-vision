@@ -75,60 +75,41 @@ export const DebtServiceModule = () => {
     }).format(value);
   };
 
-  const getSemaphoreColor = (dscr: number) => {
-    if (dscr >= 1.2) return 'border-green-500';
-    if (dscr >= 1.0) return 'border-yellow-500';
-    return 'border-red-500';
-  };
-
-  const getSemaphoreVariant = (dscr: number) => {
-    if (dscr >= 1.2) return 'success' as const;
-    if (dscr >= 1.0) return 'warning' as const;
-    return 'danger' as const;
-  };
-
-  // KPI Data con bordes semáforo
+  // KPI Data simplified - sin duplicaciones
   const kpiData = [
     {
       title: 'Servicio de Deuda Anual',
       value: formatCurrencyK(servicioDeudaAnual),
       subtitle: 'Principal + intereses',
-      trend: 'neutral' as const,
-      trendValue: '0%',
       icon: CreditCard,
-      variant: 'default' as const,
-      borderColor: 'border-slate-300'
+      variant: 'default' as const
     },
     {
       title: 'DSCR Promedio',
       value: `${dscrPromedio.toFixed(2)}x`,
       subtitle: 'Cobertura media',
-      trend: dscrPromedio >= 1.2 ? 'up' as const : 'down' as const,
-      trendValue: dscrPromedio >= 1.2 ? 'Bueno' : 'Mejorable',
+      trend: dscrPromedio >= 1.2 ? 'up' as const : dscrPromedio >= 1.0 ? 'neutral' as const : 'down' as const,
+      trendValue: dscrPromedio >= 1.2 ? 'Bueno' : dscrPromedio >= 1.0 ? 'Aceptable' : 'Riesgo',
       icon: Calculator,
-      variant: getSemaphoreVariant(dscrPromedio),
-      borderColor: getSemaphoreColor(dscrPromedio)
+      variant: dscrPromedio >= 1.2 ? 'success' as const : dscrPromedio >= 1.0 ? 'warning' as const : 'danger' as const
     },
     {
       title: 'DSCR Mínimo',
       value: `${dscrMinimo.toFixed(2)}x`,
       subtitle: 'Peor mes del año',
-      trend: 'down' as const,
-      trendValue: dscrMinimo < 1.0 ? 'Crítico' : 'Riesgo',
+      trend: dscrMinimo >= 1.0 ? 'neutral' as const : 'down' as const,
+      trendValue: dscrMinimo >= 1.2 ? 'Bueno' : dscrMinimo >= 1.0 ? 'Aceptable' : 'Crítico',
       icon: AlertTriangle,
-      variant: getSemaphoreVariant(dscrMinimo),
-      borderColor: getSemaphoreColor(dscrMinimo),
-      isHighlighted: true
+      variant: dscrMinimo >= 1.2 ? 'success' as const : dscrMinimo >= 1.0 ? 'warning' as const : 'danger' as const
     },
     {
       title: 'Meses en Riesgo',
       value: mesesEnRiesgo.toString(),
       subtitle: 'DSCR menor a 1.0',
-      trend: mesesEnRiesgo > 0 ? 'down' as const : 'up' as const,
-      trendValue: mesesEnRiesgo > 0 ? 'Crítico' : 'Saludable',
+      trend: mesesEnRiesgo === 0 ? 'up' as const : 'down' as const,
+      trendValue: mesesEnRiesgo === 0 ? 'Saludable' : 'Crítico',
       icon: Shield,
-      variant: mesesEnRiesgo > 0 ? 'danger' as const : 'success' as const,
-      borderColor: mesesEnRiesgo > 0 ? 'border-red-500' : 'border-green-500'
+      variant: mesesEnRiesgo === 0 ? 'success' as const : 'danger' as const
     }
   ];
 
@@ -182,21 +163,16 @@ export const DebtServiceModule = () => {
           </div>
         </section>
 
-        {/* KPIs Grid con bordes semáforo */}
+        {/* KPIs Grid simplificado */}
         <section>
           <div className="grid grid-cols-4 lg:grid-cols-4 md:grid-cols-2 sm:grid-cols-1 gap-6">
             {kpiData.map((kpi, index) => (
-              <div
-                key={index}
-                className={`relative ${kpi.isHighlighted ? 'sm:row-span-2' : ''}`}
-              >
-                <div className={`border-t-4 ${kpi.borderColor} rounded-lg`}>
-                  <ModernKPICard {...kpi} />
-                </div>
+              <div key={index} className="relative">
+                <ModernKPICard {...kpi} />
                 {kpi.title.includes('DSCR') && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <HelpCircle className="absolute top-2 right-2 h-4 w-4 text-slate-400 hover:text-slate-600 cursor-help" />
+                      <HelpCircle className="absolute top-2 right-2 h-4 w-4 text-slate-400 hover:text-[hsl(var(--primary))] cursor-help transition-colors" />
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs">
                       <div className="space-y-2">
@@ -429,38 +405,38 @@ export const DebtServiceModule = () => {
                       }}
                     />
                     
-                    <Bar 
-                      dataKey="dscr"
-                      onClick={handleBarClick}
-                      cursor="pointer"
-                    >
-                      {monthlyData.map((entry, index) => {
-                        let fillColor = "hsl(var(--primary))"; // Verde/Bueno
-                        if (entry.dscr < 1.0) fillColor = "hsl(var(--destructive))"; // Rojo
-                        else if (entry.dscr < 1.2) fillColor = "hsl(var(--warning))"; // Amarillo
-                        
-                        return <Cell key={`cell-${index}`} fill={fillColor} />;
-                      })}
-                    </Bar>
+                     <Bar 
+                       dataKey="dscr"
+                       onClick={handleBarClick}
+                       cursor="pointer"
+                     >
+                       {monthlyData.map((entry, index) => {
+                         let fillColor = "hsl(var(--success))"; // Verde para DSCR bueno
+                         if (entry.dscr < 1.0) fillColor = "hsl(var(--destructive))"; // Rojo para crítico
+                         else if (entry.dscr < 1.2) fillColor = "hsl(var(--warning))"; // Ámbar para aceptable
+                         
+                         return <Cell key={`cell-${index}`} fill={fillColor} />;
+                       })}
+                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
               
-              {/* Leyenda */}
-              <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 bg-[hsl(var(--primary))] rounded"></div>
-                  <span className="text-sm text-slate-600">DSCR ≥ 1.2 (Bueno)</span>
-                </div>
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 bg-[hsl(var(--warning))] rounded"></div>
-                  <span className="text-sm text-slate-600">1.0 ≤ DSCR &lt; 1.2 (Aceptable)</span>
-                </div>
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 bg-[hsl(var(--destructive))] rounded"></div>
-                  <span className="text-sm text-slate-600">DSCR &lt; 1.0 (Riesgo)</span>
-                </div>
-              </div>
+               {/* Leyenda */}
+               <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+                 <div className="flex items-center justify-center gap-2">
+                   <div className="w-4 h-4 bg-[hsl(var(--success))] rounded"></div>
+                   <span className="text-sm text-slate-600">DSCR ≥ 1.2 (Bueno)</span>
+                 </div>
+                 <div className="flex items-center justify-center gap-2">
+                   <div className="w-4 h-4 bg-[hsl(var(--warning))] rounded"></div>
+                   <span className="text-sm text-slate-600">1.0 ≤ DSCR &lt; 1.2 (Aceptable)</span>
+                 </div>
+                 <div className="flex items-center justify-center gap-2">
+                   <div className="w-4 h-4 bg-[hsl(var(--destructive))] rounded"></div>
+                   <span className="text-sm text-slate-600">DSCR &lt; 1.0 (Riesgo)</span>
+                 </div>
+               </div>
             </CardContent>
           </Card>
         </section>

@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Modern Steel Blue and Light Gray Theme */
+    /* Corporate Steel Blue and Gray Theme */
     --background: 220 13% 98%;
     --foreground: 220 9% 15%;
 
@@ -16,33 +16,41 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 9% 15%;
 
-    --primary: 210 44% 45%; /* Steel Blue #4682B4 */
+    --primary: 200 43% 48%; /* Steel Blue #4A90A4 */
     --primary-foreground: 0 0% 100%;
+    --primary-dark: 200 43% 33%; /* Dark Steel #2C5F70 */
+    --primary-light: 200 43% 63%; /* Light Steel #6BB6C7 */
 
-    --secondary: 220 13% 91%; /* Light Gray #E5E7EB */
+    --secondary: 220 13% 91%; /* Light Gray */
     --secondary-foreground: 220 9% 15%;
 
     --muted: 220 13% 95%;
-    --muted-foreground: 220 9% 40%;
+    --muted-foreground: 215 16% 47%; /* Slate-600 #475569 */
 
-    --accent: 210 44% 45%; /* Steel Blue accent */
+    --accent: 200 43% 48%; /* Steel Blue accent */
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%; /* Red #DC2626 */
     --destructive-foreground: 0 0% 100%;
+    
+    --warning: 32 95% 44%; /* Amber #D97706 */
+    --warning-foreground: 0 0% 100%;
+    
+    --success: 142 71% 45%; /* Green #16A34A */
+    --success-foreground: 0 0% 100%;
 
     --border: 220 13% 88%;
     --input: 220 13% 88%;
-    --ring: 210 44% 45%;
+    --ring: 200 43% 48%;
 
     --radius: 0.75rem;
 
-    /* Custom gradients for modern look */
-    --gradient-steel: linear-gradient(135deg, #4682B4 0%, #5F9EA0 100%);
-    --gradient-soft: linear-gradient(135deg, rgba(70, 130, 180, 0.1) 0%, rgba(95, 158, 160, 0.05) 100%);
-    --gradient-success: linear-gradient(135deg, #10B981 0%, #059669 100%);
-    --gradient-warning: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-    --gradient-danger: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    /* Corporate gradients */
+    --gradient-steel: linear-gradient(135deg, hsl(200 43% 48%) 0%, hsl(200 43% 63%) 100%);
+    --gradient-steel-dark: linear-gradient(135deg, hsl(200 43% 33%) 0%, hsl(200 43% 48%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(142 76% 36%) 100%);
+    --gradient-warning: linear-gradient(135deg, hsl(32 95% 44%) 0%, hsl(25 95% 53%) 100%);
+    --gradient-danger: linear-gradient(135deg, hsl(0 72% 51%) 0%, hsl(0 84% 60%) 100%);
   }
 }
 
