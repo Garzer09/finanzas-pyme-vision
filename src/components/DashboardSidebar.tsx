@@ -45,10 +45,19 @@ export const DashboardSidebar = () => {
   const currentPath = location.pathname;
 
   const toggleSection = (section: string) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
+    setExpandedSections(prev => {
+      // Close all sections first
+      const allClosed = Object.keys(prev).reduce((acc, key) => ({
+        ...acc,
+        [key]: false
+      }), {});
+      
+      // Then open only the clicked section if it wasn't already open
+      return {
+        ...allClosed,
+        [section]: !prev[section]
+      };
+    });
   };
 
   const menuSections = [

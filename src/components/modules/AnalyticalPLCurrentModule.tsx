@@ -167,118 +167,119 @@ export const AnalyticalPLCurrentModule = () => {
   const getRowStyle = (category: string, level: number) => {
     const baseStyle = level === 2 ? 'pl-8 ' : '';
     switch (category) {
-      case 'revenue': return baseStyle + 'bg-emerald-500/10 border-l-4 border-emerald-400';
-      case 'variable_costs': return baseStyle + 'bg-orange-500/10 border-l-4 border-orange-400';
-      case 'fixed_costs': return baseStyle + 'bg-red-500/10 border-l-4 border-red-400';
-      case 'margin': return baseStyle + 'bg-blue-500/10 border-l-4 border-blue-400 font-semibold';
+      case 'revenue': return baseStyle + 'bg-success-50 border-l-4 border-success-400';
+      case 'variable_costs': return baseStyle + 'bg-warning-50 border-l-4 border-warning-400';
+      case 'fixed_costs': return baseStyle + 'bg-danger-50 border-l-4 border-danger-400';
+      case 'margin': return baseStyle + 'bg-steel-50 border-l-4 border-steel-400 font-semibold';
       default: return baseStyle;
     }
   };
 
   const getHeatmapColor = (value: number, category: string) => {
     if (category === 'margin') {
-      if (value >= 20) return 'bg-emerald-500/30';
-      if (value >= 10) return 'bg-yellow-500/30';
-      return 'bg-red-500/30';
+      if (value >= 20) return 'bg-success-200/50';
+      if (value >= 10) return 'bg-warning-200/50';
+      return 'bg-danger-200/50';
     }
     return '';
   };
 
   return (
-    <div className="flex min-h-screen bg-navy-800">
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
         <DashboardHeader />
         
-        <main className="flex-1 p-6 space-y-6 overflow-auto">
-          <div className="data-wave-bg absolute inset-0 pointer-events-none opacity-10" />
-          
-          {/* Header */}
-          <section className="relative z-10">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-teal-500/20 border border-teal-400/30">
-                    <Calculator className="h-6 w-6 text-teal-400" />
-                  </div>
-                  Modelo de P&G Analítico - Situación Actual
-                </h1>
-                <p className="text-gray-400">Análisis de márgenes y estructura de costes variables vs fijos</p>
-              </div>
+        <main className="flex-1 p-6 space-y-8 overflow-auto">
+          {/* Header Section */}
+          <section className="relative">
+            <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel/10 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-r from-steel/5 via-cadet/3 to-slate-100/5 rounded-3xl"></div>
+              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"></div>
+              <div className="absolute top-0 left-0 w-32 h-32 bg-steel/10 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 right-0 w-40 h-40 bg-cadet/8 rounded-full blur-3xl"></div>
               
-              <div className="flex gap-2">
-                <Button
-                  variant={viewMode === 'table' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('table')}
-                  className="border-gray-600"
-                >
-                  <Calculator className="h-4 w-4 mr-2" />
-                  Tabla
-                </Button>
-                <Button
-                  variant={viewMode === 'margins' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('margins')}
-                  className="border-gray-600"
-                >
-                  <Percent className="h-4 w-4 mr-2" />
-                  Márgenes
-                </Button>
-                <Button
-                  variant={viewMode === 'waterfall' ? 'default' : 'outline'}
-                  onClick={() => setViewMode('waterfall')}
-                  className="border-gray-600"
-                >
-                  <BarChart3 className="h-4 w-4 mr-2" />
-                  Cascada
-                </Button>
-                <Button
-                  variant={showHeatmap ? 'default' : 'outline'}
-                  onClick={() => setShowHeatmap(!showHeatmap)}
-                  className="border-gray-600"
-                >
-                  Heatmap
-                </Button>
+              <div className="relative z-10 flex items-center justify-between">
+                <div>
+                  <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
+                    P&G Analítico - Situación Actual
+                  </h1>
+                  <p className="text-slate-700 text-lg font-medium">Análisis de márgenes y estructura de costes variables vs fijos</p>
+                </div>
+              
+                <div className="flex gap-2">
+                  <Button
+                    variant={viewMode === 'table' ? 'default' : 'outline'}
+                    onClick={() => setViewMode('table')}
+                  >
+                    <Calculator className="h-4 w-4 mr-2" />
+                    Tabla
+                  </Button>
+                  <Button
+                    variant={viewMode === 'margins' ? 'default' : 'outline'}
+                    onClick={() => setViewMode('margins')}
+                  >
+                    <Percent className="h-4 w-4 mr-2" />
+                    Márgenes
+                  </Button>
+                  <Button
+                    variant={viewMode === 'waterfall' ? 'default' : 'outline'}
+                    onClick={() => setViewMode('waterfall')}
+                  >
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Cascada
+                  </Button>
+                  <Button
+                    variant={showHeatmap ? 'default' : 'outline'}
+                    onClick={() => setShowHeatmap(!showHeatmap)}
+                  >
+                    Heatmap
+                  </Button>
+                </div>
               </div>
             </div>
           </section>
 
           {/* Vista de Tabla */}
           {viewMode === 'table' && (
-            <section className="relative z-10">
-              <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50">
+            <section>
+              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 shadow-2xl shadow-steel/10">
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold text-white mb-4">P&G Analítico Detallado</h3>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                    <Calculator className="h-5 w-5 text-steel-600" />
+                    P&G Analítico Detallado
+                  </h3>
                   
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow className="border-gray-600">
-                          <TableHead className="text-white font-semibold">Concepto</TableHead>
-                          <TableHead className="text-white font-semibold text-right">Periodo Actual</TableHead>
-                          <TableHead className="text-white font-semibold text-right">Periodo Anterior</TableHead>
-                          <TableHead className="text-white font-semibold text-right">% s/Ventas</TableHead>
-                          <TableHead className="text-white font-semibold text-right">% Variación</TableHead>
-                          <TableHead className="text-white font-semibold text-center">Tendencia</TableHead>
+                        <TableRow>
+                          <TableHead className="text-slate-800 font-semibold">Concepto</TableHead>
+                          <TableHead className="text-slate-800 font-semibold text-right">Periodo Actual</TableHead>
+                          <TableHead className="text-slate-800 font-semibold text-right">Periodo Anterior</TableHead>
+                          <TableHead className="text-slate-800 font-semibold text-right">% s/Ventas</TableHead>
+                          <TableHead className="text-slate-800 font-semibold text-right">% Variación</TableHead>
+                          <TableHead className="text-slate-800 font-semibold text-center">Tendencia</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {analyticalData.map((item, index) => (
                           <TableRow 
                             key={index} 
-                            className={`border-gray-600 hover:bg-white/5 ${getRowStyle(item.category, item.level)} ${
+                            className={`hover:bg-slate-50/50 ${getRowStyle(item.category, item.level)} ${
                               showHeatmap ? getHeatmapColor(item.marginPercent, item.category) : ''
                             }`}
                           >
-                            <TableCell className="text-white font-medium">{item.concept}</TableCell>
-                            <TableCell className="text-right text-white">
+                            <TableCell className="text-slate-800 font-medium">{item.concept}</TableCell>
+                            <TableCell className="text-right text-slate-800 font-mono">
                               {formatCurrency(item.currentPeriod)}
                             </TableCell>
-                            <TableCell className="text-right text-gray-300">
+                            <TableCell className="text-right text-slate-600 font-mono">
                               {formatCurrency(item.previousPeriod)}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Badge variant="outline" className="text-blue-400 border-blue-400">
+                              <Badge variant="outline" className="text-steel-600 border-steel-400">
                                 {item.marginPercent.toFixed(1)}%
                               </Badge>
                             </TableCell>
@@ -286,8 +287,8 @@ export const AnalyticalPLCurrentModule = () => {
                               <Badge 
                                 variant="outline" 
                                 className={item.variationPercent >= 0 
-                                  ? 'text-emerald-400 border-emerald-400' 
-                                  : 'text-red-400 border-red-400'
+                                  ? 'text-success-600 border-success-400' 
+                                  : 'text-danger-600 border-danger-400'
                                 }
                               >
                                 {item.variationPercent >= 0 ? '+' : ''}{item.variationPercent.toFixed(1)}%
@@ -297,11 +298,11 @@ export const AnalyticalPLCurrentModule = () => {
                               <div className="h-8 w-16 mx-auto">
                                 <ResponsiveContainer width="100%" height="100%">
                                   <AreaChart data={item.sparklineData.map(value => ({ value }))}>
-                                    <Area 
+                                   <Area 
                                       type="monotone" 
                                       dataKey="value" 
-                                      stroke={item.category === 'revenue' || item.category === 'margin' ? '#10b981' : '#ef4444'}
-                                      fill={item.category === 'revenue' || item.category === 'margin' ? '#10b981' : '#ef4444'}
+                                      stroke={item.category === 'revenue' || item.category === 'margin' ? 'hsl(var(--success))' : 'hsl(var(--danger))'}
+                                      fill={item.category === 'revenue' || item.category === 'margin' ? 'hsl(var(--success))' : 'hsl(var(--danger))'}
                                       fillOpacity={0.3}
                                       strokeWidth={1}
                                     />
@@ -321,10 +322,13 @@ export const AnalyticalPLCurrentModule = () => {
 
           {/* Vista de Márgenes */}
           {viewMode === 'margins' && (
-            <section className="relative z-10">
+            <section>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50 p-6">
-                  <h3 className="text-lg font-semibold text-white mb-6">Evolución de Márgenes</h3>
+                <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 shadow-xl shadow-steel/10 p-6">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
+                    <TrendingUp className="h-5 w-5 text-steel-600" />
+                    Evolución de Márgenes
+                  </h3>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={[
@@ -333,51 +337,55 @@ export const AnalyticalPLCurrentModule = () => {
                         { periodo: 'Mar', margenBruto: 43.8, margenContribucion: 44.5, margenOperativo: 13.1 },
                         { periodo: 'Abr', margenBruto: 44.2, margenContribucion: 44.8, margenOperativo: 13.0 }
                       ]}>
-                        <XAxis dataKey="periodo" tick={{ fill: '#d1d5db' }} />
-                        <YAxis tick={{ fill: '#d1d5db' }} />
+                        <XAxis dataKey="periodo" tick={{ fill: '#334155' }} />
+                        <YAxis tick={{ fill: '#334155' }} />
                         <Tooltip 
                           contentStyle={{ 
-                            backgroundColor: 'rgba(30, 41, 59, 0.9)', 
-                            border: '1px solid rgba(148, 163, 184, 0.2)',
-                            borderRadius: '8px',
-                            color: '#fff'
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                            border: '1px solid rgba(148, 163, 184, 0.3)',
+                            borderRadius: '12px',
+                            color: '#334155',
+                            boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.2)'
                           }} 
                         />
-                        <Line type="monotone" dataKey="margenContribucion" stroke="#10b981" name="Margen Contribución" strokeWidth={3} />
-                        <Line type="monotone" dataKey="margenOperativo" stroke="#3b82f6" name="Margen Operativo" strokeWidth={3} />
+                        <Line type="monotone" dataKey="margenContribucion" stroke="hsl(var(--success))" name="Margen Contribución" strokeWidth={3} />
+                        <Line type="monotone" dataKey="margenOperativo" stroke="hsl(var(--steel))" name="Margen Operativo" strokeWidth={3} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
                 </Card>
 
-                <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50 p-6">
-                  <h3 className="text-lg font-semibold text-white mb-6">Estructura de Costes</h3>
+                <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 shadow-xl shadow-steel/10 p-6">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
+                    <Percent className="h-5 w-5 text-steel-600" />
+                    Estructura de Costes
+                  </h3>
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
-                      <span className="text-white">Costes Variables</span>
+                      <span className="text-slate-800 font-medium">Costes Variables</span>
                       <div className="flex items-center gap-2">
-                        <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
-                          <div className="w-[55%] h-full bg-orange-500"></div>
+                        <div className="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="w-[55%] h-full bg-warning-500"></div>
                         </div>
-                        <span className="text-orange-400 font-semibold">55.2%</span>
+                        <span className="text-warning-600 font-semibold">55.2%</span>
                       </div>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-white">Costes Fijos</span>
+                      <span className="text-slate-800 font-medium">Costes Fijos</span>
                       <div className="flex items-center gap-2">
-                        <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
-                          <div className="w-[32%] h-full bg-red-500"></div>
+                        <div className="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="w-[32%] h-full bg-danger-500"></div>
                         </div>
-                        <span className="text-red-400 font-semibold">31.8%</span>
+                        <span className="text-danger-600 font-semibold">31.8%</span>
                       </div>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-white">Margen Operativo</span>
+                      <span className="text-slate-800 font-medium">Margen Operativo</span>
                       <div className="flex items-center gap-2">
-                        <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
-                          <div className="w-[13%] h-full bg-emerald-500"></div>
+                        <div className="w-32 h-2 bg-slate-200 rounded-full overflow-hidden">
+                          <div className="w-[13%] h-full bg-success-500"></div>
                         </div>
-                        <span className="text-emerald-400 font-semibold">13.0%</span>
+                        <span className="text-success-600 font-semibold">13.0%</span>
                       </div>
                     </div>
                   </div>
@@ -388,41 +396,45 @@ export const AnalyticalPLCurrentModule = () => {
 
           {/* Vista Waterfall */}
           {viewMode === 'waterfall' && (
-            <section className="relative z-10">
-              <Card className="bg-gradient-to-br from-slate-800/50 to-gray-800/50 backdrop-blur-sm border border-gray-600/50 p-6">
-                <h3 className="text-lg font-semibold text-white mb-6">Análisis de Cascada Analítico</h3>
+            <section>
+              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 shadow-xl shadow-steel/10 p-6">
+                <h3 className="text-lg font-semibold text-slate-900 mb-6 flex items-center gap-2">
+                  <BarChart3 className="h-5 w-5 text-steel-600" />
+                  Análisis de Cascada Analítico
+                </h3>
                 <div className="h-96">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={waterfallData}>
-                      <XAxis 
-                        dataKey="name" 
-                        tick={{ fill: '#d1d5db', fontSize: 12 }} 
-                        angle={-45}
-                        textAnchor="end"
-                        height={80}
-                      />
-                      <YAxis tick={{ fill: '#d1d5db' }} />
+                        <XAxis 
+                          dataKey="name" 
+                          tick={{ fill: '#334155', fontSize: 12 }} 
+                          angle={-45}
+                          textAnchor="end"
+                          height={80}
+                        />
+                      <YAxis tick={{ fill: '#334155' }} />
                       <Tooltip 
                         contentStyle={{ 
-                          backgroundColor: 'rgba(30, 41, 59, 0.9)', 
-                          border: '1px solid rgba(148, 163, 184, 0.2)',
-                          borderRadius: '8px',
-                          color: '#fff'
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)', 
+                          border: '1px solid rgba(148, 163, 184, 0.3)',
+                          borderRadius: '12px',
+                          color: '#334155',
+                          boxShadow: '0 10px 30px -10px rgba(0, 0, 0, 0.2)'
                         }} 
                         formatter={(value: any) => [`${value}K€`, 'Valor']}
                       />
                       <Bar 
                         dataKey="value" 
-                        fill="#10b981"
-                        stroke="#fff"
+                        fill="hsl(var(--success))"
+                        stroke="hsl(var(--border))"
                         strokeWidth={1}
                       />
                       <Line 
                         type="monotone" 
                         dataKey="cumulative" 
-                        stroke="#60a5fa" 
+                        stroke="hsl(var(--steel))" 
                         strokeWidth={3}
-                        dot={{ fill: '#60a5fa', strokeWidth: 2, r: 4 }}
+                        dot={{ fill: 'hsl(var(--steel))', strokeWidth: 2, r: 4 }}
                       />
                     </ComposedChart>
                   </ResponsiveContainer>
