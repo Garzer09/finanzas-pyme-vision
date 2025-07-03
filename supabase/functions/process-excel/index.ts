@@ -201,8 +201,8 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Use temporary user ID for anonymous uploads
-    const tempUserId = 'temp-user-' + crypto.randomUUID()
+    // Use a proper UUID for anonymous uploads
+    const tempUserId = crypto.randomUUID()
 
     const formData = await req.formData()
     const file = formData.get('file') as File
