@@ -151,17 +151,17 @@ export const BalanceSituacionPage = () => {
 
   // Pie chart data for asset structure
   const assetStructureData = [
-    { name: 'Inmovilizado', value: 1200000, color: 'hsl(var(--steel-500))' },
-    { name: 'Existencias', value: 300000, color: 'hsl(var(--cadet-500))' },
-    { name: 'Deudores', value: 480000, color: 'hsl(var(--cadet-400))' },
-    { name: 'Tesorería', value: 120000, color: 'hsl(var(--success-400))' }
+    { name: 'Inmovilizado', value: 1200000, color: '#4682B4' },
+    { name: 'Existencias', value: 300000, color: '#5F9EA0' },
+    { name: 'Deudores', value: 480000, color: '#87CEEB' },
+    { name: 'Tesorería', value: 120000, color: '#10B981' }
   ];
 
   // Pie chart data for financing structure
   const financingStructureData = [
-    { name: 'Patrimonio Neto', value: 840000, color: 'hsl(var(--success-500))' },
-    { name: 'Deuda L/P', value: 720000, color: 'hsl(var(--warning-500))' },
-    { name: 'Deuda C/P', value: 540000, color: 'hsl(var(--danger-500))' }
+    { name: 'Patrimonio Neto', value: 840000, color: '#10B981' },
+    { name: 'Deuda L/P', value: 720000, color: '#F59E0B' },
+    { name: 'Deuda C/P', value: 540000, color: '#EF4444' }
   ];
 
   // Working capital evolution data
@@ -390,7 +390,7 @@ export const BalanceSituacionPage = () => {
                       <ResponsiveContainer width="100%" height={500}>
                         <BarChart
                           data={waterfallData}
-                          layout="horizontal"
+                          layout="vertical"
                           margin={{ top: 20, right: 30, left: 120, bottom: 20 }}
                         >
                           <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" opacity={0.3} />
@@ -418,10 +418,14 @@ export const BalanceSituacionPage = () => {
                           />
                           <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                             {waterfallData.map((entry, index) => {
-                              let color = 'hsl(var(--steel-500))';
-                              if (entry.category === 'activo') color = 'hsl(var(--steel-500))';
-                              else if (entry.category === 'patrimonio') color = 'hsl(var(--success-500))';
-                              else if (entry.category === 'deuda') color = 'hsl(var(--warning-500))';
+                              let color = '#4682B4'; // Default steel blue
+                              if (entry.category === 'activo') {
+                                color = index % 2 === 0 ? '#4682B4' : '#5F9EA0'; // Steel variations
+                              } else if (entry.category === 'patrimonio') {
+                                color = '#10B981'; // Success green
+                              } else if (entry.category === 'deuda') {
+                                color = '#F59E0B'; // Warning amber
+                              }
                               return <Cell key={`cell-${index}`} fill={color} />;
                             })}
                           </Bar>
@@ -528,8 +532,8 @@ export const BalanceSituacionPage = () => {
                           <Area 
                             type="monotone" 
                             dataKey="value" 
-                            stroke="hsl(var(--success-500))" 
-                            fill="hsl(var(--success-100))"
+                            stroke="#10B981" 
+                            fill="#D1FAE5"
                             strokeWidth={2}
                           />
                         </AreaChart>
