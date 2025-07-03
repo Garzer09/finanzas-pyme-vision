@@ -108,24 +108,28 @@ export const DebtPoolCharts = ({ debtByEntity, debtByType }: DebtPoolChartsProps
               <BarChart 
                 data={debtByEntity} 
                 layout="horizontal"
-                margin={{ top: 20, right: 30, left: 80, bottom: 20 }}
+                margin={{ top: 20, right: 30, left: 140, bottom: 20 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis 
                   type="number" 
                   stroke="#64748b"
                   fontSize={12}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}K€`}
+                  tickFormatter={(value) => `${(value / 1000000).toFixed(1)}M€`}
                 />
                 <YAxis 
                   type="category" 
                   dataKey="name" 
                   stroke="#64748b"
-                  fontSize={12}
-                  width={70}
+                  fontSize={11}
+                  width={120}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                <Bar 
+                  dataKey="value" 
+                  radius={[0, 4, 4, 0]}
+                  fill="#005E8A"
+                >
                   {debtByEntity.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
