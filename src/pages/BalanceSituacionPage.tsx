@@ -6,84 +6,226 @@ import { FileUploader } from '@/components/FileUploader';
 import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Building2, Scale, TrendingUp, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, LineChart, Area, AreaChart } from 'recharts';
+import { Building2, Scale, TrendingUp, AlertTriangle, Calendar, FileDown, Eye, CheckCircle, AlertCircle, Zap, Target, DollarSign, TrendingDown, Info, ChevronDown, ChevronRight } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 export const BalanceSituacionPage = () => {
   const [hasData, setHasData] = useState(true); // Start with demo data
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
+  const [selectedPeriod, setSelectedPeriod] = useState('2023');
+  const [comparisonPeriod, setComparisonPeriod] = useState('2022');
+  const [detailLevel, setDetailLevel] = useState('summary');
+  const [isDetailsOpen, setIsDetailsOpen] = useState<{[key: string]: boolean}>({
+    'ACTIVO NO CORRIENTE': false,
+    'ACTIVO CORRIENTE': false,
+    'PATRIMONIO NETO': false,
+    'PASIVO NO CORRIENTE': false,
+    'PASIVO CORRIENTE': false
+  });
 
-  // Demo Balance data
-  const activoData = [
-    { concepto: 'Inmovilizado Material', valor: 800000 },
-    { concepto: 'Inmovilizado Intangible', valor: 300000 },
-    { concepto: 'Inversiones Financieras L/P', valor: 100000 },
-    { concepto: 'ACTIVO NO CORRIENTE', valor: 1200000, destacar: true },
-    { concepto: 'Existencias', valor: 300000 },
-    { concepto: 'Deudores Comerciales', valor: 400000 },
-    { concepto: 'Otros Créditos', valor: 80000 },
-    { concepto: 'Tesorería', valor: 120000 },
-    { concepto: 'ACTIVO CORRIENTE', valor: 900000, destacar: true },
-    { concepto: 'TOTAL ACTIVO', valor: 2100000, destacar: true, total: true },
-  ];
+  // Enhanced Balance data with comparisons
+  const balanceData = {
+    '2023': {
+      activo: {
+        inmovMaterial: 800000,
+        inmovIntangible: 300000,
+        invFinancieras: 100000,
+        existencias: 300000,
+        deudoresCom: 400000,
+        otrosCreditos: 80000,
+        tesoreria: 120000
+      },
+      pasivo: {
+        capitalSocial: 300000,
+        reservas: 450000,
+        resultadoEjercicio: 90000,
+        deudasLP: 600000,
+        otrasDeudasLP: 120000,
+        deudasCP: 240000,
+        acreedoresCom: 250000,
+        otrasDeudasCP: 50000
+      }
+    },
+    '2022': {
+      activo: {
+        inmovMaterial: 750000,
+        inmovIntangible: 280000,
+        invFinancieras: 90000,
+        existencias: 280000,
+        deudoresCom: 350000,
+        otrosCreditos: 70000,
+        tesoreria: 130000
+      },
+      pasivo: {
+        capitalSocial: 300000,
+        reservas: 400000,
+        resultadoEjercicio: 70000,
+        deudasLP: 650000,
+        otrasDeudasLP: 100000,
+        deudasCP: 220000,
+        acreedoresCom: 230000,
+        otrasDeudasCP: 80000
+      }
+    }
+  };
 
-  const pasivoData = [
-    { concepto: 'Capital Social', valor: 300000 },
-    { concepto: 'Reservas', valor: 450000 },
-    { concepto: 'Resultado del Ejercicio', valor: 90000 },
-    { concepto: 'PATRIMONIO NETO', valor: 840000, destacar: true },
-    { concepto: 'Deudas L/P con Entidades Crédito', valor: 600000 },
-    { concepto: 'Otras Deudas L/P', valor: 120000 },
-    { concepto: 'PASIVO NO CORRIENTE', valor: 720000, destacar: true },
-    { concepto: 'Deudas C/P con Entidades Crédito', valor: 240000 },
-    { concepto: 'Acreedores Comerciales', valor: 250000 },
-    { concepto: 'Otras Deudas C/P', valor: 50000 },
-    { concepto: 'PASIVO CORRIENTE', valor: 540000, destacar: true },
-    { concepto: 'TOTAL PASIVO', valor: 2100000, destacar: true, total: true },
-  ];
+  const currentYear = balanceData[selectedPeriod as keyof typeof balanceData];
+  const previousYear = balanceData[comparisonPeriod as keyof typeof balanceData];
 
-  // Chart data for horizontal bars
-  const chartData = [
-    { name: 'Inmovilizado', activo: 1200000, pasivo: 0, color: '#4682B4' },
-    { name: 'Existencias', activo: 300000, pasivo: 0, color: '#5F9EA0' },
-    { name: 'Deudores', activo: 480000, pasivo: 0, color: '#87CEEB' },
-    { name: 'Tesorería', activo: 120000, pasivo: 0, color: '#B0E0E6' },
-    { name: 'Patrimonio Neto', activo: 0, pasivo: -840000, color: '#32CD32' },
-    { name: 'Deuda L/P', activo: 0, pasivo: -720000, color: '#FFD700' },
-    { name: 'Deuda C/P', activo: 0, pasivo: -540000, color: '#FF6347' },
-  ];
-
-  // KPI data
-  const kpiData = [
+  // Enhanced KPI data with 6 cards
+  const enhancedKpiData = [
     {
       title: 'Total Activo',
       value: '€2.1M',
       subtitle: 'Recursos Totales',
       trend: 'up' as const,
-      trendValue: '+5%',
-      icon: TrendingUp,
+      trendValue: '+5.3%',
+      icon: Building2,
       variant: 'success' as const
     },
     {
-      title: 'Liquidez',
-      value: '1.67',
-      subtitle: 'Ratio Corriente',
+      title: 'Fondo de Maniobra',
+      value: '€360K',
+      subtitle: '45 días de ventas',
       trend: 'up' as const,
-      trendValue: '+0.2',
+      trendValue: '+12.5%',
+      icon: Zap,
+      variant: 'success' as const
+    },
+    {
+      title: 'Ratio de Liquidez',
+      value: '1.67',
+      subtitle: 'Óptimo (>1.5)',
+      trend: 'up' as const,
+      trendValue: '+0.15',
+      icon: CheckCircle,
+      variant: 'success' as const
+    },
+    {
+      title: 'Ratio de Solvencia',
+      value: '1.67',
+      subtitle: 'Benchmark: 1.5',
+      trend: 'up' as const,
+      trendValue: '+0.08',
       icon: Scale,
+      variant: 'success' as const
+    },
+    {
+      title: 'ROA',
+      value: '4.3%',
+      subtitle: 'Return on Assets',
+      trend: 'up' as const,
+      trendValue: '+0.8%',
+      icon: Target,
       variant: 'success' as const
     },
     {
       title: 'Endeudamiento',
       value: '60%',
-      subtitle: 'Deuda/Activo Total',
-      trend: 'up' as const,
-      trendValue: '+3%',
+      subtitle: 'Tendencia estable',
+      trend: 'down' as const,
+      trendValue: '-2%',
       icon: AlertTriangle,
       variant: 'warning' as const
     }
+  ];
+
+  // Waterfall chart data for balance comparison
+  const waterfallData = [
+    { name: 'Inmovilizado Material', value: 800000, category: 'activo', color: 'hsl(var(--steel-500))' },
+    { name: 'Inmovilizado Intangible', value: 300000, category: 'activo', color: 'hsl(var(--steel-400))' },
+    { name: 'Inversiones Financieras', value: 100000, category: 'activo', color: 'hsl(var(--steel-300))' },
+    { name: 'Existencias', value: 300000, category: 'activo', color: 'hsl(var(--cadet-500))' },
+    { name: 'Deudores Comerciales', value: 400000, category: 'activo', color: 'hsl(var(--cadet-400))' },
+    { name: 'Tesorería', value: 120000, category: 'activo', color: 'hsl(var(--cadet-300))' },
+    { name: 'Patrimonio Neto', value: -840000, category: 'patrimonio', color: 'hsl(var(--success-500))' },
+    { name: 'Deuda L/P', value: -720000, category: 'deuda', color: 'hsl(var(--warning-500))' },
+    { name: 'Deuda C/P', value: -540000, category: 'deuda', color: 'hsl(var(--danger-500))' }
+  ];
+
+  // Pie chart data for asset structure
+  const assetStructureData = [
+    { name: 'Inmovilizado', value: 1200000, color: 'hsl(var(--steel-500))' },
+    { name: 'Existencias', value: 300000, color: 'hsl(var(--cadet-500))' },
+    { name: 'Deudores', value: 480000, color: 'hsl(var(--cadet-400))' },
+    { name: 'Tesorería', value: 120000, color: 'hsl(var(--success-400))' }
+  ];
+
+  // Pie chart data for financing structure
+  const financingStructureData = [
+    { name: 'Patrimonio Neto', value: 840000, color: 'hsl(var(--success-500))' },
+    { name: 'Deuda L/P', value: 720000, color: 'hsl(var(--warning-500))' },
+    { name: 'Deuda C/P', value: 540000, color: 'hsl(var(--danger-500))' }
+  ];
+
+  // Working capital evolution data
+  const workingCapitalData = [
+    { period: 'T1-22', value: 280000 },
+    { period: 'T2-22', value: 295000 },
+    { period: 'T3-22', value: 310000 },
+    { period: 'T4-22', value: 320000 },
+    { period: 'T1-23', value: 335000 },
+    { period: 'T2-23', value: 345000 },
+    { period: 'T3-23', value: 350000 },
+    { period: 'T4-23', value: 360000 }
+  ];
+
+  // Detailed balance data for expandable table
+  const detailedBalanceData = [
+    {
+      grupo: 'ACTIVO NO CORRIENTE',
+      items: [
+        { concepto: 'Inmovilizado Material', actual: 800000, anterior: 750000, variacion: 50000, variacionPct: 6.7 },
+        { concepto: 'Inmovilizado Intangible', actual: 300000, anterior: 280000, variacion: 20000, variacionPct: 7.1 },
+        { concepto: 'Inversiones Financieras L/P', actual: 100000, anterior: 90000, variacion: 10000, variacionPct: 11.1 }
+      ]
+    },
+    {
+      grupo: 'ACTIVO CORRIENTE',
+      items: [
+        { concepto: 'Existencias', actual: 300000, anterior: 280000, variacion: 20000, variacionPct: 7.1 },
+        { concepto: 'Deudores Comerciales', actual: 400000, anterior: 350000, variacion: 50000, variacionPct: 14.3 },
+        { concepto: 'Otros Créditos', actual: 80000, anterior: 70000, variacion: 10000, variacionPct: 14.3 },
+        { concepto: 'Tesorería', actual: 120000, anterior: 130000, variacion: -10000, variacionPct: -7.7 }
+      ]
+    },
+    {
+      grupo: 'PATRIMONIO NETO',
+      items: [
+        { concepto: 'Capital Social', actual: 300000, anterior: 300000, variacion: 0, variacionPct: 0 },
+        { concepto: 'Reservas', actual: 450000, anterior: 400000, variacion: 50000, variacionPct: 12.5 },
+        { concepto: 'Resultado del Ejercicio', actual: 90000, anterior: 70000, variacion: 20000, variacionPct: 28.6 }
+      ]
+    },
+    {
+      grupo: 'PASIVO NO CORRIENTE',
+      items: [
+        { concepto: 'Deudas L/P con Entidades Crédito', actual: 600000, anterior: 650000, variacion: -50000, variacionPct: -7.7 },
+        { concepto: 'Otras Deudas L/P', actual: 120000, anterior: 100000, variacion: 20000, variacionPct: 20 }
+      ]
+    },
+    {
+      grupo: 'PASIVO CORRIENTE',
+      items: [
+        { concepto: 'Deudas C/P con Entidades Crédito', actual: 240000, anterior: 220000, variacion: 20000, variacionPct: 9.1 },
+        { concepto: 'Acreedores Comerciales', actual: 250000, anterior: 230000, variacion: 20000, variacionPct: 8.7 },
+        { concepto: 'Otras Deudas C/P', actual: 50000, anterior: 80000, variacion: -30000, variacionPct: -37.5 }
+      ]
+    }
+  ];
+
+  // Analysis insights
+  const analysisInsights = [
+    { type: 'positive', title: 'Liquidez Mejorada', description: 'El ratio de liquidez ha aumentado a 1.67, superando el benchmark sectorial de 1.5', icon: CheckCircle },
+    { type: 'warning', title: 'Crecimiento de Deudores', description: 'Los deudores comerciales han crecido un 14.3%, requiere seguimiento de la cartera', icon: AlertCircle },
+    { type: 'positive', title: 'Resultado Positivo', description: 'El resultado del ejercicio muestra un crecimiento del 28.6% respecto al año anterior', icon: TrendingUp },
+    { type: 'neutral', title: 'Estructura Patrimonial', description: 'La proporción patrimonio/deuda se mantiene estable en 40/60', icon: Info }
   ];
 
   const handleFileUpload = async (file: File) => {
@@ -143,15 +285,62 @@ export const BalanceSituacionPage = () => {
         <DashboardHeader />
         
         <main className="flex-1 p-6 space-y-8 overflow-auto">
-          {/* Header Section */}
+          {/* Enhanced Header with Controls */}
           <section className="relative">
-            <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel/10 overflow-hidden">
+            <div className="relative bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel/10 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-steel/5 via-cadet/3 to-slate-100/5 rounded-3xl"></div>
               <div className="relative z-10">
-                <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
-                  Balance de Situación
-                </h1>
-                <p className="text-slate-700 text-lg font-medium">Año Actual - Estructura Patrimonial</p>
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                  <div>
+                    <h1 className="text-4xl font-bold text-slate-900 mb-2 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
+                      Balance de Situación
+                    </h1>
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="bg-success-50 text-success-700 border-success-200">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Datos actualizados
+                      </Badge>
+                      <span className="text-slate-600 text-sm">Última actualización: 15 nov 2023</span>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="flex gap-2">
+                      <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
+                        <SelectTrigger className="w-32">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="2023">2023</SelectItem>
+                          <SelectItem value="2022">2022</SelectItem>
+                          <SelectItem value="2021">2021</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      
+                      <Select value={comparisonPeriod} onValueChange={setComparisonPeriod}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Comparar" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="2022">vs 2022</SelectItem>
+                          <SelectItem value="2021">vs 2021</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm">
+                        <FileDown className="h-4 w-4 mr-2" />
+                        Exportar
+                      </Button>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Detalles
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </section>
@@ -171,149 +360,334 @@ export const BalanceSituacionPage = () => {
             </section>
           )}
 
-          {/* KPIs Section */}
+          {/* Enhanced KPIs Section - 6 cards in 2x3 grid */}
           {hasData && (
             <section>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {kpiData.map((kpi, index) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {enhancedKpiData.map((kpi, index) => (
                   <ModernKPICard key={index} {...kpi} />
                 ))}
               </div>
             </section>
           )}
 
-          {/* Balance Chart and Tables */}
+          {/* Main Visualization Section */}
           {hasData && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Activo Table */}
-              <Card className="border-0 shadow-md overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-steel-50 to-steel-100">
-                  <CardTitle className="text-slate-800 flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    ACTIVO
+            <section>
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                {/* Left Column: Balance Waterfall (60%) */}
+                <div className="lg:col-span-3">
+                  <Card className="h-full bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-2xl overflow-hidden">
+                    <CardHeader className="bg-gradient-to-r from-steel-50/80 to-cadet-50/60 border-b border-white/20">
+                      <CardTitle className="text-slate-900 flex items-center gap-3">
+                        <div className="p-2 rounded-xl bg-steel/20 backdrop-blur-sm">
+                          <Scale className="h-5 w-5 text-steel-700" />
+                        </div>
+                        Balance Comparativo - Estructura Cascada
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <ResponsiveContainer width="100%" height={500}>
+                        <BarChart
+                          data={waterfallData}
+                          layout="horizontal"
+                          margin={{ top: 20, right: 30, left: 120, bottom: 20 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" opacity={0.3} />
+                          <XAxis 
+                            type="number"
+                            tickFormatter={(value) => `€${(Math.abs(value) / 1000).toFixed(0)}K`}
+                            fontSize={12}
+                            stroke="hsl(var(--muted-foreground))"
+                          />
+                          <YAxis 
+                            type="category"
+                            dataKey="name"
+                            fontSize={12}
+                            stroke="hsl(var(--muted-foreground))"
+                            width={120}
+                          />
+                          <Tooltip 
+                            formatter={(value) => [formatCurrency(Math.abs(Number(value))), 'Valor']}
+                            labelStyle={{ color: 'hsl(var(--foreground))' }}
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--background))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Bar 
+                            dataKey="value" 
+                            fill="hsl(var(--steel-500))"
+                            radius={[0, 4, 4, 0]}
+                          >
+                            {waterfallData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Right Column: Structure Charts (40%) */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Asset Structure */}
+                  <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-xl">
+                    <CardHeader>
+                      <CardTitle className="text-slate-900 flex items-center gap-2 text-lg">
+                        <Building2 className="h-5 w-5 text-steel-600" />
+                        Estructura de Activos
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={assetStructureData}
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            dataKey="value"
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            labelLine={false}
+                            fontSize={12}
+                          >
+                            {assetStructureData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  {/* Financing Structure */}
+                  <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-xl">
+                    <CardHeader>
+                      <CardTitle className="text-slate-900 flex items-center gap-2 text-lg">
+                        <DollarSign className="h-5 w-5 text-cadet-600" />
+                        Estructura de Financiación
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <PieChart>
+                          <Pie
+                            data={financingStructureData}
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={80}
+                            dataKey="value"
+                            label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                            labelLine={false}
+                            fontSize={12}
+                          >
+                            {financingStructureData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.color} />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  {/* Working Capital Evolution */}
+                  <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-xl">
+                    <CardHeader>
+                      <CardTitle className="text-slate-900 flex items-center gap-2 text-lg">
+                        <TrendingUp className="h-5 w-5 text-success-600" />
+                        Evolución Fondo Maniobra
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={180}>
+                        <AreaChart data={workingCapitalData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--muted))" opacity={0.3} />
+                          <XAxis 
+                            dataKey="period" 
+                            fontSize={10}
+                            stroke="hsl(var(--muted-foreground))"
+                          />
+                          <YAxis 
+                            fontSize={10}
+                            stroke="hsl(var(--muted-foreground))"
+                            tickFormatter={(value) => `€${(value / 1000).toFixed(0)}K`}
+                          />
+                          <Tooltip 
+                            formatter={(value) => [formatCurrency(Number(value)), 'Fondo Maniobra']}
+                            contentStyle={{ 
+                              backgroundColor: 'hsl(var(--background))', 
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="value" 
+                            stroke="hsl(var(--success-500))" 
+                            fill="hsl(var(--success-100))"
+                            strokeWidth={2}
+                          />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Detailed Expandable Table */}
+          {hasData && (
+            <section>
+              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-slate-900 flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-steel/20 backdrop-blur-sm">
+                      <Eye className="h-5 w-5 text-steel-700" />
+                    </div>
+                    Balance Detallado Comparativo
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
-                  <div className="max-h-[500px] overflow-y-auto">
+                  <div className="overflow-x-auto">
                     <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gradient-to-r from-steel-50/50 to-cadet-50/30">
+                          <TableHead className="font-bold text-slate-800">Concepto</TableHead>
+                          <TableHead className="text-right font-bold text-slate-800">2023</TableHead>
+                          <TableHead className="text-right font-bold text-slate-800">2022</TableHead>
+                          <TableHead className="text-right font-bold text-slate-800">Var €</TableHead>
+                          <TableHead className="text-right font-bold text-slate-800">Var %</TableHead>
+                          <TableHead className="text-right font-bold text-slate-800">% Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
                       <TableBody>
-                        {activoData.map((item, index) => (
-                          <TableRow
-                            key={index}
-                            className={`${
-                              item.destacar
-                                ? item.total
-                                  ? 'bg-steel-100 font-bold border-t-2 border-b-2 border-steel-300'
-                                  : 'bg-steel-50 font-semibold border-t border-b border-steel-200'
-                                : 'hover:bg-slate-50'
-                            }`}
-                          >
-                            <TableCell className={`${
-                              item.destacar ? 'text-steel-800 font-bold' : 'text-slate-700'
-                            }`}>
-                              {item.concepto}
-                            </TableCell>
-                            <TableCell className={`text-right font-mono text-steel-600 ${
-                              item.destacar ? 'font-bold' : ''
-                            }`}>
-                              {formatCurrency(item.valor)}
-                            </TableCell>
-                          </TableRow>
+                        {detailedBalanceData.map((grupo, groupIndex) => (
+                          <Collapsible key={groupIndex} open={isDetailsOpen[grupo.grupo as keyof typeof isDetailsOpen]}>
+                            <CollapsibleTrigger 
+                              className="w-full"
+                              onClick={() => setIsDetailsOpen(prev => ({
+                                ...prev,
+                                [grupo.grupo]: !prev[grupo.grupo as keyof typeof isDetailsOpen]
+                              }))}
+                            >
+                              <TableRow className="bg-gradient-to-r from-steel-100/70 to-cadet-100/50 hover:from-steel-150/80 hover:to-cadet-150/60 cursor-pointer">
+                                <TableCell className="font-bold text-slate-800 flex items-center gap-2">
+                                  {isDetailsOpen[grupo.grupo as keyof typeof isDetailsOpen] ? 
+                                    <ChevronDown className="h-4 w-4" /> : 
+                                    <ChevronRight className="h-4 w-4" />
+                                  }
+                                  {grupo.grupo}
+                                </TableCell>
+                                <TableCell className="text-right font-bold text-slate-800">
+                                  {formatCurrency(grupo.items.reduce((sum, item) => sum + item.actual, 0))}
+                                </TableCell>
+                                <TableCell className="text-right font-bold text-slate-600">
+                                  {formatCurrency(grupo.items.reduce((sum, item) => sum + item.anterior, 0))}
+                                </TableCell>
+                                <TableCell className="text-right font-bold">
+                                  <span className={grupo.items.reduce((sum, item) => sum + item.variacion, 0) >= 0 ? 'text-success-600' : 'text-danger-600'}>
+                                    {formatCurrency(grupo.items.reduce((sum, item) => sum + item.variacion, 0))}
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right font-bold">
+                                  <span className={grupo.items.reduce((sum, item) => sum + item.variacionPct, 0) >= 0 ? 'text-success-600' : 'text-danger-600'}>
+                                    {grupo.items.reduce((sum, item) => sum + item.variacionPct, 0).toFixed(1)}%
+                                  </span>
+                                </TableCell>
+                                <TableCell className="text-right font-bold text-slate-600">
+                                  {((grupo.items.reduce((sum, item) => sum + item.actual, 0) / 2100000) * 100).toFixed(1)}%
+                                </TableCell>
+                              </TableRow>
+                            </CollapsibleTrigger>
+                            <CollapsibleContent>
+                              {grupo.items.map((item, itemIndex) => (
+                                <TableRow key={itemIndex} className="hover:bg-slate-50/50">
+                                  <TableCell className="pl-8 text-slate-700">{item.concepto}</TableCell>
+                                  <TableCell className="text-right font-mono text-slate-800">
+                                    {formatCurrency(item.actual)}
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-slate-600">
+                                    {formatCurrency(item.anterior)}
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono">
+                                    <span className={item.variacion >= 0 ? 'text-success-600' : 'text-danger-600'}>
+                                      {formatCurrency(item.variacion)}
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono">
+                                    <span className={item.variacionPct >= 0 ? 'text-success-600' : 'text-danger-600'}>
+                                      {item.variacionPct.toFixed(1)}%
+                                    </span>
+                                  </TableCell>
+                                  <TableCell className="text-right font-mono text-slate-600">
+                                    {((item.actual / 2100000) * 100).toFixed(1)}%
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </CollapsibleContent>
+                          </Collapsible>
                         ))}
                       </TableBody>
                     </Table>
                   </div>
                 </CardContent>
               </Card>
+            </section>
+          )}
 
-              {/* Balance Chart */}
-              <Card className="border-0 shadow-md">
-                <CardHeader className="bg-gradient-to-r from-cadet-50 to-cadet-100">
-                  <CardTitle className="text-slate-800 flex items-center gap-2">
-                    <Scale className="h-5 w-5" />
-                    Estructura Balance
+          {/* Analysis Panel */}
+          {hasData && (
+            <section>
+              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-2xl">
+                <CardHeader>
+                  <CardTitle className="text-slate-900 flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-cadet/20 backdrop-blur-sm">
+                      <Target className="h-5 w-5 text-cadet-700" />
+                    </div>
+                    Análisis Automático y Recomendaciones
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
-                  <ResponsiveContainer width="100%" height={400}>
-                    <BarChart
-                      data={chartData}
-                      layout="horizontal"
-                      margin={{ top: 20, right: 30, left: 80, bottom: 5 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                      <XAxis 
-                        type="number"
-                        tickFormatter={formatCurrency}
-                        fontSize={12}
-                        stroke="#6B7280"
-                      />
-                      <YAxis 
-                        type="category"
-                        dataKey="name"
-                        fontSize={12}
-                        stroke="#6B7280"
-                        width={80}
-                      />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar 
-                        dataKey="activo" 
-                        fill="#4682B4" 
-                        radius={[0, 4, 4, 0]}
-                        name="Activo"
-                      />
-                      <Bar 
-                        dataKey="pasivo" 
-                        fill="#5F9EA0" 
-                        radius={[4, 0, 0, 4]}
-                        name="Pasivo"
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Pasivo Table */}
-              <Card className="border-0 shadow-md overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-cadet-50 to-cadet-100">
-                  <CardTitle className="text-slate-800 flex items-center gap-2">
-                    <Scale className="h-5 w-5" />
-                    PASIVO
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="max-h-[500px] overflow-y-auto">
-                    <Table>
-                      <TableBody>
-                        {pasivoData.map((item, index) => (
-                          <TableRow
-                            key={index}
-                            className={`${
-                              item.destacar
-                                ? item.total
-                                  ? 'bg-cadet-100 font-bold border-t-2 border-b-2 border-cadet-300'
-                                  : 'bg-cadet-50 font-semibold border-t border-b border-cadet-200'
-                                : 'hover:bg-slate-50'
-                            }`}
-                          >
-                            <TableCell className={`${
-                              item.destacar ? 'text-cadet-800 font-bold' : 'text-slate-700'
-                            }`}>
-                              {item.concepto}
-                            </TableCell>
-                            <TableCell className={`text-right font-mono text-cadet-600 ${
-                              item.destacar ? 'font-bold' : ''
-                            }`}>
-                              {formatCurrency(item.valor)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {analysisInsights.map((insight, index) => {
+                      const Icon = insight.icon;
+                      return (
+                        <div 
+                          key={index}
+                          className={`p-4 rounded-2xl border-l-4 ${
+                            insight.type === 'positive' 
+                              ? 'bg-success-50/50 border-success-500' 
+                              : insight.type === 'warning'
+                              ? 'bg-warning-50/50 border-warning-500'
+                              : 'bg-slate-50/50 border-slate-400'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <Icon className={`h-5 w-5 mt-0.5 ${
+                              insight.type === 'positive' 
+                                ? 'text-success-600' 
+                                : insight.type === 'warning'
+                                ? 'text-warning-600'
+                                : 'text-slate-600'
+                            }`} />
+                            <div>
+                              <h4 className="font-bold text-slate-900 mb-1">{insight.title}</h4>
+                              <p className="text-slate-700 text-sm">{insight.description}</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>
-            </div>
+            </section>
           )}
         </main>
       </div>
