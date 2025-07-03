@@ -725,17 +725,21 @@ export default function CashFlowPage() {
                   <TabsContent value="financiacion" className="p-6">
                     <div className="space-y-4">
                       <h3 className="text-lg font-semibold text-slate-800">Movimientos de Financiación</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="p-4 bg-slate-50 rounded-xl">
-                          <div className="text-sm text-slate-600">Nueva financiación</div>
-                          <div className="text-xl font-bold text-success-800">{formatCurrency(currentData.nuevaFinanciacion)}</div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-full">
+                        <div className="p-4 bg-slate-50 rounded-xl min-w-0">
+                          <div className="text-sm text-slate-600 mb-1">Nueva financiación</div>
+                          <div className="text-xl font-bold text-success-800 break-words">
+                            {formatCurrency(currentData.nuevaFinanciacion)}
+                          </div>
                         </div>
-                        <div className="p-4 bg-slate-50 rounded-xl">
-                          <div className="text-sm text-slate-600">Amort. deuda</div>
-                          <div className="text-xl font-bold text-danger-800">{formatCurrency(Math.abs(currentData.amortizacionDeuda))}</div>
+                        <div className="p-4 bg-slate-50 rounded-xl min-w-0">
+                          <div className="text-sm text-slate-600 mb-1">Amort. deuda</div>
+                          <div className="text-xl font-bold text-danger-800 break-words">
+                            {formatCurrency(Math.abs(currentData.amortizacionDeuda))}
+                          </div>
                         </div>
-                        <div className="p-4 bg-warning-50 rounded-xl">
-                          <div className="text-sm text-warning-600">Coste implícito</div>
+                        <div className="p-4 bg-warning-50 rounded-xl min-w-0">
+                          <div className="text-sm text-warning-600 mb-1">Coste implícito</div>
                           <div className="text-xl font-bold text-warning-800">4.2%</div>
                         </div>
                       </div>
