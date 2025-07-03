@@ -10,6 +10,7 @@ import HomePage from "./pages/HomePage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import ExcelUploadPage from "./pages/ExcelUploadPage";
+import FilesDashboardPage from "./pages/FilesDashboardPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 // Core Financial Analysis Pages
 import { CuentaPyGPage } from "./pages/CuentaPyGPage";
@@ -52,8 +53,9 @@ const App = () => (
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/" element={<Index />} />
             <Route path="/home" element={<HomePage />} />
-          <Route path="/subir-excel" element={<ExcelUploadPage />} />
-          <Route path="/suscripcion" element={<SubscriptionPage />} />
+           <Route path="/subir-excel" element={<ExcelUploadPage />} />
+           <Route path="/archivos" element={<FilesDashboardPage />} />
+           <Route path="/suscripcion" element={<SubscriptionPage />} />
           <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
           
           {/* Core Financial Analysis */}

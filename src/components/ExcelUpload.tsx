@@ -16,10 +16,13 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
   const { toast } = useToast();
 
   const handleFileUpload = async (file: File) => {
-    if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.xls')) {
+    const validFormats = ['.xlsx', '.xls', '.pdf'];
+    const isValidFormat = validFormats.some(format => file.name.toLowerCase().endsWith(format));
+    
+    if (!isValidFormat) {
       toast({
         title: "Formato no válido",
-        description: "Por favor, sube un archivo Excel (.xlsx o .xls)",
+        description: "Por favor, sube un archivo Excel (.xlsx, .xls) o PDF",
         variant: "destructive"
       });
       return;
@@ -121,10 +124,10 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
                 <FileSpreadsheet className="h-12 w-12 text-steel-blue" />
                 <Brain className="h-8 w-8 text-steel-blue" />
               </div>
-              <h3 className="text-lg font-semibold text-steel-blue-dark">Sube tu archivo Excel financiero</h3>
+              <h3 className="text-lg font-semibold text-steel-blue-dark">Sube tu archivo financiero</h3>
               <p className="text-professional max-w-md">
-                Arrastra y suelta tu archivo Excel con datos financieros, auditoría, pool financiero y ratios. 
-                Claude analizará automáticamente la información.
+                Arrastra y suelta tu archivo Excel o PDF con datos financieros, auditoría, pool financiero y ratios. 
+                Claude analizará automáticamente la información usando IA avanzada.
               </p>
               
               <div className="flex gap-4">
@@ -141,7 +144,7 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
               <input
                 id="file-input"
                 type="file"
-                accept=".xlsx,.xls"
+                accept=".xlsx,.xls,.pdf"
                 onChange={handleFileSelect}
                 className="hidden"
                 disabled={uploading}

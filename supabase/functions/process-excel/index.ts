@@ -31,9 +31,13 @@ serve(async (req) => {
       return new Response('No file provided', { status: 400, headers: corsHeaders })
     }
 
-    // Leer el contenido del archivo Excel
+    // Leer el contenido del archivo
     const fileBuffer = await file.arrayBuffer()
     const base64Content = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)))
+    
+    // Detectar tipo de archivo
+    const isPDF = file.name.toLowerCase().endsWith('.pdf')
+    const isExcel = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')
 
     // Llamar a Claude para procesar el archivo financiero
     const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY')
@@ -49,11 +53,30 @@ serve(async (req) => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-sonnet-20240229',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 4000,
         messages: [{
           role: 'user',
-          content: `Analiza este archivo Excel financiero y extrae los datos estructurados. 
+          content: isPDF ? 
+            `Analiza este archivo PDF financiero y extrae los datos estructurados. El archivo está en formato base64.
+            
+            IMPORTANTE: Busca específicamente tablas y datos numéricos financieros en el PDF:
+            1. Estados Financieros (P&G, Balance, Flujos)
+            2. Ratios financieros y KPIs
+            3. Pool de deuda y financiación
+            4. Proyecciones y análisis
+            
+            Devuelve los datos en formato JSON estructurado:
+            {
+              "tipo_documento": "PDF",
+              "estados_financieros": {...},
+              "ratios_financieros": {...},
+              "pool_financiero": {...},
+              "proyecciones": {...}
+            }
+            
+            Archivo PDF en base64: ${base64Content.substring(0, 1500)}...`
+          : `Analiza este archivo Excel financiero y extrae los datos estructurados.
           
           Busca específicamente:
           1. **Estados Financieros**:

@@ -334,21 +334,25 @@ const HomePage = () => {
             </CardContent>
           </Card>
 
-          <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-            <CardContent className="p-6 text-center space-y-3">
-              <LineChart className="h-8 w-8 text-steel-blue mx-auto" />
-              <h3 className="font-semibold text-steel-blue-dark">Cargar Datos</h3>
-              <p className="text-sm text-professional">Sube archivos Excel o CSV</p>
-            </CardContent>
-          </Card>
+          <Link to="/subir-excel" className="block">
+            <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
+              <CardContent className="p-6 text-center space-y-3">
+                <LineChart className="h-8 w-8 text-steel-blue mx-auto" />
+                <h3 className="font-semibold text-steel-blue-dark">Cargar Datos</h3>
+                <p className="text-sm text-professional">Sube archivos Excel o PDF</p>
+              </CardContent>
+            </Card>
+          </Link>
 
-          <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-            <CardContent className="p-6 text-center space-y-3">
-              <Target className="h-8 w-8 text-steel-blue mx-auto" />
-              <h3 className="font-semibold text-steel-blue-dark">Configuración</h3>
-              <p className="text-sm text-professional">Personaliza tu experiencia</p>
-            </CardContent>
-          </Card>
+          <Link to="/archivos" className="block">
+            <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
+              <CardContent className="p-6 text-center space-y-3">
+                <Target className="h-8 w-8 text-steel-blue mx-auto" />
+                <h3 className="font-semibold text-steel-blue-dark">Gestión Archivos</h3>
+                <p className="text-sm text-professional">Revisa archivos procesados</p>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Recent Activity */}
