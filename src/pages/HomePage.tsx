@@ -64,8 +64,8 @@ const HomePage = () => {
         .order('created_at', { ascending: false })
         .limit(10);
 
-      setRealKPIs(kpisData || []);
-      setRecentFiles(filesData || []);
+       setRealKPIs(kpisData || []);
+       setRecentFiles(filesData || demoFiles);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -129,6 +129,54 @@ const HomePage = () => {
       status: 'excellent',
       icon: TrendingUp,
       description: 'Crecimiento anual'
+    }
+  ];
+
+  const demoFiles = [
+    {
+      id: '1',
+      file_name: 'Estados_Financieros_2024.xlsx',
+      upload_date: '2024-12-01T10:30:00Z',
+      file_size: 1248576,
+      processing_status: 'completed'
+    },
+    {
+      id: '2',
+      file_name: 'Balance_Q3_2024.xlsx',
+      upload_date: '2024-11-15T14:22:00Z',
+      file_size: 856432,
+      processing_status: 'completed'
+    },
+    {
+      id: '3',
+      file_name: 'Cash_Flow_Proyecciones.xlsx',
+      upload_date: '2024-11-08T09:15:00Z',
+      file_size: 2104832,
+      processing_status: 'processing'
+    }
+  ];
+
+  const demoFinancialData = [
+    {
+      period: 'Q4 2024',
+      revenue: 2840000,
+      ebitda: 364200,
+      netIncome: 185600,
+      cashFlow: 245800
+    },
+    {
+      period: 'Q3 2024',
+      revenue: 2650000,
+      ebitda: 318000,
+      netIncome: 162400,
+      cashFlow: 212300
+    },
+    {
+      period: 'Q2 2024',
+      revenue: 2420000,
+      ebitda: 290400,
+      netIncome: 148200,
+      cashFlow: 198700
     }
   ];
 
