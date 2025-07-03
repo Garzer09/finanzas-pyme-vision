@@ -112,10 +112,10 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
                 <Loader2 className="h-8 w-8 text-steel-blue animate-spin" />
                 <Brain className="h-8 w-8 text-steel-blue animate-pulse" />
               </div>
-              <h3 className="text-lg font-semibold text-steel-blue-dark">Procesando con Claude...</h3>
-              <p className="text-steel-blue">Claude está analizando los datos financieros del Excel</p>
+              <h3 className="text-lg font-semibold text-steel-blue-dark">Procesando con IA...</h3>
+              <p className="text-steel-blue">Claude está analizando los datos financieros del archivo</p>
               <div className="mt-2 text-sm text-steel-blue bg-steel-blue-light px-3 py-1 rounded-full">
-                Extrayendo: P&G, Balance, Flujos, Pool Financiero, Ratios
+                Extrayendo: P&G, Balance, Flujos, Ratios, Pool Financiero, Validando Datos
               </div>
             </>
           ) : (
