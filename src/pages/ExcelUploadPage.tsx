@@ -3,7 +3,7 @@ import React from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { ExcelUpload } from '@/components/ExcelUpload';
-import { ModuleAccessControl } from '@/components/ModuleAccessControl';
+
 import { useToast } from '@/hooks/use-toast';
 
 const ExcelUploadPage = () => {
@@ -32,9 +32,7 @@ const ExcelUploadPage = () => {
             </p>
           </div>
 
-          <ModuleAccessControl moduleId="excel-upload">
-            <ExcelUpload onUploadComplete={handleUploadComplete} />
-          </ModuleAccessControl>
+          <ExcelUpload onUploadComplete={handleUploadComplete} />
         </main>
       </div>
     </div>
