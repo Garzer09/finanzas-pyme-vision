@@ -41,16 +41,18 @@ const AuthPage = () => {
   useEffect(() => {
     // Check for password recovery tokens in URL fragments
     const handlePasswordRecovery = async () => {
+      const hash = window.location.hash;
+      console.log('URL hash:', hash);
+      
+      // If no hash, no need to process anything
+      if (!hash) {
+        setTokenLoading(false);
+        return;
+      }
+      
       setTokenLoading(true);
       
       try {
-        const hash = window.location.hash;
-        console.log('URL hash:', hash);
-        
-        if (!hash) {
-          return;
-        }
-        
         const urlParams = new URLSearchParams(hash.substring(1)); // Remove the '#' and parse
         
         const accessToken = urlParams.get('access_token');
@@ -67,6 +69,9 @@ const AuthPage = () => {
           errorDescription
         });
         
+        // Clean the URL immediately to prevent reprocessing
+        window.history.replaceState({}, document.title, '/auth');
+        
         // Handle error cases first
         if (error) {
           console.error('Error in URL:', error, errorDescription);
@@ -75,11 +80,10 @@ const AuthPage = () => {
             description: errorDescription || "El enlace de recuperación es inválido o ha expirado",
             variant: "destructive"
           });
-          // Clean the URL
-          window.history.replaceState({}, document.title, '/auth');
           return;
         }
         
+        // Check if we have the required tokens for recovery
         if (accessToken && refreshToken && type === 'recovery') {
           console.log('Tokens de recovery encontrados, activando modo recuperación...');
           
@@ -108,15 +112,22 @@ const AuthPage = () => {
             setIsLogin(false);
             setIsPasswordRecovery(false);
             
-            // Clean the URL
-            window.history.replaceState({}, document.title, '/auth');
-            
             toast({
               title: "Enlace verificado",
               description: "Ahora puedes establecer tu nueva contraseña"
             });
           }
+        } else if (type === 'recovery') {
+          // We have a recovery type but missing tokens
+          console.error('Recovery type found but missing required tokens');
+          toast({
+            title: "Error en el enlace de recuperación",
+            description: "El enlace de recuperación es inválido o ha expirado",
+            variant: "destructive"
+          });
         }
+        // If no recovery type, just continue normally (no error needed)
+        
       } catch (err) {
         console.error('Error processing recovery token:', err);
         toast({
@@ -124,8 +135,6 @@ const AuthPage = () => {
           description: "Ocurrió un error al procesar el enlace de recuperación",
           variant: "destructive"
         });
-        // Clean the URL
-        window.history.replaceState({}, document.title, '/auth');
       } finally {
         setTokenLoading(false);
       }
