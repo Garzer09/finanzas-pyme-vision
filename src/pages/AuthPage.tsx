@@ -18,6 +18,7 @@ const AuthPage = () => {
   const { logoUrl } = useCompanyLogo();
   const [searchParams] = useSearchParams();
   const [isLogin, setIsLogin] = useState(true);
+  const [isSignUp, setIsSignUp] = useState(false);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [isPasswordReset, setIsPasswordReset] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -110,6 +111,36 @@ const AuthPage = () => {
             description: "Revisa tu email para restablecer tu contraseña"
           });
           setIsPasswordRecovery(false);
+          setIsLogin(true);
+        }
+      } else if (isSignUp) {
+        if (!formData.fullName || !formData.companyName) {
+          toast({
+            title: "Error",
+            description: "Por favor completa todos los campos obligatorios",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        const { error } = await signUp(formData.email, formData.password, {
+          full_name: formData.fullName,
+          company_name: formData.companyName
+        });
+        
+        if (error) {
+          toast({
+            title: "Error al crear cuenta",
+            description: error.message,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Cuenta creada",
+            description: "Tu cuenta ha sido creada exitosamente. Revisa tu email para confirmar."
+          });
+          setIsSignUp(false);
+          setIsLogin(true);
         }
       } else if (isLogin) {
         const {
@@ -171,16 +202,20 @@ const AuthPage = () => {
               {isPasswordReset 
                 ? 'Nueva Contraseña' 
                 : isPasswordRecovery 
-                  ? 'Recuperar Contraseña' 
-                  : 'Iniciar Sesión'
+                  ? 'Recuperar Contraseña'
+                  : isSignUp
+                    ? 'Crear Cuenta'
+                    : 'Iniciar Sesión'
               }
             </CardTitle>
             <CardDescription>
               {isPasswordReset
                 ? 'Establece tu nueva contraseña'
                 : isPasswordRecovery 
-                  ? 'Introduce tu email para recibir un enlace de recuperación' 
-                  : 'Accede a tu dashboard de análisis financiero'
+                  ? 'Introduce tu email para recibir un enlace de recuperación'
+                  : isSignUp
+                    ? 'Crea tu cuenta para acceder al dashboard'
+                    : 'Accede a tu dashboard de análisis financiero'
               }
             </CardDescription>
           </CardHeader>
@@ -215,6 +250,31 @@ const AuthPage = () => {
                 </>
               ) : (
                 <>
+                  {isSignUp && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="fullName">Nombre Completo *</Label>
+                        <Input 
+                          id="fullName" 
+                          type="text" 
+                          value={formData.fullName} 
+                          onChange={e => handleInputChange('fullName', e.target.value)} 
+                          required 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="companyName">Nombre de la Empresa *</Label>
+                        <Input 
+                          id="companyName" 
+                          type="text" 
+                          value={formData.companyName} 
+                          onChange={e => handleInputChange('companyName', e.target.value)} 
+                          required 
+                        />
+                      </div>
+                    </>
+                  )}
+                  
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input id="email" type="email" value={formData.email} onChange={e => handleInputChange('email', e.target.value)} required />
@@ -229,7 +289,8 @@ const AuthPage = () => {
                 </>
               )}
 
-              {isLogin && !isPasswordRecovery && <div className="flex items-center justify-between">
+              {isLogin && !isPasswordRecovery && (
+                <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <Checkbox id="rememberMe" checked={formData.rememberMe} onCheckedChange={checked => handleInputChange('rememberMe', checked as boolean)} />
                     <Label htmlFor="rememberMe" className="text-sm">Recordarme</Label>
@@ -241,24 +302,32 @@ const AuthPage = () => {
                   >
                     ¿Olvidaste tu contraseña?
                   </button>
-                </div>}
+                </div>
+              )}
 
 
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <div className="flex items-center gap-2">
+                {loading ? (
+                  <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     {isPasswordReset 
                       ? 'Actualizando contraseña...' 
                       : isPasswordRecovery 
-                        ? 'Enviando email...' 
-                        : 'Iniciando sesión...'
+                        ? 'Enviando email...'
+                        : isSignUp
+                          ? 'Creando cuenta...'
+                          : 'Iniciando sesión...'
                     }
-                  </div> : isPasswordReset 
+                  </div>
+                ) : (
+                  isPasswordReset 
                     ? 'Actualizar Contraseña' 
                     : isPasswordRecovery 
-                      ? 'Enviar Email' 
-                      : 'Iniciar Sesión'
-                }
+                      ? 'Enviar Email'
+                      : isSignUp
+                        ? 'Crear Cuenta'
+                        : 'Iniciar Sesión'
+                )}
               </Button>
 
               <Separator className="my-4" />
@@ -286,7 +355,35 @@ const AuthPage = () => {
                   >
                     ← Volver al inicio de sesión
                   </button>
-                ) : null}
+                ) : isSignUp ? (
+                  <div>
+                    <span className="text-sm text-muted-foreground">¿Ya tienes una cuenta? </span>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setIsSignUp(false);
+                        setIsLogin(true);
+                      }} 
+                      className="text-primary hover:text-primary/80 transition-colors text-sm"
+                    >
+                      Iniciar sesión
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <span className="text-sm text-muted-foreground">¿No tienes una cuenta? </span>
+                    <button 
+                      type="button" 
+                      onClick={() => {
+                        setIsLogin(false);
+                        setIsSignUp(true);
+                      }} 
+                      className="text-primary hover:text-primary/80 transition-colors text-sm"
+                    >
+                      Crear cuenta
+                    </button>
+                  </div>
+                )}
               </div>
             </form>
           </CardContent>
