@@ -27,9 +27,13 @@ import {
   ChevronUp,
   Layers,
   Briefcase,
-  TrendingDown
+  TrendingDown,
+  Upload,
+  Shield,
+  UserCog
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useUserRole } from '@/hooks/useUserRole';
 
 export const DashboardSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -38,14 +42,21 @@ export const DashboardSidebar = () => {
     supuestos: false,
     proyecciones: false,
     sensibilidad: false,
-    valoracion: false
+    valoracion: false,
+    admin: false
   });
   
   const location = useLocation();
   const currentPath = location.pathname;
+  const { isAdmin } = useUserRole();
 
   // Function to get the section key based on current path
   const getSectionFromPath = (path: string): string | null => {
+    // Admin section
+    if (path.includes('/admin') || path.includes('/excel-upload')) {
+      return 'admin';
+    }
+    
     // Section 3: Análisis Situación Actual
     if (path.includes('/cuenta-pyg') || path.includes('/balance-situacion') || 
         path.includes('/ratios-financieros') || path.includes('/flujos-caja') || 
@@ -116,6 +127,26 @@ export const DashboardSidebar = () => {
   };
 
   const menuSections = [
+    // Admin section - only visible to admins
+    ...(isAdmin ? [{
+      title: 'Administración',
+      key: 'admin',
+      expandable: true,
+      items: [
+        {
+          path: '/excel-upload',
+          label: 'Subir Archivos',
+          icon: Upload,
+          color: 'text-primary'
+        },
+        {
+          path: '/admin/users',
+          label: 'Gestión de Usuarios',
+          icon: UserCog,
+          color: 'text-primary'
+        }
+      ]
+    }] : []),
     {
       title: '1. Resumen Ejecutivo',
       items: [
