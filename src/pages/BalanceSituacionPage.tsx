@@ -54,6 +54,9 @@ export const BalanceSituacionPage = () => {
 
   const calculatePercentages = (item: number, total: number) => (item / total) * 100;
 
+  // Legacy compatibility - this ensures no runtime errors for any remaining references
+  const balanceData = financialData;
+
   // Enhanced KPI data with patrimonio neto included
   const enhancedKpiData = [
     {
