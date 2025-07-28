@@ -729,16 +729,121 @@ export const BalanceSituacionPage = () => {
              </section>
            )}
 
-          {/* Detailed Expandable Table */}
-          {hasData && (
-            <section>
-              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-2xl">
-                <CardHeader>
-                  <CardTitle className="text-slate-900 flex items-center gap-3">
-                    <div className="p-2 rounded-xl bg-steel/20 backdrop-blur-sm">
-                      <Eye className="h-5 w-5 text-steel-700" />
-                    </div>
-                    Balance Detallado Comparativo
+           {/* Balance Comparison Chart */}
+           {hasData && (
+             <section>
+               <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-2xl">
+                 <CardHeader>
+                   <CardTitle className="text-slate-900 flex items-center gap-3">
+                     <div className="p-2 rounded-xl bg-steel/20 backdrop-blur-sm">
+                       <BarChart className="h-5 w-5 text-steel-700" />
+                     </div>
+                     Balance Comparativo Visual
+                   </CardTitle>
+                 </CardHeader>
+                 <CardContent>
+                   <div className="h-96">
+                     <ResponsiveContainer width="100%" height="100%">
+                       <BarChart 
+                         data={[
+                           {
+                             categoria: 'Activo No Corriente',
+                             '2023': detailedBalanceData[0].items.reduce((sum, item) => sum + item.actual, 0),
+                             '2022': detailedBalanceData[0].items.reduce((sum, item) => sum + item.anterior, 0)
+                           },
+                           {
+                             categoria: 'Activo Corriente',
+                             '2023': detailedBalanceData[1].items.reduce((sum, item) => sum + item.actual, 0),
+                             '2022': detailedBalanceData[1].items.reduce((sum, item) => sum + item.anterior, 0)
+                           },
+                           {
+                             categoria: 'Patrimonio Neto',
+                             '2023': detailedBalanceData[2].items.reduce((sum, item) => sum + item.actual, 0),
+                             '2022': detailedBalanceData[2].items.reduce((sum, item) => sum + item.anterior, 0)
+                           },
+                           {
+                             categoria: 'Pasivo No Corriente',
+                             '2023': detailedBalanceData[3].items.reduce((sum, item) => sum + item.actual, 0),
+                             '2022': detailedBalanceData[3].items.reduce((sum, item) => sum + item.anterior, 0)
+                           },
+                           {
+                             categoria: 'Pasivo Corriente',
+                             '2023': detailedBalanceData[4].items.reduce((sum, item) => sum + item.actual, 0),
+                             '2022': detailedBalanceData[4].items.reduce((sum, item) => sum + item.anterior, 0)
+                           }
+                         ]}
+                         margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                       >
+                         <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
+                         <XAxis 
+                           dataKey="categoria"
+                           className="text-xs fill-gray-600"
+                           angle={-45}
+                           textAnchor="end"
+                           height={80}
+                         />
+                         <YAxis 
+                           className="text-xs fill-gray-600"
+                           tickFormatter={formatCurrency}
+                         />
+                         <Tooltip 
+                           formatter={(value: number) => [formatCurrency(value), '']}
+                           labelStyle={{ color: '#1f2937' }}
+                           contentStyle={{ 
+                             backgroundColor: 'white', 
+                             border: '1px solid #e5e7eb',
+                             borderRadius: '8px'
+                           }}
+                         />
+                         <Bar 
+                           dataKey="2023" 
+                           name="2023"
+                           fill="hsl(var(--primary))" 
+                           radius={[4, 4, 0, 0]}
+                         />
+                         <Bar 
+                           dataKey="2022" 
+                           name="2022"
+                           fill="hsl(var(--secondary))" 
+                           radius={[4, 4, 0, 0]}
+                         />
+                       </BarChart>
+                     </ResponsiveContainer>
+                   </div>
+                   
+                   {/* Summary insights */}
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-slate-200">
+                     <div className="text-center">
+                       <p className="text-sm text-slate-600">Mayor Crecimiento</p>
+                       <p className="text-lg font-bold text-success-600">Deudores Comerciales</p>
+                       <p className="text-xs text-slate-500">+14.3%</p>
+                     </div>
+                     <div className="text-center">
+                       <p className="text-sm text-slate-600">Total Activo</p>
+                       <p className="text-lg font-bold text-slate-800">{formatCurrency(financialData.activo_total)}</p>
+                       <p className="text-xs text-success-600">+5.3% vs 2022</p>
+                     </div>
+                     <div className="text-center">
+                       <p className="text-sm text-slate-600">Ratio Patrimonio</p>
+                       <p className="text-lg font-bold text-primary-600">{((financialData.patrimonio_neto / financialData.activo_total) * 100).toFixed(1)}%</p>
+                       <p className="text-xs text-slate-500">del total activo</p>
+                     </div>
+                   </div>
+                 </CardContent>
+               </Card>
+             </section>
+           )}
+
+           {/* Detailed Expandable Table */}
+           {hasData && (
+             <section>
+               <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-2xl">
+                 <CardHeader>
+                   <CardTitle className="text-slate-900 flex items-center gap-3">
+                     <div className="p-2 rounded-xl bg-steel/20 backdrop-blur-sm">
+                       <Eye className="h-5 w-5 text-steel-700" />
+                     </div>
+                     Balance Detallado Comparativo
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0">
