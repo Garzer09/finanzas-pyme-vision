@@ -10,9 +10,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { TrendingUp, BarChart3, PieChart, DollarSign, Shield, Zap } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-
 const AuthPage = () => {
-  const { user, signIn, signUp } = useAuth();
+  const {
+    user,
+    signIn,
+    signUp
+  } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,22 +30,23 @@ const AuthPage = () => {
     acceptTerms: false,
     rememberMe: false
   });
-
   if (user) {
     return <Navigate to="/home" replace />;
   }
-
   const handleInputChange = (field: string, value: string | boolean) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       if (isLogin) {
-        const { error } = await signIn(formData.email, formData.password);
+        const {
+          error
+        } = await signIn(formData.email, formData.password);
         if (error) {
           toast({
             title: "Error al iniciar sesión",
@@ -64,7 +68,6 @@ const AuthPage = () => {
           });
           return;
         }
-
         if (!formData.acceptTerms) {
           toast({
             title: "Error",
@@ -73,15 +76,15 @@ const AuthPage = () => {
           });
           return;
         }
-
-        const { error } = await signUp(formData.email, formData.password, {
+        const {
+          error
+        } = await signUp(formData.email, formData.password, {
           full_name: formData.fullName,
           company_name: formData.companyName,
           sector: formData.sector,
           revenue_range: formData.revenue,
           employees_count: formData.employees
         });
-
         if (error) {
           toast({
             title: "Error al registrarse",
@@ -99,9 +102,7 @@ const AuthPage = () => {
       setLoading(false);
     }
   };
-
-  return (
-    <div className="min-h-screen flex bg-gradient-to-br from-steel-blue-50 to-light-gray-100">
+  return <div className="min-h-screen flex bg-gradient-to-br from-steel-blue-50 to-light-gray-100">
       {/* Form Section */}
       <div className="w-full lg:w-2/5 flex items-center justify-center p-8">
         <Card className="w-full max-w-md">
@@ -114,43 +115,27 @@ const AuthPage = () => {
               {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
             </CardTitle>
             <CardDescription>
-              {isLogin 
-                ? 'Accede a tu dashboard de análisis financiero'
-                : 'Únete a FinSight y transforma el análisis financiero de tu PYME'
-              }
+              {isLogin ? 'Accede a tu dashboard de análisis financiero' : 'Únete a FinSight y transforma el análisis financiero de tu PYME'}
             </CardDescription>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && (
-                <>
+              {!isLogin && <>
                   <div className="space-y-2">
                     <Label htmlFor="fullName">Nombre Completo</Label>
-                    <Input
-                      id="fullName"
-                      type="text"
-                      value={formData.fullName}
-                      onChange={(e) => handleInputChange('fullName', e.target.value)}
-                      required
-                    />
+                    <Input id="fullName" type="text" value={formData.fullName} onChange={e => handleInputChange('fullName', e.target.value)} required />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="companyName">Nombre de la Empresa</Label>
-                    <Input
-                      id="companyName"
-                      type="text"
-                      value={formData.companyName}
-                      onChange={(e) => handleInputChange('companyName', e.target.value)}
-                      required
-                    />
+                    <Input id="companyName" type="text" value={formData.companyName} onChange={e => handleInputChange('companyName', e.target.value)} required />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="sector">Sector</Label>
-                      <Select value={formData.sector} onValueChange={(value) => handleInputChange('sector', value)}>
+                      <Select value={formData.sector} onValueChange={value => handleInputChange('sector', value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecciona" />
                         </SelectTrigger>
@@ -167,7 +152,7 @@ const AuthPage = () => {
 
                     <div className="space-y-2">
                       <Label htmlFor="employees">Empleados</Label>
-                      <Select value={formData.employees} onValueChange={(value) => handleInputChange('employees', value)}>
+                      <Select value={formData.employees} onValueChange={value => handleInputChange('employees', value)}>
                         <SelectTrigger>
                           <SelectValue placeholder="Selecciona" />
                         </SelectTrigger>
@@ -183,7 +168,7 @@ const AuthPage = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="revenue">Facturación Anual</Label>
-                    <Select value={formData.revenue} onValueChange={(value) => handleInputChange('revenue', value)}>
+                    <Select value={formData.revenue} onValueChange={value => handleInputChange('revenue', value)}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecciona rango" />
                       </SelectTrigger>
@@ -196,91 +181,46 @@ const AuthPage = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                </>
-              )}
+                </>}
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  required
-                />
+                <Input id="email" type="email" value={formData.email} onChange={e => handleInputChange('email', e.target.value)} required />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Contraseña</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
-                  required
-                />
+                <Input id="password" type="password" value={formData.password} onChange={e => handleInputChange('password', e.target.value)} required />
               </div>
 
-              {!isLogin && (
-                <div className="space-y-2">
+              {!isLogin && <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    required
-                  />
-                </div>
-              )}
+                  <Input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={e => handleInputChange('confirmPassword', e.target.value)} required />
+                </div>}
 
-              {isLogin && (
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="rememberMe"
-                    checked={formData.rememberMe}
-                    onCheckedChange={(checked) => handleInputChange('rememberMe', checked as boolean)}
-                  />
+              {isLogin && <div className="flex items-center space-x-2">
+                  <Checkbox id="rememberMe" checked={formData.rememberMe} onCheckedChange={checked => handleInputChange('rememberMe', checked as boolean)} />
                   <Label htmlFor="rememberMe" className="text-sm">Recordarme</Label>
-                </div>
-              )}
+                </div>}
 
-              {!isLogin && (
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="acceptTerms"
-                    checked={formData.acceptTerms}
-                    onCheckedChange={(checked) => handleInputChange('acceptTerms', checked as boolean)}
-                  />
+              {!isLogin && <div className="flex items-center space-x-2">
+                  <Checkbox id="acceptTerms" checked={formData.acceptTerms} onCheckedChange={checked => handleInputChange('acceptTerms', checked as boolean)} />
                   <Label htmlFor="acceptTerms" className="text-sm">
                     Acepto los términos y condiciones
                   </Label>
-                </div>
-              )}
+                </div>}
 
-              <Button 
-                type="submit" 
-                className="w-full" 
-                disabled={loading}
-              >
-                {loading ? (
-                  <div className="flex items-center gap-2">
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     {isLogin ? 'Iniciando sesión...' : 'Creando cuenta...'}
-                  </div>
-                ) : (
-                  isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'
-                )}
+                  </div> : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
               </Button>
 
               <Separator className="my-4" />
 
               <div className="text-center">
-                <button
-                  type="button"
-                  onClick={() => setIsLogin(!isLogin)}
-                  className="text-steel-blue hover:text-steel-blue-dark transition-colors text-sm"
-                >
+                <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-steel-blue hover:text-steel-blue-dark transition-colors text-sm">
                   {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
                 </button>
               </div>
@@ -311,15 +251,12 @@ const AuthPage = () => {
             Transforma el Análisis Financiero de tu PYME
           </h1>
           
-          <p className="text-xl opacity-90">
-            Herramientas profesionales de análisis financiero al alcance de tu empresa. 
-            Toma decisiones basadas en datos con FinSight.
-          </p>
+          
 
           <div className="grid grid-cols-1 gap-4 mt-8">
             <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
               <Shield className="h-5 w-5" />
-              <span>Análisis automatizado de estados financieros</span>
+              
             </div>
             <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
               <Zap className="h-5 w-5" />
@@ -327,13 +264,11 @@ const AuthPage = () => {
             </div>
             <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
               <TrendingUp className="h-5 w-5" />
-              <span>Proyecciones y análisis de sensibilidad</span>
+              
             </div>
           </div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default AuthPage;
