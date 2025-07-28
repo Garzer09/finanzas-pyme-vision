@@ -23,10 +23,19 @@ import { EnhancedUserCreationWizard } from './EnhancedUserCreationWizard';
 import { UserEditDialog } from '@/components/admin/UserEditDialog';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
+interface AdminUserProfile {
+  id: string;
+  email: string;
+  company_name: string;
+  role: 'admin' | 'user';
+  created_at: string;
+  last_sign_in_at?: string;
+}
+
 interface UserProfile {
   id: string;
   user_id: string;
-  company_name: string;
+  company_name?: string;
   created_at: string;
   role?: 'admin' | 'user';
   email?: string;
@@ -42,7 +51,7 @@ interface ExcelFile {
 }
 
 export const AdminDashboard = () => {
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [users, setUsers] = useState<AdminUserProfile[]>([]);
   const [files, setFiles] = useState<ExcelFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
@@ -52,29 +61,14 @@ export const AdminDashboard = () => {
 
   const fetchUsers = async () => {
     try {
-      const { data: profiles, error: profilesError } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .order('created_at', { ascending: false });
+      setLoading(true);
+      
+      // Use the admin edge function to get users with emails
+      const { data, error } = await supabase.functions.invoke('admin-users');
 
-      if (profilesError) throw profilesError;
+      if (error) throw error;
 
-      const usersWithRoles = await Promise.all(
-        profiles.map(async (profile) => {
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', profile.user_id)
-            .maybeSingle();
-
-          return {
-            ...profile,
-            role: roleData?.role || 'user'
-          };
-        })
-      );
-
-      setUsers(usersWithRoles);
+      setUsers(data.users || []);
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
@@ -82,6 +76,8 @@ export const AdminDashboard = () => {
         description: "No se pudieron cargar los usuarios",
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -133,8 +129,17 @@ export const AdminDashboard = () => {
     fetchUsers();
   };
 
-  const handleEditUser = (user: UserProfile) => {
-    setSelectedUser(user);
+  const handleEditUser = (user: AdminUserProfile) => {
+    // Convert AdminUserProfile to UserProfile for UserEditDialog
+    const userProfileForEdit: UserProfile = {
+      id: user.id,
+      user_id: user.id,
+      company_name: user.company_name,
+      created_at: user.created_at,
+      role: user.role,
+      email: user.email
+    };
+    setSelectedUser(userProfileForEdit);
     setShowEditDialog(true);
   };
 
@@ -218,7 +223,7 @@ export const AdminDashboard = () => {
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchUsers(), fetchFiles()]);
+      await fetchUsers();
       setLoading(false);
     };
     
@@ -236,67 +241,55 @@ export const AdminDashboard = () => {
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid gap-6 md:grid-cols-3">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <Users className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Usuarios</p>
-                <p className="text-2xl font-bold">{users.length}</p>
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{users.length}</div>
+            <p className="text-xs text-muted-foreground">
+              Usuarios registrados en el sistema
+            </p>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <Building2 className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Empresas Activas</p>
-                <p className="text-2xl font-bold">
-                  {new Set(users.map(u => u.company_name).filter(Boolean)).size}
-                </p>
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Empresas Activas</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {new Set(users.filter(u => u.company_name !== 'Sin empresa').map(u => u.company_name)).size}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Empresas con usuarios activos
+            </p>
           </CardContent>
         </Card>
-
+        
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <FileText className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Archivos Procesados</p>
-                <p className="text-2xl font-bold">
-                  {files.filter(f => f.processing_status === 'completed').length}
-                </p>
-              </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Administradores</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {users.filter(u => u.role === 'admin').length}
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <TrendingUp className="h-8 w-8 text-primary" />
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Administradores</p>
-                <p className="text-2xl font-bold">
-                  {users.filter(u => u.role === 'admin').length}
-                </p>
-              </div>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Usuarios con permisos de administración
+            </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Tabs */}
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="users">Gestión de Usuarios</TabsTrigger>
-          <TabsTrigger value="files">Gestión de Archivos</TabsTrigger>
           <TabsTrigger value="upload">Subir Archivos</TabsTrigger>
         </TabsList>
 
@@ -339,19 +332,17 @@ export const AdminDashboard = () => {
                           </Badge>
                         </div>
                         <p className="text-muted-foreground">{user.company_name || 'Sin empresa asignada'}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Registrado: {new Date(user.created_at).toLocaleDateString()}
-                        </p>
+                        <div className="flex gap-4 text-sm text-muted-foreground">
+                          <span>Registrado: {new Date(user.created_at).toLocaleDateString()}</span>
+                          <span>
+                            Último acceso: {user.last_sign_in_at 
+                              ? new Date(user.last_sign_in_at).toLocaleDateString()
+                              : 'Nunca'
+                            }
+                          </span>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.open(`/?user=${user.user_id}`, '_blank')}
-                        >
-                          <Activity className="h-4 w-4 mr-2" />
-                          Ver Dashboard
-                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
@@ -363,7 +354,7 @@ export const AdminDashboard = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => toggleUserRole(user.user_id, user.role === 'admin' ? 'user' : 'admin')}
+                          onClick={() => toggleUserRole(user.id, user.role === 'admin' ? 'user' : 'admin')}
                         >
                           {user.role === 'admin' ? 'Quitar Admin' : 'Hacer Admin'}
                         </Button>
@@ -376,49 +367,6 @@ export const AdminDashboard = () => {
           </Card>
         </TabsContent>
 
-        {/* Files Tab */}
-        <TabsContent value="files" className="space-y-6">
-          <h2 className="text-xl font-semibold">Archivos del Sistema</h2>
-          
-          <Card>
-            <CardContent className="p-6">
-              {files.length === 0 ? (
-                <div className="text-center py-8">
-                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No hay archivos procesados.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {files.map((file) => (
-                    <div key={file.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          {getStatusIcon(file.processing_status)}
-                          <p className="font-medium">{file.file_name}</p>
-                          {getStatusBadge(file.processing_status)}
-                        </div>
-                        <p className="text-muted-foreground">{file.company_name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Subido: {new Date(file.upload_date).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={file.processing_status !== 'completed'}
-                        >
-                          <Activity className="h-4 w-4 mr-2" />
-                          Ver Datos
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         {/* Upload Tab */}
         <TabsContent value="upload" className="space-y-6">

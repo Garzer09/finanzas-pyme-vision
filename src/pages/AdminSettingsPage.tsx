@@ -1,22 +1,23 @@
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardPageHeader } from '@/components/DashboardPageHeader';
+import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 
 export default function AdminSettingsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50/30">
-      <DashboardHeader />
-      
-      <main className="flex-1 p-8">
-        <div className="max-w-7xl mx-auto space-y-8">
+    <RoleBasedAccess allowedRoles={['admin']}>
+      <div className="min-h-screen bg-background">
+        <DashboardHeader />
+        
+        <main className="container mx-auto p-6 space-y-6">
           <DashboardPageHeader 
-            title="Panel de Administración"
-            subtitle="Gestiona usuarios, configuraciones y datos de la plataforma"
+            title="Administración del Sistema"
+            subtitle="Gestiona usuarios y configuraciones del sistema"
           />
           
           <AdminDashboard />
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </RoleBasedAccess>
   );
 }
