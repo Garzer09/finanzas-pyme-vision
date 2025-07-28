@@ -25,7 +25,7 @@ const Index = () => {
         <p className="text-2xl text-white mb-8">
           Tu análisis económico inteligente
         </p>
-        <Link to="/home">
+        <Link to="/auth">
           <Button 
             variant="secondary"
             className="bg-gray-400 hover:bg-gray-300 text-black font-medium px-8 py-3 text-lg"

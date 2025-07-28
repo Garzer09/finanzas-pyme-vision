@@ -8,14 +8,13 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { TrendingUp, BarChart3, PieChart, DollarSign, Shield, Zap } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useCompanyLogo } from '@/hooks/useCompanyLogo';
+import { CompanyLogo } from '@/components/CompanyLogo';
 const AuthPage = () => {
-  const {
-    user,
-    signIn,
-    signUp
-  } = useAuth();
+  const { user, signIn, signUp } = useAuth();
+  const { logoUrl } = useCompanyLogo();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -102,16 +101,26 @@ const AuthPage = () => {
       setLoading(false);
     }
   };
-  return <div className="min-h-screen flex bg-gradient-to-br from-steel-blue-50 to-light-gray-100">
-      {/* Form Section */}
-      <div className="w-full lg:w-2/5 flex items-center justify-center p-8">
-        <Card className="w-full max-w-md">
+  return <div className="min-h-screen bg-steel flex items-center justify-center" style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}>
+      <div className="w-full max-w-md">
+        {/* Logo Section */}
+        <div className="mb-8 flex justify-center">
+          <CompanyLogo 
+            logoUrl={logoUrl}
+            size="lg"
+            className="h-16 w-auto max-w-48"
+            fallback={
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-8 w-8 text-white" />
+                <span className="text-4xl font-bold text-white">FinSight</span>
+              </div>
+            }
+          />
+        </div>
+
+        <Card className="w-full">
           <CardHeader className="text-center space-y-4">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <TrendingUp className="h-8 w-8 text-steel-blue" />
-              <span className="text-2xl font-bold text-steel-blue-dark">FinSight</span>
-            </div>
-            <CardTitle className="text-2xl text-steel-blue-dark">
+            <CardTitle className="text-2xl">
               {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
             </CardTitle>
             <CardDescription>
@@ -220,7 +229,7 @@ const AuthPage = () => {
               <Separator className="my-4" />
 
               <div className="text-center">
-                <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-steel-blue hover:text-steel-blue-dark transition-colors text-sm">
+                <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-primary hover:text-primary/80 transition-colors text-sm">
                   {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
                 </button>
               </div>
@@ -228,9 +237,6 @@ const AuthPage = () => {
           </CardContent>
         </Card>
       </div>
-
-      {/* Hero Section */}
-      
     </div>;
 };
 export default AuthPage;
