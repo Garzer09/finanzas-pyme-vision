@@ -654,7 +654,7 @@ export const BalanceSituacionPage = () => {
                     <div className="p-2 rounded-xl bg-cadet/20 backdrop-blur-sm">
                       <Target className="h-5 w-5 text-cadet-700" />
                     </div>
-                    Análisis Automático y Recomendaciones
+                    Análisis y Recomendaciones
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6">
