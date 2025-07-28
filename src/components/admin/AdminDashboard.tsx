@@ -138,28 +138,34 @@ export const AdminDashboard = () => {
     setShowEditDialog(true);
   };
 
-  const toggleUserRole = async (userId: string, currentRole: string) => {
-    const newRole = currentRole === 'admin' ? 'user' : 'admin';
-    
+  const toggleUserRole = async (userId: string, newRole: string) => {
     try {
-      const { error } = await supabase
-        .from('user_roles')
-        .update({ role: newRole })
-        .eq('user_id', userId);
+      const { data, error } = await supabase.rpc('toggle_user_role', {
+        target_user_id: userId
+      });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error toggling user role:', error);
+        toast({
+          title: "Error",
+          description: error.message || "No se pudo cambiar el rol del usuario",
+          variant: "destructive"
+        });
+        return;
+      }
 
       toast({
         title: "Rol actualizado",
-        description: `El usuario ahora es ${newRole === 'admin' ? 'administrador' : 'usuario normal'}`
+        description: `Usuario convertido a ${data === 'admin' ? 'administrador' : 'usuario normal'}`,
       });
 
+      // Refresh users list
       fetchUsers();
     } catch (error) {
-      console.error('Error updating role:', error);
+      console.error('Error toggling user role:', error);
       toast({
         title: "Error",
-        description: "No se pudo actualizar el rol del usuario",
+        description: "Error al cambiar el rol del usuario",
         variant: "destructive"
       });
     }

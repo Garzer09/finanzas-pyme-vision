@@ -647,6 +647,14 @@ export type Database = {
         }
         Returns: boolean
       }
+      make_user_admin: {
+        Args: { target_user_id: string }
+        Returns: undefined
+      }
+      toggle_user_role: {
+        Args: { target_user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
     }
     Enums: {
       app_role: "admin" | "user"
