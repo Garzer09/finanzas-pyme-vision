@@ -12,10 +12,12 @@ import { TrendingUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useCompanyLogo } from '@/hooks/useCompanyLogo';
 import { CompanyLogo } from '@/components/CompanyLogo';
+import { supabase } from '@/integrations/supabase/client';
 const AuthPage = () => {
   const { user, signIn, signUp } = useAuth();
   const { logoUrl } = useCompanyLogo();
   const [isLogin, setIsLogin] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -42,7 +44,24 @@ const AuthPage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      if (isLogin) {
+      if (isPasswordRecovery) {
+        const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+          redirectTo: `${window.location.origin}/auth?reset=true`
+        });
+        if (error) {
+          toast({
+            title: "Error al enviar email",
+            description: error.message,
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Email enviado",
+            description: "Revisa tu email para restablecer tu contraseña"
+          });
+          setIsPasswordRecovery(false);
+        }
+      } else if (isLogin) {
         const {
           error
         } = await signIn(formData.email, formData.password);
@@ -121,16 +140,21 @@ const AuthPage = () => {
         <Card className="w-full">
           <CardHeader className="text-center space-y-4">
             <CardTitle className="text-2xl">
-              {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+              {isPasswordRecovery ? 'Recuperar Contraseña' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
             </CardTitle>
             <CardDescription>
-              {isLogin ? 'Accede a tu dashboard de análisis financiero' : 'Únete a FinSight y transforma el análisis financiero de tu PYME'}
+              {isPasswordRecovery 
+                ? 'Introduce tu email para recibir un enlace de recuperación' 
+                : isLogin 
+                  ? 'Accede a tu dashboard de análisis financiero' 
+                  : 'Únete a FinSight y transforma el análisis financiero de tu PYME'
+              }
             </CardDescription>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && <>
+              {!isLogin && !isPasswordRecovery && <>
                   <div className="space-y-2">
                     <Label htmlFor="fullName">Nombre Completo</Label>
                     <Input id="fullName" type="text" value={formData.fullName} onChange={e => handleInputChange('fullName', e.target.value)} required />
@@ -197,22 +221,33 @@ const AuthPage = () => {
                 <Input id="email" type="email" value={formData.email} onChange={e => handleInputChange('email', e.target.value)} required />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
-                <Input id="password" type="password" value={formData.password} onChange={e => handleInputChange('password', e.target.value)} required />
-              </div>
+              {!isPasswordRecovery && <>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Contraseña</Label>
+                  <Input id="password" type="password" value={formData.password} onChange={e => handleInputChange('password', e.target.value)} required />
+                </div>
+              </>}
 
-              {!isLogin && <div className="space-y-2">
+              {!isLogin && !isPasswordRecovery && <div className="space-y-2">
                   <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
                   <Input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={e => handleInputChange('confirmPassword', e.target.value)} required />
                 </div>}
 
-              {isLogin && <div className="flex items-center space-x-2">
-                  <Checkbox id="rememberMe" checked={formData.rememberMe} onCheckedChange={checked => handleInputChange('rememberMe', checked as boolean)} />
-                  <Label htmlFor="rememberMe" className="text-sm">Recordarme</Label>
+              {isLogin && !isPasswordRecovery && <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox id="rememberMe" checked={formData.rememberMe} onCheckedChange={checked => handleInputChange('rememberMe', checked as boolean)} />
+                    <Label htmlFor="rememberMe" className="text-sm">Recordarme</Label>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={() => setIsPasswordRecovery(true)} 
+                    className="text-sm text-primary hover:text-primary/80 transition-colors"
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </button>
                 </div>}
 
-              {!isLogin && <div className="flex items-center space-x-2">
+              {!isLogin && !isPasswordRecovery && <div className="flex items-center space-x-2">
                   <Checkbox id="acceptTerms" checked={formData.acceptTerms} onCheckedChange={checked => handleInputChange('acceptTerms', checked as boolean)} />
                   <Label htmlFor="acceptTerms" className="text-sm">
                     Acepto los términos y condiciones
@@ -222,16 +257,29 @@ const AuthPage = () => {
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    {isLogin ? 'Iniciando sesión...' : 'Creando cuenta...'}
-                  </div> : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
+                    {isPasswordRecovery ? 'Enviando email...' : isLogin ? 'Iniciando sesión...' : 'Creando cuenta...'}
+                  </div> : isPasswordRecovery ? 'Enviar Email' : isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
               </Button>
 
               <Separator className="my-4" />
 
-              <div className="text-center">
-                <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-primary hover:text-primary/80 transition-colors text-sm">
-                  {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
-                </button>
+              <div className="text-center space-y-2">
+                {isPasswordRecovery ? (
+                  <button 
+                    type="button" 
+                    onClick={() => {
+                      setIsPasswordRecovery(false);
+                      setIsLogin(true);
+                    }} 
+                    className="text-primary hover:text-primary/80 transition-colors text-sm"
+                  >
+                    ← Volver al inicio de sesión
+                  </button>
+                ) : (
+                  <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-primary hover:text-primary/80 transition-colors text-sm">
+                    {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
+                  </button>
+                )}
               </div>
             </form>
           </CardContent>
