@@ -37,14 +37,55 @@ const AuthPage = () => {
   });
 
   useEffect(() => {
-    // Check if this is a password reset redirect
-    const resetParam = searchParams.get('reset');
-    if (resetParam === 'true') {
-      setIsPasswordReset(true);
-      setIsLogin(false);
-      setIsPasswordRecovery(false);
-    }
-  }, [searchParams]);
+    // Check for password recovery tokens in URL fragments
+    const handlePasswordRecovery = async () => {
+      const hash = window.location.hash;
+      const urlParams = new URLSearchParams(hash.substring(1)); // Remove the '#' and parse
+      
+      const accessToken = urlParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token');
+      const type = urlParams.get('type');
+      
+      if (accessToken && refreshToken && type === 'recovery') {
+        try {
+          // Set the session with the recovery tokens
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) {
+            toast({
+              title: "Error en el enlace de recuperación",
+              description: "El enlace de recuperación es inválido o ha expirado",
+              variant: "destructive"
+            });
+          } else {
+            // Successfully authenticated with recovery token
+            setIsPasswordReset(true);
+            setIsLogin(false);
+            setIsPasswordRecovery(false);
+            
+            // Clean the URL
+            window.history.replaceState({}, document.title, '/auth');
+            
+            toast({
+              title: "Enlace verificado",
+              description: "Ahora puedes establecer tu nueva contraseña"
+            });
+          }
+        } catch (err) {
+          toast({
+            title: "Error",
+            description: "Ocurrió un error al procesar el enlace de recuperación",
+            variant: "destructive"
+          });
+        }
+      }
+    };
+
+    handlePasswordRecovery();
+  }, []);
   if (user) {
     return <Navigate to="/home" replace />;
   }
@@ -68,7 +109,9 @@ const AuthPage = () => {
           return;
         }
         
-        const { error } = await updatePassword(formData.newPassword);
+        const { error } = await supabase.auth.updateUser({
+          password: formData.newPassword
+        });
         if (error) {
           toast({
             title: "Error al actualizar contraseña",
@@ -85,7 +128,7 @@ const AuthPage = () => {
         }
       } else if (isPasswordRecovery) {
         const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-          redirectTo: `${window.location.origin}/auth?reset=true`
+          redirectTo: `${window.location.origin}/auth`
         });
         if (error) {
           toast({
