@@ -136,19 +136,19 @@ export const BalanceSituacionPage = () => {
     { 
       name: 'Existencias', 
       value: 300000, 
-      percentage: calculatePercentages(300000, balanceData.activo_total),
+      percentage: calculatePercentages(300000, financialData.activo_total),
       color: '#5F9EA0' 
     },
     { 
       name: 'Deudores', 
       value: 480000, 
-      percentage: calculatePercentages(480000, balanceData.activo_total),
+      percentage: calculatePercentages(480000, financialData.activo_total),
       color: '#87CEEB' 
     },
     { 
       name: 'Tesorería', 
       value: 120000, 
-      percentage: calculatePercentages(120000, balanceData.activo_total),
+      percentage: calculatePercentages(120000, financialData.activo_total),
       color: '#10B981' 
     }
   ];
@@ -163,14 +163,14 @@ export const BalanceSituacionPage = () => {
     },
     { 
       name: 'Deuda L/P', 
-      value: balanceData.deuda_largo, 
-      percentage: calculatePercentages(balanceData.deuda_largo, balanceData.activo_total),
+      value: financialData.deuda_largo, 
+      percentage: calculatePercentages(financialData.deuda_largo, financialData.activo_total),
       color: '#F59E0B' 
     },
     { 
       name: 'Deuda C/P', 
-      value: balanceData.deuda_corto, 
-      percentage: calculatePercentages(balanceData.deuda_corto, balanceData.activo_total),
+      value: financialData.deuda_corto, 
+      percentage: calculatePercentages(financialData.deuda_corto, financialData.activo_total),
       color: '#EF4444' 
     }
   ];
@@ -198,7 +198,7 @@ export const BalanceSituacionPage = () => {
           anterior: 750000, 
           variacion: 50000, 
           variacionPct: 6.7,
-          porcentaje: calculatePercentages(800000, balanceData.activo_total)
+          porcentaje: calculatePercentages(800000, financialData.activo_total)
         },
         { 
           concepto: 'Inmovilizado Intangible', 
@@ -206,7 +206,7 @@ export const BalanceSituacionPage = () => {
           anterior: 280000, 
           variacion: 20000, 
           variacionPct: 7.1,
-          porcentaje: calculatePercentages(300000, balanceData.activo_total)
+          porcentaje: calculatePercentages(300000, financialData.activo_total)
         },
         { 
           concepto: 'Inversiones Financieras L/P', 
@@ -214,7 +214,7 @@ export const BalanceSituacionPage = () => {
           anterior: 90000, 
           variacion: 10000, 
           variacionPct: 11.1,
-          porcentaje: calculatePercentages(100000, balanceData.activo_total)
+          porcentaje: calculatePercentages(100000, financialData.activo_total)
         }
       ]
     },
@@ -227,7 +227,7 @@ export const BalanceSituacionPage = () => {
           anterior: 280000, 
           variacion: 20000, 
           variacionPct: 7.1,
-          porcentaje: calculatePercentages(300000, balanceData.activo_total)
+          porcentaje: calculatePercentages(300000, financialData.activo_total)
         },
         { 
           concepto: 'Deudores Comerciales', 
@@ -235,7 +235,7 @@ export const BalanceSituacionPage = () => {
           anterior: 350000, 
           variacion: 50000, 
           variacionPct: 14.3,
-          porcentaje: calculatePercentages(400000, balanceData.activo_total)
+          porcentaje: calculatePercentages(400000, financialData.activo_total)
         },
         { 
           concepto: 'Otros Créditos', 
@@ -243,7 +243,7 @@ export const BalanceSituacionPage = () => {
           anterior: 70000, 
           variacion: 10000, 
           variacionPct: 14.3,
-          porcentaje: calculatePercentages(80000, balanceData.activo_total)
+          porcentaje: calculatePercentages(80000, financialData.activo_total)
         },
         { 
           concepto: 'Tesorería', 
@@ -251,7 +251,7 @@ export const BalanceSituacionPage = () => {
           anterior: 130000, 
           variacion: -10000, 
           variacionPct: -7.7,
-          porcentaje: calculatePercentages(120000, balanceData.activo_total)
+          porcentaje: calculatePercentages(120000, financialData.activo_total)
         }
       ]
     },
@@ -264,7 +264,7 @@ export const BalanceSituacionPage = () => {
           anterior: 300000, 
           variacion: 0, 
           variacionPct: 0,
-          porcentaje: calculatePercentages(300000, balanceData.activo_total)
+          porcentaje: calculatePercentages(300000, financialData.activo_total)
         },
         { 
           concepto: 'Reservas', 
@@ -272,7 +272,7 @@ export const BalanceSituacionPage = () => {
           anterior: 400000, 
           variacion: 50000, 
           variacionPct: 12.5,
-          porcentaje: calculatePercentages(450000, balanceData.activo_total)
+          porcentaje: calculatePercentages(450000, financialData.activo_total)
         },
         { 
           concepto: 'Resultado del Ejercicio', 
@@ -280,7 +280,7 @@ export const BalanceSituacionPage = () => {
           anterior: 70000, 
           variacion: 20000, 
           variacionPct: 28.6,
-          porcentaje: calculatePercentages(90000, balanceData.activo_total)
+          porcentaje: calculatePercentages(90000, financialData.activo_total)
         }
       ]
     },
@@ -293,7 +293,7 @@ export const BalanceSituacionPage = () => {
           anterior: 650000, 
           variacion: -50000, 
           variacionPct: -7.7,
-          porcentaje: calculatePercentages(600000, balanceData.activo_total)
+          porcentaje: calculatePercentages(600000, financialData.activo_total)
         },
         { 
           concepto: 'Otras Deudas L/P', 
@@ -301,7 +301,7 @@ export const BalanceSituacionPage = () => {
           anterior: 100000, 
           variacion: 20000, 
           variacionPct: 20,
-          porcentaje: calculatePercentages(120000, balanceData.activo_total)
+          porcentaje: calculatePercentages(120000, financialData.activo_total)
         }
       ]
     },
@@ -314,7 +314,7 @@ export const BalanceSituacionPage = () => {
           anterior: 220000, 
           variacion: 20000, 
           variacionPct: 9.1,
-          porcentaje: calculatePercentages(240000, balanceData.activo_total)
+          porcentaje: calculatePercentages(240000, financialData.activo_total)
         },
         { 
           concepto: 'Acreedores Comerciales', 
@@ -322,7 +322,7 @@ export const BalanceSituacionPage = () => {
           anterior: 230000, 
           variacion: 20000, 
           variacionPct: 8.7,
-          porcentaje: calculatePercentages(250000, balanceData.activo_total)
+          porcentaje: calculatePercentages(250000, financialData.activo_total)
         },
         { 
           concepto: 'Otras Deudas C/P', 
@@ -330,7 +330,7 @@ export const BalanceSituacionPage = () => {
           anterior: 80000, 
           variacion: -30000, 
           variacionPct: -37.5,
-          porcentaje: calculatePercentages(50000, balanceData.activo_total)
+          porcentaje: calculatePercentages(50000, financialData.activo_total)
         }
       ]
     }
@@ -760,7 +760,7 @@ export const BalanceSituacionPage = () => {
                                   </span>
                                 </TableCell>
                                  <TableCell className="text-right font-bold">
-                                   <PercentageBadge percentage={((grupo.items.reduce((sum, item) => sum + item.actual, 0) / balanceData.activo_total) * 100)} />
+                                   <PercentageBadge percentage={((grupo.items.reduce((sum, item) => sum + item.actual, 0) / financialData.activo_total) * 100)} />
                                  </TableCell>
                               </TableRow>
                             </CollapsibleTrigger>
