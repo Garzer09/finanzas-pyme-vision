@@ -778,13 +778,14 @@ export const BalanceSituacionPage = () => {
                           margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                         >
                          <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
-                         <XAxis 
-                           dataKey="categoria"
-                           className="text-xs fill-gray-600"
-                           angle={-45}
-                           textAnchor="end"
-                           height={80}
-                         />
+                          <XAxis 
+                            dataKey="category"
+                            className="text-xs fill-gray-600"
+                            angle={0}
+                            textAnchor="middle"
+                            height={100}
+                            interval={0}
+                          />
                          <YAxis 
                            className="text-xs fill-gray-600"
                            tickFormatter={formatCurrency}
