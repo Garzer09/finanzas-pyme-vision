@@ -1,0 +1,31 @@
+Entidad Financiera,Tipo de Financiación,Principal Inicial,Saldo Pendiente 2022,Saldo Pendiente 2023,Saldo Pendiente 2024,Tipo de Interés (%),Vencimiento,Garantías,Observaciones
+"DEUDA A LARGO PLAZO",,,,,,,,,
+Banco Santander,Préstamo Hipotecario,500000,450000,400000,350000,3.5,31/12/2028,"Hipoteca sobre inmueble","Cuota mensual fija"
+BBVA,Préstamo ICO,200000,160000,120000,80000,2.8,30/06/2027,"Aval personal","Carencia de capital 2 años"
+CaixaBank,Leasing Maquinaria,150000,120000,90000,60000,4.2,15/03/2026,"Maquinaria","Opción de compra al final"
+"DEUDA A CORTO PLAZO",,,,,,,,,
+Banco Sabadell,Línea de Crédito,100000,75000,50000,80000,5.1,Renovación anual,"Sin garantías específicas","Utilización variable"
+BBVA,Póliza de Crédito,75000,60000,45000,55000,4.8,Renovación anual,"Aval solidario","Para circulante"
+Bankinter,Descuento Comercial,50000,40000,35000,45000,3.9,A la vista,"Facturas descontadas","Línea automática"
+"FINANCIACIÓN ALTERNATIVA",,,,,,,,,
+ENISA,Préstamo Participativo,100000,90000,80000,70000,5.5,31/12/2029,"Sin garantías","Interés variable con resultados"
+Crowdcube,Financiación Participativa,50000,50000,50000,50000,0,N/A,"Participación accionarial","Sin intereses, equity"
+"TOTALES",,,,,,,,,
+Total Deuda Largo Plazo,,850000,730000,610000,490000,,,,
+Total Deuda Corto Plazo,,225000,175000,130000,180000,,,,
+Total Pool de Deuda,,1075000,905000,740000,670000,,,,
+,,,,,,,,,
+"INFORMACIÓN ADICIONAL",,,,,,,,,
+Concepto,,,2022,2023,2024,,,,
+Gastos financieros totales,,,45000,38000,35000,,,,
+Amortizaciones pagadas,,,170000,165000,70000,,,,
+Nuevas disposiciones,,,0,0,0,,,,
+Ratio de endeudamiento,,,0.55,0.48,0.42,,,,
+Cobertura de intereses (EBIT/GF),,,5.2,6.8,7.1,,,,
+"VENCIMIENTOS POR AÑOS",,,,,,,,,
+Año,Importe a Vencer,,,,,,,
+2025,180000,,,,,,,
+2026,220000,,,,,,,
+2027,150000,,,,,,,
+2028,120000,,,,,,,
+2029 y posteriores,0,,,,,,,

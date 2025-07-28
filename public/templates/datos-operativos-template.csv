@@ -1,0 +1,36 @@
+Concepto,Unidad,2022,2023,2024,Descripción
+"DATOS DE PRODUCCIÓN",,,,,
+Unidades producidas,unidades,0,0,0,"Cantidad total de productos fabricados"
+Unidades vendidas,unidades,0,0,0,"Cantidad de productos vendidos"
+Capacidad instalada,unidades,0,0,0,"Capacidad máxima de producción"
+Utilización de capacidad,%,=C3/C5*100,=D3/D5*100,=E3/E5*100,"Porcentaje de uso de la capacidad"
+"RECURSOS HUMANOS",,,,,
+Número de empleados,personas,0,0,0,"Plantilla total al final del período"
+Empleados producción,personas,0,0,0,"Personal directo de producción"
+Empleados administración,personas,0,0,0,"Personal administrativo y dirección"
+Horas trabajadas,horas,0,0,0,"Total de horas laboradas en el período"
+Productividad por empleado,unidades/empleado,=C3/C7,=D3/D7,=E3/E7,"Unidades producidas por empleado"
+"COSTES UNITARIOS",,,,,
+Coste unitario de producción,€/unidad,0,0,0,"Coste total de producción por unidad"
+Coste de materia prima por unidad,€/unidad,0,0,0,"Coste de materias primas por unidad"
+Coste de mano de obra directa por unidad,€/unidad,0,0,0,"Coste laboral directo por unidad"
+Precio de venta medio,€/unidad,0,0,0,"Precio promedio de venta por unidad"
+Margen unitario,€/unidad,=E15-E12,=E15-E12,=E15-E12,"Margen bruto por unidad vendida"
+"INDICADORES DE CALIDAD",,,,,
+Tasa de defectos,%,0,0,0,"Porcentaje de productos defectuosos"
+Devoluciones,%,0,0,0,"Porcentaje de productos devueltos"
+Satisfacción del cliente,puntos,0,0,0,"Índice de satisfacción (escala 1-10)"
+"INDICADORES LOGÍSTICOS",,,,,
+Días de inventario,días,0,0,0,"Días promedio de stock"
+Rotación de inventario,veces/año,0,0,0,"Veces que se renueva el inventario al año"
+Tiempo de entrega promedio,días,0,0,0,"Días promedio para entregar pedidos"
+Nivel de servicio,%,0,0,0,"Porcentaje de pedidos entregados a tiempo"
+"INDICADORES ENERGÉTICOS",,,,,
+Consumo energético total,kWh,0,0,0,"Consumo total de energía eléctrica"
+Consumo por unidad producida,kWh/unidad,=C25/C3,=D25/D3,=E25/E3,"Energía consumida por unidad"
+Coste energético,€,0,0,0,"Gasto total en energía"
+"OTROS INDICADORES",,,,,
+Superficie instalaciones,m²,0,0,0,"Metros cuadrados de instalaciones"
+Inversión en I+D,€,0,0,0,"Inversión en investigación y desarrollo"
+Número de clientes activos,clientes,0,0,0,"Clientes que compraron en el período"
+Ticket medio por cliente,€/cliente,0,0,0,"Venta promedio por cliente"

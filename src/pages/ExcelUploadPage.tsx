@@ -39,9 +39,62 @@ const ExcelUploadPage = () => {
           >
             <div className="mb-6">
               <h1 className="text-3xl font-bold text-foreground mb-2">Subir Archivo Excel</h1>
-              <p className="text-muted-foreground">
+              <p className="text-muted-foreground mb-4">
                 Sube tu archivo Excel con los datos financieros para generar automáticamente todos los análisis y proyecciones.
               </p>
+              
+              <div className="bg-card border border-border rounded-lg p-6 mb-6">
+                <h2 className="text-xl font-semibold text-foreground mb-4">📋 Plantilla Estándar Excel</h2>
+                <p className="text-muted-foreground mb-4">
+                  Para facilitar la carga y reducir errores, descarga nuestra plantilla estándar que incluye todas las hojas necesarias con validaciones automáticas.
+                </p>
+                
+                <div className="flex flex-wrap gap-4 mb-4">
+                  <a 
+                    href="/templates/balance-situacion-template.csv" 
+                    download="Balance-Situacion-Template.csv"
+                    className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                  >
+                    📊 Balance de Situación
+                  </a>
+                  <a 
+                    href="/templates/cuenta-pyg-template.csv" 
+                    download="Cuenta-PyG-Template.csv"
+                    className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                  >
+                    💰 Cuenta de PyG
+                  </a>
+                  <a 
+                    href="/templates/ratios-financieros-template.csv" 
+                    download="Ratios-Financieros-Template.csv"
+                    className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                  >
+                    📈 Ratios Financieros
+                  </a>
+                  <a 
+                    href="/templates/datos-operativos-template.csv" 
+                    download="Datos-Operativos-Template.csv"
+                    className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                  >
+                    🏭 Datos Operativos
+                  </a>
+                  <a 
+                    href="/templates/pool-deuda-template.csv" 
+                    download="Pool-Deuda-Template.csv"
+                    className="inline-flex items-center px-4 py-2 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80 transition-colors"
+                  >
+                    🏦 Pool de Deuda
+                  </a>
+                </div>
+                
+                <a 
+                  href="/templates/instrucciones-plantilla.md" 
+                  download="Instrucciones-Plantilla.md"
+                  className="inline-flex items-center px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                >
+                  📖 Descargar Instrucciones Completas
+                </a>
+              </div>
             </div>
 
             <ExcelUpload onUploadComplete={handleUploadComplete} />
