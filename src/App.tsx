@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { PeriodProvider } from "./contexts/PeriodContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import HomePage from "./pages/HomePage";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -54,6 +55,7 @@ const App = () => (
           <Sonner />
         <Routes>
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/" element={<Index />} />
           <Route path="/home" element={<HomePage />} />
          <Route path="/subir-excel" element={<ExcelUploadPage />} />

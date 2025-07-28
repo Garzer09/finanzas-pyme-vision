@@ -39,109 +39,12 @@ const AuthPage = () => {
   });
 
   useEffect(() => {
-    // Check for password recovery tokens in URL fragments
-    const handlePasswordRecovery = async () => {
-      const hash = window.location.hash;
-      console.log('URL hash:', hash);
-      
-      // If no hash, no need to process anything
-      if (!hash) {
-        setTokenLoading(false);
-        return;
-      }
-      
-      setTokenLoading(true);
-      
-      try {
-        const urlParams = new URLSearchParams(hash.substring(1)); // Remove the '#' and parse
-        
-        const accessToken = urlParams.get('access_token');
-        const refreshToken = urlParams.get('refresh_token');
-        const type = urlParams.get('type');
-        const error = urlParams.get('error');
-        const errorDescription = urlParams.get('error_description');
-        
-        console.log('Recovery tokens found:', { 
-          accessToken: accessToken ? 'presente' : 'ausente',
-          refreshToken: refreshToken ? 'presente' : 'ausente', 
-          type,
-          error,
-          errorDescription
-        });
-        
-        // Clean the URL immediately to prevent reprocessing
-        window.history.replaceState({}, document.title, '/auth');
-        
-        // Handle error cases first
-        if (error) {
-          console.error('Error in URL:', error, errorDescription);
-          toast({
-            title: "Error en el enlace de recuperación",
-            description: errorDescription || "El enlace de recuperación es inválido o ha expirado",
-            variant: "destructive"
-          });
-          return;
-        }
-        
-        // Check if we have the required tokens for recovery
-        if (accessToken && refreshToken && type === 'recovery') {
-          console.log('Tokens de recovery encontrados, activando modo recuperación...');
-          
-          // Set recovery mode flag to prevent automatic redirect
-          setIsRecoveryMode(true);
-          
-          // Set the session with the recovery tokens
-          const { error: setSessionError } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
-          });
-          
-          console.log('Resultado de setSession:', { error: setSessionError });
-          
-          if (setSessionError) {
-            console.error('Error setting session:', setSessionError);
-            setIsRecoveryMode(false);
-            toast({
-              title: "Error en el enlace de recuperación",
-              description: setSessionError.message || "El enlace de recuperación es inválido o ha expirado",
-              variant: "destructive"
-            });
-          } else {
-            // Successfully authenticated with recovery token - show password reset form
-            setIsPasswordReset(true);
-            setIsLogin(false);
-            setIsPasswordRecovery(false);
-            
-            toast({
-              title: "Enlace verificado",
-              description: "Ahora puedes establecer tu nueva contraseña"
-            });
-          }
-        } else if (type === 'recovery') {
-          // We have a recovery type but missing tokens
-          console.error('Recovery type found but missing required tokens');
-          toast({
-            title: "Error en el enlace de recuperación",
-            description: "El enlace de recuperación es inválido o ha expirado",
-            variant: "destructive"
-          });
-        }
-        // If no recovery type, just continue normally (no error needed)
-        
-      } catch (err) {
-        console.error('Error processing recovery token:', err);
-        toast({
-          title: "Error",
-          description: "Ocurrió un error al procesar el enlace de recuperación",
-          variant: "destructive"
-        });
-      } finally {
-        setTokenLoading(false);
-      }
-    };
-
-    handlePasswordRecovery();
-  }, []);
+    // Redirect authenticated users unless in recovery mode
+    if (user && !isRecoveryMode) {
+      return;
+    }
+    setTokenLoading(false);
+  }, [user, isRecoveryMode]);
   // Only redirect to home if user is logged in AND not in recovery mode
   if (user && !isRecoveryMode) {
     return <Navigate to="/home" replace />;
@@ -192,11 +95,8 @@ const AuthPage = () => {
           }, 1500);
         }
       } else if (isPasswordRecovery) {
-        console.log('Current origin:', window.location.origin);
-        const redirectUrl = `${window.location.origin}/auth`;
-        console.log('Using redirect URL:', redirectUrl);
         const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-          redirectTo: redirectUrl
+          redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) {
           toast({
