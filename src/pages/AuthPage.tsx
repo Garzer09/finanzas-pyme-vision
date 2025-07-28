@@ -116,44 +116,6 @@ const AuthPage = () => {
             description: "Has iniciado sesión correctamente"
           });
         }
-      } else {
-        if (formData.password !== formData.confirmPassword) {
-          toast({
-            title: "Error",
-            description: "Las contraseñas no coinciden",
-            variant: "destructive"
-          });
-          return;
-        }
-        if (!formData.acceptTerms) {
-          toast({
-            title: "Error",
-            description: "Debes aceptar los términos y condiciones",
-            variant: "destructive"
-          });
-          return;
-        }
-        const {
-          error
-        } = await signUp(formData.email, formData.password, {
-          full_name: formData.fullName,
-          company_name: formData.companyName,
-          sector: formData.sector,
-          revenue_range: formData.revenue,
-          employees_count: formData.employees
-        });
-        if (error) {
-          toast({
-            title: "Error al registrarse",
-            description: error.message,
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "¡Registro exitoso!",
-            description: "Revisa tu email para confirmar tu cuenta"
-          });
-        }
       }
     } finally {
       setLoading(false);
@@ -183,9 +145,7 @@ const AuthPage = () => {
                 ? 'Nueva Contraseña' 
                 : isPasswordRecovery 
                   ? 'Recuperar Contraseña' 
-                  : isLogin 
-                    ? 'Iniciar Sesión' 
-                    : 'Crear Cuenta'
+                  : 'Iniciar Sesión'
               }
             </CardTitle>
             <CardDescription>
@@ -193,76 +153,13 @@ const AuthPage = () => {
                 ? 'Establece tu nueva contraseña'
                 : isPasswordRecovery 
                   ? 'Introduce tu email para recibir un enlace de recuperación' 
-                  : isLogin 
-                    ? 'Accede a tu dashboard de análisis financiero' 
-                    : 'Únete a FinSight y transforma el análisis financiero de tu PYME'
+                  : 'Accede a tu dashboard de análisis financiero'
               }
             </CardDescription>
           </CardHeader>
 
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {!isLogin && !isPasswordRecovery && !isPasswordReset && <>
-                  <div className="space-y-2">
-                    <Label htmlFor="fullName">Nombre Completo</Label>
-                    <Input id="fullName" type="text" value={formData.fullName} onChange={e => handleInputChange('fullName', e.target.value)} required />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="companyName">Nombre de la Empresa</Label>
-                    <Input id="companyName" type="text" value={formData.companyName} onChange={e => handleInputChange('companyName', e.target.value)} required />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="sector">Sector</Label>
-                      <Select value={formData.sector} onValueChange={value => handleInputChange('sector', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="tecnologia">Tecnología</SelectItem>
-                          <SelectItem value="retail">Retail</SelectItem>
-                          <SelectItem value="servicios">Servicios</SelectItem>
-                          <SelectItem value="manufactura">Manufactura</SelectItem>
-                          <SelectItem value="construccion">Construcción</SelectItem>
-                          <SelectItem value="otros">Otros</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="employees">Empleados</Label>
-                      <Select value={formData.employees} onValueChange={value => handleInputChange('employees', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecciona" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1-10">1-10</SelectItem>
-                          <SelectItem value="11-50">11-50</SelectItem>
-                          <SelectItem value="51-250">51-250</SelectItem>
-                          <SelectItem value="250+">250+</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="revenue">Facturación Anual</Label>
-                    <Select value={formData.revenue} onValueChange={value => handleInputChange('revenue', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona rango" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="<100k">Menos de 100.000 €</SelectItem>
-                        <SelectItem value="100k-500k">100.000 € - 500.000 €</SelectItem>
-                        <SelectItem value="500k-2M">500.000 € - 2.000.000 €</SelectItem>
-                        <SelectItem value="2M-10M">2.000.000 € - 10.000.000 €</SelectItem>
-                        <SelectItem value="10M+">Más de 10.000.000 €</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </>}
 
               {isPasswordReset ? (
                 <>
@@ -302,11 +199,6 @@ const AuthPage = () => {
                       <Input id="password" type="password" value={formData.password} onChange={e => handleInputChange('password', e.target.value)} required />
                     </div>
                   </>}
-
-                  {!isLogin && !isPasswordRecovery && <div className="space-y-2">
-                      <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
-                      <Input id="confirmPassword" type="password" value={formData.confirmPassword} onChange={e => handleInputChange('confirmPassword', e.target.value)} required />
-                    </div>}
                 </>
               )}
 
@@ -324,12 +216,6 @@ const AuthPage = () => {
                   </button>
                 </div>}
 
-              {!isLogin && !isPasswordRecovery && <div className="flex items-center space-x-2">
-                  <Checkbox id="acceptTerms" checked={formData.acceptTerms} onCheckedChange={checked => handleInputChange('acceptTerms', checked as boolean)} />
-                  <Label htmlFor="acceptTerms" className="text-sm">
-                    Acepto los términos y condiciones
-                  </Label>
-                </div>}
 
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? <div className="flex items-center gap-2">
@@ -338,17 +224,13 @@ const AuthPage = () => {
                       ? 'Actualizando contraseña...' 
                       : isPasswordRecovery 
                         ? 'Enviando email...' 
-                        : isLogin 
-                          ? 'Iniciando sesión...' 
-                          : 'Creando cuenta...'
+                        : 'Iniciando sesión...'
                     }
                   </div> : isPasswordReset 
                     ? 'Actualizar Contraseña' 
                     : isPasswordRecovery 
                       ? 'Enviar Email' 
-                      : isLogin 
-                        ? 'Iniciar Sesión' 
-                        : 'Crear Cuenta'
+                      : 'Iniciar Sesión'
                 }
               </Button>
 
@@ -377,11 +259,7 @@ const AuthPage = () => {
                   >
                     ← Volver al inicio de sesión
                   </button>
-                ) : (
-                  <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-primary hover:text-primary/80 transition-colors text-sm">
-                    {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
-                  </button>
-                )}
+                ) : null}
               </div>
             </form>
           </CardContent>
