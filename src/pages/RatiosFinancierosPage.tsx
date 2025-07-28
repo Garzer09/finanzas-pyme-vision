@@ -88,6 +88,42 @@ export const RatiosFinancierosPage = () => {
         { min: 2.5, max: 10, color: '#10B981', label: 'Adecuada' }
       ],
       description: 'Capacidad para cubrir gastos financieros'
+    },
+    {
+      label: 'Deuda/EBITDA',
+      value: 2.8,
+      unit: 'x',
+      max: 5,
+      ranges: [
+        { min: 0, max: 2, color: '#10B981', label: 'Conservador' },
+        { min: 2, max: 3.5, color: '#F59E0B', label: 'Moderado' },
+        { min: 3.5, max: 5, color: '#EF4444', label: 'Agresivo' }
+      ],
+      description: 'Capacidad de pago de deuda vs. generación de caja'
+    },
+    {
+      label: 'Apalancamiento Financiero',
+      value: 2.5,
+      unit: 'x',
+      max: 4,
+      ranges: [
+        { min: 0, max: 2, color: '#10B981', label: 'Bajo' },
+        { min: 2, max: 3, color: '#F59E0B', label: 'Moderado' },
+        { min: 3, max: 4, color: '#EF4444', label: 'Alto' }
+      ],
+      description: 'Activos financiados con deuda vs. patrimonio'
+    },
+    {
+      label: 'Ratio de Capitalización',
+      value: 45.8,
+      unit: '%',
+      max: 100,
+      ranges: [
+        { min: 0, max: 30, color: '#10B981', label: 'Bajo' },
+        { min: 30, max: 60, color: '#F59E0B', label: 'Moderado' },
+        { min: 60, max: 100, color: '#EF4444', label: 'Alto' }
+      ],
+      description: 'Deuda a largo plazo sobre capitalización total'
     }
   ];
 
@@ -116,6 +152,24 @@ export const RatiosFinancierosPage = () => {
       icon: AlertTriangle,
       title: 'ROA Mejorable',
       message: 'La rentabilidad sobre activos (1.5%) indica oportunidades de mejora en la eficiencia del uso de recursos.'
+    },
+    {
+      type: 'warning',
+      icon: AlertTriangle,
+      title: 'Deuda/EBITDA Elevado',
+      message: 'El ratio Deuda/EBITDA (2.8x) está en zona moderada. Monitorear la capacidad de generación de caja para servicio de deuda.'
+    },
+    {
+      type: 'success',
+      icon: CheckCircle,
+      title: 'Apalancamiento Controlado',
+      message: 'El apalancamiento financiero (2.5x) se mantiene en niveles moderados, permitiendo cierta flexibilidad de crecimiento.'
+    },
+    {
+      type: 'warning',
+      icon: AlertTriangle,
+      title: 'Capitalización a Monitorear',
+      message: 'El ratio de capitalización (45.8%) está en zona moderada. Evaluar equilibrio entre deuda a largo plazo y patrimonio.'
     }
   ];
 
