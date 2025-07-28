@@ -190,6 +190,35 @@ export const BalanceSituacionPage = () => {
     { period: 'T4-23', value: 360000 }
   ];
 
+  // Simplified chart data for Balance Comparativo Visual
+  const balanceComparativoData = [
+    {
+      category: 'Activo No Corriente',
+      '2023': 1200000,
+      '2022': 1120000
+    },
+    {
+      category: 'Activo Corriente',
+      '2023': 900000,
+      '2022': 830000
+    },
+    {
+      category: 'Patrimonio Neto',
+      '2023': 840000,
+      '2022': 770000
+    },
+    {
+      category: 'Pasivo No Corriente',
+      '2023': 720000,
+      '2022': 750000
+    },
+    {
+      category: 'Pasivo Corriente',
+      '2023': 540000,
+      '2022': 430000
+    }
+  ];
+
   // Detailed balance data for expandable table with percentages
   const detailedBalanceData = [
     {
@@ -744,36 +773,10 @@ export const BalanceSituacionPage = () => {
                  <CardContent>
                    <div className="h-96">
                      <ResponsiveContainer width="100%" height="100%">
-                       <BarChart 
-                         data={[
-                           {
-                             categoria: 'Activo No Corriente',
-                             '2023': detailedBalanceData[0].items.reduce((sum, item) => sum + item.actual, 0),
-                             '2022': detailedBalanceData[0].items.reduce((sum, item) => sum + item.anterior, 0)
-                           },
-                           {
-                             categoria: 'Activo Corriente',
-                             '2023': detailedBalanceData[1].items.reduce((sum, item) => sum + item.actual, 0),
-                             '2022': detailedBalanceData[1].items.reduce((sum, item) => sum + item.anterior, 0)
-                           },
-                           {
-                             categoria: 'Patrimonio Neto',
-                             '2023': detailedBalanceData[2].items.reduce((sum, item) => sum + item.actual, 0),
-                             '2022': detailedBalanceData[2].items.reduce((sum, item) => sum + item.anterior, 0)
-                           },
-                           {
-                             categoria: 'Pasivo No Corriente',
-                             '2023': detailedBalanceData[3].items.reduce((sum, item) => sum + item.actual, 0),
-                             '2022': detailedBalanceData[3].items.reduce((sum, item) => sum + item.anterior, 0)
-                           },
-                           {
-                             categoria: 'Pasivo Corriente',
-                             '2023': detailedBalanceData[4].items.reduce((sum, item) => sum + item.actual, 0),
-                             '2022': detailedBalanceData[4].items.reduce((sum, item) => sum + item.anterior, 0)
-                           }
-                         ]}
-                         margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                       >
+                        <BarChart 
+                          data={balanceComparativoData}
+                          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                        >
                          <CartesianGrid strokeDasharray="3 3" className="stroke-gray-200" />
                          <XAxis 
                            dataKey="categoria"
