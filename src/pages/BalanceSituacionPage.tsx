@@ -855,11 +855,11 @@ export const BalanceSituacionPage = () => {
                       <TableHeader>
                         <TableRow className="bg-gradient-to-r from-steel-50/50 to-cadet-50/30">
                           <TableHead className="font-bold text-slate-800">Concepto</TableHead>
-                          <TableHead className="text-right font-bold text-slate-800">2023</TableHead>
-                          <TableHead className="text-right font-bold text-slate-800">2022</TableHead>
-                          <TableHead className="text-right font-bold text-slate-800">Var €</TableHead>
-                          <TableHead className="text-right font-bold text-slate-800">Var %</TableHead>
-                          <TableHead className="text-right font-bold text-slate-800">% Total</TableHead>
+                           <TableHead className="text-left font-bold text-slate-800">2023</TableHead>
+                           <TableHead className="text-left font-bold text-slate-800">2022</TableHead>
+                           <TableHead className="text-left font-bold text-slate-800">Var €</TableHead>
+                           <TableHead className="text-left font-bold text-slate-800">Var %</TableHead>
+                           <TableHead className="text-left font-bold text-slate-800">% Total</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
