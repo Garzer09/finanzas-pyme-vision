@@ -19,7 +19,7 @@ import {
   Clock
 } from 'lucide-react';
 import { ExcelUpload } from '@/components/ExcelUpload';
-import { UserCreationWizard } from '@/components/admin/UserCreationWizard';
+import { EnhancedUserCreationWizard } from './EnhancedUserCreationWizard';
 import { UserEditDialog } from '@/components/admin/UserEditDialog';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 
@@ -305,8 +305,8 @@ export const AdminDashboard = () => {
                   Crear Usuario
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-4xl">
-                <UserCreationWizard
+              <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+                <EnhancedUserCreationWizard
                   onComplete={handleUserCreated}
                   onCancel={() => setShowUserWizard(false)}
                 />
@@ -338,6 +338,14 @@ export const AdminDashboard = () => {
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(`/?user=${user.user_id}`, '_blank')}
+                        >
+                          <Activity className="h-4 w-4 mr-2" />
+                          Ver Dashboard
+                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
