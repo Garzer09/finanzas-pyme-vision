@@ -230,45 +230,7 @@ const AuthPage = () => {
       </div>
 
       {/* Hero Section */}
-      <div className="hidden lg:flex w-3/5 items-center justify-center p-12 bg-gradient-to-br from-steel-blue to-steel-blue-light text-white">
-        <div className="max-w-lg text-center space-y-8">
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="flex flex-col items-center p-4 bg-white/10 rounded-lg backdrop-blur-sm">
-              <BarChart3 className="h-8 w-8 mb-2" />
-              <span className="text-sm">Análisis</span>
-            </div>
-            <div className="flex flex-col items-center p-4 bg-white/10 rounded-lg backdrop-blur-sm">
-              <PieChart className="h-8 w-8 mb-2" />
-              <span className="text-sm">Ratios</span>
-            </div>
-            <div className="flex flex-col items-center p-4 bg-white/10 rounded-lg backdrop-blur-sm">
-              <DollarSign className="h-8 w-8 mb-2" />
-              <span className="text-sm">Flujos</span>
-            </div>
-          </div>
-
-          <h1 className="text-4xl font-bold leading-tight">
-            Transforma el Análisis Financiero de tu PYME
-          </h1>
-          
-          
-
-          <div className="grid grid-cols-1 gap-4 mt-8">
-            <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
-              <Shield className="h-5 w-5" />
-              
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
-              <Zap className="h-5 w-5" />
-              <span>KPIs y alertas inteligentes en tiempo real</span>
-            </div>
-            <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
-              <TrendingUp className="h-5 w-5" />
-              
-            </div>
-          </div>
-        </div>
-      </div>
+      
     </div>;
 };
 export default AuthPage;
