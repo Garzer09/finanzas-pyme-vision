@@ -1,21 +1,24 @@
 import { UseFormReturn } from "react-hook-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Button } from "@/components/ui/button"
 import { HelpCircle } from "lucide-react"
-import { NumberInput } from "@/components/ui/number-input"
-import { WorkingCapital } from "@/schemas/financial-assumptions"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { SliderInput } from "@/components/ui/slider-input"
+import { type FinancialAssumptions } from "@/schemas/financial-assumptions"
 
 interface WorkingCapitalStepProps {
-  form: UseFormReturn<WorkingCapital>
+  form: UseFormReturn<FinancialAssumptions>
 }
 
 export function WorkingCapitalStep({ form }: WorkingCapitalStepProps) {
   const { watch, setValue, formState: { errors } } = form
-  
-  const collectionDays = watch("collectionDays") || 0
-  const paymentDays = watch("paymentDays") || 0
-  const inventoryDays = watch("inventoryDays") || 0
+
+  const collectionDays = watch("workingCapital.collectionDays") || 0
+  const paymentDays = watch("workingCapital.paymentDays") || 0
+  const inventoryDays = watch("workingCapital.inventoryDays") || 0
+
+  const cashConversionCycle = collectionDays + inventoryDays - paymentDays
 
   return (
     <Card className="w-full">
@@ -30,7 +33,7 @@ export function WorkingCapitalStep({ form }: WorkingCapitalStepProps) {
           {/* Collection Days */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label>Días de Cobro</Label>
+              <Label>Días de cobro promedio</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -42,25 +45,27 @@ export function WorkingCapitalStep({ form }: WorkingCapitalStepProps) {
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <NumberInput
-              label=""
+            <SliderInput
+              label="Días de cobro promedio"
               value={collectionDays}
-              onValueChange={(value) => setValue("collectionDays", value)}
+              onValueChange={(value) => setValue("workingCapital.collectionDays", value)}
               min={0}
               max={365}
               step={1}
               formatValue={(value) => `${value} días`}
-              aria-label="Días de cobro"
+              className="flex-1"
             />
-            {errors.collectionDays && (
-              <p className="text-destructive text-sm">{errors.collectionDays.message}</p>
+            {errors.workingCapital?.collectionDays && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.workingCapital.collectionDays.message}
+              </p>
             )}
           </div>
 
           {/* Payment Days */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label>Días de Pago</Label>
+              <Label>Días de pago promedio</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -72,25 +77,27 @@ export function WorkingCapitalStep({ form }: WorkingCapitalStepProps) {
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <NumberInput
-              label=""
+            <SliderInput
+              label="Días de pago promedio"
               value={paymentDays}
-              onValueChange={(value) => setValue("paymentDays", value)}
+              onValueChange={(value) => setValue("workingCapital.paymentDays", value)}
               min={0}
               max={365}
               step={1}
               formatValue={(value) => `${value} días`}
-              aria-label="Días de pago"
+              className="flex-1"
             />
-            {errors.paymentDays && (
-              <p className="text-destructive text-sm">{errors.paymentDays.message}</p>
+            {errors.workingCapital?.paymentDays && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.workingCapital.paymentDays.message}
+              </p>
             )}
           </div>
 
           {/* Inventory Days */}
           <div className="space-y-2 sm:col-span-2">
             <div className="flex items-center gap-2">
-              <Label>Días de Inventario</Label>
+              <Label>Días de inventario promedio</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -102,28 +109,30 @@ export function WorkingCapitalStep({ form }: WorkingCapitalStepProps) {
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <NumberInput
-              label=""
+            <SliderInput
+              label="Días de inventario promedio"
               value={inventoryDays}
-              onValueChange={(value) => setValue("inventoryDays", value)}
+              onValueChange={(value) => setValue("workingCapital.inventoryDays", value)}
               min={0}
               max={365}
               step={1}
               formatValue={(value) => `${value} días`}
-              aria-label="Días de inventario"
+              className="flex-1"
             />
-            {errors.inventoryDays && (
-              <p className="text-destructive text-sm">{errors.inventoryDays.message}</p>
+            {errors.workingCapital?.inventoryDays && (
+              <p className="text-sm text-destructive mt-1">
+                {errors.workingCapital.inventoryDays.message}
+              </p>
             )}
           </div>
         </div>
 
-        {/* Summary Card */}
+        {/* Cash Conversion Cycle Summary */}
         <Card className="bg-muted/50">
           <CardContent className="pt-6">
             <h4 className="font-semibold mb-2">Ciclo de Conversión de Efectivo</h4>
-            <p className="text-sm text-muted-foreground">
-              {collectionDays + inventoryDays - paymentDays} días
+            <p className="text-2xl font-bold text-primary">
+              {cashConversionCycle} días
             </p>
             <p className="text-xs text-muted-foreground mt-1">
               (Días de cobro + Días de inventario - Días de pago)

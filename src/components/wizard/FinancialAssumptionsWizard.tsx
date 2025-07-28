@@ -95,7 +95,7 @@ export function FinancialAssumptionsWizard() {
     mode: "onChange"
   })
 
-  const { watch, trigger, getValues } = form
+  const { watch, trigger, getValues, setError, clearErrors } = form
 
   // Auto-save with debounce
   const debouncedSave = debounce((data: FinancialAssumptions) => {
@@ -117,10 +117,34 @@ export function FinancialAssumptionsWizard() {
     const currentStepKey = Object.keys(defaultValues)[currentStep] as keyof FinancialAssumptions
     const currentStepData = getValues(currentStepKey)
     
+    console.log(`Validando paso ${currentStep} (${currentStepKey}):`, currentStepData)
+    
     try {
-      stepSchemas[currentStep].parse(currentStepData)
+      const result = stepSchemas[currentStep].safeParse(currentStepData)
+      
+      if (!result.success) {
+        console.log('Errores de validación:', result.error.errors)
+        
+        // Limpiar errores previos del paso actual
+        clearErrors(currentStepKey)
+        
+        // Marcar campos con errores en el formulario
+        result.error.errors.forEach(error => {
+          const fieldPath = `${currentStepKey}.${error.path.join('.')}` as any
+          setError(fieldPath, {
+            type: 'manual',
+            message: error.message
+          })
+        })
+        
+        return false
+      }
+      
+      // Limpiar errores si la validación es exitosa
+      clearErrors(currentStepKey)
       return true
-    } catch {
+    } catch (error) {
+      console.error('Error en validación:', error)
       return false
     }
   }
