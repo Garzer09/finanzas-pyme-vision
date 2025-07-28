@@ -22,6 +22,7 @@ const AuthPage = () => {
   const [isPasswordReset, setIsPasswordReset] = useState(false);
   const [loading, setLoading] = useState(false);
   const [tokenLoading, setTokenLoading] = useState(false);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false); // New state to track recovery mode
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -80,7 +81,11 @@ const AuthPage = () => {
         }
         
         if (accessToken && refreshToken && type === 'recovery') {
-          console.log('Intentando establecer sesión con tokens de recovery...');
+          console.log('Tokens de recovery encontrados, activando modo recuperación...');
+          
+          // Set recovery mode flag to prevent automatic redirect
+          setIsRecoveryMode(true);
+          
           // Set the session with the recovery tokens
           const { error: setSessionError } = await supabase.auth.setSession({
             access_token: accessToken,
@@ -91,13 +96,14 @@ const AuthPage = () => {
           
           if (setSessionError) {
             console.error('Error setting session:', setSessionError);
+            setIsRecoveryMode(false);
             toast({
               title: "Error en el enlace de recuperación",
               description: setSessionError.message || "El enlace de recuperación es inválido o ha expirado",
               variant: "destructive"
             });
           } else {
-            // Successfully authenticated with recovery token
+            // Successfully authenticated with recovery token - show password reset form
             setIsPasswordReset(true);
             setIsLogin(false);
             setIsPasswordRecovery(false);
@@ -127,7 +133,8 @@ const AuthPage = () => {
 
     handlePasswordRecovery();
   }, []);
-  if (user) {
+  // Only redirect to home if user is logged in AND not in recovery mode
+  if (user && !isRecoveryMode) {
     return <Navigate to="/home" replace />;
   }
   const handleInputChange = (field: string, value: string | boolean) => {
@@ -162,10 +169,18 @@ const AuthPage = () => {
         } else {
           toast({
             title: "Contraseña actualizada",
-            description: "Tu contraseña ha sido actualizada correctamente"
+            description: "Tu contraseña ha sido actualizada correctamente. Redirigiendo..."
           });
+          
+          // Exit recovery mode and allow normal navigation
+          setIsRecoveryMode(false);
           setIsPasswordReset(false);
           setIsLogin(true);
+          
+          // Redirect to home after successful password update
+          setTimeout(() => {
+            window.location.href = '/home';
+          }, 1500);
         }
       } else if (isPasswordRecovery) {
         console.log('Current origin:', window.location.origin);
