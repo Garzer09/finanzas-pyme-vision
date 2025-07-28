@@ -53,6 +53,51 @@ export type Database = {
         }
         Relationships: []
       }
+      company_shareholder_info: {
+        Row: {
+          board_of_directors: Json | null
+          company_name: string
+          created_at: string
+          data_source: string | null
+          founding_partners: Json | null
+          id: string
+          key_investors: Json | null
+          last_updated_by: string | null
+          management_team: Json | null
+          shareholder_structure: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          board_of_directors?: Json | null
+          company_name: string
+          created_at?: string
+          data_source?: string | null
+          founding_partners?: Json | null
+          id?: string
+          key_investors?: Json | null
+          last_updated_by?: string | null
+          management_team?: Json | null
+          shareholder_structure?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          board_of_directors?: Json | null
+          company_name?: string
+          created_at?: string
+          data_source?: string | null
+          founding_partners?: Json | null
+          id?: string
+          key_investors?: Json | null
+          last_updated_by?: string | null
+          management_team?: Json | null
+          shareholder_structure?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       data_mapping_rules: {
         Row: {
           confidence_score: number | null
@@ -340,6 +385,36 @@ export type Database = {
           region?: string
           source?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      shareholder_search_history: {
+        Row: {
+          company_name: string
+          id: string
+          search_date: string
+          search_query: string
+          search_results: Json
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          company_name: string
+          id?: string
+          search_date?: string
+          search_query: string
+          search_results: Json
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          id?: string
+          search_date?: string
+          search_query?: string
+          search_results?: Json
+          status?: string | null
+          user_id?: string
         }
         Relationships: []
       }
