@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate, useSearchParams } from 'react-router-dom';
+import { Navigate, useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,7 @@ const AuthPage = () => {
   const { user, signIn, signUp, updatePassword } = useAuth();
   const { logoUrl } = useCompanyLogo();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [isSignUp, setIsSignUp] = useState(false);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
@@ -329,6 +330,39 @@ const AuthPage = () => {
                         : 'Iniciar Sesión'
                 )}
               </Button>
+
+              {/* TEMPORARY: Validation access buttons */}
+              <div className="border-t pt-4 mt-4">
+                <p className="text-sm text-muted-foreground text-center mb-3">
+                  Acceso para validación (temporal)
+                </p>
+                <div className="grid gap-2">
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      localStorage.setItem('bypass_auth', 'true');
+                      localStorage.setItem('mock_role', 'admin');
+                      navigate('/');
+                    }}
+                  >
+                    🔧 Acceder como Administrador
+                  </Button>
+                  <Button 
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      localStorage.setItem('bypass_auth', 'true');
+                      localStorage.setItem('mock_role', 'user');
+                      navigate('/');
+                    }}
+                  >
+                    👤 Acceder como Usuario
+                  </Button>
+                </div>
+              </div>
 
               <Separator className="my-4" />
 

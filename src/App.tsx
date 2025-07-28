@@ -2,9 +2,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PeriodProvider } from "./contexts/PeriodContext";
+import { ValidationHeader } from "@/components/ValidationHeader";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
@@ -53,7 +54,9 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-        <Routes>
+          <Router>
+            <ValidationHeader />
+            <Routes>
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/" element={<Index />} />
@@ -110,7 +113,8 @@ const App = () => (
         <Route path="/conclusiones" element={<ConclusionsPage />} />
         
         <Route path="*" element={<NotFound />} />
-      </Routes>
+            </Routes>
+          </Router>
         </TooltipProvider>
       </PeriodProvider>
     </AuthProvider>

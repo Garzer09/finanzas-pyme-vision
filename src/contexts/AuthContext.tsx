@@ -29,6 +29,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
 
+  // TEMPORARY: Mock user system for validation
+  useEffect(() => {
+    const mockRole = localStorage.getItem('mock_role') as 'admin' | 'user' | null;
+    if (mockRole) {
+      setUserRole(mockRole);
+    }
+  }, []);
+
   const fetchUserRole = async (userId: string) => {
     try {
       const { data, error } = await supabase
