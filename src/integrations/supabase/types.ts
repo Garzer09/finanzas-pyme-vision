@@ -131,6 +131,42 @@ export type Database = {
         }
         Relationships: []
       }
+      detected_periods: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          file_id: string | null
+          id: string
+          is_selected: boolean | null
+          period_date: string
+          period_label: string
+          period_type: string
+          user_id: string
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          file_id?: string | null
+          id?: string
+          is_selected?: boolean | null
+          period_date: string
+          period_label: string
+          period_type?: string
+          user_id: string
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          file_id?: string | null
+          id?: string
+          is_selected?: boolean | null
+          period_date?: string
+          period_label?: string
+          period_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       excel_files: {
         Row: {
           created_at: string
@@ -205,7 +241,10 @@ export type Database = {
           excel_file_id: string | null
           id: string
           period_date: string
+          period_month: number | null
+          period_quarter: number | null
           period_type: string
+          period_year: number | null
           user_id: string
         }
         Insert: {
@@ -215,7 +254,10 @@ export type Database = {
           excel_file_id?: string | null
           id?: string
           period_date: string
+          period_month?: number | null
+          period_quarter?: number | null
           period_type: string
+          period_year?: number | null
           user_id: string
         }
         Update: {
@@ -225,7 +267,10 @@ export type Database = {
           excel_file_id?: string | null
           id?: string
           period_date?: string
+          period_month?: number | null
+          period_quarter?: number | null
           period_type?: string
+          period_year?: number | null
           user_id?: string
         }
         Relationships: [
@@ -360,6 +405,42 @@ export type Database = {
           kpi_name?: string
           threshold_max?: number | null
           threshold_min?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_period_configurations: {
+        Row: {
+          comparison_enabled: boolean | null
+          comparison_periods: Json | null
+          configuration_type: string
+          created_at: string
+          default_period: string | null
+          id: string
+          periods_selected: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comparison_enabled?: boolean | null
+          comparison_periods?: Json | null
+          configuration_type?: string
+          created_at?: string
+          default_period?: string | null
+          id?: string
+          periods_selected?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comparison_enabled?: boolean | null
+          comparison_periods?: Json | null
+          configuration_type?: string
+          created_at?: string
+          default_period?: string | null
+          id?: string
+          periods_selected?: Json
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
