@@ -129,12 +129,43 @@ export function FinancialAssumptionsWizard() {
     const isValid = await canProceed()
     if (isValid && currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1)
+    } else if (isValid && currentStep === steps.length - 1) {
+      handleFinish()
     } else if (!isValid) {
       toast({
         title: "Campos requeridos",
         description: "Por favor, complete todos los campos obligatorios antes de continuar.",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleFinish = async () => {
+    setIsLoading(true)
+    try {
+      const isValid = await trigger()
+      if (isValid) {
+        const data = getValues()
+        localStorage.setItem('financial-assumptions', JSON.stringify(data))
+        toast({
+          title: "Wizard completado",
+          description: "Los supuestos financieros han sido configurados exitosamente.",
+        })
+      } else {
+        toast({
+          title: "Error de validación",
+          description: "Por favor, revise los campos marcados en rojo.",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "No se pudieron finalizar los supuestos. Inténtelo de nuevo.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -240,10 +271,10 @@ export function FinancialAssumptionsWizard() {
 
         <Button
           onClick={handleNext}
-          disabled={currentStep === steps.length - 1}
+          disabled={isLoading}
           className="gap-2"
         >
-          Siguiente
+          {currentStep === steps.length - 1 ? "Finalizar" : "Siguiente"}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
