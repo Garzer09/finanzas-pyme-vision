@@ -331,40 +331,6 @@ const AuthPage = () => {
                 )}
               </Button>
 
-              {/* TEMPORARY: Validation access buttons */}
-              <div className="border-t pt-4 mt-4">
-                <p className="text-sm text-muted-foreground text-center mb-3">
-                  Acceso para validación (temporal)
-                </p>
-                <div className="grid gap-2">
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      localStorage.setItem('bypass_auth', 'true');
-                      localStorage.setItem('mock_role', 'admin');
-                      navigate('/');
-                    }}
-                  >
-                    🔧 Acceder como Administrador
-                  </Button>
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      localStorage.setItem('bypass_auth', 'true');
-                      localStorage.setItem('mock_role', 'user');
-                      navigate('/');
-                    }}
-                  >
-                    👤 Acceder como Usuario
-                  </Button>
-                </div>
-              </div>
-
-              <Separator className="my-4" />
 
               <div className="text-center space-y-2">
                 {isPasswordReset ? (

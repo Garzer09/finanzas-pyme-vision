@@ -9,13 +9,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { user, loading } = useAuth();
   const location = useLocation();
 
-  // TEMPORARY: Bypass authentication for validation
-  const bypassAuth = localStorage.getItem('bypass_auth');
-  
-  if (bypassAuth) {
-    return <>{children}</>;
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">

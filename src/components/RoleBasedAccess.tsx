@@ -14,12 +14,6 @@ export const RoleBasedAccess: React.FC<RoleBasedAccessProps> = ({
 }) => {
   const { userRole, loading } = useUserRole();
 
-  // TEMPORARY: Bypass for validation
-  const bypassAuth = localStorage.getItem('bypass_auth');
-  if (bypassAuth) {
-    return <>{children}</>;
-  }
-
   if (loading) {
     return (
       <div className="flex items-center justify-center p-4">
