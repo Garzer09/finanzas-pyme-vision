@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, LineChart, Area, AreaChart } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, LineChart, Area, AreaChart, Legend } from 'recharts';
 import { Building2, Scale, TrendingUp, AlertTriangle, Calendar, FileDown, Eye, CheckCircle, AlertCircle, Zap, Target, DollarSign, TrendingDown, Info, ChevronDown, ChevronRight, Shield } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DebtAnalysisSection } from '@/components/debt-analysis/DebtAnalysisSection';
@@ -797,7 +797,13 @@ export const BalanceSituacionPage = () => {
                              border: '1px solid #e5e7eb',
                              borderRadius: '8px'
                            }}
-                         />
+                          />
+                          <Legend 
+                            wrapperStyle={{
+                              paddingTop: '20px',
+                              fontSize: '14px'
+                            }}
+                          />
                          <Bar 
                            dataKey="2023" 
                            name="2023"
