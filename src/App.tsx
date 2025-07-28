@@ -40,6 +40,7 @@ import { CompanyDescriptionModule } from "./components/modules/CompanyDescriptio
 import { AnalyticalPLCurrentModule } from "./components/modules/AnalyticalPLCurrentModule";
 import { SalesSegmentsModule } from "./components/modules/SalesSegmentsModule";
 import ConclusionsPage from "./pages/ConclusionsPage";
+import AdminSettingsPage from "./pages/AdminSettingsPage";
 
 const queryClient = new QueryClient();
 
@@ -57,7 +58,8 @@ const App = () => (
          <Route path="/subir-excel" element={<ExcelUploadPage />} />
          <Route path="/archivos" element={<FilesDashboardPage />} />
          <Route path="/suscripcion" element={<SubscriptionPage />} />
-        <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
+         <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
+         <Route path="/admin/settings" element={<AdminSettingsPage />} />
         
         {/* Core Financial Analysis */}
         <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />

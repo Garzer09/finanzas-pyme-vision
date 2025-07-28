@@ -522,6 +522,7 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          company_logo_url: string | null
           company_name: string | null
           created_at: string
           id: string
@@ -532,6 +533,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
           id?: string
@@ -542,6 +544,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          company_logo_url?: string | null
           company_name?: string | null
           created_at?: string
           id?: string

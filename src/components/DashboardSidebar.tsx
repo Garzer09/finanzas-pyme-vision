@@ -34,6 +34,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useCompanyLogo } from '@/hooks/useCompanyLogo';
+import { CompanyLogo } from '@/components/CompanyLogo';
 
 export const DashboardSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -49,6 +51,7 @@ export const DashboardSidebar = () => {
   const location = useLocation();
   const currentPath = location.pathname;
   const { isAdmin } = useUserRole();
+  const { logoUrl } = useCompanyLogo();
 
   // Function to get the section key based on current path
   const getSectionFromPath = (path: string): string | null => {
@@ -143,6 +146,12 @@ export const DashboardSidebar = () => {
           path: '/admin/users',
           label: 'Gestión de Usuarios',
           icon: UserCog,
+          color: 'text-primary'
+        },
+        {
+          path: '/admin/settings',
+          label: 'Configuración',
+          icon: Settings,
           color: 'text-primary'
         }
       ]
@@ -319,11 +328,19 @@ export const DashboardSidebar = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-steel-50/30 to-cadet-50/20"></div>
         {!collapsed && (
           <div className="flex items-center gap-3 relative z-10">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-professional bg-gradient-to-br from-steel-500 to-cadet-500">
-              <TrendingUp className="h-5 w-5 text-white" />
-            </div>
+            <CompanyLogo 
+              logoUrl={logoUrl}
+              size="md"
+              fallback={
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-professional bg-gradient-to-br from-steel-500 to-cadet-500">
+                  <TrendingUp className="h-5 w-5 text-white" />
+                </div>
+              }
+            />
             <div>
-              <span className="font-bold text-slate-900 text-lg tracking-tight">FinSight Pro</span>
+              <span className="font-bold text-slate-900 text-lg tracking-tight">
+                {logoUrl ? '' : 'FinSight Pro'}
+              </span>
               <p className="text-sm text-slate-600 font-medium">Análisis Financiero Integral</p>
             </div>
           </div>
