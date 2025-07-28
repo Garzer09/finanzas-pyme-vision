@@ -736,7 +736,7 @@ export const BalanceSituacionPage = () => {
                  <CardHeader>
                    <CardTitle className="text-slate-900 flex items-center gap-3">
                      <div className="p-2 rounded-xl bg-steel/20 backdrop-blur-sm">
-                       <BarChart className="h-5 w-5 text-steel-700" />
+                       <TrendingUp className="h-5 w-5 text-steel-700" />
                      </div>
                      Balance Comparativo Visual
                    </CardTitle>
