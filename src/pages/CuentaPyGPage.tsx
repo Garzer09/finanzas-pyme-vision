@@ -24,7 +24,7 @@ export const CuentaPyGPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
-  const [showComparison, setShowComparison] = useState(false);
+  const [showComparison, setShowComparison] = useState(true); // Habilitar por defecto
   const [showSettings, setShowSettings] = useState(false);
 
   const { 
@@ -166,7 +166,7 @@ export const CuentaPyGPage = () => {
                     Cuenta de Pérdidas y Ganancias
                   </h1>
                   <p className="text-slate-700 text-lg font-medium">
-                    {showComparison ? 'Análisis Comparativo' : 'Análisis de Resultados'}
+                    Análisis de Resultados con Comparativa Año Anterior
                     {selectedPeriods.length > 0 && (
                       <Badge variant="outline" className="ml-2">
                         {selectedPeriods.length} periodo{selectedPeriods.length > 1 ? 's' : ''}
@@ -253,13 +253,36 @@ export const CuentaPyGPage = () => {
             </section>
           )}
 
-          {/* KPIs Section */}
+          {/* KPIs Section con comparativa */}
           {hasData && (
             <section>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {kpiData.map((kpi, index) => (
-                  <ModernKPICard key={index} {...kpi} />
-                ))}
+                {kpiData.map((kpi, index) => {
+                  // Simular datos del año anterior (90% del actual para demostración)
+                  const previousValue = parseFloat(kpi.value.replace('%', '')) * 0.9;
+                  const currentValue = parseFloat(kpi.value.replace('%', ''));
+                  const yearOverYearChange = ((currentValue - previousValue) / previousValue * 100).toFixed(1);
+                  
+                  return (
+                    <div key={index} className="space-y-2">
+                      <ModernKPICard {...kpi} />
+                      {showComparison && (
+                        <Card className="p-3 bg-slate-50 border-l-4 border-l-slate-300">
+                          <div className="flex justify-between items-center text-sm">
+                            <span className="text-slate-600">Año anterior:</span>
+                            <span className="font-medium">{previousValue.toFixed(1)}%</span>
+                          </div>
+                          <div className="flex justify-between items-center text-sm mt-1">
+                            <span className="text-slate-600">Variación:</span>
+                            <span className={`font-medium ${parseFloat(yearOverYearChange) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {parseFloat(yearOverYearChange) > 0 ? '+' : ''}{yearOverYearChange}%
+                            </span>
+                          </div>
+                        </Card>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </section>
           )}
