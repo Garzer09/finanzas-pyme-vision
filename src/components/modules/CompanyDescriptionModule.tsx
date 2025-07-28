@@ -7,6 +7,10 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, Users, MapPin, Calendar, Target, TrendingUp, Edit, Save } from 'lucide-react';
 import { useState } from 'react';
+import { ShareholderSearchDialog } from '@/components/ShareholderSearchDialog';
+import { ShareholderStructureCard } from '@/components/ShareholderStructureCard';
+import { useShareholderData } from '@/hooks/useShareholderData';
+import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 
 export const CompanyDescriptionModule = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -27,6 +31,16 @@ export const CompanyDescriptionModule = () => {
       'Servicios de transformación digital'
     ]
   });
+
+  // Shareholder data management
+  const {
+    data: shareholderData,
+    loading: shareholderLoading,
+    saveData: saveShareholderData,
+    addItem,
+    removeItem,
+    updateItem
+  } = useShareholderData(companyData.nombre);
 
   return (
     <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50/30">
@@ -262,6 +276,74 @@ export const CompanyDescriptionModule = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+            </Card>
+          </section>
+
+          {/* Shareholder Structure Section */}
+          <section>
+            <Card className="modern-card p-8 group overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-cadet-50/30 via-white/20 to-steel-50/20 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cadet-500 to-steel-500"></div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-xl bg-gradient-to-br from-cadet-500 to-steel-500">
+                      <Users className="h-6 w-6 text-white" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900">Estructura Accionaria</h2>
+                  </div>
+                  
+                  <RoleBasedAccess allowedRoles={['admin']}>
+                    <div className="flex gap-2">
+                      <ShareholderSearchDialog 
+                        companyName={companyData.nombre}
+                        onSearchComplete={() => {
+                          // Data will be automatically refreshed by the hook
+                        }}
+                      />
+                      {isEditing && shareholderData && (
+                        <Button 
+                          onClick={() => saveShareholderData({})}
+                          disabled={shareholderLoading}
+                          variant="outline"
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          Guardar Cambios
+                        </Button>
+                      )}
+                    </div>
+                  </RoleBasedAccess>
+                </div>
+
+                {shareholderData ? (
+                  <ShareholderStructureCard
+                    data={shareholderData}
+                    isEditing={isEditing}
+                    onAddItem={addItem}
+                    onUpdateItem={updateItem}
+                    onRemoveItem={removeItem}
+                  />
+                ) : (
+                  <div className="text-center py-12">
+                    <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                      No hay información disponible
+                    </h3>
+                    <p className="text-muted-foreground mb-4">
+                      No se ha encontrado información sobre la estructura accionaria de la empresa.
+                    </p>
+                    <RoleBasedAccess allowedRoles={['admin']}>
+                      <ShareholderSearchDialog 
+                        companyName={companyData.nombre}
+                        onSearchComplete={() => {
+                          // Data will be automatically refreshed by the hook
+                        }}
+                      />
+                    </RoleBasedAccess>
+                  </div>
+                )}
               </div>
             </Card>
           </section>
