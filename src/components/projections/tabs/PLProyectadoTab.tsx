@@ -5,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Download, Lightbulb, TrendingUp } from 'lucide-react'
 import { useProjectionInsights } from '@/hooks/useProjectionInsights'
+import { useInflationData } from '@/hooks/useInflationData'
+import { applyInflationToProjections } from '@/utils/inflationAdjustments'
 
 interface PLProyectadoTabProps {
   scenario: 'base' | 'optimista' | 'pesimista'
@@ -14,15 +16,34 @@ interface PLProyectadoTabProps {
 }
 
 export function PLProyectadoTab({ scenario, yearRange, unit, includeInflation }: PLProyectadoTabProps) {
+  const { getAverageInflation } = useInflationData({ 
+    region: 'EU', 
+    yearRange: [new Date().getFullYear(), new Date().getFullYear() + yearRange[1]] 
+  })
+
   // Mock data - en producción vendría de API/Supabase
-  const chartData = [
-    { year: 'A0', ingresos: 1200, costes: 840, ebitda: 360, margenEbitda: 30 },
-    { year: 'A1', ingresos: 1350, costes: 918, ebitda: 432, margenEbitda: 32 },
-    { year: 'A2', ingresos: 1520, costes: 1013, ebitda: 507, margenEbitda: 33.4 },
-    { year: 'A3', ingresos: 1720, costes: 1134, ebitda: 586, margenEbitda: 34.1 },
-    { year: 'A4', ingresos: 1950, costes: 1268, ebitda: 682, margenEbitda: 35 },
-    { year: 'A5', ingresos: 2200, costes: 1408, ebitda: 792, margenEbitda: 36 }
+  const baseChartData = [
+    { year: 0, ingresos: 1200, costes: 840, ebitda: 360, margenEbitda: 30 },
+    { year: 1, ingresos: 1350, costes: 918, ebitda: 432, margenEbitda: 32 },
+    { year: 2, ingresos: 1520, costes: 1013, ebitda: 507, margenEbitda: 33.4 },
+    { year: 3, ingresos: 1720, costes: 1134, ebitda: 586, margenEbitda: 34.1 },
+    { year: 4, ingresos: 1950, costes: 1268, ebitda: 682, margenEbitda: 35 },
+    { year: 5, ingresos: 2200, costes: 1408, ebitda: 792, margenEbitda: 36 }
   ].slice(0, yearRange[1] + 1)
+
+  // Apply inflation adjustments if enabled
+  const chartData = includeInflation ? 
+    applyInflationToProjections(baseChartData, {
+      includeInflation: true,
+      customRates: {
+        [new Date().getFullYear() + 1]: getAverageInflation(),
+        [new Date().getFullYear() + 2]: getAverageInflation(),
+        [new Date().getFullYear() + 3]: getAverageInflation(),
+        [new Date().getFullYear() + 4]: getAverageInflation(),
+        [new Date().getFullYear() + 5]: getAverageInflation(),
+      }
+    }).map((item, index) => ({ ...item, year: `A${index}` })) :
+    baseChartData.map((item, index) => ({ ...item, year: `A${index}` }))
 
   const tableData = [
     { concepto: 'Ingresos por Ventas', a0: 1200, a1: 1350, a2: 1520, a3: 1720, a4: 1950, a5: 2200 },

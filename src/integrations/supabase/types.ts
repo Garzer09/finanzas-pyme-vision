@@ -265,6 +265,39 @@ export type Database = {
         }
         Relationships: []
       }
+      inflation_rates: {
+        Row: {
+          created_at: string
+          data_type: string
+          id: string
+          inflation_rate: number
+          period_date: string
+          region: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_type?: string
+          id?: string
+          inflation_rate: number
+          period_date: string
+          region?: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_type?: string
+          id?: string
+          inflation_rate?: number
+          period_date?: string
+          region?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscription_plans: {
         Row: {
           created_at: string
