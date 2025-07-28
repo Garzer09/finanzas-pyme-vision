@@ -137,8 +137,9 @@ const AuthPage = () => {
           setIsLogin(true);
         }
       } else if (isPasswordRecovery) {
+        console.log('Current origin:', window.location.origin);
         const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-          redirectTo: `${window.location.origin}/auth`
+          redirectTo: window.location.href.split('#')[0].split('?')[0]
         });
         if (error) {
           toast({
