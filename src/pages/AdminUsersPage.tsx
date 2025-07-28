@@ -1,32 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { DashboardHeader } from '@/components/DashboardHeader';
-import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
+import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { DashboardHeader } from '@/components/DashboardHeader';
+import { UserCreationWizard } from '@/components/admin/UserCreationWizard';
+import { UserEditDialog } from '@/components/admin/UserEditDialog';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Users, UserPlus, Shield, User } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Plus, Edit, Users, Building2 } from 'lucide-react';
 
 interface UserProfile {
   id: string;
   user_id: string;
   company_name: string;
   created_at: string;
-  role?: string;
+  role?: 'admin' | 'user';
   email?: string;
 }
 
 const AdminUsersPage = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserCompany, setNewUserCompany] = useState('');
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
+  const [showUserWizard, setShowUserWizard] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
@@ -66,47 +66,20 @@ const AdminUsersPage = () => {
     }
   };
 
-  const createUser = async () => {
-    if (!newUserEmail || !newUserPassword) {
-      toast({
-        title: "Error",
-        description: "Email y contraseña son requeridos",
-        variant: "destructive"
-      });
-      return;
-    }
+  const handleUserCreated = () => {
+    setShowUserWizard(false);
+    fetchUsers();
+  };
 
-    setCreating(true);
-    try {
-      const { error } = await supabase.auth.admin.createUser({
-        email: newUserEmail,
-        password: newUserPassword,
-        user_metadata: {
-          company_name: newUserCompany
-        }
-      });
+  const handleUserUpdated = () => {
+    setShowEditDialog(false);
+    setSelectedUser(null);
+    fetchUsers();
+  };
 
-      if (error) throw error;
-
-      toast({
-        title: "Usuario creado",
-        description: "El usuario ha sido creado exitosamente"
-      });
-
-      setNewUserEmail('');
-      setNewUserPassword('');
-      setNewUserCompany('');
-      fetchUsers();
-    } catch (error: any) {
-      console.error('Error creating user:', error);
-      toast({
-        title: "Error",
-        description: error.message || "No se pudo crear el usuario",
-        variant: "destructive"
-      });
-    } finally {
-      setCreating(false);
-    }
+  const handleEditUser = (user: UserProfile) => {
+    setSelectedUser(user);
+    setShowEditDialog(true);
   };
 
   const toggleUserRole = async (userId: string, currentRole: string) => {
@@ -149,126 +122,121 @@ const AdminUsersPage = () => {
           <DashboardHeader />
           
           <main className="flex-1 p-6 space-y-6 overflow-auto">
-            <div className="flex items-center gap-3 mb-6">
-              <Users className="h-8 w-8 text-primary" />
+            <div className="flex items-center justify-between mb-8">
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Gestión de Usuarios</h1>
-                <p className="text-muted-foreground">
-                  Administra los usuarios y sus roles en el sistema
-                </p>
+                <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
+                <p className="text-muted-foreground">Administra usuarios y configuraciones del sistema</p>
+              </div>
+              <Dialog open={showUserWizard} onOpenChange={setShowUserWizard}>
+                <DialogTrigger asChild>
+                  <Button>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Crear Usuario
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl">
+                  <UserCreationWizard
+                    onComplete={handleUserCreated}
+                    onCancel={() => setShowUserWizard(false)}
+                  />
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+              <div className="bg-card p-6 rounded-lg border">
+                <div className="flex items-center gap-3">
+                  <Users className="h-8 w-8 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Total Usuarios</p>
+                    <p className="text-2xl font-bold">{users.length}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-card p-6 rounded-lg border">
+                <div className="flex items-center gap-3">
+                  <Building2 className="h-8 w-8 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Empresas Activas</p>
+                    <p className="text-2xl font-bold">
+                      {new Set(users.map(u => u.company_name).filter(Boolean)).size}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-card p-6 rounded-lg border">
+                <div className="flex items-center gap-3">
+                  <Users className="h-8 w-8 text-primary" />
+                  <div>
+                    <p className="text-sm font-medium text-muted-foreground">Administradores</p>
+                    <p className="text-2xl font-bold">
+                      {users.filter(u => u.role === 'admin').length}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Create User Form */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <UserPlus className="h-5 w-5" />
-                  Crear Nuevo Usuario
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={newUserEmail}
-                      onChange={(e) => setNewUserEmail(e.target.value)}
-                      placeholder="usuario@empresa.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Contraseña</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={newUserPassword}
-                      onChange={(e) => setNewUserPassword(e.target.value)}
-                      placeholder="Contraseña temporal"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="company">Empresa (Opcional)</Label>
-                    <Input
-                      id="company"
-                      value={newUserCompany}
-                      onChange={(e) => setNewUserCompany(e.target.value)}
-                      placeholder="Nombre de la empresa"
-                    />
-                  </div>
+            {/* Lista de usuarios */}
+            <div className="bg-card p-6 rounded-lg border">
+              <h2 className="text-xl font-semibold mb-6">Usuarios del Sistema</h2>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
-                <Button 
-                  onClick={createUser} 
-                  disabled={creating}
-                  className="w-full md:w-auto"
-                >
-                  {creating ? 'Creando...' : 'Crear Usuario'}
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Users List */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Usuarios del Sistema</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {loading ? (
-                  <div className="flex items-center justify-center p-8">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {users.map((user) => (
-                      <div
-                        key={user.id}
-                        className="flex items-center justify-between p-4 border border-border rounded-lg"
-                      >
-                        <div className="flex items-center gap-4">
-                          <div className="p-2 bg-muted rounded-full">
-                            {user.role === 'admin' ? (
-                              <Shield className="h-5 w-5 text-primary" />
-                            ) : (
-                              <User className="h-5 w-5 text-muted-foreground" />
-                            )}
-                          </div>
-                          <div>
-                            <div className="font-medium text-foreground">{user.user_id}</div>
-                            {user.company_name && (
-                              <div className="text-sm text-muted-foreground">{user.company_name}</div>
-                            )}
-                            <div className="text-xs text-muted-foreground">
-                              Creado: {new Date(user.created_at).toLocaleDateString()}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
+              ) : users.length === 0 ? (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No hay usuarios registrados.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {users.map((user) => (
+                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <p className="font-medium">{user.email}</p>
                           <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
                             {user.role === 'admin' ? 'Administrador' : 'Usuario'}
                           </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleUserRole(user.user_id, user.role || 'user')}
-                          >
-                            Cambiar a {user.role === 'admin' ? 'Usuario' : 'Admin'}
-                          </Button>
                         </div>
+                        <p className="text-muted-foreground">{user.company_name || 'Sin empresa asignada'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Registrado: {new Date(user.created_at).toLocaleDateString()}
+                        </p>
                       </div>
-                    ))}
-                    
-                    {users.length === 0 && (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No hay usuarios registrados
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditUser(user)}
+                        >
+                          <Edit className="h-4 w-4 mr-2" />
+                          Editar
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => toggleUserRole(user.user_id, user.role === 'admin' ? 'user' : 'admin')}
+                        >
+                          {user.role === 'admin' ? 'Quitar Admin' : 'Hacer Admin'}
+                        </Button>
                       </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </main>
+
+          {/* Edit User Dialog */}
+          <UserEditDialog
+            user={selectedUser}
+            open={showEditDialog}
+            onOpenChange={setShowEditDialog}
+            onUserUpdated={handleUserUpdated}
+          />
         </div>
       </div>
     </RoleBasedAccess>

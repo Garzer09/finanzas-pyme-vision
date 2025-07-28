@@ -137,7 +137,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: '/excel-upload',
+          path: '/subir-excel',
           label: 'Subir Archivos',
           icon: Upload,
           color: 'text-primary'

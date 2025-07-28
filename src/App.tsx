@@ -41,6 +41,7 @@ import { AnalyticalPLCurrentModule } from "./components/modules/AnalyticalPLCurr
 import { SalesSegmentsModule } from "./components/modules/SalesSegmentsModule";
 import ConclusionsPage from "./pages/ConclusionsPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
+import AdminUsersPage from "./pages/AdminUsersPage";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
          <Route path="/suscripcion" element={<SubscriptionPage />} />
          <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
          <Route path="/admin/settings" element={<AdminSettingsPage />} />
+         <Route path="/admin/users" element={<AdminUsersPage />} />
         
         {/* Core Financial Analysis */}
         <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />
