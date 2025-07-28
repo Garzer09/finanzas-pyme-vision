@@ -1,12 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Download, Lightbulb, TrendingUp } from 'lucide-react'
 import { useProjectionInsights } from '@/hooks/useProjectionInsights'
 import { useInflationData } from '@/hooks/useInflationData'
 import { applyInflationToProjections } from '@/utils/inflationAdjustments'
+import { InflationDataCard } from '@/components/projections/InflationDataCard'
 
 interface PLProyectadoTabProps {
   scenario: 'base' | 'optimista' | 'pesimista'
@@ -99,6 +101,12 @@ export function PLProyectadoTab({ scenario, yearRange, unit, includeInflation }:
 
   return (
     <div className="space-y-6">
+      {/* Inflation Data Card */}
+      <InflationDataCard 
+        includeInflation={includeInflation}
+        yearRange={yearRange}
+      />
+
       {/* Insights */}
       {insights.map((insight) => (
         <Alert key={insight.id} className="border-primary/20 bg-primary/5">
@@ -115,6 +123,11 @@ export function PLProyectadoTab({ scenario, yearRange, unit, includeInflation }:
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
             Evolución P&G Proyectado
+            {includeInflation && (
+              <Badge variant="secondary" className="text-xs">
+                Con inflación BCE
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>

@@ -137,9 +137,10 @@ export function ProjectionsToolbar({
                     </TooltipTrigger>
                     <TooltipContent className="bg-white">
                       <div className="text-xs">
+                        <p><strong>Fuente:</strong> Banco Central Europeo (BCE)</p>
                         <p>Inflación promedio: {averageInflation.toFixed(1)}%</p>
                         <p>Año {currentYear + yearRange[1]}: {endYearInflation.toFixed(1)}%</p>
-                        <p className="text-muted-foreground">Datos del BCE</p>
+                        <p className="text-muted-foreground mt-1">Se aplica a valores monetarios</p>
                       </div>
                     </TooltipContent>
                   </Tooltip>
