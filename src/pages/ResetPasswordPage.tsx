@@ -18,54 +18,82 @@ const ResetPasswordPage = () => {
   useEffect(() => {
     const checkRecoveryToken = async () => {
       console.log('Checking recovery token on reset password page...');
-      const hash = window.location.hash;
-      console.log('Hash:', hash);
-
-      if (!hash) {
-        console.log('No hash found, redirecting to auth');
-        toast({
-          title: "Enlace inválido",
-          description: "No se encontró un enlace de recuperación válido",
-          variant: "destructive"
-        });
-        navigate('/auth');
-        return;
-      }
-
+      setCheckingToken(true);
+      
       try {
-        const urlParams = new URLSearchParams(hash.substring(1));
-        const accessToken = urlParams.get('access_token');
-        const refreshToken = urlParams.get('refresh_token');
-        const type = urlParams.get('type');
+        // Check URL hash first
+        const hash = window.location.hash;
+        console.log('Hash:', hash);
 
-        console.log('URL params:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+        if (hash) {
+          const urlParams = new URLSearchParams(hash.substring(1));
+          const accessToken = urlParams.get('access_token');
+          const refreshToken = urlParams.get('refresh_token');
+          const type = urlParams.get('type');
+          const error = urlParams.get('error');
 
-        if (type === 'recovery' && accessToken && refreshToken) {
-          // Set the session with the tokens from the URL
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
+          console.log('URL params:', { 
+            accessToken: !!accessToken, 
+            refreshToken: !!refreshToken, 
+            type, 
+            error 
           });
 
           if (error) {
-            console.error('Error setting session:', error);
+            console.error('Error in URL:', error);
             toast({
               title: "Error",
               description: "El enlace de recuperación ha expirado o es inválido",
               variant: "destructive"
             });
             navigate('/auth');
-          } else {
-            console.log('Session set successfully:', data);
-            setTokenValid(true);
-            // Clear the URL hash
-            window.history.replaceState({}, document.title, '/reset-password');
+            return;
           }
+
+          if (type === 'recovery' && accessToken && refreshToken) {
+            // Set the session with the tokens from the URL
+            const { data, error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken,
+            });
+
+            if (sessionError) {
+              console.error('Error setting session:', sessionError);
+              toast({
+                title: "Error",
+                description: "El enlace de recuperación ha expirado o es inválido",
+                variant: "destructive"
+              });
+              navigate('/auth');
+            } else {
+              console.log('Session set successfully:', data);
+              setTokenValid(true);
+              // Clear the URL hash
+              window.history.replaceState({}, document.title, '/reset-password');
+            }
+            return;
+          }
+        }
+
+        // If no hash, check if we already have a valid session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          toast({
+            title: "Error",
+            description: "Error al verificar la sesión",
+            variant: "destructive"
+          });
+          navigate('/auth');
+        } else if (session) {
+          console.log('Valid session found:', session);
+          setTokenValid(true);
         } else {
-          console.log('Invalid recovery parameters');
+          console.log('No valid session found');
           toast({
             title: "Enlace inválido",
-            description: "El enlace de recuperación no es válido",
+            description: "No se encontró un enlace de recuperación válido",
             variant: "destructive"
           });
           navigate('/auth');
