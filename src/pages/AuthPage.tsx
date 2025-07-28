@@ -40,19 +40,29 @@ const AuthPage = () => {
     // Check for password recovery tokens in URL fragments
     const handlePasswordRecovery = async () => {
       const hash = window.location.hash;
+      console.log('URL hash:', hash);
       const urlParams = new URLSearchParams(hash.substring(1)); // Remove the '#' and parse
       
       const accessToken = urlParams.get('access_token');
       const refreshToken = urlParams.get('refresh_token');
       const type = urlParams.get('type');
       
+      console.log('Recovery tokens found:', { 
+        accessToken: accessToken ? 'presente' : 'ausente',
+        refreshToken: refreshToken ? 'presente' : 'ausente', 
+        type 
+      });
+      
       if (accessToken && refreshToken && type === 'recovery') {
         try {
+          console.log('Intentando establecer sesión con tokens de recovery...');
           // Set the session with the recovery tokens
           const { error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken
           });
+          
+          console.log('Resultado de setSession:', { error });
           
           if (error) {
             toast({
