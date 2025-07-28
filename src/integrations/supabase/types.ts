@@ -632,6 +632,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      ensure_first_user_is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_user_role: {
         Args: { user_uuid?: string }
         Returns: Database["public"]["Enums"]["app_role"]
