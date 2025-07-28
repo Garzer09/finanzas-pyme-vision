@@ -578,27 +578,40 @@ export const BalanceSituacionPage = () => {
                         Estructura de Activos
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={200}>
-                        <PieChart>
-                          <Pie
-                            data={assetStructureData}
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={80}
-                            dataKey="value"
-                            label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
-                            labelLine={false}
-                            fontSize={12}
-                          >
-                            {assetStructureData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                           <Tooltip content={<CustomPieTooltip />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </CardContent>
+                     <CardContent>
+                       <ResponsiveContainer width="100%" height={180}>
+                         <PieChart>
+                           <Pie
+                             data={assetStructureData}
+                             cx="50%"
+                             cy="50%"
+                             outerRadius={75}
+                             dataKey="value"
+                           >
+                             {assetStructureData.map((entry, index) => (
+                               <Cell key={`cell-${index}`} fill={entry.color} />
+                             ))}
+                           </Pie>
+                            <Tooltip content={<CustomPieTooltip />} />
+                         </PieChart>
+                       </ResponsiveContainer>
+                       
+                       {/* Custom Legend */}
+                       <div className="grid grid-cols-2 gap-2 mt-4">
+                         {assetStructureData.map((entry, index) => (
+                           <div key={index} className="flex items-center gap-2">
+                             <div 
+                               className="w-3 h-3 rounded-sm flex-shrink-0" 
+                               style={{ backgroundColor: entry.color }}
+                             />
+                             <div className="min-w-0 flex-1">
+                               <p className="text-xs font-medium text-slate-700">{entry.name}</p>
+                               <p className="text-xs text-slate-500">{entry.percentage.toFixed(1)}%</p>
+                             </div>
+                           </div>
+                         ))}
+                       </div>
+                     </CardContent>
                   </Card>
 
                   {/* Financing Structure */}
@@ -609,27 +622,40 @@ export const BalanceSituacionPage = () => {
                         Estructura de Financiación
                       </CardTitle>
                     </CardHeader>
-                    <CardContent>
-                      <ResponsiveContainer width="100%" height={200}>
-                        <PieChart>
-                          <Pie
-                            data={financingStructureData}
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={80}
-                            dataKey="value"
-                            label={({ name, percentage }) => `${name}: ${percentage.toFixed(1)}%`}
-                            labelLine={false}
-                            fontSize={12}
-                          >
-                            {financingStructureData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip content={<CustomPieTooltip />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </CardContent>
+                     <CardContent>
+                       <ResponsiveContainer width="100%" height={180}>
+                         <PieChart>
+                           <Pie
+                             data={financingStructureData}
+                             cx="50%"
+                             cy="50%"
+                             outerRadius={75}
+                             dataKey="value"
+                           >
+                             {financingStructureData.map((entry, index) => (
+                               <Cell key={`cell-${index}`} fill={entry.color} />
+                             ))}
+                           </Pie>
+                           <Tooltip content={<CustomPieTooltip />} />
+                         </PieChart>
+                       </ResponsiveContainer>
+                       
+                       {/* Custom Legend */}
+                       <div className="space-y-2 mt-4">
+                         {financingStructureData.map((entry, index) => (
+                           <div key={index} className="flex items-center gap-2">
+                             <div 
+                               className="w-3 h-3 rounded-sm flex-shrink-0" 
+                               style={{ backgroundColor: entry.color }}
+                             />
+                             <div className="min-w-0 flex-1">
+                               <p className="text-xs font-medium text-slate-700">{entry.name}</p>
+                               <p className="text-xs text-slate-500">{entry.percentage.toFixed(1)}%</p>
+                             </div>
+                           </div>
+                         ))}
+                       </div>
+                     </CardContent>
                   </Card>
 
                   {/* Working Capital Evolution */}
