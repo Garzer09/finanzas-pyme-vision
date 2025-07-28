@@ -170,21 +170,59 @@ function createSpecificPrompt(documentType: string, isPDF: boolean, base64Conten
     
     'general': `${basePrompt}
     
-    ANÁLISIS COMPLETO: Detecta automáticamente el tipo de documento financiero
+    ANÁLISIS COMPLETO: Detecta automáticamente el tipo de documento financiero Y datos de unidades físicas
     
-    Busca todos los elementos financieros posibles:
+    Busca todos los elementos posibles:
     1. Estados Financieros (P&G, Balance, Flujos)
     2. Ratios y KPIs
     3. Pool de financiación
     4. Datos de auditoría
     5. Proyecciones
+    6. **DATOS FÍSICOS**: Unidades vendidas, producidas, kg, litros, toneladas, piezas, volumen, cantidades
+    
+    EXTRACCIÓN DE UNIDADES FÍSICAS:
+    - Buscar columnas con: "unidades", "kg", "litros", "toneladas", "piezas", "volumen", "cantidad", "producción"
+    - Detectar headers como: "Ventas (kg)", "Producción toneladas", "Unidades vendidas", "Volumen producido"
+    - Identificar valores numéricos grandes que no sean monetarios
+    - Calcular precios unitarios cuando sea posible (ingresos / unidades)
+    
+    ESTRUCTURA JSON REQUERIDA:
+    {
+      "tipo_documento": "detectado",
+      "estados_financieros": {...},
+      "datos_unidades_fisicas": {
+        "has_physical_data": true/false,
+        "unidades_vendidas": valor_numerico,
+        "unidades_producidas": valor_numerico,
+        "tipo_unidad": "kg|litros|piezas|toneladas|etc",
+        "precio_unitario_promedio": valor_numerico,
+        "coste_unitario": valor_numerico,
+        "volumen_produccion": valor_numerico,
+        "inventario_unidades": valor_numerico,
+        "metricas_calidad": {
+          "tasa_rendimiento": valor_numerico,
+          "porcentaje_desperdicio": valor_numerico
+        },
+        "periodos": {
+          "YYYY-MM": {
+            "unidades": valor_numerico,
+            "ingresos": valor_numerico
+          }
+        }
+      },
+      "validation": {
+        "datos_fisicos_encontrados": true/false,
+        "coherencia_precio_unitario": true/false
+      }
+    }
     
     IMPORTANTE: 
     - Detecta automáticamente períodos/fechas
-    - Valida coherencia de datos numéricos
+    - Valida coherencia de datos numéricos Y físicos
     - Identifica monedas y unidades
+    - Marca has_physical_data como true SOLO si encuentra datos reales de unidades
     
-    Devuelve en formato JSON estructurado con validación.`
+    Devuelve en formato JSON estructurado con validación completa.`
   }
   
   return templatePrompts[documentType] || templatePrompts['general'] + `\n\nArchivo: ${base64Content.substring(0, 1500)}...`
@@ -302,23 +340,24 @@ serve(async (req) => {
       throw fileError
     }
 
-    // Guardar los datos financieros procesados de forma estructurada
-    if (processedData && !processedData.error) {
-      const financialDataInserts = []
-      
-      // Estados financieros
-      if (processedData.estados_financieros) {
-        Object.entries(processedData.estados_financieros).forEach(([type, data]) => {
-          financialDataInserts.push({
-            user_id: tempUserId,
-            excel_file_id: fileRecord.id,
-            data_type: `estado_${type}`,
-            period_type: 'annual',
-            period_date: new Date().getFullYear() + '-12-31',
-            data_content: data
+      // Guardar los datos financieros procesados de forma estructurada
+      if (processedData && !processedData.error) {
+        const financialDataInserts = []
+        
+        // Estados financieros
+        if (processedData.estados_financieros) {
+          Object.entries(processedData.estados_financieros).forEach(([type, data]) => {
+            financialDataInserts.push({
+              user_id: tempUserId,
+              excel_file_id: fileRecord.id,
+              data_type: `estado_${type}`,
+              period_type: 'annual',
+              period_date: new Date().getFullYear() + '-12-31',
+              data_content: data,
+              physical_units_data: processedData.datos_unidades_fisicas || {}
+            })
           })
-        })
-      }
+        }
       
       // Pool financiero
       if (processedData.pool_financiero) {

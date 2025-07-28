@@ -19,8 +19,10 @@ export type Database = {
           client_name: string
           created_at: string
           data_patterns: Json | null
+          default_physical_unit: string | null
           default_units: string | null
           field_mappings: Json | null
+          has_physical_data: boolean | null
           id: string
           industry_sector: string | null
           updated_at: string
@@ -31,8 +33,10 @@ export type Database = {
           client_name: string
           created_at?: string
           data_patterns?: Json | null
+          default_physical_unit?: string | null
           default_units?: string | null
           field_mappings?: Json | null
+          has_physical_data?: boolean | null
           id?: string
           industry_sector?: string | null
           updated_at?: string
@@ -43,8 +47,10 @@ export type Database = {
           client_name?: string
           created_at?: string
           data_patterns?: Json | null
+          default_physical_unit?: string | null
           default_units?: string | null
           field_mappings?: Json | null
+          has_physical_data?: boolean | null
           id?: string
           industry_sector?: string | null
           updated_at?: string
@@ -290,6 +296,7 @@ export type Database = {
           period_quarter: number | null
           period_type: string
           period_year: number | null
+          physical_units_data: Json | null
           user_id: string
         }
         Insert: {
@@ -303,6 +310,7 @@ export type Database = {
           period_quarter?: number | null
           period_type: string
           period_year?: number | null
+          physical_units_data?: Json | null
           user_id: string
         }
         Update: {
@@ -316,6 +324,7 @@ export type Database = {
           period_quarter?: number | null
           period_type?: string
           period_year?: number | null
+          physical_units_data?: Json | null
           user_id?: string
         }
         Relationships: [
@@ -445,6 +454,36 @@ export type Database = {
           modules_access?: Json
           name?: string
           price?: number | null
+        }
+        Relationships: []
+      }
+      unit_mappings: {
+        Row: {
+          base_unit: string
+          conversion_factor: number | null
+          created_at: string
+          id: string
+          unit_category: string
+          unit_full_name: string
+          unit_short_name: string
+        }
+        Insert: {
+          base_unit: string
+          conversion_factor?: number | null
+          created_at?: string
+          id?: string
+          unit_category: string
+          unit_full_name: string
+          unit_short_name: string
+        }
+        Update: {
+          base_unit?: string
+          conversion_factor?: number | null
+          created_at?: string
+          id?: string
+          unit_category?: string
+          unit_full_name?: string
+          unit_short_name?: string
         }
         Relationships: []
       }

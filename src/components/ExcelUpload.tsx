@@ -241,6 +241,7 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
               <li>• Pool Financiero: Estructura de deuda, amortización, tipos de interés</li>
               <li>• Ratios: Liquidez, solvencia, rentabilidad, endeudamiento</li>
               <li>• Proyecciones: Flujos futuros, escenarios, análisis de sensibilidad</li>
+              <li>• <strong>Unidades Físicas</strong>: Unidades vendidas/producidas, kg, litros, precios unitarios</li>
             </ul>
           </div>
         </div>

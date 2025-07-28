@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { KPICardsSection } from '@/components/dashboard/KPICardsSection';
 import { EvolutionChartsSection } from '@/components/dashboard/EvolutionChartsSection';
+import PhysicalUnitsKPICards from '@/components/PhysicalUnitsKPICards';
 import { 
   TrendingUp, 
   TrendingDown,
@@ -254,6 +255,9 @@ const HomePage = () => {
           <section className="space-y-6">
             {/* Panel de KPIs Principales */}
             <KPICardsSection />
+            
+            {/* Panel de KPIs de Unidades Físicas */}
+            <PhysicalUnitsKPICards />
             
             {/* Comentado temporalmente hasta resolver valores NaN en gráficos
             <EvolutionChartsSection />
