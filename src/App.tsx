@@ -43,71 +43,69 @@ import ConclusionsPage from "./pages/ConclusionsPage";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <div className="dark">
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Routes>
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/" element={<Index />} />
-            <Route path="/home" element={<HomePage />} />
-           <Route path="/subir-excel" element={<ExcelUploadPage />} />
-           <Route path="/archivos" element={<FilesDashboardPage />} />
-           <Route path="/suscripcion" element={<SubscriptionPage />} />
-          <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
-          
-          {/* Core Financial Analysis */}
-          <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />
-          <Route path="/balance-situacion" element={<BalanceSituacionPage />} />
-          <Route path="/ratios-financieros" element={<RatiosFinancierosPage />} />
-          
-          {/* Advanced Financial Analysis - NEW */}
-          <Route path="/flujos-caja" element={<CashFlowPage />} />
-          <Route path="/analisis-nof" element={<NOFAnalysisPage />} />
-          <Route path="/punto-muerto" element={<BreakEvenPage />} />
-          <Route path="/endeudamiento" element={<DebtPoolPage />} />
-          <Route path="/servicio-deuda" element={<DebtServicePage />} />
-          
-          {/* Sección 3 - Situación Actual */}
-          <Route path="/situacion-actual" element={<SituacionActualModule />} />
-          <Route path="/pyg-actual" element={<ProfitLossCurrentModule />} />
-          <Route path="/pyg-analitico-actual" element={<AnalyticalPLCurrentModule />} />
-          <Route path="/balance-actual" element={<BalanceSheetCurrentModule />} />
-          <Route path="/flujos-actual" element={<FinancialAnalysisModule />} />
-          <Route path="/ratios-actual" element={<FinancialRatiosCurrentModule />} />
-          <Route path="/punto-muerto-actual" element={<FinancialAnalysisModule />} />
-          <Route path="/endeudamiento-actual" element={<FinancialAnalysisModule />} />
-          <Route path="/servicio-deuda-actual" element={<FinancialAnalysisModule />} />
-          
-          <Route path="/nof-actual" element={<FinancialAnalysisModule />} />
-          <Route path="/segmentos-actual" element={<SalesSegmentsModule />} />
-          
-          {/* Sección 4 - Supuestos */}
-          <Route path="/supuestos-financieros" element={<KeyFinancialAssumptionsModule />} />
-          
-          {/* Sección 5 - Proyecciones */}
-          <Route path="/proyecciones" element={<ProjectionsModule />} />
-          
-          {/* Sección 6 - Sensibilidad */}
-          <Route path="/escenarios" element={<SensitivityModuleNew />} />
-          
-          {/* Sección 7 - Valoración EVA */}
-          <Route path="/valoracion-eva" element={<EVAValuationModule />} />
-          
-          {/* Simulador */}
-          <Route path="/simulador" element={<SimulatorModule />} />
-          
-          {/* Conclusiones */}
-          <Route path="/conclusiones" element={<ConclusionsPage />} />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
-  </div>
+  <QueryClientProvider client={queryClient}>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <Routes>
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/" element={<Index />} />
+          <Route path="/home" element={<HomePage />} />
+         <Route path="/subir-excel" element={<ExcelUploadPage />} />
+         <Route path="/archivos" element={<FilesDashboardPage />} />
+         <Route path="/suscripcion" element={<SubscriptionPage />} />
+        <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
+        
+        {/* Core Financial Analysis */}
+        <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />
+        <Route path="/balance-situacion" element={<BalanceSituacionPage />} />
+        <Route path="/ratios-financieros" element={<RatiosFinancierosPage />} />
+        
+        {/* Advanced Financial Analysis - NEW */}
+        <Route path="/flujos-caja" element={<CashFlowPage />} />
+        <Route path="/analisis-nof" element={<NOFAnalysisPage />} />
+        <Route path="/punto-muerto" element={<BreakEvenPage />} />
+        <Route path="/endeudamiento" element={<DebtPoolPage />} />
+        <Route path="/servicio-deuda" element={<DebtServicePage />} />
+        
+        {/* Sección 3 - Situación Actual */}
+        <Route path="/situacion-actual" element={<SituacionActualModule />} />
+        <Route path="/pyg-actual" element={<ProfitLossCurrentModule />} />
+        <Route path="/pyg-analitico-actual" element={<AnalyticalPLCurrentModule />} />
+        <Route path="/balance-actual" element={<BalanceSheetCurrentModule />} />
+        <Route path="/flujos-actual" element={<FinancialAnalysisModule />} />
+        <Route path="/ratios-actual" element={<FinancialRatiosCurrentModule />} />
+        <Route path="/punto-muerto-actual" element={<FinancialAnalysisModule />} />
+        <Route path="/endeudamiento-actual" element={<FinancialAnalysisModule />} />
+        <Route path="/servicio-deuda-actual" element={<FinancialAnalysisModule />} />
+        
+        <Route path="/nof-actual" element={<FinancialAnalysisModule />} />
+        <Route path="/segmentos-actual" element={<SalesSegmentsModule />} />
+        
+        {/* Sección 4 - Supuestos */}
+        <Route path="/supuestos-financieros" element={<KeyFinancialAssumptionsModule />} />
+        
+        {/* Sección 5 - Proyecciones */}
+        <Route path="/proyecciones" element={<ProjectionsModule />} />
+        
+        {/* Sección 6 - Sensibilidad */}
+        <Route path="/escenarios" element={<SensitivityModuleNew />} />
+        
+        {/* Sección 7 - Valoración EVA */}
+        <Route path="/valoracion-eva" element={<EVAValuationModule />} />
+        
+        {/* Simulador */}
+        <Route path="/simulador" element={<SimulatorModule />} />
+        
+        {/* Conclusiones */}
+        <Route path="/conclusiones" element={<ConclusionsPage />} />
+        
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      </TooltipProvider>
+    </AuthProvider>
+  </QueryClientProvider>
 );
 
 export default App;
