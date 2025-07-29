@@ -8,20 +8,18 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Users, 
   Building2, 
-  FileText, 
-  Upload, 
   TrendingUp, 
-  Activity,
-  Edit,
   Plus,
   CheckCircle,
   AlertCircle,
   Clock
 } from 'lucide-react';
-import { ExcelUpload } from '@/components/ExcelUpload';
 import { EnhancedUserCreationWizard } from './EnhancedUserCreationWizard';
-import { UserEditDialog } from '@/components/admin/UserEditDialog';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { UserCard } from './UserCard';
+import { AdminUserDashboard } from './AdminUserDashboard';
+import { AdminDataManager } from './AdminDataManager';
+import { AdminImpersonationProvider, useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
 
 interface AdminUserProfile {
   id: string;
@@ -32,31 +30,13 @@ interface AdminUserProfile {
   last_sign_in_at?: string;
 }
 
-interface UserProfile {
-  id: string;
-  user_id: string;
-  company_name?: string;
-  created_at: string;
-  role?: 'admin' | 'user';
-  email?: string;
-}
-
-interface ExcelFile {
-  id: string;
-  file_name: string;
-  user_id: string;
-  processing_status: string;
-  upload_date: string;
-  company_name?: string;
-}
-
 export const AdminDashboard = () => {
   const [users, setUsers] = useState<AdminUserProfile[]>([]);
-  const [files, setFiles] = useState<ExcelFile[]>([]);
+  const [usersWithData, setUsersWithData] = useState<{[key: string]: boolean}>({});
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [showUserWizard, setShowUserWizard] = useState(false);
-  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [currentView, setCurrentView] = useState<'list' | 'user-dashboard' | 'data-manager'>('list');
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
@@ -81,40 +61,25 @@ export const AdminDashboard = () => {
     }
   };
 
-  const fetchFiles = async () => {
+  const fetchUsersDataStatus = async () => {
     try {
-      const { data: filesData, error: filesError } = await supabase
-        .from('excel_files')
-        .select('*')
-        .order('upload_date', { ascending: false })
-        .limit(20);
+      // Fetch which users have financial data
+      const { data: financialData, error } = await supabase
+        .from('financial_data')
+        .select('user_id')
+        .order('created_at', { ascending: false });
 
-      if (filesError) throw filesError;
+      if (error) throw error;
 
-      // Fetch company names separately for each file
-      const filesWithCompany = await Promise.all(
-        filesData.map(async (file) => {
-          const { data: profileData } = await supabase
-            .from('user_profiles')
-            .select('company_name')
-            .eq('user_id', file.user_id)
-            .maybeSingle();
-
-          return {
-            ...file,
-            company_name: profileData?.company_name || 'N/A'
-          };
-        })
-      );
-
-      setFiles(filesWithCompany);
-    } catch (error) {
-      console.error('Error fetching files:', error);
-      toast({
-        title: "Error",
-        description: "No se pudieron cargar los archivos",
-        variant: "destructive"
+      // Create a map of users with data
+      const dataStatus: {[key: string]: boolean} = {};
+      financialData?.forEach(item => {
+        dataStatus[item.user_id] = true;
       });
+
+      setUsersWithData(dataStatus);
+    } catch (error) {
+      console.error('Error fetching users data status:', error);
     }
   };
 
@@ -123,67 +88,20 @@ export const AdminDashboard = () => {
     fetchUsers();
   };
 
-  const handleUserUpdated = () => {
-    setShowEditDialog(false);
-    setSelectedUser(null);
-    fetchUsers();
+  const handleUserClick = (user: AdminUserProfile) => {
+    setSelectedUserId(user.id);
+    setCurrentView('user-dashboard');
   };
 
-  const handleEditUser = (user: AdminUserProfile) => {
-    // Convert AdminUserProfile to UserProfile for UserEditDialog
-    const userProfileForEdit: UserProfile = {
-      id: user.id,
-      user_id: user.id,
-      company_name: user.company_name,
-      created_at: user.created_at,
-      role: user.role,
-      email: user.email
-    };
-    setSelectedUser(userProfileForEdit);
-    setShowEditDialog(true);
+  const handleBackToList = () => {
+    setCurrentView('list');
+    setSelectedUserId(null);
   };
 
-  const promoteUserToAdmin = async (userId: string) => {
-    try {
-      const { error } = await supabase.rpc('promote_user_to_admin', {
-        target_user_id: userId
-      });
-
-      if (error) {
-        console.error('Error promoting user to admin:', error);
-        toast({
-          title: "Error",
-          description: error.message || "No se pudo promover el usuario a administrador",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      toast({
-        title: "Rol actualizado",
-        description: "Usuario promovido a administrador exitosamente",
-      });
-
-      // Refresh users list
-      fetchUsers();
-    } catch (error) {
-      console.error('Error toggling user role:', error);
-      toast({
-        title: "Error",
-        description: "Error al cambiar el rol del usuario",
-        variant: "destructive"
-      });
-    }
+  const handleManageData = () => {
+    setCurrentView('data-manager');
   };
 
-  const handleUploadComplete = (fileId: string, processedData: any) => {
-    console.log('Upload completed:', { fileId, processedData });
-    toast({
-      title: "Archivo procesado",
-      description: "Los datos han sido extraídos y están listos para el análisis.",
-    });
-    fetchFiles();
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -224,6 +142,7 @@ export const AdminDashboard = () => {
     const loadData = async () => {
       setLoading(true);
       await fetchUsers();
+      await fetchUsersDataStatus();
       setLoading(false);
     };
     
@@ -235,6 +154,86 @@ export const AdminDashboard = () => {
       <div className="flex items-center justify-center p-8">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
+    );
+  }
+
+  const selectedUser = users.find(u => u.id === selectedUserId);
+
+  return (
+    <AdminImpersonationProvider>
+      <AdminDashboardContent 
+        users={users}
+        usersWithData={usersWithData}
+        loading={loading}
+        showUserWizard={showUserWizard}
+        setShowUserWizard={setShowUserWizard}
+        currentView={currentView}
+        selectedUser={selectedUser}
+        handleUserCreated={handleUserCreated}
+        handleUserClick={handleUserClick}
+        handleBackToList={handleBackToList}
+        handleManageData={handleManageData}
+      />
+    </AdminImpersonationProvider>
+  );
+};
+
+interface AdminDashboardContentProps {
+  users: AdminUserProfile[];
+  usersWithData: {[key: string]: boolean};
+  loading: boolean;
+  showUserWizard: boolean;
+  setShowUserWizard: (show: boolean) => void;
+  currentView: 'list' | 'user-dashboard' | 'data-manager';
+  selectedUser?: AdminUserProfile;
+  handleUserCreated: () => void;
+  handleUserClick: (user: AdminUserProfile) => void;
+  handleBackToList: () => void;
+  handleManageData: () => void;
+}
+
+const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
+  users,
+  usersWithData,
+  loading,
+  showUserWizard,
+  setShowUserWizard,
+  currentView,
+  selectedUser,
+  handleUserCreated,
+  handleUserClick,
+  handleBackToList,
+  handleManageData
+}) => {
+  const { setImpersonation } = useAdminImpersonation();
+
+  // Set impersonation when user is selected
+  React.useEffect(() => {
+    if (currentView !== 'list' && selectedUser) {
+      setImpersonation(selectedUser.id, {
+        id: selectedUser.id,
+        email: selectedUser.email,
+        company_name: selectedUser.company_name
+      });
+    } else {
+      setImpersonation(null, null);
+    }
+  }, [currentView, selectedUser, setImpersonation]);
+
+  if (currentView === 'user-dashboard') {
+    return (
+      <AdminUserDashboard 
+        onBack={handleBackToList}
+        onManageData={handleManageData}
+      />
+    );
+  }
+
+  if (currentView === 'data-manager') {
+    return (
+      <AdminDataManager 
+        onBack={() => currentView === 'data-manager' ? handleBackToList() : handleBackToList()}
+      />
     );
   }
 
@@ -272,118 +271,67 @@ export const AdminDashboard = () => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Administradores</CardTitle>
+            <CardTitle className="text-sm font-medium">Con Datos</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {users.filter(u => u.role === 'admin').length}
+              {Object.keys(usersWithData).length}
             </div>
             <p className="text-xs text-muted-foreground">
-              Usuarios con permisos de administración
+              Usuarios con dashboards activos
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Tabs */}
-      <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="users">Gestión de Usuarios</TabsTrigger>
-          <TabsTrigger value="upload">Subir Archivos</TabsTrigger>
-        </TabsList>
+      {/* Create User Button */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold">Gestión de Usuarios</h2>
+        <Dialog open={showUserWizard} onOpenChange={setShowUserWizard}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Crear Usuario
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
+            <EnhancedUserCreationWizard
+              onComplete={handleUserCreated}
+              onCancel={() => setShowUserWizard(false)}
+            />
+          </DialogContent>
+        </Dialog>
+      </div>
 
-        {/* Users Tab */}
-        <TabsContent value="users" className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Usuarios del Sistema</h2>
-            <Dialog open={showUserWizard} onOpenChange={setShowUserWizard}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Crear Usuario
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-6xl max-h-[95vh] overflow-y-auto">
-                <EnhancedUserCreationWizard
-                  onComplete={handleUserCreated}
-                  onCancel={() => setShowUserWizard(false)}
-                />
-              </DialogContent>
-            </Dialog>
+      {/* Users Grid */}
+      <div className="space-y-4">
+        <p className="text-muted-foreground">
+          Haz click en cualquier usuario para acceder a su dashboard y gestionar sus datos
+        </p>
+        
+        {loading ? (
+          <div className="flex items-center justify-center p-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-
-          <Card>
-            <CardContent className="p-6">
-              {users.length === 0 ? (
-                <div className="text-center py-8">
-                  <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No hay usuarios registrados.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {users.map((user) => (
-                    <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <p className="font-medium">{user.email}</p>
-                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                            {user.role === 'admin' ? 'Administrador' : 'Usuario'}
-                          </Badge>
-                        </div>
-                        <p className="text-muted-foreground">{user.company_name || 'Sin empresa asignada'}</p>
-                        <div className="flex gap-4 text-sm text-muted-foreground">
-                          <span>Registrado: {new Date(user.created_at).toLocaleDateString()}</span>
-                          <span>
-                            Último acceso: {user.last_sign_in_at 
-                              ? new Date(user.last_sign_in_at).toLocaleDateString()
-                              : 'Nunca'
-                            }
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditUser(user)}
-                        >
-                          <Edit className="h-4 w-4 mr-2" />
-                          Editar
-                        </Button>
-                        {user.role !== 'admin' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => promoteUserToAdmin(user.id)}
-                          >
-                            Hacer Admin
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-
-        {/* Upload Tab */}
-        <TabsContent value="upload" className="space-y-6">
-          <h2 className="text-xl font-semibold">Subir Nuevos Archivos</h2>
-          <ExcelUpload onUploadComplete={handleUploadComplete} />
-        </TabsContent>
-      </Tabs>
-
-      {/* Edit User Dialog */}
-      <UserEditDialog
-        user={selectedUser}
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        onUserUpdated={handleUserUpdated}
-      />
+        ) : users.length === 0 ? (
+          <div className="text-center py-8">
+            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">No hay usuarios registrados.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {users.map((user) => (
+              <UserCard
+                key={user.id}
+                user={user}
+                hasData={usersWithData[user.id] || false}
+                onClick={() => handleUserClick(user)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

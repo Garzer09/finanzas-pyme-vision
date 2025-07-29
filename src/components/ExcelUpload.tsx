@@ -7,6 +7,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { DataValidationPreview } from './DataValidationPreview';
 import { saveDataToModules, createModuleNotifications } from '@/utils/moduleMapping';
+import { useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
+
+// Provide default implementation for when context is not available
+const useAdminImpersonationSafe = () => {
+  try {
+    return useAdminImpersonation();
+  } catch {
+    return {
+      isImpersonating: false,
+      impersonatedUserId: null
+    };
+  }
+};
 
 interface ExcelUploadProps {
   onUploadComplete?: (fileId: string, processedData: any) => void;
@@ -18,6 +31,7 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
   const [showPreview, setShowPreview] = useState(false);
   const [processedFile, setProcessedFile] = useState<{id: string, name: string, data: any} | null>(null);
   const { toast } = useToast();
+  const { isImpersonating, impersonatedUserId } = useAdminImpersonationSafe();
 
   const handleFileUpload = async (file: File) => {
     const validFormats = ['.xlsx', '.xls', '.pdf'];
@@ -37,6 +51,11 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
     try {
       const formData = new FormData();
       formData.append('file', file);
+      
+      // If admin is impersonating, add the target user ID
+      if (isImpersonating && impersonatedUserId) {
+        formData.append('target_user_id', impersonatedUserId);
+      }
 
       const response = await fetch(`https://hlwchpmogvwmpuvwmvwv.supabase.co/functions/v1/process-excel`, {
         method: 'POST',
@@ -56,7 +75,9 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
         
         toast({
           title: "Archivo procesado",
-          description: "Revisa los datos extraídos antes de confirmar",
+          description: isImpersonating 
+            ? "Revisa los datos extraídos para el usuario seleccionado"
+            : "Revisa los datos extraídos antes de confirmar",
         });
       } else {
         throw new Error(result.error || 'Error procesando el archivo');
@@ -95,14 +116,17 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
 
     try {
       // Guardar datos automáticamente en módulos
-      const result = await saveDataToModules(processedFile.id, processedFile.data, 'temp-user');
+      const targetUserId = isImpersonating ? impersonatedUserId : 'temp-user';
+      const result = await saveDataToModules(processedFile.id, processedFile.data, targetUserId);
       
       // Crear notificaciones de módulos disponibles
       const notifications = createModuleNotifications(processedFile.data);
       
       toast({
         title: notifications.title,
-        description: notifications.message,
+        description: isImpersonating 
+          ? "Datos guardados en el dashboard del usuario"
+          : notifications.message,
       });
 
       // Completar el proceso
