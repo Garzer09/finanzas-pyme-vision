@@ -17,8 +17,6 @@ import {
   PieChart,
   LineChart,
   Target,
-  Upload,
-  Database,
   Settings,
   Clock,
   Activity,
@@ -267,17 +265,7 @@ const HomePage = () => {
           {/* Quick Actions */}
           <section>
             <h3 className="text-xl font-semibold text-steel-blue-dark mb-6">Acceso Rápido a Análisis</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Link to="/subir-excel" className="block">
-                <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
-                  <CardContent className="p-6 text-center space-y-3">
-                    <Upload className="h-8 w-8 text-steel-blue mx-auto" />
-                    <h3 className="font-semibold text-steel-blue-dark">Cargar Datos</h3>
-                    <p className="text-sm text-professional">Sube archivos Excel para análisis</p>
-                  </CardContent>
-                </Card>
-              </Link>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <Link to="/cuenta-pyg" className="block">
                 <Card className="dashboard-card hover:shadow-lg transition-all duration-300 cursor-pointer">
                   <CardContent className="p-6 text-center space-y-3">
