@@ -265,18 +265,27 @@ function validateAndCompleteFinancialData(data: any): { isValid: boolean; errors
 
 // Prompts ALTAMENTE ESPECIALIZADOS para Claude Opus 4
 function createAdvancedPrompt(documentType: string, isPDF: boolean, base64Content: string): string {
-  const baseInstruction = `Eres un experto analista financiero con capacidades de procesamiento exhaustivo de documentos. Tu misión es extraer TODO el contenido financiero de manera estructurada y realizar cálculos automáticos para completar información faltante.
+  const baseInstruction = `Eres un experto analista financiero con capacidades de procesamiento exhaustivo de documentos. Tu misión es extraer TODO el contenido financiero REAL del documento y estructurarlo exactamente para la base de datos Supabase.
 
 ARCHIVO TIPO: ${isPDF ? 'PDF' : 'Excel'}
 DOCUMENTO DETECTADO: ${documentType}
 
-INSTRUCCIONES CRÍTICAS:
-1. EXTRAE TODOS los números, categorías, períodos y conceptos financieros
-2. CALCULA automáticamente ratios y totales faltantes
-3. IDENTIFICA períodos temporales (años, trimestres, meses)
-4. DETECTA unidades físicas (kg, litros, piezas, toneladas)
-5. VALIDA coherencia matemática de los datos
-6. MARCA información faltante claramente
+🚨 INSTRUCCIONES CRÍTICAS - SOLO DATOS REALES:
+1. EXTRAE únicamente números, fechas y datos que EXISTEN realmente en el documento
+2. NUNCA generes datos ficticios, estimaciones o valores de ejemplo
+3. Si un campo no existe en el documento, marca como null o "" explícitamente
+4. CALCULA automáticamente solo ratios y totales que pueden derivarse de datos reales
+5. IDENTIFICA períodos temporales exactos del documento
+6. DETECTA unidades físicas solo si aparecen en el documento
+7. VALIDA coherencia matemática con los datos extraídos
+8. ESTRUCTURA DE SALIDA: Debe coincidir exactamente con las tablas de Supabase
+
+📊 ESTRUCTURA SUPABASE REQUERIDA:
+Para tabla 'financial_data':
+- data_type: 'balance_situacion' | 'cuenta_pyg' | 'ratios_financieros' | 'pool_deuda' | 'datos_operativos'
+- period_date: 'YYYY-MM-DD' (fecha real del documento)
+- data_content: JSON con estructura plana para acceso directo + histórica anidada
+- physical_units_data: JSON con datos de unidades físicas si existen
 
 `
 

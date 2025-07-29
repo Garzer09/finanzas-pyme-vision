@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { WaterfallChart } from '@/components/ui/waterfall-chart';
+import { TrendingUp } from 'lucide-react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 
 export const EvolutionChartsSection: React.FC = () => {
@@ -109,6 +110,35 @@ export const EvolutionChartsSection: React.FC = () => {
             </CardContent>
           </Card>
         ))}
+      </div>
+    );
+  }
+
+  // Si no hay datos reales, mostrar mensaje informativo
+  if (!hasRealData) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-steel-blue-dark">
+            Gráficos de Evolución y Comparativas
+          </h3>
+          <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
+            Sin datos históricos
+          </Badge>
+        </div>
+        <div className="text-center py-16 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+          <TrendingUp className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+          <h3 className="text-xl font-medium text-gray-900 mb-2">Análisis histórico no disponible</h3>
+          <p className="text-gray-500 mb-6">
+            Los gráficos de evolución se mostrarán una vez que cargues datos financieros históricos
+          </p>
+          <Badge 
+            onClick={() => window.location.href = '/excel-upload'} 
+            className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
+          >
+            📁 Cargar Datos Históricos
+          </Badge>
+        </div>
       </div>
     );
   }

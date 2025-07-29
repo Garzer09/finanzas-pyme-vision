@@ -59,14 +59,22 @@ export const usePhysicalUnitsData = () => {
       }
 
       if (data && data.length > 0) {
-        const latestData = data[0];
-        const physicalUnits = latestData.physical_units_data;
+        // Verificar si realmente hay datos físicos (no vacíos)
+        const hasActualPhysicalData = data.some(item => {
+          const physicalData = item.physical_units_data;
+          return physicalData && 
+                 typeof physicalData === 'object' && 
+                 !Array.isArray(physicalData) &&
+                 (physicalData as any).has_physical_data === true &&
+                 Object.keys((physicalData as any).datos_detallados || {}).length > 0;
+        });
         
-        if (physicalUnits && typeof physicalUnits === 'object' && !Array.isArray(physicalUnits) && 'has_physical_data' in physicalUnits && physicalUnits.has_physical_data) {
-          // Process year-structured data to extract latest values
-          const processedData = processPhysicalData(physicalUnits);
+        if (hasActualPhysicalData) {
+          const latestData = data[0];
+          const processedData = processPhysicalData(latestData.physical_units_data);
           setPhysicalData(processedData);
         } else {
+          // No hay datos físicos reales, dejar physicalData como null
           setPhysicalData(null);
         }
       } else {

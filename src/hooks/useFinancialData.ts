@@ -111,13 +111,17 @@ export const useFinancialData = (dataType?: string) => {
       const hasRealDBData = result && result.length > 0;
       setHasRealData(hasRealDBData);
       
-      // Process real data to extract latest year values or use demo data
-      const finalData = hasRealDBData ? processRealData(result) : demoFinancialData;
-      setData(finalData);
+      // Only use real data if available, NO demo fallback
+      if (hasRealDBData) {
+        const finalData = processRealData(result);
+        setData(finalData);
+      } else {
+        setData([]);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error fetching data');
       setHasRealData(false);
-      setData(demoFinancialData);
+      setData([]); // No demo data fallback
     } finally {
       setLoading(false);
     }
@@ -235,11 +239,22 @@ export const useFinancialData = (dataType?: string) => {
     return isFinite(num) && !isNaN(num) ? num : fallback;
   };
 
+  const hasRealDataForPeriod = (year?: string): boolean => {
+    if (!hasRealData) return false;
+    if (!year) return true;
+    
+    return data.some(item => {
+      const itemYear = new Date(item.period_date).getFullYear().toString();
+      return itemYear === year;
+    });
+  };
+
   return {
     data,
     loading,
     error,
     hasRealData,
+    hasRealDataForPeriod,
     getLatestData,
     getPeriodComparison,
     getMultiYearData,

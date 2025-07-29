@@ -31,6 +31,35 @@ export const KPICardsSection: React.FC = () => {
     );
   }
 
+  // Si no hay datos reales, mostrar mensaje informativo
+  if (!hasRealData) {
+    return (
+      <div className="space-y-8">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-steel-blue-dark">
+            Indicadores Clave de Rendimiento
+          </h3>
+          <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
+            Sin datos cargados
+          </Badge>
+        </div>
+        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+          <Activity className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No hay datos financieros disponibles</h3>
+          <p className="text-gray-500 mb-4">
+            Carga un archivo Excel o PDF para ver los indicadores clave de tu empresa
+          </p>
+          <Badge 
+            onClick={() => window.location.href = '/excel-upload'} 
+            className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
+          >
+            📁 Cargar Datos
+          </Badge>
+        </div>
+      </div>
+    );
+  }
+
   const ratiosData = getLatestData('ratios_financieros');
   const pygData = getLatestData('estado_pyg');
   const balanceData = getLatestData('estado_balance');
