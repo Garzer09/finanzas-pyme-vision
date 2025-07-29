@@ -134,24 +134,12 @@ export const DashboardSidebar = () => {
     ...(isAdmin ? [{
       title: 'Administración',
       key: 'admin',
-      expandable: true,
+      expandable: false,
       items: [
         {
-          path: '/subir-excel',
-          label: 'Subir Archivos',
-          icon: Upload,
-          color: 'text-primary'
-        },
-        {
-          path: '/admin/users',
-          label: 'Gestión de Usuarios',
-          icon: UserCog,
-          color: 'text-primary'
-        },
-        {
           path: '/admin/settings',
-          label: 'Configuración',
-          icon: Settings,
+          label: 'Panel de Administración',
+          icon: Shield,
           color: 'text-primary'
         }
       ]
