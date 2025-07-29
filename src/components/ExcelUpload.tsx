@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Upload, FileSpreadsheet, Loader2, CheckCircle, AlertCircle, Brain } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { DataValidationPreview } from './DataValidationPreview';
 import { saveDataToModules, createModuleNotifications } from '@/utils/moduleMapping';
 import { useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
@@ -32,6 +33,7 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, targ
   const [showPreview, setShowPreview] = useState(false);
   const [processedFile, setProcessedFile] = useState<{id: string, name: string, data: any} | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
   const { isImpersonating, impersonatedUserId } = useAdminImpersonationSafe();
 
   const handleFileUpload = async (file: File) => {
@@ -118,18 +120,24 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, targ
     if (!processedFile) return;
 
     try {
+      setUploading(true);
+      
+      // Determinar el userId correcto
+      const finalTargetUserId = targetUserId || (isImpersonating ? impersonatedUserId : user?.id);
+      
+      if (!finalTargetUserId) {
+        throw new Error('No se pudo identificar el usuario para guardar los datos');
+      }
+
       // Guardar datos automáticamente en módulos
-      const finalTargetUserId = targetUserId || (isImpersonating ? impersonatedUserId : 'temp-user');
       const result = await saveDataToModules(processedFile.id, processedFile.data, finalTargetUserId);
       
       // Crear notificaciones de módulos disponibles
       const notifications = createModuleNotifications(processedFile.data);
       
       toast({
-        title: notifications.title,
-        description: isImpersonating 
-          ? "Datos guardados en el dashboard del usuario"
-          : notifications.message,
+        title: "✅ " + notifications.title,
+        description: `${notifications.message}. ${result.kpisCreated} KPIs creados automáticamente.`,
       });
 
       // Completar el proceso
@@ -141,13 +149,22 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, targ
       setShowPreview(false);
       setProcessedFile(null);
 
+      // Redirigir al dashboard si no estamos en modo admin
+      if (!isImpersonating && !targetUserId) {
+        setTimeout(() => {
+          window.location.href = '/home';
+        }, 1500);
+      }
+
     } catch (error) {
       console.error('Error confirming data:', error);
       toast({
         title: "Error",
-        description: "No se pudo guardar la información automáticamente",
+        description: error.message || "No se pudo guardar la información automáticamente",
         variant: "destructive"
       });
+    } finally {
+      setUploading(false);
     }
   };
 

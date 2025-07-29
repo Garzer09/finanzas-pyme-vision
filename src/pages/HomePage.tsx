@@ -37,6 +37,18 @@ const HomePage = () => {
     }
   }, [user]);
 
+  // Refrescar datos cuando la página regaina focus (útil tras upload)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user && !loading) {
+        fetchRealData();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [user, loading]);
+
   const fetchRealData = async () => {
     try {
       // Fetch user KPIs

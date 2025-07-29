@@ -118,7 +118,13 @@ export const generateAutomaticKPIs = (processedData: any) => {
 
 // Guardar datos automáticamente en módulos correspondientes
 export const saveDataToModules = async (fileId: string, processedData: any, userId: string) => {
+  // Validar userId
+  if (!userId || userId === 'temp-user') {
+    throw new Error('Usuario no válido para guardar datos');
+  }
+
   try {
+    console.log('Guardando datos para usuario:', userId);
     const moduleMapping = mapDataToModules(processedData);
     const automaticKPIs = generateAutomaticKPIs(processedData);
 
@@ -134,17 +140,27 @@ export const saveDataToModules = async (fileId: string, processedData: any, user
         is_active: true
       }));
 
-      await supabase.from('user_kpis').insert(kpiInserts);
+      const { error: kpiError } = await supabase.from('user_kpis').insert(kpiInserts);
+      if (kpiError) {
+        console.error('Error insertando KPIs:', kpiError);
+        throw new Error(`Error guardando KPIs: ${kpiError.message}`);
+      }
+      console.log(`${automaticKPIs.length} KPIs guardados exitosamente`);
     }
 
     // Guardar supuestos financieros si hay proyecciones
     if (processedData.proyecciones) {
-      await supabase.from('financial_assumptions').insert({
+      const { error: assumptionError } = await supabase.from('financial_assumptions').insert({
         user_id: userId,
         assumption_type: 'proyecciones_automaticas',
         assumption_data: processedData.proyecciones,
         scenario_name: 'base_archivo'
       });
+      if (assumptionError) {
+        console.error('Error guardando supuestos financieros:', assumptionError);
+        throw new Error(`Error guardando supuestos: ${assumptionError.message}`);
+      }
+      console.log('Supuestos financieros guardados exitosamente');
     }
 
     return {
