@@ -7,13 +7,10 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   userRole: 'admin' | 'user' | null;
-  isDemoMode: boolean;
-  demoRole: 'admin' | 'user' | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, data?: any) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updatePassword: (password: string) => Promise<{ error: any }>;
-  setDemoMode: (role: 'admin' | 'user' | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,8 +28,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
-  const [isDemoMode, setIsDemoMode] = useState(false);
-  const [demoRole, setDemoRole] = useState<'admin' | 'user' | null>(null);
 
   const fetchUserRole = async (userId: string) => {
     try {
@@ -121,52 +116,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
-  const setDemoMode = (role: 'admin' | 'user' | null) => {
-    setIsDemoMode(!!role);
-    setDemoRole(role);
-    if (role) {
-      // Create demo user and session
-      const demoUser = {
-        id: role === 'admin' ? 'demo-admin-id' : 'demo-user-id',
-        email: role === 'admin' ? 'admin@demo.com' : 'user@demo.com',
-        user_metadata: {},
-        app_metadata: {},
-        aud: 'authenticated',
-        created_at: new Date().toISOString(),
-        role: 'authenticated'
-      } as User;
-      
-      setUser(demoUser);
-      setUserRole(role);
-      setLoading(false);
-    } else {
-      setUser(null);
-      setUserRole(null);
-      setLoading(false);
-    }
-  };
-
-  // Check for demo mode in URL
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const demoParam = urlParams.get('demo');
-    if (demoParam === 'admin' || demoParam === 'client') {
-      setDemoMode(demoParam === 'admin' ? 'admin' : 'user');
-    }
-  }, []);
 
   const value: AuthContextType = {
     user,
     session,
     loading,
     userRole,
-    isDemoMode,
-    demoRole,
     signIn,
     signUp,
     signOut,
     updatePassword,
-    setDemoMode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

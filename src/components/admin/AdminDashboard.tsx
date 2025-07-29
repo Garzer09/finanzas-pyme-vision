@@ -143,17 +143,17 @@ export const AdminDashboard = () => {
     setShowEditDialog(true);
   };
 
-  const toggleUserRole = async (userId: string, newRole: string) => {
+  const promoteUserToAdmin = async (userId: string) => {
     try {
-      const { data, error } = await supabase.rpc('toggle_user_role', {
+      const { error } = await supabase.rpc('promote_user_to_admin', {
         target_user_id: userId
       });
 
       if (error) {
-        console.error('Error toggling user role:', error);
+        console.error('Error promoting user to admin:', error);
         toast({
           title: "Error",
-          description: error.message || "No se pudo cambiar el rol del usuario",
+          description: error.message || "No se pudo promover el usuario a administrador",
           variant: "destructive"
         });
         return;
@@ -161,7 +161,7 @@ export const AdminDashboard = () => {
 
       toast({
         title: "Rol actualizado",
-        description: `Usuario convertido a ${data === 'admin' ? 'administrador' : 'usuario normal'}`,
+        description: "Usuario promovido a administrador exitosamente",
       });
 
       // Refresh users list
@@ -351,13 +351,15 @@ export const AdminDashboard = () => {
                           <Edit className="h-4 w-4 mr-2" />
                           Editar
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleUserRole(user.id, user.role === 'admin' ? 'user' : 'admin')}
-                        >
-                          {user.role === 'admin' ? 'Quitar Admin' : 'Hacer Admin'}
-                        </Button>
+                        {user.role !== 'admin' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => promoteUserToAdmin(user.id)}
+                          >
+                            Hacer Admin
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}

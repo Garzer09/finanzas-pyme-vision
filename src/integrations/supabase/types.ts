@@ -632,10 +632,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      ensure_first_user_is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
       get_user_role: {
         Args: { user_uuid?: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -647,13 +643,13 @@ export type Database = {
         }
         Returns: boolean
       }
-      make_user_admin: {
+      is_first_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      promote_user_to_admin: {
         Args: { target_user_id: string }
         Returns: undefined
-      }
-      toggle_user_role: {
-        Args: { target_user_id: string }
-        Returns: Database["public"]["Enums"]["app_role"]
       }
     }
     Enums: {
