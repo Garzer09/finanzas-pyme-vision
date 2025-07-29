@@ -23,9 +23,10 @@ const useAdminImpersonationSafe = () => {
 
 interface ExcelUploadProps {
   onUploadComplete?: (fileId: string, processedData: any) => void;
+  targetUserId?: string;
 }
 
-export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) => {
+export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, targetUserId }) => {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -52,8 +53,10 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
       const formData = new FormData();
       formData.append('file', file);
       
-      // If admin is impersonating, add the target user ID
-      if (isImpersonating && impersonatedUserId) {
+      // If admin is impersonating or targetUserId is provided, add the target user ID
+      if (targetUserId) {
+        formData.append('target_user_id', targetUserId);
+      } else if (isImpersonating && impersonatedUserId) {
         formData.append('target_user_id', impersonatedUserId);
       }
 
@@ -116,8 +119,8 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete }) =>
 
     try {
       // Guardar datos automáticamente en módulos
-      const targetUserId = isImpersonating ? impersonatedUserId : 'temp-user';
-      const result = await saveDataToModules(processedFile.id, processedFile.data, targetUserId);
+      const finalTargetUserId = targetUserId || (isImpersonating ? impersonatedUserId : 'temp-user');
+      const result = await saveDataToModules(processedFile.id, processedFile.data, finalTargetUserId);
       
       // Crear notificaciones de módulos disponibles
       const notifications = createModuleNotifications(processedFile.data);

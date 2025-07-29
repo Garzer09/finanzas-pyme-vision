@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export const useCompanyLogo = () => {
+export const useCompanyLogo = (targetUserId?: string) => {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -12,13 +12,18 @@ export const useCompanyLogo = () => {
   const fetchLogo = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      let userId = targetUserId;
+      
+      if (!userId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        userId = user.id;
+      }
 
       const { data, error } = await supabase
         .from('user_profiles')
         .select('company_logo_url')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .single();
 
       if (error && error.code !== 'PGRST116') {
@@ -38,14 +43,19 @@ export const useCompanyLogo = () => {
   const uploadLogo = async (file: File): Promise<string | null> => {
     try {
       setUploading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "Usuario no autenticado",
-          variant: "destructive",
-        });
-        return null;
+      let userId = targetUserId;
+      
+      if (!userId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          toast({
+            title: "Error",
+            description: "Usuario no autenticado",
+            variant: "destructive",
+          });
+          return null;
+        }
+        userId = user.id;
       }
 
       // Validate file type
@@ -71,7 +81,7 @@ export const useCompanyLogo = () => {
 
       // Create unique filename
       const fileExt = file.name.split('.').pop();
-      const fileName = `logo-${user.id}-${Date.now()}.${fileExt}`;
+      const fileName = `logo-${userId}-${Date.now()}.${fileExt}`;
 
       // Upload to storage
       const { error: uploadError, data } = await supabase.storage
@@ -102,7 +112,7 @@ export const useCompanyLogo = () => {
       const { error: updateError } = await supabase
         .from('user_profiles')
         .update({ company_logo_url: newLogoUrl })
-        .eq('user_id', user.id);
+        .eq('user_id', userId);
 
       if (updateError) {
         console.error('Profile update error:', updateError);

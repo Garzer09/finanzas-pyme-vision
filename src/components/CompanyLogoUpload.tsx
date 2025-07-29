@@ -1,13 +1,25 @@
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Upload, X, Image } from 'lucide-react';
+import { Upload, X, Image, Check } from 'lucide-react';
 import { useCompanyLogo } from '@/hooks/useCompanyLogo';
 import { CompanyLogo } from '@/components/CompanyLogo';
 import { cn } from '@/lib/utils';
 
-export const CompanyLogoUpload = () => {
-  const { logoUrl, uploading, uploadLogo, removeLogo } = useCompanyLogo();
+interface CompanyLogoUploadProps {
+  targetUserId?: string;
+  onLogoUploaded?: (logoUrl: string) => void;
+  showContinueButton?: boolean;
+  onContinue?: () => void;
+}
+
+export const CompanyLogoUpload = ({
+  targetUserId,
+  onLogoUploaded,
+  showContinueButton = false,
+  onContinue
+}: CompanyLogoUploadProps) => {
+  const { logoUrl, uploading, uploadLogo, removeLogo } = useCompanyLogo(targetUserId);
   const [dragActive, setDragActive] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -47,8 +59,12 @@ export const CompanyLogoUpload = () => {
     reader.readAsDataURL(file);
 
     // Upload file
-    await uploadLogo(file);
+    const uploadedUrl = await uploadLogo(file);
     setPreview(null);
+    
+    if (uploadedUrl && onLogoUploaded) {
+      onLogoUploaded(uploadedUrl);
+    }
   };
 
   const handleRemoveLogo = async () => {
@@ -144,6 +160,16 @@ export const CompanyLogoUpload = () => {
             </Button>
           </div>
         </div>
+
+        {/* Continue button when logo is uploaded and continue button is enabled */}
+        {logoUrl && showContinueButton && (
+          <div className="pt-4 border-t">
+            <Button onClick={onContinue} className="w-full">
+              <Check className="h-4 w-4 mr-2" />
+              Continuar con el logo
+            </Button>
+          </div>
+        )}
       </div>
     </Card>
   );

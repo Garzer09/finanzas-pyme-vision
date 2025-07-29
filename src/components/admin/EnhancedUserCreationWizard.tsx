@@ -310,10 +310,15 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
               <p className="text-sm text-muted-foreground mb-4">
                 Sube el logo de {formData.companyName} para personalizar la interfaz.
               </p>
-              <CompanyLogoUpload />
+              <CompanyLogoUpload 
+                targetUserId={createdUserId || undefined}
+                onLogoUploaded={() => {}}
+                showContinueButton={true}
+                onContinue={handleNext}
+              />
             </div>
-            <div className="text-center">
-              <Button onClick={handleNext}>
+            <div className="text-center pt-4">
+              <Button variant="outline" onClick={handleNext}>
                 Continuar sin logo
               </Button>
             </div>
@@ -327,12 +332,22 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
               <h3 className="text-lg font-semibold mb-4">Subir archivos financieros iniciales</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Sube los archivos Excel o PDF con los datos financieros de {formData.companyName}.
+                Claude analizará automáticamente los datos y generará todos los módulos del dashboard.
               </p>
-              <ExcelUpload onUploadComplete={handleFileUploadComplete} />
+              <ExcelUpload 
+                targetUserId={createdUserId || undefined}
+                onUploadComplete={(fileId, processedData) => {
+                  toast({
+                    title: "Análisis completado",
+                    description: "Claude ha procesado los datos financieros correctamente",
+                  });
+                  setCurrentStep(6); // Move to confirmation
+                }}
+              />
             </div>
-            <div className="text-center">
-              <Button onClick={handleFinalComplete}>
-                Finalizar configuración
+            <div className="text-center pt-4">
+              <Button variant="outline" onClick={() => setCurrentStep(6)}>
+                Finalizar sin archivos
               </Button>
             </div>
           </div>
