@@ -15,7 +15,7 @@ interface KPIData {
 }
 
 export const KPICardsSection: React.FC = () => {
-  const { data, loading, getLatestData, calculateGrowth, getPeriodComparison } = useFinancialData();
+  const { data, loading, hasRealData, getLatestData, calculateGrowth, getPeriodComparison } = useFinancialData();
 
   if (loading) {
     return (
@@ -147,9 +147,14 @@ export const KPICardsSection: React.FC = () => {
     <div className="space-y-8">
       {/* KPIs Año 0 (Actuales) */}
       <div>
-        <h3 className="text-xl font-semibold text-steel-blue-dark mb-4">
-          Indicadores Clave de Rendimiento - Año Actual
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-steel-blue-dark">
+            Indicadores Clave de Rendimiento - Año Actual
+          </h3>
+          <Badge variant={hasRealData ? 'default' : 'outline'} className="text-xs">
+            {hasRealData ? '📊 Datos Reales' : '🔍 Datos Demo'}
+          </Badge>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {currentKPIs.map((kpi, index) => {
             const IconComponent = kpi.icon;
@@ -190,7 +195,7 @@ export const KPICardsSection: React.FC = () => {
                       </div>
                     )}
                     {!hasRealData && (
-                      <p className="text-xs text-steel-blue-light">Sube archivos para ver datos reales</p>
+                      <p className="text-xs text-steel-blue-light">📁 Sube archivos para ver datos reales</p>
                     )}
                   </div>
                 </CardContent>

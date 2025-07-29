@@ -50,7 +50,6 @@ export const usePhysicalUnitsData = () => {
       const { data, error: fetchError } = await supabase
         .from('financial_data')
         .select('physical_units_data, period_date, data_content')
-        .eq('user_id', user?.id)
         .not('physical_units_data', 'eq', '{}')
         .order('period_date', { ascending: false })
         .limit(1);
@@ -64,7 +63,9 @@ export const usePhysicalUnitsData = () => {
         const physicalUnits = latestData.physical_units_data;
         
         if (physicalUnits && typeof physicalUnits === 'object' && !Array.isArray(physicalUnits) && 'has_physical_data' in physicalUnits && physicalUnits.has_physical_data) {
-          setPhysicalData(physicalUnits as unknown as PhysicalUnitsData);
+          // Process year-structured data to extract latest values
+          const processedData = processPhysicalData(physicalUnits);
+          setPhysicalData(processedData);
         } else {
           setPhysicalData(null);
         }
@@ -78,6 +79,70 @@ export const usePhysicalUnitsData = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Helper function to process year-structured physical data
+  const processPhysicalData = (rawData: any): PhysicalUnitsData => {
+    const processed: PhysicalUnitsData = {
+      has_physical_data: rawData.has_physical_data || false
+    };
+
+    if (rawData.datos_detallados) {
+      const details = rawData.datos_detallados;
+      
+      // Extract latest year values
+      const getLatestValue = (data: any): number => {
+        if (typeof data === 'number') return data;
+        if (typeof data === 'object' && data !== null) {
+          const years = Object.keys(data).filter(k => !isNaN(Number(k))).sort().reverse();
+          if (years.length > 0) {
+            return Number(data[years[0]]) || 0;
+          }
+        }
+        return 0;
+      };
+
+      // Process each field
+      if (details.ventas_unidades) {
+        processed.units_sold = getLatestValue(details.ventas_unidades);
+      }
+      
+      if (details.produccion) {
+        processed.units_produced = getLatestValue(details.produccion);
+        processed.production_volume = processed.units_produced;
+      }
+      
+      if (details.precio_medio_venta) {
+        processed.average_unit_price = getLatestValue(details.precio_medio_venta);
+      }
+      
+      if (details.coste_medio_produccion) {
+        processed.unit_cost = getLatestValue(details.coste_medio_produccion);
+      }
+      
+      // Extract unit type
+      if (details.ventas_unidades?.unidad) {
+        processed.unit_type = details.ventas_unidades.unidad;
+      } else if (details.produccion?.unidad) {
+        processed.unit_type = details.produccion.unidad;
+      }
+      
+      // Calculate inventory (assuming production - sales)
+      if (processed.units_produced && processed.units_sold) {
+        processed.inventory_units = processed.units_produced - processed.units_sold;
+      }
+      
+      // Quality metrics from capacity utilization
+      if (details.utilizacion_capacidad) {
+        const utilizacion = getLatestValue(details.utilizacion_capacidad);
+        processed.quality_metrics = {
+          yield_rate: utilizacion,
+          waste_percentage: Math.max(0, 100 - utilizacion)
+        };
+      }
+    }
+
+    return processed;
   };
 
   const getPhysicalKPIs = (): PhysicalUnitsKPI[] => {

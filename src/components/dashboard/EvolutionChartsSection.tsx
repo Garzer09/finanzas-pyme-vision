@@ -6,7 +6,7 @@ import { WaterfallChart } from '@/components/ui/waterfall-chart';
 import { useFinancialData } from '@/hooks/useFinancialData';
 
 export const EvolutionChartsSection: React.FC = () => {
-  const { data, loading, safeNumber } = useFinancialData();
+  const { data, loading, hasRealData, getMultiYearData, safeNumber } = useFinancialData();
 
   // Función para validar y limpiar datos antes de pasarlos a Recharts
   const validateChartData = (data: any[]): any[] => {
@@ -23,41 +23,44 @@ export const EvolutionChartsSection: React.FC = () => {
     });
   };
 
-  // Datos simulados para los gráficos de evolución - validados para evitar NaN
-  const rawEvolutionData = [
-    {
-      period: '2022',
-      facturacion: 2100000,
-      margenEBITDA: 12.5,
-      beneficioNeto: 180000
-    },
-    {
-      period: '2023',
-      facturacion: 2450000,
-      margenEBITDA: 14.2,
-      beneficioNeto: 220000
-    },
-    {
-      period: '2024 (Proy.)',
-      facturacion: 2680000,
-      margenEBITDA: 15.8,
-      beneficioNeto: 285000
-    },
-    {
-      period: '2025 (Proy.)',
-      facturacion: 2920000,
-      margenEBITDA: 16.5,
-      beneficioNeto: 320000
-    },
-    {
-      period: '2026 (Proy.)',
-      facturacion: 3150000,
-      margenEBITDA: 17.2,
-      beneficioNeto: 365000
+  // Get real multi-year data or fallback to demo data
+  const getRealEvolutionData = () => {
+    if (!hasRealData) {
+      // Demo data when no real data available
+      return [
+        {
+          period: '2022',
+          facturacion: 2100000,
+          margenEBITDA: 12.5,
+          beneficioNeto: 180000
+        },
+        {
+          period: '2023',
+          facturacion: 2450000,
+          margenEBITDA: 14.2,
+          beneficioNeto: 220000
+        },
+        {
+          period: '2024 (Proy.)',
+          facturacion: 2680000,
+          margenEBITDA: 15.8,
+          beneficioNeto: 285000
+        }
+      ];
     }
-  ];
 
-  const evolutionData = validateChartData(rawEvolutionData);
+    // Real data from database
+    const pygData = getMultiYearData('estado_pyg');
+    return pygData.map(yearData => ({
+      period: yearData.year,
+      facturacion: safeNumber(yearData.ventas, 0),
+      margenEBITDA: yearData.ventas ? 
+        ((safeNumber(yearData.ebitda, 0) / safeNumber(yearData.ventas, 1)) * 100) : 0,
+      beneficioNeto: safeNumber(yearData.resultado_neto, 0)
+    }));
+  };
+
+  const evolutionData = validateChartData(getRealEvolutionData());
 
   // Datos para gráfico de cascada P&G - validados para evitar NaN
   const rawWaterfallPGData = [
@@ -116,8 +119,8 @@ export const EvolutionChartsSection: React.FC = () => {
         <h3 className="text-xl font-semibold text-steel-blue-dark">
           Gráficos de Evolución y Comparativas
         </h3>
-        <Badge variant="outline" className="text-xs border-steel-blue text-steel-blue">
-          📊 Datos Demo
+        <Badge variant={hasRealData ? 'default' : 'outline'} className="text-xs">
+          {hasRealData ? '📊 Datos Reales' : '🔍 Datos Demo'}
         </Badge>
       </div>
       

@@ -84,6 +84,7 @@ export const useFinancialData = (dataType?: string) => {
   const [data, setData] = useState<FinancialDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasRealData, setHasRealData] = useState(false);
 
   useEffect(() => {
     fetchFinancialData();
@@ -106,16 +107,70 @@ export const useFinancialData = (dataType?: string) => {
 
       if (error) throw error;
       
-      // Use real data if available, otherwise fall back to demo data
-      const finalData = result && result.length > 0 ? result : demoFinancialData;
+      // Check if we have real data
+      const hasRealDBData = result && result.length > 0;
+      setHasRealData(hasRealDBData);
+      
+      // Process real data to extract latest year values or use demo data
+      const finalData = hasRealDBData ? processRealData(result) : demoFinancialData;
       setData(finalData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error fetching data');
-      // On error, still show demo data
+      setHasRealData(false);
       setData(demoFinancialData);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to extract the latest year value from year-structured data
+  const extractLatestValue = (yearData: any): number => {
+    if (typeof yearData === 'number') return yearData;
+    if (typeof yearData === 'object' && yearData !== null) {
+      const years = Object.keys(yearData).sort().reverse();
+      if (years.length > 0) {
+        return Number(yearData[years[0]]) || 0;
+      }
+    }
+    return 0;
+  };
+
+  // Helper function to get all years from year-structured data
+  const getAllYearValues = (yearData: any): Record<string, number> => {
+    if (typeof yearData === 'object' && yearData !== null && !Array.isArray(yearData)) {
+      return yearData;
+    }
+    return {};
+  };
+
+  // Process real data to flatten year-structured values
+  const processRealData = (realData: any[]): FinancialDataPoint[] => {
+    return realData.map(item => {
+      const flattenedContent: any = {};
+      
+      if (item.data_content && typeof item.data_content === 'object') {
+        Object.keys(item.data_content).forEach(key => {
+          const value = item.data_content[key];
+          
+          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+            // Handle nested objects (like liquidez, endeudamiento in ratios)
+            if (item.data_type === 'ratios_financieros') {
+              flattenedContent[key] = value;
+            } else {
+              // For other data types, extract latest year value
+              flattenedContent[key] = extractLatestValue(value);
+            }
+          } else {
+            flattenedContent[key] = value;
+          }
+        });
+      }
+      
+      return {
+        ...item,
+        data_content: flattenedContent
+      };
+    });
   };
 
   const getLatestData = (type: string) => {
@@ -125,6 +180,32 @@ export const useFinancialData = (dataType?: string) => {
   const getPeriodComparison = (type: string) => {
     const typeData = data.filter(item => item.data_type === type);
     return typeData.slice(0, 2); // Current and previous period
+  };
+
+  // Get multi-year data for charts
+  const getMultiYearData = (type: string) => {
+    const item = data.find(d => d.data_type === type);
+    if (!item?.data_content) return [];
+    
+    const years = new Set<string>();
+    Object.values(item.data_content).forEach(value => {
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        Object.keys(value).forEach(year => {
+          if (!isNaN(Number(year))) years.add(year);
+        });
+      }
+    });
+    
+    return Array.from(years).sort().map(year => {
+      const yearData: any = { year };
+      Object.keys(item.data_content).forEach(key => {
+        const value = item.data_content[key];
+        if (typeof value === 'object' && value !== null && value[year] !== undefined) {
+          yearData[key] = value[year];
+        }
+      });
+      return yearData;
+    });
   };
 
   const calculateGrowth = (current: any, previous: any, field: string) => {
@@ -158,8 +239,10 @@ export const useFinancialData = (dataType?: string) => {
     data,
     loading,
     error,
+    hasRealData,
     getLatestData,
     getPeriodComparison,
+    getMultiYearData,
     calculateGrowth,
     safeNumber,
     refetch: fetchFinancialData
