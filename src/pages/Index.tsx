@@ -25,14 +25,32 @@ const Index = () => {
         <p className="text-2xl text-white mb-8">
           Tu análisis económico inteligente
         </p>
-        <Link to="/auth">
-          <Button 
-            variant="secondary"
-            className="bg-gray-400 hover:bg-gray-300 text-black font-medium px-8 py-3 text-lg"
-          >
-            Comenzar
-          </Button>
-        </Link>
+        <div className="flex flex-col gap-4 items-center">
+          <Link to="/home?demo=client">
+            <Button 
+              variant="secondary"
+              className="bg-blue-500 hover:bg-blue-400 text-white font-medium px-8 py-3 text-lg w-64"
+            >
+              Ver como Cliente (Demo)
+            </Button>
+          </Link>
+          <Link to="/admin/settings?demo=admin">
+            <Button 
+              variant="secondary"
+              className="bg-green-500 hover:bg-green-400 text-white font-medium px-8 py-3 text-lg w-64"
+            >
+              Ver como Administrador (Demo)
+            </Button>
+          </Link>
+          <Link to="/auth">
+            <Button 
+              variant="outline"
+              className="bg-transparent border-white text-white hover:bg-white hover:text-steel font-medium px-8 py-3 text-lg w-64"
+            >
+              Acceso Normal
+            </Button>
+          </Link>
+        </div>
       </div>
     </div>
   );
