@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { KPICardsSection } from '@/components/dashboard/KPICardsSection';
 import { EvolutionChartsSection } from '@/components/dashboard/EvolutionChartsSection';
 import PhysicalUnitsKPICards from '@/components/PhysicalUnitsKPICards';
+import { RoleBasedAccess } from '@/components/RoleBasedAccess';
+import { useUserRole } from '@/hooks/useUserRole';
 import { 
   TrendingUp, 
   TrendingDown,
@@ -21,7 +23,10 @@ import {
   Clock,
   Activity,
   Calendar,
-  Percent
+  Percent,
+  Users,
+  Building,
+  FileText
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -261,18 +266,109 @@ const HomePage = () => {
             </p>
           </div>
 
-          {/* Sección 1: Resumen Ejecutivo */}
-          <section className="space-y-6">
-            {/* Panel de KPIs Principales */}
-            <KPICardsSection />
-            
-            {/* Panel de KPIs de Unidades Físicas */}
-            <PhysicalUnitsKPICards />
-            
-            {/* Comentado temporalmente hasta resolver valores NaN en gráficos
-            <EvolutionChartsSection />
-            */}
-          </section>
+          {/* Sección diferenciada por roles */}
+          
+          {/* Panel de KPIs - Solo para usuarios normales */}
+          <RoleBasedAccess allowedRoles={['user']}>
+            <section className="space-y-6">
+              {/* Panel de KPIs Principales */}
+              <KPICardsSection />
+              
+              {/* Panel de KPIs de Unidades Físicas */}
+              <PhysicalUnitsKPICards />
+              
+              {/* Comentado temporalmente hasta resolver valores NaN en gráficos
+              <EvolutionChartsSection />
+              */}
+            </section>
+          </RoleBasedAccess>
+
+          {/* Panel de Administración - Solo para administradores */}
+          <RoleBasedAccess allowedRoles={['admin']}>
+            <section className="space-y-6">
+              <Card className="dashboard-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-steel-blue-dark">
+                    <Users className="h-5 w-5" />
+                    Panel de Administración
+                  </CardTitle>
+                  <CardDescription>
+                    Gestión de usuarios y control del sistema
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Link to="/admin/users" className="block">
+                      <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer border-blue-200">
+                        <CardContent className="p-6 text-center space-y-3">
+                          <Users className="h-8 w-8 text-blue-600 mx-auto" />
+                          <h3 className="font-semibold text-steel-blue-dark">Gestión de Usuarios</h3>
+                          <p className="text-sm text-professional">Administrar usuarios y sus datos</p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+
+                    <Link to="/admin/settings" className="block">
+                      <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer border-green-200">
+                        <CardContent className="p-6 text-center space-y-3">
+                          <Settings className="h-8 w-8 text-green-600 mx-auto" />
+                          <h3 className="font-semibold text-steel-blue-dark">Configuración</h3>
+                          <p className="text-sm text-professional">Configuración del sistema</p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+
+                    <Link to="/files-dashboard" className="block">
+                      <Card className="hover:shadow-lg transition-all duration-300 cursor-pointer border-purple-200">
+                        <CardContent className="p-6 text-center space-y-3">
+                          <FileText className="h-8 w-8 text-purple-600 mx-auto" />
+                          <h3 className="font-semibold text-steel-blue-dark">Gestión de Archivos</h3>
+                          <p className="text-sm text-professional">Control de datos financieros</p>
+                        </CardContent>
+                      </Card>
+                    </Link>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Resumen del Sistema para Admins */}
+              <Card className="dashboard-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-steel-blue-dark">
+                    <Building className="h-5 w-5" />
+                    Estado del Sistema
+                  </CardTitle>
+                  <CardDescription>
+                    Métricas generales del sistema FinSight Pro
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <Users className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+                      <div className="text-2xl font-bold text-blue-600">12</div>
+                      <div className="text-sm text-blue-700">Usuarios Activos</div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                      <Building className="h-6 w-6 text-green-600 mx-auto mb-2" />
+                      <div className="text-2xl font-bold text-green-600">8</div>
+                      <div className="text-sm text-green-700">Empresas Analizadas</div>
+                    </div>
+                    <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+                      <FileText className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+                      <div className="text-2xl font-bold text-purple-600">47</div>
+                      <div className="text-sm text-purple-700">Archivos Procesados</div>
+                    </div>
+                    <div className="text-center p-4 bg-orange-50 rounded-lg border border-orange-200">
+                      <TrendingUp className="h-6 w-6 text-orange-600 mx-auto mb-2" />
+                      <div className="text-2xl font-bold text-orange-600">98%</div>
+                      <div className="text-sm text-orange-700">Uptime Sistema</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          </RoleBasedAccess>
 
           {/* Quick Actions */}
           <section>
