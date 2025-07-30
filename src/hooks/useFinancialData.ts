@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { debugManager } from '@/utils/debugManager';
 
 export interface FinancialDataPoint {
   id: string;
@@ -105,9 +106,11 @@ export const useFinancialData = (dataType?: string) => {
       return;
     }
     
+    const endTimer = debugManager.startTimer('financial_data_fetch');
+    
     try {
+      debugManager.logInfo(`Fetching financial data: ${dataType || 'all'}`, undefined, 'useFinancialData');
       setLoading(true);
-      setError(null);
       
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Timeout')), 15000)
@@ -152,16 +155,20 @@ export const useFinancialData = (dataType?: string) => {
         }
       }
       
+      debugManager.logInfo(`Financial data fetched successfully: ${finalData.length} records`, { hasRealData: hasRealDBData }, 'useFinancialData');
       setData(finalData);
     } catch (err) {
+      endTimer();
       if (lastFetchRef.current !== fetchKey || !mounted.current) return;
       
+      debugManager.logError('Failed to fetch financial data', err, { dataType }, 'useFinancialData');
       const errorMessage = err instanceof Error ? err.message : 'Error fetching data';
       setError(errorMessage);
       setHasRealData(false);
       setData([]);
     } finally {
       if (lastFetchRef.current === fetchKey && mounted.current) {
+        endTimer();
         setLoading(false);
       }
     }
