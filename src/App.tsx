@@ -47,6 +47,7 @@ import { SalesSegmentsModule } from "./components/modules/SalesSegmentsModule";
 import ConclusionsPage from "./pages/ConclusionsPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import ClaudeTestingPage from "./pages/ClaudeTestingPage";
 
 const App = () => (
   <ErrorBoundary>
@@ -65,8 +66,9 @@ const App = () => (
          <Route path="/archivos" element={<FilesDashboardPage />} />
          <Route path="/suscripcion" element={<SubscriptionPage />} />
          <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
-         <Route path="/admin/settings" element={<AdminSettingsPage />} />
-         <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/settings" element={<AdminSettingsPage />} />
+          <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/testing-claude" element={<ClaudeTestingPage />} />
         
         {/* Core Financial Analysis */}
         <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />

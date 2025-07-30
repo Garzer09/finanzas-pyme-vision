@@ -143,6 +143,12 @@ export const DashboardSidebar = () => {
           label: 'Panel de Administración',
           icon: Shield,
           color: 'text-primary'
+        },
+        {
+          path: '/testing-claude',
+          label: 'Testing Claude',
+          icon: UserCog,
+          color: 'text-warning-600'
         }
       ]
     }] : []),
