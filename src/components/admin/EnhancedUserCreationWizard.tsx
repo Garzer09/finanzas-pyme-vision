@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, User, Settings, CheckCircle, Upload } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Building2, User, Settings, CheckCircle, Upload, Search, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { usePerplexityCompanySearch } from '@/hooks/usePerplexityCompanySearch';
 import { CompanyLogoUpload } from '@/components/CompanyLogoUpload';
 import { ExcelUpload } from '@/components/ExcelUpload';
 
@@ -37,7 +39,9 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [createdUserId, setCreatedUserId] = useState<string | null>(null);
+  const [perplexitySearched, setPerplexitySearched] = useState(false);
   const { toast } = useToast();
+  const { searchCompany, isSearching, searchResult, dataFound } = usePerplexityCompanySearch();
 
   const [formData, setFormData] = useState({
     // Step 1: Datos básicos del usuario
@@ -62,6 +66,36 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
       [field]: value
     }));
   };
+
+  // Auto-search with Perplexity when company name changes
+  useEffect(() => {
+    if (formData.companyName && formData.companyName.length > 2 && !perplexitySearched) {
+      const searchTimer = setTimeout(() => {
+        searchCompany(formData.companyName);
+        setPerplexitySearched(true);
+      }, 1000); // Debounce for 1 second
+
+      return () => clearTimeout(searchTimer);
+    }
+  }, [formData.companyName, perplexitySearched]);
+
+  // Auto-fill form when Perplexity returns data
+  useEffect(() => {
+    if (searchResult?.companyInfo && dataFound) {
+      const info = searchResult.companyInfo;
+      
+      setFormData(prev => ({
+        ...prev,
+        industrySector: info.sector || prev.industrySector,
+        // Update any other fields that match
+      }));
+
+      toast({
+        title: "Información encontrada",
+        description: `Se encontró información sobre ${info.name}. Los campos se han completado automáticamente.`,
+      });
+    }
+  }, [searchResult, dataFound]);
 
   const validateStep = (step: number): boolean => {
     switch (step) {
@@ -146,6 +180,39 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
 
         if (configError) throw configError;
 
+        // Save company description from Perplexity if available
+        if (searchResult?.companyInfo && dataFound) {
+          const info = searchResult.companyInfo;
+          
+          const { error: companyError } = await supabase
+            .from('company_descriptions')
+            .insert({
+              user_id: authData.user.id,
+              company_name: formData.companyName,
+              description: info.description,
+              sector: info.sector,
+              industry: info.industry,
+              founded_year: info.foundedYear,
+              employees: info.employees,
+              revenue: info.revenue,
+              headquarters: info.headquarters,
+              website: info.website,
+              products: info.products || [],
+              competitors: info.competitors || [],
+              key_facts: info.keyFacts || [],
+              market_position: info.marketPosition,
+              business_model: info.businessModel,
+              raw_search_result: searchResult.rawSearchResult,
+              search_query: searchResult.searchQuery,
+              data_source: 'perplexity'
+            });
+
+          if (companyError) {
+            console.warn('Could not save company description:', companyError);
+            // Don't throw - this is optional data
+          }
+        }
+
         toast({
           title: "Usuario creado exitosamente",
           description: `Se ha creado el usuario para ${formData.companyName}`,
@@ -225,10 +292,29 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
               <Input
                 id="companyName"
                 value={formData.companyName}
-                onChange={(e) => updateFormData('companyName', e.target.value)}
+                onChange={(e) => {
+                  updateFormData('companyName', e.target.value);
+                  setPerplexitySearched(false); // Reset search flag when name changes
+                }}
                 placeholder="Empresa S.L."
                 required
               />
+              {isSearching && (
+                <Alert className="mt-2">
+                  <Search className="h-4 w-4 animate-spin" />
+                  <AlertDescription>
+                    Buscando información de la empresa con IA...
+                  </AlertDescription>
+                </Alert>
+              )}
+              {searchResult && dataFound && (
+                <Alert className="mt-2">
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    ¡Información encontrada! Se han completado algunos campos automáticamente.
+                  </AlertDescription>
+                </Alert>
+              )}
             </div>
             <div>
               <Label htmlFor="industrySector">Sector de actividad *</Label>

@@ -35,6 +35,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useCompanyLogo } from '@/hooks/useCompanyLogo';
+import { useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
 import { CompanyLogo } from '@/components/CompanyLogo';
 
 export const DashboardSidebar = () => {
@@ -52,6 +53,7 @@ export const DashboardSidebar = () => {
   const currentPath = location.pathname;
   const { isAdmin } = useUserRole();
   const { logoUrl } = useCompanyLogo();
+  const { isImpersonating } = useAdminImpersonation();
 
   // Function to get the section key based on current path
   const getSectionFromPath = (path: string): string | null => {
@@ -137,7 +139,7 @@ export const DashboardSidebar = () => {
       expandable: false,
       items: [
         {
-          path: '/admin/settings',
+          path: '/admin/users',
           label: 'Panel de Administración',
           icon: Shield,
           color: 'text-primary'
@@ -148,7 +150,7 @@ export const DashboardSidebar = () => {
       title: '1. Resumen Ejecutivo',
       items: [
         {
-          path: '/home',
+          path: isAdmin && isImpersonating ? '/home' : (isAdmin ? '/admin/users' : '/home'),
           label: 'Dashboard Principal',
           icon: Home,
           color: 'text-steel-600'

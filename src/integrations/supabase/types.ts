@@ -59,6 +59,78 @@ export type Database = {
         }
         Relationships: []
       }
+      company_descriptions: {
+        Row: {
+          business_model: string | null
+          company_name: string
+          competitors: string[] | null
+          created_at: string
+          data_source: string | null
+          description: string | null
+          employees: string | null
+          founded_year: number | null
+          headquarters: string | null
+          id: string
+          industry: string | null
+          key_facts: string[] | null
+          market_position: string | null
+          products: string[] | null
+          raw_search_result: string | null
+          revenue: string | null
+          search_query: string | null
+          sector: string | null
+          updated_at: string
+          user_id: string
+          website: string | null
+        }
+        Insert: {
+          business_model?: string | null
+          company_name: string
+          competitors?: string[] | null
+          created_at?: string
+          data_source?: string | null
+          description?: string | null
+          employees?: string | null
+          founded_year?: number | null
+          headquarters?: string | null
+          id?: string
+          industry?: string | null
+          key_facts?: string[] | null
+          market_position?: string | null
+          products?: string[] | null
+          raw_search_result?: string | null
+          revenue?: string | null
+          search_query?: string | null
+          sector?: string | null
+          updated_at?: string
+          user_id: string
+          website?: string | null
+        }
+        Update: {
+          business_model?: string | null
+          company_name?: string
+          competitors?: string[] | null
+          created_at?: string
+          data_source?: string | null
+          description?: string | null
+          employees?: string | null
+          founded_year?: number | null
+          headquarters?: string | null
+          id?: string
+          industry?: string | null
+          key_facts?: string[] | null
+          market_position?: string | null
+          products?: string[] | null
+          raw_search_result?: string | null
+          revenue?: string | null
+          search_query?: string | null
+          sector?: string | null
+          updated_at?: string
+          user_id?: string
+          website?: string | null
+        }
+        Relationships: []
+      }
       company_shareholder_info: {
         Row: {
           board_of_directors: Json | null

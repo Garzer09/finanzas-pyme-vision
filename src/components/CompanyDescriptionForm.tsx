@@ -8,6 +8,10 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePerplexityCompanySearch } from '@/hooks/usePerplexityCompanySearch';
+import { useCompanyDescription } from '@/hooks/useCompanyDescription';
+import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
+import { useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
 import { Search, Edit3, Save, X, CheckCircle, AlertTriangle, Building, Globe, Users, MapPin, Calendar, DollarSign } from 'lucide-react';
 
 interface CompanyData {
@@ -37,7 +41,47 @@ export const CompanyDescriptionForm = () => {
     website: ''
   });
 
+  const { user } = useAuth();
+  const { isAdmin } = useUserRole();
+  const { impersonatedUserInfo } = useAdminImpersonation();
   const { searchCompany, isSearching, searchResult, error, clearSearch, dataFound } = usePerplexityCompanySearch();
+  const { companyDescription, loading: descriptionLoading, saveCompanyDescription, createFromPerplexityResult } = useCompanyDescription();
+
+  // Get company name from profile or impersonated user
+  const getCompanyName = () => {
+    if (impersonatedUserInfo?.company_name) {
+      return impersonatedUserInfo.company_name;
+    }
+    // For normal users, get from user profile meta data
+    return user?.user_metadata?.company_name || '';
+  };
+
+  const companyName = getCompanyName();
+
+  // Auto-load existing company description
+  useEffect(() => {
+    if (companyDescription) {
+      setCompanyData({
+        name: companyDescription.company_name,
+        description: companyDescription.description || '',
+        sector: companyDescription.sector || '',
+        industry: companyDescription.industry || '',
+        foundedYear: companyDescription.founded_year,
+        employees: companyDescription.employees || '',
+        revenue: companyDescription.revenue || '',
+        headquarters: companyDescription.headquarters || '',
+        website: companyDescription.website || ''
+      });
+    }
+  }, [companyDescription]);
+
+  // Auto-search for normal users on component mount
+  useEffect(() => {
+    if (!isAdmin && companyName && !companyDescription && !descriptionLoading) {
+      setSearchQuery(companyName);
+      searchCompany(companyName);
+    }
+  }, [companyName, isAdmin, companyDescription, descriptionLoading]);
 
   useEffect(() => {
     if (searchResult?.companyInfo && dataFound) {
@@ -53,18 +97,35 @@ export const CompanyDescriptionForm = () => {
         headquarters: info.headquarters || '',
         website: info.website || ''
       });
+      
+      // Auto-save for normal users
+      if (!isAdmin) {
+        createFromPerplexityResult(searchResult);
+      }
     }
-  }, [searchResult, dataFound]);
+  }, [searchResult, dataFound, isAdmin]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
     await searchCompany(searchQuery);
   };
 
-  const handleSave = () => {
-    // Aquí puedes agregar la lógica para guardar en la base de datos
-    console.log('Saving company data:', companyData);
-    setIsEditing(false);
+  const handleSave = async () => {
+    const success = await saveCompanyDescription({
+      company_name: companyData.name,
+      description: companyData.description,
+      sector: companyData.sector,
+      industry: companyData.industry,
+      founded_year: companyData.foundedYear,
+      employees: companyData.employees,
+      revenue: companyData.revenue,
+      headquarters: companyData.headquarters,
+      website: companyData.website
+    });
+    
+    if (success) {
+      setIsEditing(false);
+    }
   };
 
   const handleReset = () => {
@@ -93,77 +154,123 @@ export const CompanyDescriptionForm = () => {
 
   return (
     <div className="space-y-6">
-      {/* Búsqueda de Empresa */}
-      <Card className="modern-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5 text-primary" />
-            Búsqueda Inteligente de Empresa
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-3">
-            <Input
-              placeholder="Nombre de la empresa a buscar..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-              disabled={isSearching}
-              className="flex-1"
-            />
-            <Button 
-              onClick={handleSearch} 
-              disabled={isSearching || !searchQuery.trim()}
-              className="min-w-[100px]"
-            >
-              {isSearching ? (
-                <>
-                  <Search className="h-4 w-4 mr-2 animate-spin" />
-                  Buscando...
-                </>
-              ) : (
-                <>
-                  <Search className="h-4 w-4 mr-2" />
-                  Buscar
-                </>
-              )}
-            </Button>
-          </div>
-
-          {error && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
-          {isSearching && (
-            <div className="space-y-3">
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
+      {/* Información de empresa para usuarios normales o búsqueda para admins */}
+      {!isAdmin && companyName ? (
+        <Card className="modern-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Building className="h-5 w-5 text-primary" />
+              Tu Empresa: {companyName}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {descriptionLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ) : (
+              <div>
+                {companyDescription ? (
+                  <Alert>
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Información de tu empresa cargada automáticamente desde nuestra base de datos.
+                    </AlertDescription>
+                  </Alert>
+                ) : isSearching ? (
+                  <Alert>
+                    <Search className="h-4 w-4 animate-spin" />
+                    <AlertDescription>
+                      Buscando información sobre {companyName} con IA...
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      No se encontró información sobre tu empresa. Puedes completar los datos manualmente.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : isAdmin ? (
+        /* Búsqueda manual para administradores */
+        <Card className="modern-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5 text-primary" />
+              Búsqueda Inteligente de Empresa (Admin)
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex gap-3">
+              <Input
+                placeholder="Nombre de la empresa a buscar..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                disabled={isSearching}
+                className="flex-1"
+              />
+              <Button 
+                onClick={handleSearch} 
+                disabled={isSearching || !searchQuery.trim()}
+                className="min-w-[100px]"
+              >
+                {isSearching ? (
+                  <>
+                    <Search className="h-4 w-4 mr-2 animate-spin" />
+                    Buscando...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Buscar
+                  </>
+                )}
+              </Button>
             </div>
-          )}
 
-          {searchResult && !dataFound && (
-            <Alert>
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                No se encontró información específica sobre "{searchQuery}". Puedes completar los datos manualmente.
-              </AlertDescription>
-            </Alert>
-          )}
+            {error && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
 
-          {searchResult && dataFound && (
-            <Alert>
-              <CheckCircle className="h-4 w-4" />
-              <AlertDescription>
-                ¡Información encontrada! Los datos se han cargado automáticamente. Puedes editarlos si es necesario.
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+            {isSearching && (
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            )}
+
+            {searchResult && !dataFound && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  No se encontró información específica sobre "{searchQuery}". Puedes completar los datos manualmente.
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {searchResult && dataFound && (
+              <Alert>
+                <CheckCircle className="h-4 w-4" />
+                <AlertDescription>
+                  ¡Información encontrada! Los datos se han cargado automáticamente. Puedes editarlos si es necesario.
+                </AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
 
       {/* Información de la Empresa */}
       <Card className="modern-card">
