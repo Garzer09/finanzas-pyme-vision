@@ -433,20 +433,6 @@ export const DashboardSidebar = () => {
         ))}
       </nav>
 
-      {/* Footer with enhanced styling */}
-      <div className="p-4 border-t border-slate-200/50">
-        <button
-          className={cn(
-            "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50/80 text-slate-700 hover:text-steel-600 font-medium",
-            collapsed && "justify-center"
-          )}
-          aria-label="Configuración"
-          title={collapsed ? 'Configuración' : undefined}
-        >
-          <Settings className="h-5 w-5 text-slate-500" />
-          {!collapsed && <span className="font-medium tracking-wide">Configuración</span>}
-        </button>
-      </div>
     </div>
   );
 };
