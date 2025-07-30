@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PeriodProvider } from "./contexts/PeriodContext";
@@ -45,11 +45,8 @@ import ConclusionsPage from "./pages/ConclusionsPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 
-const queryClient = new QueryClient();
-
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
+  <AuthProvider>
       <PeriodProvider>
         <TooltipProvider>
           <Toaster />
@@ -115,7 +112,6 @@ const App = () => (
         </TooltipProvider>
       </PeriodProvider>
     </AuthProvider>
-  </QueryClientProvider>
 );
 
 export default App;
