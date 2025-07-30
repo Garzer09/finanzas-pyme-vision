@@ -508,18 +508,23 @@ export const BalanceSituacionPage = () => {
             </div>
           </section>
 
-          {/* File Upload Section */}
+          {/* Mensaje informativo cuando no hay datos */}
           {!hasData && (
             <section>
-              <FileUploader
-                title="Cargar Balance de Situación"
-                description="Sube tu archivo de Balance siguiendo la estructura PGC-ICAC"
-                acceptedFormats={['.xlsx', '.csv']}
-                onFileUpload={handleFileUpload}
-                isLoading={isLoading}
-                error={error}
-                success={success}
-              />
+              <Card className="border-2 border-dashed border-slate-300 bg-slate-50">
+                <CardContent className="p-8 text-center">
+                  <Building2 className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                    No hay datos de balance disponibles
+                  </h3>
+                  <p className="text-slate-600 mb-4">
+                    Los datos financieros deben ser cargados por un administrador desde el panel de control.
+                  </p>
+                  <Badge variant="outline" className="text-slate-500">
+                    Contacta con tu administrador para cargar los datos
+                  </Badge>
+                </CardContent>
+              </Card>
             </section>
           )}
 

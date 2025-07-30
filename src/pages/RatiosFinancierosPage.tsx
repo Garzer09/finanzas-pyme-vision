@@ -5,6 +5,7 @@ import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { FileUploader } from '@/components/FileUploader';
 import { Gauge } from '@/components/ui/gauge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { ClaudeInsights } from '@/components/ClaudeInsights';
 import { Activity } from 'lucide-react';
 
@@ -164,18 +165,23 @@ export const RatiosFinancierosPage = () => {
             </div>
           </section>
 
-          {/* File Upload Section */}
+          {/* Mensaje informativo cuando no hay datos */}
           {!hasData && (
             <section>
-              <FileUploader
-                title="Cargar Datos Financieros"
-                description="Sube los archivos de P&G y Balance para calcular los ratios automáticamente"
-                acceptedFormats={['.xlsx', '.csv']}
-                onFileUpload={handleFileUpload}
-                isLoading={isLoading}
-                error={error}
-                success={success}
-              />
+              <Card className="border-2 border-dashed border-slate-300 bg-slate-50">
+                <CardContent className="p-8 text-center">
+                  <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                    No hay datos financieros disponibles
+                  </h3>
+                  <p className="text-slate-600 mb-4">
+                    Los datos financieros deben ser cargados por un administrador desde el panel de control.
+                  </p>
+                  <Badge variant="outline" className="text-slate-500">
+                    Contacta con tu administrador para cargar los datos
+                  </Badge>
+                </CardContent>
+              </Card>
             </section>
           )}
 

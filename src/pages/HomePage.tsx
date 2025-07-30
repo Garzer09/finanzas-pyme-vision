@@ -10,6 +10,7 @@ import { EvolutionChartsSection } from '@/components/dashboard/EvolutionChartsSe
 import PhysicalUnitsKPICards from '@/components/PhysicalUnitsKPICards';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useNavigate } from 'react-router-dom';
 import { 
   TrendingUp, 
   TrendingDown,
@@ -32,9 +33,18 @@ import { Link } from 'react-router-dom';
 
 const HomePage = () => {
   const { user } = useAuth();
+  const { userRole, loading: roleLoading } = useUserRole();
+  const navigate = useNavigate();
   const [realKPIs, setRealKPIs] = useState<any[]>([]);
   const [recentFiles, setRecentFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Redireccionar admins al panel de administración
+  useEffect(() => {
+    if (!roleLoading && userRole === 'admin') {
+      navigate('/admin/users');
+    }
+  }, [userRole, roleLoading, navigate]);
 
   useEffect(() => {
     if (user) {
