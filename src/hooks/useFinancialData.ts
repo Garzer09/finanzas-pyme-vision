@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 export interface FinancialDataPoint {
@@ -85,15 +85,23 @@ export const useFinancialData = (dataType?: string) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasRealData, setHasRealData] = useState(false);
+  const mounted = useRef(true);
+  const lastFetchRef = useRef<string>('');
 
-  useEffect(() => {
-    fetchFinancialData();
-  }, [dataType]);
-
-  const fetchFinancialData = async () => {
+  const fetchFinancialData = useCallback(async () => {
+    const fetchKey = `${dataType || 'all'}_${Date.now()}`;
+    lastFetchRef.current = fetchKey;
+    
+    if (!mounted.current) return;
+    
     try {
       setLoading(true);
-      // Get latest financial data without user filtering for anonymous uploads
+      setError(null);
+      
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 15000)
+      );
+      
       let query = supabase
         .from('financial_data')
         .select('*')
@@ -103,15 +111,17 @@ export const useFinancialData = (dataType?: string) => {
         query = query.eq('data_type', dataType);
       }
 
-      const { data: result, error } = await query;
+      const queryPromise = query;
+      const { data: result, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
+      // Check if this is still the latest fetch
+      if (lastFetchRef.current !== fetchKey || !mounted.current) return;
 
       if (error) throw error;
       
-      // Check if we have real data
       const hasRealDBData = result && result.length > 0;
       setHasRealData(hasRealDBData);
       
-      // Only use real data if available, NO demo fallback
       if (hasRealDBData) {
         const finalData = processRealData(result);
         setData(finalData);
@@ -119,13 +129,28 @@ export const useFinancialData = (dataType?: string) => {
         setData([]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error fetching data');
+      if (lastFetchRef.current !== fetchKey || !mounted.current) return;
+      
+      const errorMessage = err instanceof Error ? err.message : 'Error fetching data';
+      setError(errorMessage);
       setHasRealData(false);
-      setData([]); // No demo data fallback
+      setData([]);
     } finally {
-      setLoading(false);
+      if (lastFetchRef.current === fetchKey && mounted.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [dataType]);
+
+  useEffect(() => {
+    mounted.current = true;
+    fetchFinancialData();
+    
+    return () => {
+      mounted.current = false;
+    };
+  }, [fetchFinancialData]);
+
 
   // Helper function to extract the latest year value from year-structured data
   const extractLatestValue = (yearData: any): number => {

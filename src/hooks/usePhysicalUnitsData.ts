@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -34,25 +34,34 @@ export const usePhysicalUnitsData = () => {
   const [physicalData, setPhysicalData] = useState<PhysicalUnitsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
+  const mounted = useRef(true);
+  const lastFetchRef = useRef<string>('');
 
-  useEffect(() => {
-    if (user) {
-      fetchPhysicalData();
-    }
-  }, [user]);
-
-  const fetchPhysicalData = async () => {
+  const fetchPhysicalData = useCallback(async () => {
+    const fetchKey = `physical_${Date.now()}`;
+    lastFetchRef.current = fetchKey;
+    
+    if (!mounted.current) return;
     try {
       setIsLoading(true);
       setError(null);
 
-      const { data, error: fetchError } = await supabase
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Timeout')), 10000)
+      );
+      
+      const queryPromise = supabase
         .from('financial_data')
         .select('physical_units_data, period_date, data_content')
         .not('physical_units_data', 'eq', '{}')
         .order('period_date', { ascending: false })
         .limit(1);
+
+      const { data, error: fetchError } = await Promise.race([queryPromise, timeoutPromise]) as any;
+
+      // Check if this is still the latest fetch
+      if (lastFetchRef.current !== fetchKey || !mounted.current) return;
 
       if (fetchError) {
         throw fetchError;
@@ -81,13 +90,33 @@ export const usePhysicalUnitsData = () => {
         setPhysicalData(null);
       }
     } catch (err) {
+      if (lastFetchRef.current !== fetchKey || !mounted.current) return;
+      
       console.error('Error fetching physical units data:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar datos de unidades');
       setPhysicalData(null);
     } finally {
-      setIsLoading(false);
+      if (lastFetchRef.current === fetchKey && mounted.current) {
+        setIsLoading(false);
+      }
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    mounted.current = true;
+    
+    // Solo hacer fetch cuando no esté cargando auth y tengamos usuario
+    if (!authLoading && user) {
+      fetchPhysicalData();
+    } else if (!authLoading && !user) {
+      setIsLoading(false);
+      setPhysicalData(null);
+    }
+    
+    return () => {
+      mounted.current = false;
+    };
+  }, [user, authLoading, fetchPhysicalData]);
 
   // Helper function to process year-structured physical data
   const processPhysicalData = (rawData: any): PhysicalUnitsData => {

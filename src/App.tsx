@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -46,7 +47,8 @@ import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 
 const App = () => (
-  <AuthProvider>
+  <ErrorBoundary>
+    <AuthProvider>
       <PeriodProvider>
         <TooltipProvider>
           <Toaster />
@@ -112,6 +114,7 @@ const App = () => (
         </TooltipProvider>
       </PeriodProvider>
     </AuthProvider>
+  </ErrorBoundary>
 );
 
 export default App;
