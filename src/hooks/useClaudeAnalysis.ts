@@ -23,7 +23,7 @@ export interface AnalysisResult {
   };
 }
 
-export type AnalysisType = 'balance' | 'pyg' | 'ratios' | 'comprehensive';
+export type AnalysisType = 'balance' | 'pyg' | 'ratios' | 'debt-structure' | 'conclusions' | 'comprehensive';
 
 export const useClaudeAnalysis = () => {
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
@@ -39,6 +39,11 @@ export const useClaudeAnalysis = () => {
       periods?: string[];
       context?: string;
       forceRefresh?: boolean;
+      companyInfo?: {
+        name?: string;
+        sector?: string;
+        size?: string;
+      };
     }
   ) => {
     if (!data || Object.keys(data).length === 0) {
@@ -78,7 +83,8 @@ export const useClaudeAnalysis = () => {
           data,
           analysisType,
           periods: options?.periods,
-          context: options?.context
+          context: options?.context,
+          companyInfo: options?.companyInfo
         }
       });
 

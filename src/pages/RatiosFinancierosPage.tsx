@@ -5,8 +5,8 @@ import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { FileUploader } from '@/components/FileUploader';
 import { Gauge } from '@/components/ui/gauge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Activity, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
+import { ClaudeInsights } from '@/components/ClaudeInsights';
+import { Activity } from 'lucide-react';
 
 export const RatiosFinancierosPage = () => {
   const [hasData, setHasData] = useState(true); // Start with demo data
@@ -127,52 +127,6 @@ export const RatiosFinancierosPage = () => {
     }
   ];
 
-  // Interpretación automática
-  const interpretaciones = [
-    {
-      type: 'success',
-      icon: CheckCircle,
-      title: 'Liquidez Saludable',
-      message: 'La liquidez corriente (1.67) se encuentra en rango óptimo, indicando buena capacidad para cubrir obligaciones a corto plazo.'
-    },
-    {
-      type: 'warning',
-      icon: AlertTriangle,
-      title: 'Endeudamiento Elevado',
-      message: 'El ratio de endeudamiento (60%) está en zona de atención. Considerar estrategias de reducción de deuda.'
-    },
-    {
-      type: 'danger',
-      icon: XCircle,
-      title: 'Rentabilidad Baja',
-      message: 'El ROE (3.75%) está por debajo del objetivo recomendado (>15%). Revisar eficiencia operativa y estructura de costos.'
-    },
-    {
-      type: 'warning',
-      icon: AlertTriangle,
-      title: 'ROA Mejorable',
-      message: 'La rentabilidad sobre activos (1.5%) indica oportunidades de mejora en la eficiencia del uso de recursos.'
-    },
-    {
-      type: 'warning',
-      icon: AlertTriangle,
-      title: 'Deuda/EBITDA Elevado',
-      message: 'El ratio Deuda/EBITDA (2.8x) está en zona moderada. Monitorear la capacidad de generación de caja para servicio de deuda.'
-    },
-    {
-      type: 'success',
-      icon: CheckCircle,
-      title: 'Apalancamiento Controlado',
-      message: 'El apalancamiento financiero (2.5x) se mantiene en niveles moderados, permitiendo cierta flexibilidad de crecimiento.'
-    },
-    {
-      type: 'warning',
-      icon: AlertTriangle,
-      title: 'Capitalización a Monitorear',
-      message: 'El ratio de capitalización (45.8%) está en zona moderada. Evaluar equilibrio entre deuda a largo plazo y patrimonio.'
-    }
-  ];
-
   const handleFileUpload = async (file: File) => {
     setIsLoading(true);
     setError('');
@@ -186,45 +140,6 @@ export const RatiosFinancierosPage = () => {
       setError('Error al procesar los datos financieros.');
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const getAlertVariant = (type: string) => {
-    switch (type) {
-      case 'success':
-        return 'border-green-200 bg-green-50';
-      case 'warning':
-        return 'border-amber-200 bg-amber-50';
-      case 'danger':
-        return 'border-red-200 bg-red-50';
-      default:
-        return 'border-slate-200 bg-slate-50';
-    }
-  };
-
-  const getIconColor = (type: string) => {
-    switch (type) {
-      case 'success':
-        return 'text-green-600';
-      case 'warning':
-        return 'text-amber-600';
-      case 'danger':
-        return 'text-red-600';
-      default:
-        return 'text-slate-600';
-    }
-  };
-
-  const getTextColor = (type: string) => {
-    switch (type) {
-      case 'success':
-        return 'text-green-800';
-      case 'warning':
-        return 'text-amber-800';
-      case 'danger':
-        return 'text-red-800';
-      default:
-        return 'text-slate-800';
     }
   };
 
@@ -297,34 +212,19 @@ export const RatiosFinancierosPage = () => {
             </section>
           )}
 
-          {/* Interpretación Automática */}
+          {/* Análisis Inteligente con Claude */}
           {hasData && (
             <section>
-              <Card className="border-0 shadow-md">
-                <CardHeader className="bg-gradient-to-r from-cadet-50 to-steel-50">
-                  <CardTitle className="text-slate-800">
-                    Interpretación y Recomendaciones
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  {interpretaciones.map((item, index) => {
-                    const Icon = item.icon;
-                    return (
-                      <Alert key={index} className={getAlertVariant(item.type)}>
-                        <Icon className={`h-4 w-4 ${getIconColor(item.type)}`} />
-                        <div>
-                          <div className={`font-semibold ${getTextColor(item.type)}`}>
-                            {item.title}
-                          </div>
-                          <AlertDescription className={`${getTextColor(item.type)} opacity-90`}>
-                            {item.message}
-                          </AlertDescription>
-                        </div>
-                      </Alert>
-                    );
-                  })}
-                </CardContent>
-              </Card>
+              <ClaudeInsights
+                analysisType="ratios"
+                title="Análisis Inteligente de Ratios"
+                description="Interpretación automática y recomendaciones generadas por Claude"
+                className="border-0 shadow-md"
+                autoAnalyze={true}
+                showHeader={true}
+                showMetrics={true}
+                showRecommendations={true}
+              />
             </section>
           )}
         </main>
