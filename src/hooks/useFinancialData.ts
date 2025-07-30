@@ -87,12 +87,23 @@ export const useFinancialData = (dataType?: string) => {
   const [hasRealData, setHasRealData] = useState(false);
   const mounted = useRef(true);
   const lastFetchRef = useRef<string>('');
+  const cacheRef = useRef<Map<string, { data: FinancialDataPoint[]; timestamp: number }>>(new Map());
 
   const fetchFinancialData = useCallback(async () => {
     const fetchKey = `${dataType || 'all'}_${Date.now()}`;
     lastFetchRef.current = fetchKey;
     
     if (!mounted.current) return;
+
+    // Verificar cache (válido por 5 minutos)
+    const cacheKey = dataType || 'all';
+    const cached = cacheRef.current.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < 300000) {
+      setData(cached.data);
+      setHasRealData(cached.data.length > 0);
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
@@ -122,12 +133,26 @@ export const useFinancialData = (dataType?: string) => {
       const hasRealDBData = result && result.length > 0;
       setHasRealData(hasRealDBData);
       
+      let finalData: FinancialDataPoint[] = [];
+      
       if (hasRealDBData) {
-        const finalData = processRealData(result);
-        setData(finalData);
-      } else {
-        setData([]);
+        finalData = processRealData(result);
+        
+        // Guardar en cache
+        cacheRef.current.set(cacheKey, {
+          data: finalData,
+          timestamp: Date.now()
+        });
+
+        // Limpiar cache viejo (mantener solo últimas 5 entradas)
+        if (cacheRef.current.size > 5) {
+          const oldestKey = Array.from(cacheRef.current.entries())
+            .sort(([, a], [, b]) => a.timestamp - b.timestamp)[0][0];
+          cacheRef.current.delete(oldestKey);
+        }
       }
+      
+      setData(finalData);
     } catch (err) {
       if (lastFetchRef.current !== fetchKey || !mounted.current) return;
       
@@ -274,6 +299,17 @@ export const useFinancialData = (dataType?: string) => {
     });
   };
 
+  const clearCache = useCallback(() => {
+    cacheRef.current.clear();
+  }, []);
+
+  const getProcessedDataForAnalysis = useCallback(() => {
+    return data.reduce((acc, item) => {
+      acc[item.data_type] = item.data_content;
+      return acc;
+    }, {} as Record<string, any>);
+  }, [data]);
+
   return {
     data,
     loading,
@@ -285,6 +321,8 @@ export const useFinancialData = (dataType?: string) => {
     getMultiYearData,
     calculateGrowth,
     safeNumber,
+    clearCache,
+    getProcessedDataForAnalysis,
     refetch: fetchFinancialData
   };
 };

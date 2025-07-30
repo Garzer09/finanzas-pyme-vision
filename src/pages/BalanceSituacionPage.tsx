@@ -14,6 +14,7 @@ import { Building2, Scale, TrendingUp, AlertTriangle, Calendar, FileDown, Eye, C
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DebtAnalysisSection } from '@/components/debt-analysis/DebtAnalysisSection';
 import { PercentageBadge } from '@/components/ui/percentage-badge';
+import { IntelligentInsights } from '@/components/IntelligentInsights';
 
 export const BalanceSituacionPage = () => {
   const [hasData, setHasData] = useState(true); // Start with demo data
@@ -530,6 +531,17 @@ export const BalanceSituacionPage = () => {
                   <ModernKPICard key={index} {...kpi} />
                 ))}
               </div>
+            </section>
+          )}
+
+          {/* Intelligent Analysis Section */}
+          {hasData && (
+            <section>
+              <IntelligentInsights 
+                analysisType="balance"
+                context="Análisis inteligente del Balance de Situación. Enfócate en liquidez, solvencia, estructura patrimonial y ratios clave."
+                autoAnalyze={true}
+              />
             </section>
           )}
 
