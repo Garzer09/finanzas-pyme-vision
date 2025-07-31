@@ -158,12 +158,15 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
       // Convertir archivo a base64
       const fileContent = await fileToBase64(file);
 
-      // Llamar a la nueva edge function
-      const { data, error } = await supabase.functions.invoke('ledger-test', {
+      // Llamar a la nueva edge function inteligente
+      const { data, error } = await supabase.functions.invoke('intelligent-ledger-processor', {
         body: {
           userId,
           fileName: file.name,
-          fileContent
+          fileContent,
+          companyName,
+          taxId,
+          fiscalYear
         }
       });
 

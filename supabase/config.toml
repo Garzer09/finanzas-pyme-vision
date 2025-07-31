@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.ledger-test]
 verify_jwt = false
+
+[functions.intelligent-ledger-processor]
+verify_jwt = false
