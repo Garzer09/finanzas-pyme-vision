@@ -529,6 +529,63 @@ export type Database = {
         }
         Relationships: []
       }
+      test_sessions: {
+        Row: {
+          analysis_results: Json | null
+          analysis_status: string
+          completed_at: string | null
+          created_at: string
+          detected_fields: Json | null
+          detected_sheets: Json | null
+          file_name: string
+          file_size: number | null
+          id: string
+          manual_validations: Json | null
+          processing_status: string
+          session_name: string
+          test_metrics: Json | null
+          updated_at: string
+          upload_status: string
+          user_id: string
+        }
+        Insert: {
+          analysis_results?: Json | null
+          analysis_status?: string
+          completed_at?: string | null
+          created_at?: string
+          detected_fields?: Json | null
+          detected_sheets?: Json | null
+          file_name: string
+          file_size?: number | null
+          id?: string
+          manual_validations?: Json | null
+          processing_status?: string
+          session_name: string
+          test_metrics?: Json | null
+          updated_at?: string
+          upload_status?: string
+          user_id: string
+        }
+        Update: {
+          analysis_results?: Json | null
+          analysis_status?: string
+          completed_at?: string | null
+          created_at?: string
+          detected_fields?: Json | null
+          detected_sheets?: Json | null
+          file_name?: string
+          file_size?: number | null
+          id?: string
+          manual_validations?: Json | null
+          processing_status?: string
+          session_name?: string
+          test_metrics?: Json | null
+          updated_at?: string
+          upload_status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       unit_mappings: {
         Row: {
           base_unit: string

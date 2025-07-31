@@ -7,7 +7,7 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.claude-testing-processor]
-verify_jwt = false
+verify_jwt = true
 
 [functions.claude-testing-analyzer]
-verify_jwt = false
+verify_jwt = true

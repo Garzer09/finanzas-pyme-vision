@@ -5,18 +5,24 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Brain, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 interface TestSession {
   id: string;
+  sessionName: string;
   fileName: string;
-  uploadedAt: string;
-  status: 'uploading' | 'analyzing' | 'completed' | 'error';
-  analysisResult?: any;
-  sheets?: string[];
+  fileSize?: number;
+  uploadStatus: 'pending' | 'uploading' | 'completed' | 'error';
+  processingStatus: 'pending' | 'processing' | 'completed' | 'error';
+  analysisStatus: 'pending' | 'analyzing' | 'completed' | 'error';
+  detectedSheets?: string[];
   detectedFields?: Record<string, string[]>;
+  analysisResults?: any;
+  createdAt?: string;
 }
 
 interface TestDataUploaderProps {
@@ -29,7 +35,18 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [analysisProgress, setAnalysisProgress] = useState(0);
+  const [sessionName, setSessionName] = useState('');
   const { toast } = useToast();
+
+  const getOverallStatus = (session: TestSession) => {
+    if (session.analysisStatus === 'completed') return 'completed';
+    if (session.analysisStatus === 'analyzing') return 'analyzing';
+    if (session.processingStatus === 'completed') return 'analyzing';
+    if (session.processingStatus === 'processing') return 'processing';
+    if (session.uploadStatus === 'uploading') return 'uploading';
+    if (session.uploadStatus === 'error' || session.processingStatus === 'error' || session.analysisStatus === 'error') return 'error';
+    return 'pending';
+  };
 
   const handleFileUpload = useCallback(async (file: File) => {
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
@@ -41,21 +58,33 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
       return;
     }
 
+    if (!sessionName.trim()) {
+      toast({
+        title: "Nombre requerido",
+        description: "Por favor ingresa un nombre para la sesión de prueba",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUploading(true);
     setUploadProgress(0);
     
-    const sessionId = `test_${Date.now()}`;
     const newSession: TestSession = {
-      id: sessionId,
+      id: '', // Se asignará por la base de datos
+      sessionName: sessionName.trim(),
       fileName: file.name,
-      uploadedAt: new Date().toISOString(),
-      status: 'uploading'
+      fileSize: file.size,
+      uploadStatus: 'uploading',
+      processingStatus: 'pending',
+      analysisStatus: 'pending',
+      createdAt: new Date().toISOString(),
     };
     
     onTestSessionChange(newSession);
 
     try {
-      // Simular progreso de carga
+      // Progreso de carga
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev >= 90) {
@@ -64,15 +93,21 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
           }
           return prev + 10;
         });
-      }, 200);
+      }, 300);
 
       // Procesar archivo con función de testing
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('sessionId', sessionId);
+      formData.append('sessionName', sessionName.trim());
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
 
       const { data, error } = await supabase.functions.invoke('claude-testing-processor', {
-        body: formData
+        body: formData,
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+        }
       });
 
       clearInterval(progressInterval);
@@ -80,18 +115,20 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
 
       if (error) throw error;
 
-      // Iniciar análisis
-      setAnalysisProgress(0);
+      // Actualizar sesión con datos procesados
       const updatedSession: TestSession = {
         ...newSession,
-        status: 'analyzing',
-        sheets: data.sheets,
+        id: data.sessionId,
+        uploadStatus: 'completed',
+        processingStatus: 'completed',
+        analysisStatus: 'analyzing',
+        detectedSheets: data.sheets,
         detectedFields: data.detectedFields
       };
       onTestSessionChange(updatedSession);
 
-      // Simular análisis con Claude
-      await analyzeWithClaude(updatedSession, data);
+      // Iniciar análisis con Claude
+      await analyzeWithClaude(updatedSession);
 
     } catch (error) {
       console.error('Error uploading file:', error);
@@ -103,15 +140,18 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
       
       onTestSessionChange({
         ...newSession,
-        status: 'error'
+        uploadStatus: 'error',
+        processingStatus: 'error',
+        analysisStatus: 'error'
       });
     } finally {
       setIsUploading(false);
     }
-  }, [onTestSessionChange, toast]);
+  }, [onTestSessionChange, toast, sessionName]);
 
-  const analyzeWithClaude = async (session: TestSession, fileData: any) => {
+  const analyzeWithClaude = async (session: TestSession) => {
     try {
+      setAnalysisProgress(0);
       const progressInterval = setInterval(() => {
         setAnalysisProgress(prev => {
           if (prev >= 90) {
@@ -120,13 +160,15 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
           }
           return prev + 15;
         });
-      }, 1000);
+      }, 1500);
 
       const { data: analysisResult, error } = await supabase.functions.invoke('claude-testing-analyzer', {
         body: {
           sessionId: session.id,
-          fileData,
           analysisType: 'comprehensive'
+        },
+        headers: {
+          Authorization: `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
         }
       });
 
@@ -137,8 +179,8 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
 
       const completedSession: TestSession = {
         ...session,
-        status: 'completed',
-        analysisResult
+        analysisStatus: 'completed',
+        analysisResults: analysisResult
       };
       
       onTestSessionChange(completedSession);
@@ -158,7 +200,7 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
       
       onTestSessionChange({
         ...session,
-        status: 'error'
+        analysisStatus: 'error'
       });
     }
   };
@@ -187,7 +229,10 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
     onTestSessionChange(null);
     setUploadProgress(0);
     setAnalysisProgress(0);
+    setSessionName('');
   };
+
+  const overallStatus = currentSession ? getOverallStatus(currentSession) : 'pending';
 
   return (
     <div className="space-y-6">
@@ -201,35 +246,49 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
         </CardHeader>
         <CardContent>
           {!currentSession ? (
-            <div
-              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-                isDragging 
-                  ? 'border-primary bg-primary/5' 
-                  : 'border-border hover:border-primary/50'
-              }`}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-            >
-              <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-lg font-semibold mb-2">
-                Arrastra tu archivo Excel aquí
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                O haz clic para seleccionar un archivo de prueba
-              </p>
-              <input
-                type="file"
-                accept=".xlsx,.xls"
-                onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
-                className="hidden"
-                id="file-upload"
-              />
-              <Button asChild variant="outline">
-                <label htmlFor="file-upload" className="cursor-pointer">
-                  Seleccionar Archivo
-                </label>
-              </Button>
+            <div className="space-y-4">
+              {/* Campo para nombre de sesión */}
+              <div className="space-y-2">
+                <Label htmlFor="session-name">Nombre de la sesión de prueba</Label>
+                <Input
+                  id="session-name"
+                  placeholder="Ej: Prueba análisis financiero Q4 2024"
+                  value={sessionName}
+                  onChange={(e) => setSessionName(e.target.value)}
+                />
+              </div>
+
+              {/* Área de drag & drop */}
+              <div
+                className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                  isDragging 
+                    ? 'border-primary bg-primary/5' 
+                    : 'border-border hover:border-primary/50'
+                }`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+              >
+                <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                <h3 className="text-lg font-semibold mb-2">
+                  Arrastra tu archivo Excel aquí
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  O haz clic para seleccionar un archivo de prueba
+                </p>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <Button asChild variant="outline" disabled={!sessionName.trim()}>
+                  <label htmlFor="file-upload" className="cursor-pointer">
+                    Seleccionar Archivo
+                  </label>
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -238,21 +297,27 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
                 <div className="flex items-center gap-3">
                   <FileSpreadsheet className="h-8 w-8 text-primary" />
                   <div>
-                    <h4 className="font-semibold">{currentSession.fileName}</h4>
+                    <h4 className="font-semibold">{currentSession.sessionName}</h4>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(currentSession.uploadedAt).toLocaleString()}
+                      {currentSession.fileName} • {currentSession.fileSize ? `${Math.round(currentSession.fileSize / 1024)} KB` : ''}
                     </p>
+                    {currentSession.createdAt && (
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(currentSession.createdAt).toLocaleString()}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant={
-                    currentSession.status === 'completed' ? 'default' :
-                    currentSession.status === 'error' ? 'destructive' : 'secondary'
+                    overallStatus === 'completed' ? 'default' :
+                    overallStatus === 'error' ? 'destructive' : 'secondary'
                   }>
-                    {currentSession.status === 'uploading' && 'Cargando...'}
-                    {currentSession.status === 'analyzing' && 'Analizando...'}
-                    {currentSession.status === 'completed' && 'Completado'}
-                    {currentSession.status === 'error' && 'Error'}
+                    {overallStatus === 'uploading' && 'Cargando...'}
+                    {overallStatus === 'processing' && 'Procesando...'}
+                    {overallStatus === 'analyzing' && 'Analizando...'}
+                    {overallStatus === 'completed' && 'Completado'}
+                    {overallStatus === 'error' && 'Error'}
                   </Badge>
                   <Button variant="ghost" size="sm" onClick={clearSession}>
                     <Trash2 className="h-4 w-4" />
@@ -264,7 +329,7 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
               {isUploading && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span>Cargando archivo...</span>
+                    <span>Cargando y procesando archivo...</span>
                     <span>{uploadProgress}%</span>
                   </div>
                   <Progress value={uploadProgress} />
@@ -272,12 +337,12 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
               )}
 
               {/* Progreso de análisis */}
-              {currentSession.status === 'analyzing' && (
+              {overallStatus === 'analyzing' && (
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="flex items-center gap-2">
                       <Brain className="h-4 w-4 animate-pulse" />
-                      Claude analizando...
+                      Claude analizando datos financieros...
                     </span>
                     <span>{analysisProgress}%</span>
                   </div>
@@ -286,7 +351,7 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
               )}
 
               {/* Resultados de detección */}
-              {currentSession.status === 'completed' && currentSession.detectedFields && (
+              {overallStatus === 'completed' && currentSession.detectedFields && (
                 <Tabs defaultValue="sheets" className="mt-4">
                   <TabsList>
                     <TabsTrigger value="sheets">Hojas Detectadas</TabsTrigger>
@@ -295,7 +360,7 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
                   
                   <TabsContent value="sheets" className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
-                      {currentSession.sheets?.map((sheet) => (
+                      {currentSession.detectedSheets?.map((sheet) => (
                         <Badge key={sheet} variant="outline" className="justify-center p-2">
                           {sheet}
                         </Badge>
@@ -325,16 +390,16 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
       </Card>
 
       {/* Alertas de estado */}
-      {currentSession?.status === 'completed' && (
+      {overallStatus === 'completed' && (
         <Alert>
           <CheckCircle2 className="h-4 w-4" />
           <AlertDescription>
-            Archivo procesado exitosamente. Puedes continuar con la validación de cálculos.
+            Archivo procesado exitosamente con Claude. Puedes continuar con la validación de cálculos.
           </AlertDescription>
         </Alert>
       )}
 
-      {currentSession?.status === 'error' && (
+      {overallStatus === 'error' && (
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
