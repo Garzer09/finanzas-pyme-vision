@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Upload, CheckCircle, AlertCircle, Info, ArrowRight } from 'lucide-react';
+import { Upload, CheckCircle, AlertCircle, Info, ArrowRight, ArrowLeft, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
@@ -31,6 +32,13 @@ interface ProcessingStatus {
   eta_seconds?: number;
 }
 
+interface Company {
+  id: string;
+  name: string;
+  currency_code: string;
+  accounting_standard: string;
+}
+
 const CANONICAL_FILES = {
   // Obligatorios
   obligatorios: {
@@ -52,7 +60,6 @@ export const AdminCargaPlantillasPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { toast } = useToast();
-
   const [searchParams] = useSearchParams();
   const companyId = searchParams.get('companyId');
 
@@ -69,6 +76,10 @@ export const AdminCargaPlantillasPage: React.FC = () => {
     dry_run: false
   });
 
+  // Company data
+  const [company, setCompany] = useState<Company | null>(null);
+  const [companies, setCompanies] = useState<Company[]>([]);
+
   // File state
   const [obligatoriosFiles, setObligatoriosFiles] = useState<{ [key: string]: File }>({});
   const [opcionalesFiles, setOpcionalesFiles] = useState<{ [key: string]: File }>({});
@@ -78,6 +89,49 @@ export const AdminCargaPlantillasPage: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState<ProcessingStatus | null>(null);
   const [processingError, setProcessingError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadCompanies();
+    if (companyId) {
+      loadCompanyData(companyId);
+    }
+  }, [companyId]);
+
+  const loadCompanies = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, name, currency_code, accounting_standard')
+        .order('name');
+
+      if (error) throw error;
+      setCompanies(data || []);
+    } catch (error) {
+      console.error('Error loading companies:', error);
+    }
+  };
+
+  const loadCompanyData = async (id: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('companies')
+        .select('id, name, currency_code, accounting_standard')
+        .eq('id', id)
+        .single();
+
+      if (error) throw error;
+      
+      setCompany(data);
+      setMetadata(prev => ({
+        ...prev,
+        company_id: id,
+        currency_code: data.currency_code,
+        accounting_standard: data.accounting_standard
+      }));
+    } catch (error) {
+      console.error('Error loading company:', error);
+    }
+  };
 
   // Validate file name and content
   const validateFile = useCallback((file: File): FileValidation => {
@@ -103,12 +157,12 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       };
     }
 
-    if (file.size > 10 * 1024 * 1024) { // 10MB
+    if (file.size > 20 * 1024 * 1024) { // 20MB
       return {
         isValid: false,
         fileName: file.name,
         canonicalName: fileName,
-        error: 'El archivo es demasiado grande (máximo 10MB)'
+        error: 'El archivo es demasiado grande (máximo 20MB)'
       };
     }
 
@@ -175,7 +229,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
 
   // Check if form is ready to submit
   const isFormReady = metadata.company_id && 
-                     metadata.period_start && 
+                     metadata.period_year && 
                      Object.keys(CANONICAL_FILES.obligatorios).every(fileName => 
                        obligatoriosFiles[fileName] && fileValidations[fileName]?.isValid
                      );
@@ -192,7 +246,9 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       
       // Add metadata
       Object.entries(metadata).forEach(([key, value]) => {
-        formData.append(key, value);
+        if (value !== null && value !== undefined) {
+          formData.append(key, String(value));
+        }
       });
 
       // Add files
@@ -263,7 +319,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
           setIsProcessing(false);
           toast({
             title: "Carga completada",
-            description: "Los datos se han cargado exitosamente"
+            description: metadata.dry_run ? "Validación completada exitosamente" : "Los datos se han cargado exitosamente"
           });
         } else if (status.status === 'FAILED') {
           clearInterval(pollInterval);
@@ -285,7 +341,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
   // Navigate to dashboard
   const handleGoToDashboard = () => {
     if (metadata.company_id) {
-      navigate(`/dashboard?company=${metadata.company_id}&period=${metadata.period_start}`);
+      navigate(`/admin/dashboard?companyId=${metadata.company_id}&period=${metadata.period_year}`);
     }
   };
 
@@ -298,11 +354,35 @@ export const AdminCargaPlantillasPage: React.FC = () => {
           <main className="flex-1 overflow-auto p-6">
             <div className="max-w-4xl mx-auto space-y-6">
               {/* Header */}
-              <div className="space-y-2">
-                <h1 className="text-3xl font-bold text-foreground">Carga de Plantillas CSV</h1>
-                <p className="text-muted-foreground">
-                  Sistema robusto para cargar datos financieros desde archivos CSV normalizados
-                </p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => navigate('/admin/empresas')}
+                    className="gap-2"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                    Volver a Empresas
+                  </Button>
+                  <div className="space-y-2">
+                    <h1 className="text-3xl font-bold text-foreground">Carga de Plantillas CSV</h1>
+                    <p className="text-muted-foreground">
+                      {company ? `${company.name} - Sistema robusto para cargar datos financieros` : 'Sistema robusto para cargar datos financieros desde archivos CSV normalizados'}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    Descargar Plantillas
+                  </Button>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <ExternalLink className="h-4 w-4" />
+                    Asistente GPT
+                  </Button>
+                </div>
               </div>
 
               {/* Important notice */}
@@ -322,13 +402,25 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="company_id">ID de Empresa *</Label>
-                      <Input
-                        id="company_id"
+                      <Label htmlFor="company_id">Empresa *</Label>
+                      <Select 
                         value={metadata.company_id}
-                        onChange={(e) => setMetadata(prev => ({ ...prev, company_id: e.target.value }))}
-                        placeholder="Ingresa el ID de la empresa"
-                      />
+                        onValueChange={(value) => {
+                          setMetadata(prev => ({ ...prev, company_id: value }));
+                          loadCompanyData(value);
+                        }}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar empresa" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {companies.map(comp => (
+                            <SelectItem key={comp.id} value={comp.id}>
+                              {comp.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-2">
@@ -336,7 +428,12 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                       <Select 
                         value={metadata.period_type}
                         onValueChange={(value: 'annual' | 'quarterly' | 'monthly') => 
-                          setMetadata(prev => ({ ...prev, period_type: value }))
+                          setMetadata(prev => ({ 
+                            ...prev, 
+                            period_type: value,
+                            period_quarter: value === 'quarterly' ? 1 : null,
+                            period_month: value === 'monthly' ? 1 : null
+                          }))
                         }
                       >
                         <SelectTrigger>
@@ -351,24 +448,64 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="period_start">Fecha Inicio *</Label>
+                      <Label htmlFor="period_year">Año *</Label>
                       <Input
-                        id="period_start"
-                        type="date"
-                        value={metadata.period_start}
-                        onChange={(e) => setMetadata(prev => ({ ...prev, period_start: e.target.value }))}
+                        id="period_year"
+                        type="number"
+                        min="2000"
+                        max="2030"
+                        value={metadata.period_year}
+                        onChange={(e) => setMetadata(prev => ({ ...prev, period_year: parseInt(e.target.value) || new Date().getFullYear() }))}
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="period_end">Fecha Fin</Label>
-                      <Input
-                        id="period_end"
-                        type="date"
-                        value={metadata.period_end}
-                        onChange={(e) => setMetadata(prev => ({ ...prev, period_end: e.target.value }))}
-                      />
-                    </div>
+                    {metadata.period_type === 'quarterly' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="period_quarter">Trimestre *</Label>
+                        <Select 
+                          value={metadata.period_quarter?.toString() || ''}
+                          onValueChange={(value) => setMetadata(prev => ({ ...prev, period_quarter: parseInt(value) }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar trimestre" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">T1 (Ene-Mar)</SelectItem>
+                            <SelectItem value="2">T2 (Abr-Jun)</SelectItem>
+                            <SelectItem value="3">T3 (Jul-Sep)</SelectItem>
+                            <SelectItem value="4">T4 (Oct-Dic)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
+
+                    {metadata.period_type === 'monthly' && (
+                      <div className="space-y-2">
+                        <Label htmlFor="period_month">Mes *</Label>
+                        <Select 
+                          value={metadata.period_month?.toString() || ''}
+                          onValueChange={(value) => setMetadata(prev => ({ ...prev, period_month: parseInt(value) }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar mes" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="1">Enero</SelectItem>
+                            <SelectItem value="2">Febrero</SelectItem>
+                            <SelectItem value="3">Marzo</SelectItem>
+                            <SelectItem value="4">Abril</SelectItem>
+                            <SelectItem value="5">Mayo</SelectItem>
+                            <SelectItem value="6">Junio</SelectItem>
+                            <SelectItem value="7">Julio</SelectItem>
+                            <SelectItem value="8">Agosto</SelectItem>
+                            <SelectItem value="9">Septiembre</SelectItem>
+                            <SelectItem value="10">Octubre</SelectItem>
+                            <SelectItem value="11">Noviembre</SelectItem>
+                            <SelectItem value="12">Diciembre</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <Label htmlFor="currency_code">Moneda</Label>
@@ -401,6 +538,31 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                           <SelectItem value="IFRS">IFRS - Normas Internacionales</SelectItem>
                         </SelectContent>
                       </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="import_mode">Modo de Importación</Label>
+                      <Select 
+                        value={metadata.import_mode}
+                        onValueChange={(value: 'REPLACE' | 'MERGE') => setMetadata(prev => ({ ...prev, import_mode: value }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="REPLACE">REPLACE - Sustituir datos existentes</SelectItem>
+                          <SelectItem value="MERGE">MERGE - Combinar con datos existentes</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="dry_run"
+                        checked={metadata.dry_run}
+                        onCheckedChange={(checked) => setMetadata(prev => ({ ...prev, dry_run: checked }))}
+                      />
+                      <Label htmlFor="dry_run">Validar sin cargar (dry-run)</Label>
                     </div>
                   </div>
                 </CardContent>
@@ -461,7 +623,9 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                             )}
                           </div>
                           {fileValidations[fileName]?.error && (
-                            <p className="text-xs text-destructive mt-1">{fileValidations[fileName].error}</p>
+                            <div className="mt-2 text-xs text-red-600">
+                              {fileValidations[fileName].error}
+                            </div>
                           )}
                         </div>
                       </div>
@@ -498,62 +662,70 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                           input.click();
                         }}
                       >
-                        <div className="text-center">
-                          <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                          <p className="text-sm text-muted-foreground">
-                            Arrastra archivos opcionales aquí o haz clic para seleccionar
-                          </p>
+                        <div className="text-center space-y-2">
+                          <Upload className="h-8 w-8 text-muted-foreground mx-auto" />
+                          <div>
+                            <p className="text-sm font-medium">Arrastra archivos opcionales aquí</p>
+                            <p className="text-xs text-muted-foreground">o haz clic para seleccionar</p>
+                          </div>
                         </div>
                       </div>
 
-                      {/* List of uploaded optional files */}
-                      {Object.entries(opcionalesFiles).length > 0 && (
+                      {/* Show uploaded optional files */}
+                      {Object.keys(opcionalesFiles).length > 0 && (
                         <div className="space-y-2">
-                          <Label className="text-sm font-medium">Archivos subidos:</Label>
+                          <h4 className="text-sm font-medium">Archivos opcionales cargados:</h4>
                           {Object.entries(opcionalesFiles).map(([fileName, file]) => (
                             <div key={fileName} className="flex items-center gap-2 text-sm">
                               <CheckCircle className="h-4 w-4 text-green-600" />
-                              <span className="text-green-700">{fileName}</span>
+                              <span className="font-medium">{fileName}</span>
                               <span className="text-muted-foreground">
-                                ({CANONICAL_FILES.opcionales[fileName as keyof typeof CANONICAL_FILES.opcionales]})
+                                ({(file.size / 1024).toFixed(1)} KB)
                               </span>
                             </div>
                           ))}
                         </div>
                       )}
-
-                      {/* Expected files list */}
-                      <div className="text-xs text-muted-foreground">
-                        <p className="font-medium mb-1">Archivos opcionales esperados:</p>
-                        <ul className="space-y-1">
-                          {Object.entries(CANONICAL_FILES.opcionales).map(([fileName, description]) => (
-                            <li key={fileName}>• {fileName} - {description}</li>
-                          ))}
-                        </ul>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
               {/* Processing Status */}
-              {isProcessing && processingStatus && (
+              {(isProcessing || processingStatus) && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Procesamiento en Curso</CardTitle>
+                    <CardTitle>Estado del Procesamiento</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>{processingStatus.message}</span>
-                        <span>{processingStatus.progress_pct}%</span>
-                      </div>
-                      <Progress value={processingStatus.progress_pct} />
-                    </div>
-                    {processingStatus.eta_seconds && (
-                      <p className="text-xs text-muted-foreground">
-                        Tiempo estimado restante: {Math.ceil(processingStatus.eta_seconds / 60)} minutos
-                      </p>
+                    {processingStatus && (
+                      <>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Progreso:</span>
+                            <span>{processingStatus.progress_pct}%</span>
+                          </div>
+                          <Progress value={processingStatus.progress_pct} />
+                        </div>
+                        
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <div className={cn(
+                              "w-2 h-2 rounded-full",
+                              processingStatus.status === 'DONE' ? "bg-green-500" :
+                              processingStatus.status === 'FAILED' ? "bg-red-500" : "bg-blue-500 animate-pulse"
+                            )} />
+                            <span className="text-sm font-medium">Estado: {processingStatus.status}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{processingStatus.message}</p>
+                          
+                          {processingStatus.eta_seconds && processingStatus.status !== 'DONE' && (
+                            <p className="text-xs text-muted-foreground">
+                              ETA: {Math.round(processingStatus.eta_seconds / 60)} min
+                            </p>
+                          )}
+                        </div>
+                      </>
                     )}
                   </CardContent>
                 </Card>
@@ -563,45 +735,33 @@ export const AdminCargaPlantillasPage: React.FC = () => {
               {processingError && (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{processingError}</AlertDescription>
+                  <AlertDescription>
+                    <strong>Error en el procesamiento:</strong> {processingError}
+                  </AlertDescription>
                 </Alert>
               )}
 
               {/* Action Buttons */}
-              <div className="flex justify-between">
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/admin/users')}
+              <div className="flex gap-4">
+                <Button 
+                  onClick={handleProcessFiles}
+                  disabled={!isFormReady || isProcessing}
+                  className="flex-1 gap-2"
                 >
-                  Volver
+                  <Upload className="h-4 w-4" />
+                  {metadata.dry_run ? 'Validar Archivos' : 'Procesar y Cargar'}
                 </Button>
 
-                <div className="flex gap-2">
-                  {processingStatus?.status === 'DONE' ? (
-                    <Button onClick={handleGoToDashboard} className="flex items-center gap-2">
-                      Ir al Dashboard
-                      <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleProcessFiles}
-                      disabled={!isFormReady || isProcessing}
-                      className="flex items-center gap-2"
-                    >
-                      {isProcessing ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-background border-t-transparent" />
-                          Procesando...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4" />
-                          Procesar y Cargar
-                        </>
-                      )}
-                    </Button>
-                  )}
-                </div>
+                {processingStatus?.status === 'DONE' && !metadata.dry_run && (
+                  <Button 
+                    onClick={handleGoToDashboard}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                    Ir al Dashboard
+                  </Button>
+                )}
               </div>
             </div>
           </main>
@@ -610,3 +770,5 @@ export const AdminCargaPlantillasPage: React.FC = () => {
     </RoleBasedAccess>
   );
 };
+
+export default AdminCargaPlantillasPage;
