@@ -228,13 +228,9 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
 
   const handleGoToDashboard = () => {
     handleClose();
-    if (isAdminImpersonating) {
-      // Si es admin impersonificando, ir al dashboard del usuario
-      navigate(`/admin/users/${userId}/dashboard`);
-    } else {
-      // Si es el usuario normal, ir a su dashboard
-      navigate('/');
-    }
+    // Navegar a la página principal donde el contexto de impersonación 
+    // mostrará los datos del usuario correcto
+    navigate('/');
   };
 
   const formatFileSize = (bytes: number) => {
