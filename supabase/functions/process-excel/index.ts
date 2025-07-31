@@ -7,10 +7,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Configuración avanzada para Claude Opus
+// Configuración avanzada para Claude
 const CLAUDE_CONFIG = {
-  model: 'claude-opus-4-20250514',
-  max_tokens: 8000,
+  model: 'claude-3-5-sonnet-20241022',
+  max_tokens: 4000,
   temperature: 0.1
 }
 
