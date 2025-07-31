@@ -481,9 +481,9 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
               )}
 
               {currentSessionStatus === 'completed' && onContinue && (
-                <div className="flex justify-center">
-                  <Button onClick={onContinue} className="flex items-center gap-2">
-                    Continuar con EDA
+                <div className="flex justify-center pt-4">
+                  <Button onClick={onContinue} size="lg" className="flex items-center gap-2">
+                    Continuar al EDA
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>

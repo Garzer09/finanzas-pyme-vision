@@ -4,6 +4,7 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ClaudeChatModal } from './ClaudeChatModal';
 import { 
   Database, 
   FileText, 
@@ -12,15 +13,17 @@ import {
   TrendingUp,
   MapPin,
   BarChart3,
-  ArrowRight
+  ArrowRight,
+  MessageCircle
 } from 'lucide-react';
 
 interface EdaResultsProps {
   edaResults: any;
   onContinue?: () => void;
+  onEdaUpdate?: (updatedEda: any) => void;
 }
 
-export const EdaResults = ({ edaResults, onContinue }: EdaResultsProps) => {
+export const EdaResults = ({ edaResults, onContinue, onEdaUpdate }: EdaResultsProps) => {
   if (!edaResults) {
     return (
       <Alert>
@@ -383,14 +386,26 @@ export const EdaResults = ({ edaResults, onContinue }: EdaResultsProps) => {
         </TabsContent>
       </Tabs>
 
-      {onContinue && (
-        <div className="flex justify-center">
-          <Button onClick={onContinue} className="flex items-center gap-2">
-            Continuar con Análisis Financiero
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
+      {/* Botones de acción */}
+      <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
+        <CardContent className="p-6">
+          <div className="flex items-center justify-center gap-4">
+            <ClaudeChatModal 
+              edaResults={edaResults}
+              onEdaUpdate={onEdaUpdate}
+            />
+            {onContinue && (
+              <Button onClick={onContinue} className="flex items-center gap-2">
+                Continuar Análisis Financiero
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+          <p className="text-center text-sm text-muted-foreground mt-3">
+            Si Claude no ha interpretado correctamente algún dato, usa el chat para aclararlo. Si todo está correcto, continúa con el análisis.
+          </p>
+        </CardContent>
+      </Card>
     </div>
   );
 };

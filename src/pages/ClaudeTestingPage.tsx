@@ -32,7 +32,7 @@ interface StandardTestSession {
   completenessResults?: any;
 }
 
-type TestingStep = 'upload' | 'pipeline' | 'eda' | 'calculations' | 'insights' | 'completeness' | 'results';
+type TestingStep = 'upload' | 'eda' | 'calculations' | 'insights' | 'completeness' | 'results';
 
 interface StepStatus {
   completed: boolean;
@@ -51,12 +51,18 @@ export default function ClaudeTestingPage() {
 
   // Gestión del estado de los pasos
   const getStepStatus = (step: TestingStep): StepStatus => {
-    if (!currentTestSession) return { completed: false, inProgress: false, canAccess: step === 'upload' || step === 'pipeline' };
+    if (!currentTestSession) return { completed: false, inProgress: false, canAccess: step === 'upload' };
     
     switch (step) {
       case 'upload':
-      case 'pipeline':
-        return { completed: true, inProgress: false, canAccess: true };
+        return { 
+          completed: currentTestSession.uploadStatus === 'completed',
+          inProgress: currentTestSession.uploadStatus === 'uploading' || 
+                     currentTestSession.processingStatus === 'processing' ||
+                     currentTestSession.edaStatus === 'processing' ||
+                     currentTestSession.analysisStatus === 'processing',
+          canAccess: true 
+        };
       
       case 'eda':
         return { 
@@ -110,36 +116,11 @@ export default function ClaudeTestingPage() {
 
   // Auto-navegación cuando se completa un paso
   useEffect(() => {
-    if (currentTestSession?.analysisStatus === 'completed' && (currentStep === 'upload' || currentStep === 'pipeline')) {
+    if (currentTestSession?.analysisStatus === 'completed' && currentStep === 'upload') {
       setCurrentStep('eda');
-    } else if (currentTestSession?.edaStatus === 'completed' && currentStep === 'eda') {
-      setCurrentStep('calculations');
     }
-  }, [currentTestSession?.analysisStatus, currentTestSession?.edaStatus, currentStep]);
+  }, [currentTestSession?.analysisStatus, currentStep]);
 
-  // Gestionar sesión estándar para el pipeline robusto
-  const handlePipelineSessionComplete = (session: any) => {
-    const standardSession: StandardTestSession = {
-      id: session.id,
-      sessionName: session.sessionName,
-      fileName: session.fileName,
-      fileSize: session.fileSize,
-      uploadStatus: 'completed',
-      processingStatus: 'completed',
-      analysisStatus: 'completed',
-      detectedSheets: session.results?.extraction?.extracted_data?.sheets || [],
-      detectedFields: session.results?.extraction?.extracted_data?.fields || {},
-      analysisResults: session.analysisResults || session.analysis_results,
-      edaResults: session.edaResults || session.eda_results,
-      edaStatus: (session.edaStatus || session.eda_status || 'idle') as 'idle' | 'processing' | 'completed' | 'error',
-      documentTypes: session.documentTypes || [],
-      calculationResults: undefined,
-      insightResults: undefined,
-      completenessResults: undefined
-    };
-    
-    setCurrentTestSession(standardSession);
-  };
 
   // Gestionar sesión estándar para la carga simple
   const handleSimpleUploadSessionChange = (session: any) => {
@@ -173,7 +154,7 @@ export default function ClaudeTestingPage() {
   const calculateOverallProgress = () => {
     if (!currentTestSession) return 0;
     
-    const steps: TestingStep[] = ['upload', 'pipeline', 'eda', 'calculations', 'insights', 'completeness', 'results'];
+    const steps: TestingStep[] = ['upload', 'eda', 'calculations', 'insights', 'completeness', 'results'];
     const completedSteps = steps.filter(step => getStepStatus(step).completed).length;
     
     return (completedSteps / steps.length) * 100;
@@ -209,7 +190,7 @@ export default function ClaudeTestingPage() {
 
         {/* Main Testing Interface */}
         <Tabs value={currentStep} onValueChange={(value) => navigateToStep(value as TestingStep)} className="w-full">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger 
               value="upload" 
               disabled={!getStepStatus('upload').canAccess}
@@ -218,18 +199,7 @@ export default function ClaudeTestingPage() {
               {getStepStatus('upload').completed && <CheckCircle2 className="h-4 w-4 text-green-600" />}
               {getStepStatus('upload').inProgress && <Clock className="h-4 w-4 text-blue-600" />}
               {!getStepStatus('upload').canAccess && <Lock className="h-4 w-4 text-gray-400" />}
-              Carga Simple
-            </TabsTrigger>
-            
-            <TabsTrigger 
-              value="pipeline" 
-              disabled={!getStepStatus('pipeline').canAccess}
-              className="flex items-center gap-2"
-            >
-              {getStepStatus('pipeline').completed && <CheckCircle2 className="h-4 w-4 text-green-600" />}
-              {getStepStatus('pipeline').inProgress && <Clock className="h-4 w-4 text-blue-600" />}
-              {!getStepStatus('pipeline').canAccess && <Lock className="h-4 w-4 text-gray-400" />}
-              Pipeline Robusto
+              Carga
             </TabsTrigger>
             
             <TabsTrigger 
@@ -296,16 +266,18 @@ export default function ClaudeTestingPage() {
             />
           </TabsContent>
 
-          <TabsContent value="pipeline">
-            <DocumentProcessingPipeline
-              onSessionComplete={handlePipelineSessionComplete}
-            />
-          </TabsContent>
-
           <TabsContent value="eda">
             <EdaResults
               edaResults={currentTestSession?.edaResults}
               onContinue={() => setCurrentStep('calculations')}
+              onEdaUpdate={(updatedEda) => {
+                if (currentTestSession) {
+                  setCurrentTestSession({
+                    ...currentTestSession,
+                    edaResults: updatedEda
+                  });
+                }
+              }}
             />
           </TabsContent>
 
