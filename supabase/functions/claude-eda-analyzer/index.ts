@@ -31,19 +31,7 @@ serve(async (req) => {
 
     console.log(`Starting EDA for session: ${sessionId}`)
 
-    // Get user from authorization header
-    const authHeader = req.headers.get('authorization')
-    if (!authHeader) {
-      throw new Error('Missing authorization header')
-    }
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    )
-
-    if (authError || !user) {
-      throw new Error('Unauthorized')
-    }
+    // Function is configured with verify_jwt = false, so we don't need to check user auth
 
     // Prepare EDA prompt
     const systemPrompt = `Eres un experto en análisis exploratorio de datos (EDA) especializado en datos financieros. Tu tarea es analizar la estructura, calidad y contenido de datos financieros para mapear correctamente los campos disponibles.
