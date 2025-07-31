@@ -42,11 +42,15 @@ export const CalculationValidator = ({ testSession, onResultsUpdate, onContinue 
   const [isValidating, setIsValidating] = useState(false);
   const [overallAccuracy, setOverallAccuracy] = useState(0);
 
+  // Support new comprehensive analysis structure
+  const analysisResults = testSession?.financial_analysis_results;
+  const calculations = analysisResults?.calculations;
+
   useEffect(() => {
-    if (testSession?.analysisResult) {
+    if (analysisResults || testSession?.analysisResult) {
       initializeKPIComparisons();
     }
-  }, [testSession]);
+  }, [testSession, analysisResults]);
 
   const initializeKPIComparisons = () => {
     // Acceso mejorado a los datos calculados por Claude

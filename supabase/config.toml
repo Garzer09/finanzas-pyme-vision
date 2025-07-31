@@ -15,6 +15,9 @@ verify_jwt = true
 [functions.claude-testing-analyzer]
 verify_jwt = false
 
+[functions.claude-comprehensive-analyzer]
+verify_jwt = false
+
 [functions.document-detector]
 verify_jwt = true
 

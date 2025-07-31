@@ -34,19 +34,22 @@ export const InsightEvaluator = ({ testSession, onComplete, onContinue }: Insigh
   const [insights, setInsights] = useState<Insight[]>([]);
   const [evaluationResults, setEvaluationResults] = useState<EvaluationResult[]>([]);
 
+  // Support new comprehensive analysis structure
+  const analysisResults = testSession?.financial_analysis_results;
+  const claudeInsights = analysisResults?.insights || testSession?.analysisResults?.insights || [];
+
   useEffect(() => {
-    if (testSession?.analysisResults?.insights) {
-      const claudeInsights = testSession.analysisResults.insights.map((insight: any, index: number) => ({
+    if (claudeInsights && claudeInsights.length > 0) {
+      const formattedInsights = claudeInsights.map((insight: any, index: number) => ({
         id: `insight-${index}`,
-        title: insight.kpi || insight.title || `Insight ${index + 1}`,
-        description: insight.interpretation || insight.description || 'Sin descripción',
+        title: insight.title || insight.kpi || `Insight ${index + 1}`,
+        description: insight.description || insight.interpretation || 'Sin descripción',
         category: insight.category || 'general',
         value: insight.value || null,
-        recommendation: Array.isArray(insight.recommendations) 
-          ? insight.recommendations.join('. ') 
-          : insight.recommendation || 'Sin recomendación'
+        recommendation: insight.recommendation || 
+                       (Array.isArray(insight.recommendations) ? insight.recommendations.join('. ') : 'Sin recomendación')
       }));
-      setInsights(claudeInsights);
+      setInsights(formattedInsights);
       
       // Auto-generar resultados de evaluación automática
       const autoResults = claudeInsights.map((insight: Insight) => ({

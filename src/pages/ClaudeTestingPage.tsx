@@ -26,6 +26,8 @@ interface StandardTestSession {
   analysisResults?: any;
   edaResults?: any;
   edaStatus?: 'idle' | 'processing' | 'completed' | 'error';
+  financial_analysis_status?: 'idle' | 'processing' | 'completed' | 'error';
+  financial_analysis_results?: any;
   documentTypes?: string[];
   calculationResults?: any;
   insightResults?: any;
@@ -75,32 +77,30 @@ export default function ClaudeTestingPage() {
       
       case 'calculations':
         return { 
-          completed: currentTestSession.calculationResults !== undefined,
-          inProgress: false,
+          completed: currentTestSession.financial_analysis_status === 'completed',
+          inProgress: currentTestSession.financial_analysis_status === 'processing',
           canAccess: currentTestSession.edaStatus === 'completed'
         };
       
       case 'insights':
         return { 
-          completed: currentTestSession.insightResults !== undefined,
-          inProgress: false,
-          canAccess: currentTestSession.edaStatus === 'completed'
+          completed: currentTestSession.financial_analysis_status === 'completed',
+          inProgress: currentTestSession.financial_analysis_status === 'processing',
+          canAccess: currentTestSession.financial_analysis_status === 'completed'
         };
       
       case 'completeness':
         return { 
-          completed: currentTestSession.completenessResults !== undefined,
+          completed: currentTestSession.financial_analysis_status === 'completed',
           inProgress: false,
-          canAccess: currentTestSession.edaStatus === 'completed'
+          canAccess: currentTestSession.financial_analysis_status === 'completed'
         };
       
       case 'results':
         return { 
-          completed: false,
+          completed: currentTestSession.financial_analysis_status === 'completed',
           inProgress: false,
-          canAccess: currentTestSession.calculationResults !== undefined &&
-                     currentTestSession.insightResults !== undefined &&
-                     currentTestSession.completenessResults !== undefined
+          canAccess: currentTestSession.financial_analysis_status === 'completed'
         };
       
       default:
