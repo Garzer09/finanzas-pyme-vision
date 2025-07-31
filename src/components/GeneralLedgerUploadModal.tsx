@@ -106,15 +106,18 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
           setProcessing(false);
           
           if (data.status === 'DONE' || data.status === 'PARTIAL_OK') {
+            const statsJson = data.stats_json as any;
+            const totalInserted = statsJson?.metrics?.totalInserted || 0;
             toast({
               title: "¡Procesamiento completado!",
-              description: `${data.stats_json?.metrics?.totalInserted || 0} asientos procesados correctamente`,
+              description: `${totalInserted} asientos procesados correctamente`,
             });
             onSuccess();
           } else if (data.status === 'FAILED') {
+            const statsJson = data.stats_json as any;
             toast({
               title: "Error en el procesamiento",
-              description: data.stats_json?.error_message || 'Error desconocido',
+              description: statsJson?.error_message || 'Error desconocido',
               variant: "destructive"
             });
           }
@@ -459,19 +462,29 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                       
                       <Progress value={currentProgress} className="w-full" />
                       
-                      {job.stats_json?.metrics && (
+                      {job.stats_json && (
                         <div className="text-xs text-muted-foreground space-y-1">
-                          <div>Filas procesadas: {job.stats_json.metrics.validRows} / {job.stats_json.metrics.totalRows}</div>
-                          {job.stats_json.metrics.rejectedRows > 0 && (
-                            <div className="text-amber-600">
-                              Filas rechazadas: {job.stats_json.metrics.rejectedRows}
-                            </div>
-                          )}
-                          {job.stats_json.metrics.totalInserted !== undefined && (
-                            <div className="text-green-600">
-                              Asientos insertados: {job.stats_json.metrics.totalInserted}
-                            </div>
-                          )}
+                          {(() => {
+                            const stats = job.stats_json as any;
+                            const metrics = stats?.metrics;
+                            if (!metrics) return null;
+                            
+                            return (
+                              <>
+                                <div>Filas procesadas: {metrics.validRows} / {metrics.totalRows}</div>
+                                {metrics.rejectedRows > 0 && (
+                                  <div className="text-amber-600">
+                                    Filas rechazadas: {metrics.rejectedRows}
+                                  </div>
+                                )}
+                                {metrics.totalInserted !== undefined && (
+                                  <div className="text-green-600">
+                                    Asientos insertados: {metrics.totalInserted}
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
                     </>
@@ -495,27 +508,33 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                       Libro diario procesado con la nueva arquitectura robusta
                     </p>
                     
-                    {job.stats_json?.metrics && (
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="font-medium">Total asientos:</span> {job.stats_json.metrics.totalInserted}
+                    {(() => {
+                      const stats = job.stats_json as any;
+                      const metrics = stats?.metrics;
+                      if (!metrics) return null;
+                      
+                      return (
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="font-medium">Total asientos:</span> {metrics.totalInserted || 0}
+                            </div>
+                            <div>
+                              <span className="font-medium">Balance cuadra:</span> {metrics.entriesBalance ? '✅ Sí' : '❌ No'}
+                            </div>
                           </div>
-                          <div>
-                            <span className="font-medium">Balance cuadra:</span> {job.stats_json.metrics.entriesBalance ? '✅ Sí' : '❌ No'}
-                          </div>
+                          
+                          {metrics.rejectedRows > 0 && (
+                            <Alert>
+                              <AlertTriangle className="h-4 w-4" />
+                              <AlertDescription>
+                                {metrics.rejectedRows} filas fueron rechazadas por errores de validación
+                              </AlertDescription>
+                            </Alert>
+                          )}
                         </div>
-                        
-                        {job.stats_json.metrics.rejectedRows > 0 && (
-                          <Alert>
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertDescription>
-                              {job.stats_json.metrics.rejectedRows} filas fueron rechazadas por errores de validación
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                      </div>
-                    )}
+                      );
+                    })()}
                     
                     <div className="pt-3">
                       <Button 
@@ -535,7 +554,10 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                       <span className="font-semibold">Error de procesamiento</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {job.stats_json?.error_message || 'Error desconocido'}
+                      {(() => {
+                        const stats = job.stats_json as any;
+                        return stats?.error_message || 'Error desconocido';
+                      })()}
                     </p>
                     {job.error_log_path && (
                       <Alert variant="destructive">
