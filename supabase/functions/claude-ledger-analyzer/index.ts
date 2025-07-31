@@ -20,7 +20,6 @@ serve(async (req) => {
   try {
     log('info', '🚀 Function claude-ledger-analyzer started')
     log('info', 'Request method:', req.method)
-    log('info', 'Request headers:', Object.fromEntries(req.headers.entries()))
     
     // Check if this is a test call
     if (req.url.includes('test')) {
@@ -47,170 +46,296 @@ serve(async (req) => {
       throw new Error('Faltan parámetros requeridos: userId, fileName, fileContent')
     }
 
-    // For now, return a mock successful response
-    const mockResult = {
-      metadata: {
-        companyName: "Empresa de Prueba",
-        taxId: "12345678A",
-        fiscalYear: 2024,
-        totalEntries: 100,
-        dateRange: {
-          from: "2024-01-01",
-          to: "2024-12-31"
-        },
-        processingTime: "5 segundos"
-      },
-      validation: {
-        isBalanced: true,
-        balanceDifference: 0,
-        criticalErrors: [],
-        warnings: [],
-        dataQuality: 85
-      },
-      financials: {
-        balanceSheet: {
-          assets: {
-            nonCurrent: {
-              intangible: 10000,
-              tangible: 50000,
-              investments: 5000,
-              depreciation: -5000,
-              total: 60000
-            },
-            current: {
-              inventory: 15000,
-              receivables: 8000,
-              cash: 12000,
-              total: 35000
-            },
-            totalAssets: 95000
-          },
-          liabilities: {
-            equity: {
-              capital: 30000,
-              reserves: 20000,
-              retainedEarnings: 15000,
-              currentYearProfit: 5000,
-              total: 70000
-            },
-            nonCurrent: {
-              longTermDebt: 15000,
-              total: 15000
-            },
-            current: {
-              suppliers: 7000,
-              otherPayables: 2000,
-              shortTermDebt: 1000,
-              total: 10000
-            },
-            totalLiabilities: 25000,
-            totalLiabilitiesAndEquity: 95000
-          }
-        },
-        incomeStatement: {
-          revenue: {
-            sales: 100000,
-            otherIncome: 2000,
-            total: 102000
-          },
-          expenses: {
-            costOfGoodsSold: 60000,
-            personnel: 25000,
-            otherOperating: 10000,
-            depreciation: 2000,
-            financial: 1000,
-            total: 98000
-          },
-          ebit: 4000,
-          ebt: 3000,
-          taxes: 800,
-          netProfit: 2200
-        },
-        ratios: {
-          liquidity: {
-            currentRatio: 3.5,
-            quickRatio: 2.0,
-            cashRatio: 1.2
-          },
-          leverage: {
-            debtToEquity: 0.36,
-            debtRatio: 0.26,
-            equityRatio: 0.74
-          },
-          profitability: {
-            roe: 3.14,
-            roa: 2.32,
-            netMargin: 2.16,
-            ebitdaMargin: 5.88
-          },
-          activity: {
-            assetTurnover: 1.07,
-            inventoryDays: 91,
-            receivableDays: 29
-          }
-        }
-      },
-      insights: {
-        financialHealth: "GOOD",
-        keyStrengths: ["Liquidez sólida", "Bajo endeudamiento"],
-        keyWeaknesses: ["Margen de beneficio bajo"],
-        recommendations: ["Optimizar costes operativos", "Mejorar gestión de inventario"],
-        riskAlerts: []
-      }
+    // Get Claude API key
+    const claudeApiKey = Deno.env.get('ANTHROPIC_API_KEY')
+    if (!claudeApiKey) {
+      throw new Error('ANTHROPIC_API_KEY not found in environment')
     }
 
-    // Try to save to database
+    log('info', 'Starting real data processing with Claude Sonnet 4')
+
+    // Prepare the prompt for Claude
+    const analysisPrompt = `
+Eres un analista financiero experto. Analiza el siguiente libro diario en formato Excel (base64) y extrae información financiera estructurada.
+
+Archivo: ${fileName}
+Contenido (base64): ${fileContent.substring(0, 1000)}...
+
+INSTRUCCIONES:
+1. Convierte el archivo Excel y extrae todas las transacciones contables
+2. Agrupa por cuentas contables estándar
+3. Calcula automáticamente el Balance de Situación y Cuenta de P&G
+4. Calcula ratios financieros clave
+5. Detecta el ejercicio fiscal y período cubierto
+6. Valida que el balance cuadre
+7. Identifica fortalezas, debilidades y riesgos financieros
+
+RESPUESTA REQUERIDA (JSON estricto):
+{
+  "metadata": {
+    "companyName": "string",
+    "taxId": "string",
+    "fiscalYear": number,
+    "totalEntries": number,
+    "dateRange": {
+      "from": "YYYY-MM-DD",
+      "to": "YYYY-MM-DD"
+    },
+    "processingTime": "string"
+  },
+  "validation": {
+    "isBalanced": boolean,
+    "balanceDifference": number,
+    "criticalErrors": ["string"],
+    "warnings": ["string"],
+    "dataQuality": number
+  },
+  "financials": {
+    "balanceSheet": {
+      "assets": {
+        "nonCurrent": {
+          "intangible": number,
+          "tangible": number,
+          "investments": number,
+          "depreciation": number,
+          "total": number
+        },
+        "current": {
+          "inventory": number,
+          "receivables": number,
+          "cash": number,
+          "total": number
+        },
+        "totalAssets": number
+      },
+      "liabilities": {
+        "equity": {
+          "capital": number,
+          "reserves": number,
+          "retainedEarnings": number,
+          "currentYearProfit": number,
+          "total": number
+        },
+        "nonCurrent": {
+          "longTermDebt": number,
+          "total": number
+        },
+        "current": {
+          "suppliers": number,
+          "otherPayables": number,
+          "shortTermDebt": number,
+          "total": number
+        },
+        "totalLiabilities": number,
+        "totalLiabilitiesAndEquity": number
+      }
+    },
+    "incomeStatement": {
+      "revenue": {
+        "sales": number,
+        "otherIncome": number,
+        "total": number
+      },
+      "expenses": {
+        "costOfGoodsSold": number,
+        "personnel": number,
+        "otherOperating": number,
+        "depreciation": number,
+        "financial": number,
+        "total": number
+      },
+      "ebit": number,
+      "ebt": number,
+      "taxes": number,
+      "netProfit": number
+    },
+    "ratios": {
+      "liquidity": {
+        "currentRatio": number,
+        "quickRatio": number,
+        "cashRatio": number
+      },
+      "leverage": {
+        "debtToEquity": number,
+        "debtRatio": number,
+        "equityRatio": number
+      },
+      "profitability": {
+        "roe": number,
+        "roa": number,
+        "netMargin": number,
+        "ebitdaMargin": number
+      },
+      "activity": {
+        "assetTurnover": number,
+        "inventoryDays": number,
+        "receivableDays": number
+      }
+    }
+  },
+  "insights": {
+    "financialHealth": "EXCELLENT|GOOD|AVERAGE|POOR|CRITICAL",
+    "keyStrengths": ["string"],
+    "keyWeaknesses": ["string"],
+    "recommendations": ["string"],
+    "riskAlerts": ["string"]
+  }
+}
+
+IMPORTANTE: Responde SOLO con JSON válido, sin texto adicional.`
+
+    // Call Claude API with Sonnet 4
+    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': claudeApiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022', // Using latest available Claude model
+        max_tokens: 4000,
+        messages: [
+          {
+            role: 'user',
+            content: analysisPrompt
+          }
+        ]
+      })
+    })
+
+    if (!claudeResponse.ok) {
+      const errorText = await claudeResponse.text()
+      log('error', 'Claude API error:', { status: claudeResponse.status, error: errorText })
+      throw new Error(`Claude API error: ${claudeResponse.status}`)
+    }
+
+    const claudeResult = await claudeResponse.json()
+    log('info', 'Claude response received')
+
+    // Extract and parse the JSON response
+    let analysisResult
+    try {
+      const content = claudeResult.content[0].text
+      // Extract JSON from the response (in case there's extra text)
+      const jsonMatch = content.match(/\{[\s\S]*\}/)
+      if (jsonMatch) {
+        analysisResult = JSON.parse(jsonMatch[0])
+      } else {
+        analysisResult = JSON.parse(content)
+      }
+      log('info', 'Financial analysis completed successfully')
+    } catch (parseError) {
+      log('error', 'Error parsing Claude response:', { error: parseError.message })
+      throw new Error('Error parsing financial analysis results')
+    }
+
+    // Save the real data to database
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
     try {
-      const period_date = `${mockResult.metadata.fiscalYear}-12-31`
+      const period_date = `${analysisResult.metadata.fiscalYear}-12-31`
       
       // Save balance sheet
-      await supabaseClient.from('financial_data').insert({
+      const { error: balanceError } = await supabaseClient.from('financial_data').insert({
         user_id: userId,
         data_type: 'balance_situacion',
         period_date,
-        period_year: mockResult.metadata.fiscalYear,
+        period_year: analysisResult.metadata.fiscalYear,
         period_type: 'annual',
-        data_content: mockResult.financials.balanceSheet
+        data_content: analysisResult.financials.balanceSheet
       })
 
+      if (balanceError) {
+        log('warn', 'Error saving balance sheet:', { error: balanceError.message })
+      }
+
       // Save income statement  
-      await supabaseClient.from('financial_data').insert({
+      const { error: incomeError } = await supabaseClient.from('financial_data').insert({
         user_id: userId,
         data_type: 'cuenta_pyg',
         period_date,
-        period_year: mockResult.metadata.fiscalYear,
+        period_year: analysisResult.metadata.fiscalYear,
         period_type: 'annual',
-        data_content: mockResult.financials.incomeStatement
+        data_content: analysisResult.financials.incomeStatement
       })
 
+      if (incomeError) {
+        log('warn', 'Error saving income statement:', { error: incomeError.message })
+      }
+
       // Save ratios
-      await supabaseClient.from('financial_data').insert({
+      const { error: ratiosError } = await supabaseClient.from('financial_data').insert({
         user_id: userId,
         data_type: 'ratios_financieros',
         period_date,
-        period_year: mockResult.metadata.fiscalYear,
+        period_year: analysisResult.metadata.fiscalYear,
         period_type: 'annual',
-        data_content: mockResult.financials.ratios
+        data_content: analysisResult.financials.ratios
       })
 
-      log('info', 'Mock data saved to database successfully')
+      if (ratiosError) {
+        log('warn', 'Error saving ratios:', { error: ratiosError.message })
+      }
+
+      // Save metadata
+      const { error: metadataError } = await supabaseClient.from('financial_data').insert({
+        user_id: userId,
+        data_type: 'metadata',
+        period_date,
+        period_year: analysisResult.metadata.fiscalYear,
+        period_type: 'annual',
+        data_content: analysisResult.metadata
+      })
+
+      if (metadataError) {
+        log('warn', 'Error saving metadata:', { error: metadataError.message })
+      }
+
+      // Save insights
+      const { error: insightsError } = await supabaseClient.from('financial_data').insert({
+        user_id: userId,
+        data_type: 'insights',
+        period_date,
+        period_year: analysisResult.metadata.fiscalYear,
+        period_type: 'annual',
+        data_content: analysisResult.insights
+      })
+
+      if (insightsError) {
+        log('warn', 'Error saving insights:', { error: insightsError.message })
+      }
+
+      // Save file record
+      const { error: fileError } = await supabaseClient.from('excel_files').insert({
+        user_id: userId,
+        file_name: fileName,
+        upload_date: new Date().toISOString(),
+        file_size: fileContent.length,
+        processing_status: 'completed',
+        processing_result: analysisResult
+      })
+
+      if (fileError) {
+        log('warn', 'Error saving file record:', { error: fileError.message })
+      }
+
+      log('info', 'Real financial data saved to database successfully')
     } catch (dbError) {
-      log('warn', 'Error saving to database', { error: dbError.message })
+      log('warn', 'Error saving to database:', { error: dbError.message })
     }
 
-    log('info', 'Returning successful response')
+    log('info', 'Returning successful response with real data')
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Libro diario procesado exitosamente (versión de prueba)',
-      data: mockResult,
-      dataQuality: mockResult.validation.dataQuality,
-      warnings: mockResult.validation.warnings
+      message: 'Libro diario procesado exitosamente con Claude Sonnet 4',
+      data: analysisResult,
+      dataQuality: analysisResult.validation.dataQuality,
+      warnings: analysisResult.validation.warnings
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
