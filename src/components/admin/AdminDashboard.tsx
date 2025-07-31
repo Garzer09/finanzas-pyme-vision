@@ -20,6 +20,7 @@ import { UserCard } from './UserCard';
 import { AdminUserDashboard } from './AdminUserDashboard';
 import { AdminDataManager } from './AdminDataManager';
 import { AdminImpersonationProvider, useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
+import { GeneralLedgerUploadModal } from '@/components/GeneralLedgerUploadModal';
 
 interface AdminUserProfile {
   id: string;
@@ -37,6 +38,8 @@ export const AdminDashboard = () => {
   const [showUserWizard, setShowUserWizard] = useState(false);
   const [currentView, setCurrentView] = useState<'list' | 'user-dashboard' | 'data-manager'>('list');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadUserId, setUploadUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
@@ -100,6 +103,22 @@ export const AdminDashboard = () => {
 
   const handleManageData = () => {
     setCurrentView('data-manager');
+  };
+
+  const handleUploadLedger = (userId: string) => {
+    setUploadUserId(userId);
+    setShowUploadModal(true);
+  };
+
+  const handleUploadSuccess = () => {
+    setShowUploadModal(false);
+    setUploadUserId(null);
+    // Refresh data status
+    fetchUsersDataStatus();
+    toast({
+      title: "¡Éxito!",
+      description: "Libro diario procesado correctamente",
+    });
   };
 
 
@@ -173,6 +192,11 @@ export const AdminDashboard = () => {
         handleUserClick={handleUserClick}
         handleBackToList={handleBackToList}
         handleManageData={handleManageData}
+        handleUploadLedger={handleUploadLedger}
+        showUploadModal={showUploadModal}
+        setShowUploadModal={setShowUploadModal}
+        uploadUserId={uploadUserId}
+        handleUploadSuccess={handleUploadSuccess}
       />
     </AdminImpersonationProvider>
   );
@@ -190,6 +214,11 @@ interface AdminDashboardContentProps {
   handleUserClick: (user: AdminUserProfile) => void;
   handleBackToList: () => void;
   handleManageData: () => void;
+  handleUploadLedger: (userId: string) => void;
+  showUploadModal: boolean;
+  setShowUploadModal: (show: boolean) => void;
+  uploadUserId: string | null;
+  handleUploadSuccess: () => void;
 }
 
 const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
@@ -203,7 +232,12 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
   handleUserCreated,
   handleUserClick,
   handleBackToList,
-  handleManageData
+  handleManageData,
+  handleUploadLedger,
+  showUploadModal,
+  setShowUploadModal,
+  uploadUserId,
+  handleUploadSuccess
 }) => {
   const { setImpersonation } = useAdminImpersonation();
 
@@ -218,7 +252,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
     } else {
       setImpersonation(null, null);
     }
-  }, [currentView, selectedUser, setImpersonation]);
+  }, [currentView, selectedUser?.id, setImpersonation]); // Fixed dependencies
 
   if (currentView === 'user-dashboard') {
     return (
@@ -327,15 +361,22 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                 user={user}
                 hasData={usersWithData[user.id] || false}
                 onClick={() => handleUserClick(user)}
-                onUploadLedger={() => {
-                  // Aquí podrías abrir el modal de carga específico para este usuario
-                  console.log('Upload ledger for user:', user.id);
-                }}
+                onUploadLedger={() => handleUploadLedger(user.id)}
               />
             ))}
           </div>
         )}
       </div>
+
+      {/* Modal de carga de libro diario */}
+      {uploadUserId && (
+        <GeneralLedgerUploadModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          userId={uploadUserId}
+          onSuccess={handleUploadSuccess}
+        />
+      )}
     </div>
   );
 };
