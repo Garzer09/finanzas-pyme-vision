@@ -11,75 +11,7 @@ export interface FinancialDataPoint {
   created_at: string;
 }
 
-// Demo data for visualization when no real data is available
-const demoFinancialData: FinancialDataPoint[] = [
-  {
-    id: 'demo-pyg-2024',
-    data_type: 'estado_pyg',
-    period_date: '2024-12-31',
-    period_type: 'annual',
-    data_content: {
-      ingresos_explotacion: 2840000,
-      gastos_explotacion: 2100000,
-      resultado_explotacion: 740000,
-      gastos_financieros: 45000,
-      resultado_neto: 520000
-    },
-    created_at: '2024-12-01T10:00:00Z'
-  },
-  {
-    id: 'demo-pyg-2023',
-    data_type: 'estado_pyg',
-    period_date: '2023-12-31',
-    period_type: 'annual',
-    data_content: {
-      ingresos_explotacion: 2450000,
-      gastos_explotacion: 1850000,
-      resultado_explotacion: 600000,
-      gastos_financieros: 38000,
-      resultado_neto: 420000
-    },
-    created_at: '2023-12-01T10:00:00Z'
-  },
-  {
-    id: 'demo-balance-2024',
-    data_type: 'estado_balance',
-    period_date: '2024-12-31',
-    period_type: 'annual',
-    data_content: {
-      activo_corriente: 1250000,
-      activo_no_corriente: 1850000,
-      pasivo_corriente: 650000,
-      pasivo_no_corriente: 980000,
-      patrimonio_neto: 1470000
-    },
-    created_at: '2024-12-01T10:00:00Z'
-  },
-  {
-    id: 'demo-ratios-2024',
-    data_type: 'ratios_financieros',
-    period_date: '2024-12-31',
-    period_type: 'annual',
-    data_content: {
-      liquidez: {
-        ratio_corriente: 1.92,
-        ratio_acido: 1.45,
-        ratio_tesoreria: 0.68
-      },
-      endeudamiento: {
-        ratio_endeudamiento: 52.5,
-        deuda_patrimonio: 1.11,
-        cobertura_intereses: 16.4
-      },
-      rentabilidad: {
-        roe: 35.4,
-        roa: 16.8,
-        margen_neto: 18.3
-      }
-    },
-    created_at: '2024-12-01T10:00:00Z'
-  }
-];
+// Note: Mock data removed - only real data from database will be displayed
 
 export const useFinancialData = (dataType?: string) => {
   const [data, setData] = useState<FinancialDataPoint[]>([]);

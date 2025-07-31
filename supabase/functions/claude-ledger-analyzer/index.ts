@@ -46,49 +46,156 @@ serve(async (req) => {
       throw new Error('Faltan parámetros requeridos: userId, fileName, fileContent')
     }
 
-    // Get Claude API key
-    const claudeApiKey = Deno.env.get('ANTHROPIC_API_KEY')
-    if (!claudeApiKey) {
-      throw new Error('ANTHROPIC_API_KEY not found in environment')
+    // Get OpenAI API key
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!openaiApiKey) {
+      throw new Error('OPENAI_API_KEY not found in environment')
     }
 
-    log('info', 'Starting real data processing with Claude Sonnet 4')
+    log('info', 'Starting real data processing with GPT-4o-mini')
 
-    // Prepare the prompt for Claude
+    // Detailed financial analysis prompt
     const analysisPrompt = `
-Eres un analista financiero experto. Analiza el siguiente libro diario en formato Excel (base64) y extrae información financiera estructurada.
+Analyze this general ledger (libro diario) Excel file and perform a complete financial analysis.
 
-Archivo: ${fileName}
-Contenido (base64): ${fileContent.substring(0, 1000)}...
+CRITICAL: You must complete ALL these tasks in a SINGLE response.
 
-INSTRUCCIONES:
-1. Convierte el archivo Excel y extrae todas las transacciones contables
-2. Agrupa por cuentas contables estándar
-3. Calcula automáticamente el Balance de Situación y Cuenta de P&G
-4. Calcula ratios financieros clave
-5. Detecta el ejercicio fiscal y período cubierto
-6. Valida que el balance cuadre
-7. Identifica fortalezas, debilidades y riesgos financieros
+1. STRUCTURE DETECTION:
+- Identify the columns: Date (Fecha), Account Code (Código cuenta), Account Name (Cuenta), Debit (Debe), Credit (Haber)
+- Detect the accounting standard:
+  * PGC Spain: 9-digit account codes (e.g., 100000001)
+  * GAAP/IFRS: Different coding structure
+- Extract company information from headers (name, tax ID, year)
 
-RESPUESTA REQUERIDA (JSON estricto):
+2. DATA PROCESSING:
+Process all journal entries and calculate balances for each account:
+- For Assets (groups 2,3) and Expenses (group 6): Balance = Debit - Credit
+- For Liabilities (groups 1,4,5) and Income (group 7): Balance = Credit - Debit
+- Special cases:
+  * Accounts 40x, 41x (suppliers/creditors) are liabilities
+  * Accounts 50x, 51x, 52x (short-term debt) are liabilities
+
+3. GENERATE FINANCIAL STATEMENTS:
+
+Balance Sheet Structure:
+ASSETS:
+- Non-current Assets:
+  * Intangible (20x): Software, patents, goodwill
+  * Tangible (21x-23x): Buildings, machinery, equipment
+  * Investments (24x-26x): Long-term investments
+  * Accumulated Depreciation (28x): NEGATIVE value
+- Current Assets:
+  * Inventory (3xx): All group 3 accounts
+  * Receivables (43x,44x,47x): Customers, debtors
+  * Cash (57x): Cash and bank accounts
+
+LIABILITIES & EQUITY:
+- Equity:
+  * Share Capital (100)
+  * Reserves (11x)
+  * Retained Earnings (12x)
+  * Current Year Profit/Loss
+- Non-current Liabilities:
+  * Long-term Debt (17x)
+  * Other long-term (16x,18x,19x)
+- Current Liabilities:
+  * Suppliers (400)
+  * Short-term Debt (52x)
+  * Other Payables (41x,46x,47x)
+
+Income Statement Structure:
+- Revenue (70x-75x): Sales and other income
+- Operating Expenses:
+  * COGS (60x): Cost of goods sold
+  * Personnel (64x): Salaries and social security
+  * Other Operating (62x,63x,65x)
+  * Depreciation (68x)
+- Financial Result:
+  * Financial Income (76x)
+  * Financial Expenses (66x)
+- Profit Before Tax
+- Taxes (630)
+- Net Profit
+
+4. CALCULATE ALL RATIOS:
+Liquidity:
+- Current Ratio = Current Assets / Current Liabilities
+- Quick Ratio = (Current Assets - Inventory) / Current Liabilities
+- Cash Ratio = Cash / Current Liabilities
+
+Leverage:
+- Debt to Equity = Total Debt / Total Equity
+- Debt Ratio = Total Debt / Total Assets
+- Equity Ratio = Total Equity / Total Assets
+
+Profitability:
+- ROE = Net Profit / Equity × 100
+- ROA = Net Profit / Total Assets × 100
+- Net Margin = Net Profit / Revenue × 100
+- EBITDA Margin = EBITDA / Revenue × 100
+
+Activity:
+- Asset Turnover = Revenue / Total Assets
+- Inventory Days = (Inventory / COGS) × 365
+- Receivable Days = (Receivables / Revenue) × 365
+- Payable Days = (Payables / Purchases) × 365
+
+5. VALIDATION CHECKS:
+CRITICAL (must pass):
+- Total Debits MUST equal Total Credits (difference < 0.01)
+- Assets MUST equal Liabilities + Equity (difference < 0.01)
+- Cash balance MUST be positive
+- All accounts must balance correctly
+
+WARNINGS (note but don't block):
+- Current ratio < 1
+- Debt to equity > 3
+- Negative equity
+- Unusual changes in accounts
+
+6. RETURN THIS EXACT JSON STRUCTURE:
 {
   "metadata": {
     "companyName": "string",
     "taxId": "string",
-    "fiscalYear": number,
+    "fiscalYear": 2024,
+    "fiscalMonth": null,
+    "currency": "EUR",
+    "accountingStandard": "PGC",
     "totalEntries": number,
     "dateRange": {
-      "from": "YYYY-MM-DD",
-      "to": "YYYY-MM-DD"
-    },
-    "processingTime": "string"
+      "from": "2024-01-01",
+      "to": "2024-12-31"
+    }
   },
   "validation": {
-    "isBalanced": boolean,
+    "isBalanced": true/false,
+    "totalDebits": number,
+    "totalCredits": number,
     "balanceDifference": number,
-    "criticalErrors": ["string"],
-    "warnings": ["string"],
-    "dataQuality": number
+    "criticalErrors": [
+      {
+        "code": "NEGATIVE_CASH",
+        "message": "Cash balance is negative: -85,254.46",
+        "account": "570000001",
+        "amount": -85254.46,
+        "autoFixAvailable": true,
+        "autoFixDescription": "Reverse debit/credit in opening entry"
+      }
+    ],
+    "warnings": [
+      {
+        "code": "LOW_LIQUIDITY",
+        "message": "Current ratio is below 1",
+        "value": 0.85,
+        "recommendation": "Monitor cash flow closely"
+      }
+    ],
+    "dataQuality": 0-100,
+    "completeness": {
+      "hasAllRequiredAccounts": true/false,
+      "missingAccounts": []
+    }
   },
   "financials": {
     "balanceSheet": {
@@ -97,34 +204,43 @@ RESPUESTA REQUERIDA (JSON estricto):
           "intangible": number,
           "tangible": number,
           "investments": number,
-          "depreciation": number,
-          "total": number
+          "depreciation": negative_number,
+          "total": number,
+          "breakdown": {
+            "account_code": { "name": "string", "balance": number }
+          }
         },
         "current": {
           "inventory": number,
           "receivables": number,
           "cash": number,
-          "total": number
+          "other": number,
+          "total": number,
+          "breakdown": {}
         },
         "totalAssets": number
       },
-      "liabilities": {
+      "liabilitiesAndEquity": {
         "equity": {
-          "capital": number,
+          "shareCapital": number,
           "reserves": number,
           "retainedEarnings": number,
           "currentYearProfit": number,
-          "total": number
+          "total": number,
+          "breakdown": {}
         },
-        "nonCurrent": {
+        "nonCurrentLiabilities": {
           "longTermDebt": number,
-          "total": number
+          "other": number,
+          "total": number,
+          "breakdown": {}
         },
-        "current": {
+        "currentLiabilities": {
           "suppliers": number,
-          "otherPayables": number,
           "shortTermDebt": number,
-          "total": number
+          "other": number,
+          "total": number,
+          "breakdown": {}
         },
         "totalLiabilities": number,
         "totalLiabilitiesAndEquity": number
@@ -134,89 +250,133 @@ RESPUESTA REQUERIDA (JSON estricto):
       "revenue": {
         "sales": number,
         "otherIncome": number,
-        "total": number
+        "total": number,
+        "breakdown": {}
       },
       "expenses": {
-        "costOfGoodsSold": number,
+        "cogs": number,
         "personnel": number,
         "otherOperating": number,
         "depreciation": number,
-        "financial": number,
-        "total": number
+        "total": number,
+        "breakdown": {}
       },
+      "ebitda": number,
       "ebit": number,
+      "financialResult": {
+        "income": number,
+        "expenses": number,
+        "net": number
+      },
       "ebt": number,
       "taxes": number,
       "netProfit": number
+    },
+    "cashFlow": {
+      "operating": {
+        "netProfit": number,
+        "depreciation": number,
+        "workingCapitalChanges": number,
+        "total": number
+      },
+      "investing": {
+        "capex": number,
+        "acquisitions": number,
+        "total": number
+      },
+      "financing": {
+        "debtChanges": number,
+        "dividends": number,
+        "total": number
+      },
+      "netCashFlow": number,
+      "beginningCash": number,
+      "endingCash": number
     },
     "ratios": {
       "liquidity": {
         "currentRatio": number,
         "quickRatio": number,
-        "cashRatio": number
+        "cashRatio": number,
+        "workingCapital": number
       },
       "leverage": {
         "debtToEquity": number,
         "debtRatio": number,
-        "equityRatio": number
+        "equityRatio": number,
+        "interestCoverage": number
       },
       "profitability": {
         "roe": number,
         "roa": number,
         "netMargin": number,
-        "ebitdaMargin": number
+        "ebitdaMargin": number,
+        "grossMargin": number
       },
       "activity": {
         "assetTurnover": number,
         "inventoryDays": number,
-        "receivableDays": number
+        "receivableDays": number,
+        "payableDays": number,
+        "cashConversionCycle": number
       }
     }
   },
-  "insights": {
-    "financialHealth": "EXCELLENT|GOOD|AVERAGE|POOR|CRITICAL",
-    "keyStrengths": ["string"],
-    "keyWeaknesses": ["string"],
-    "recommendations": ["string"],
-    "riskAlerts": ["string"]
-  }
+  "accountDetails": [
+    {
+      "code": "string",
+      "name": "string", 
+      "group": "string",
+      "totalDebit": number,
+      "totalCredit": number,
+      "balance": number,
+      "entryCount": number
+    }
+  ]
 }
 
-IMPORTANTE: Responde SOLO con JSON válido, sin texto adicional.`
+ARCHIVO: ${fileName}
+CONTENIDO (BASE64): ${fileContent}
 
-    // Call Claude API with Sonnet 4
-    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+IMPORTANTE: Analiza el archivo Excel completo y responde SOLO con JSON válido, sin texto adicional.`
+
+    // Call OpenAI API with GPT-4o-mini
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': claudeApiKey,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${openaiApiKey}`
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022', // Using latest available Claude model
-        max_tokens: 4000,
+        model: 'gpt-4o-mini',
         messages: [
+          {
+            role: 'system',
+            content: 'You are an expert financial analyst specialized in Spanish accounting standards (PGC). Analyze Excel files and extract comprehensive financial information.'
+          },
           {
             role: 'user',
             content: analysisPrompt
           }
-        ]
+        ],
+        max_tokens: 16000,
+        temperature: 0.1
       })
     })
 
-    if (!claudeResponse.ok) {
-      const errorText = await claudeResponse.text()
-      log('error', 'Claude API error:', { status: claudeResponse.status, error: errorText })
-      throw new Error(`Claude API error: ${claudeResponse.status}`)
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text()
+      log('error', 'OpenAI API error:', { status: openaiResponse.status, error: errorText })
+      throw new Error(`OpenAI API error: ${openaiResponse.status}`)
     }
 
-    const claudeResult = await claudeResponse.json()
-    log('info', 'Claude response received')
+    const openaiResult = await openaiResponse.json()
+    log('info', 'GPT-4o-mini response received')
 
     // Extract and parse the JSON response
     let analysisResult
     try {
-      const content = claudeResult.content[0].text
+      const content = openaiResult.choices[0].message.content
       // Extract JSON from the response (in case there's extra text)
       const jsonMatch = content.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
@@ -226,7 +386,7 @@ IMPORTANTE: Responde SOLO con JSON válido, sin texto adicional.`
       }
       log('info', 'Financial analysis completed successfully')
     } catch (parseError) {
-      log('error', 'Error parsing Claude response:', { error: parseError.message })
+      log('error', 'Error parsing GPT-4o-mini response:', { error: parseError.message })
       throw new Error('Error parsing financial analysis results')
     }
 
@@ -332,7 +492,7 @@ IMPORTANTE: Responde SOLO con JSON válido, sin texto adicional.`
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Libro diario procesado exitosamente con Claude Sonnet 4',
+      message: 'Libro diario procesado exitosamente con GPT-4o-mini',
       data: analysisResult,
       dataQuality: analysisResult.validation.dataQuality,
       warnings: analysisResult.validation.warnings
