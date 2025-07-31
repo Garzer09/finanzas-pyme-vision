@@ -20,6 +20,7 @@ serve(async (req) => {
   try {
     log('info', '🚀 Function claude-ledger-analyzer started')
     log('info', 'Request method:', req.method)
+    log('info', 'Request headers:', Object.fromEntries(req.headers.entries()))
     
     // Check if this is a test call
     if (req.url.includes('test')) {
@@ -51,6 +52,9 @@ serve(async (req) => {
     
     // List all environment variables for debugging
     const allEnvVars = Deno.env.toObject()
+    const envVarCount = Object.keys(allEnvVars).length
+    log('info', `Total environment variables: ${envVarCount}`)
+    
     const openaiKeys = Object.keys(allEnvVars).filter(key => 
       key.toLowerCase().includes('openai') || key.toLowerCase().includes('chatgpt')
     )
@@ -58,11 +62,12 @@ serve(async (req) => {
     
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
     if (!openaiApiKey) {
-      log('error', 'OpenAI API key not found')
-      throw new Error('OpenAI API key not configured. Please add OPENAI_API_KEY to Supabase secrets.')
+      log('error', 'OPENAI_API_KEY not found in environment')
+      log('error', 'Available env vars starting with OPEN:', Object.keys(allEnvVars).filter(k => k.startsWith('OPEN')))
+      throw new Error('OPENAI_API_KEY not configured in Supabase secrets')
     }
     
-    log('info', 'OpenAI API key found, length:', openaiApiKey.length)
+    log('info', 'OpenAI API key found, starting analysis...')
 
     log('info', 'Starting real data processing with GPT-4o-mini')
 
