@@ -68,7 +68,9 @@ export default function ClaudeTestingPage() {
         return { 
           completed: currentTestSession.edaStatus === 'completed',
           inProgress: currentTestSession.edaStatus === 'processing',
-          canAccess: currentTestSession.analysisStatus === 'completed'
+          canAccess: currentTestSession.uploadStatus === 'completed' && 
+                     currentTestSession.processingStatus === 'completed' &&
+                     currentTestSession.edaStatus !== 'idle'
         };
       
       case 'calculations':
@@ -116,10 +118,10 @@ export default function ClaudeTestingPage() {
 
   // Auto-navegación cuando se completa un paso
   useEffect(() => {
-    if (currentTestSession?.analysisStatus === 'completed' && currentStep === 'upload') {
+    if (currentTestSession?.edaStatus === 'completed' && currentStep === 'upload') {
       setCurrentStep('eda');
     }
-  }, [currentTestSession?.analysisStatus, currentStep]);
+  }, [currentTestSession?.edaStatus, currentStep]);
 
 
   // Gestionar sesión estándar para la carga simple

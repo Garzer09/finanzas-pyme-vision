@@ -126,7 +126,7 @@ Estructura JSON requerida:
   "metadata": {
     "analysisType": "${analysisType}",
     "timestamp": "${new Date().toISOString()}",
-    "model": "claude-sonnet-4-20250514",
+    "model": "claude-3-5-sonnet-20241022",
     "confidence": numero_entre_0_y_1
   }
 }`
@@ -142,7 +142,7 @@ Estructura JSON requerida:
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 4000,
         temperature: 0.1,
         system: systemPrompt,
@@ -168,9 +168,12 @@ Estructura JSON requerida:
     let analysisResult
     try {
       const content = result.content[0].text
-      analysisResult = JSON.parse(content)
+      // Remove markdown code blocks if present
+      const cleanContent = content.replace(/```json\n?|\n?```/g, '').trim()
+      analysisResult = JSON.parse(cleanContent)
     } catch (parseError) {
       console.error('Failed to parse Claude response:', parseError)
+      console.error('Raw content:', result.content[0].text)
       throw new Error('Invalid response format from Claude')
     }
 
