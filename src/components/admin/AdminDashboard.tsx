@@ -374,6 +374,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           isOpen={showUploadModal}
           onClose={() => setShowUploadModal(false)}
           userId={uploadUserId}
+          isAdminImpersonating={true}
           onSuccess={handleUploadSuccess}
         />
       )}

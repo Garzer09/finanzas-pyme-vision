@@ -15,16 +15,19 @@ import {
   XCircle,
   Calendar,
   Building2,
-  FileText
+  FileText,
+  BarChart3
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface GeneralLedgerUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   userId: string;
   onSuccess: () => void;
+  isAdminImpersonating?: boolean;
 }
 
 interface FilePreview {
@@ -50,7 +53,8 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
   isOpen,
   onClose,
   userId,
-  onSuccess
+  onSuccess,
+  isAdminImpersonating = false
 }) => {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<FilePreview | null>(null);
@@ -63,6 +67,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
   const [dragOver, setDragOver] = useState(false);
   
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -175,11 +180,8 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
           description: `Libro diario procesado correctamente. Calidad: ${data.dataQuality}%`,
         });
         
-        // Esperar un momento para mostrar el resultado y luego cerrar
-        setTimeout(() => {
-          onSuccess();
-          handleClose();
-        }, 2000);
+        // Llamar onSuccess pero no cerrar automáticamente
+        onSuccess();
       }
 
     } catch (error: any) {
@@ -222,6 +224,17 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
     setProgress(0);
     setResult(null);
     onClose();
+  };
+
+  const handleGoToDashboard = () => {
+    handleClose();
+    if (isAdminImpersonating) {
+      // Si es admin impersonificando, ir al dashboard del usuario
+      navigate(`/admin/users/${userId}/dashboard`);
+    } else {
+      // Si es el usuario normal, ir a su dashboard
+      navigate('/');
+    }
   };
 
   const formatFileSize = (bytes: number) => {
@@ -396,6 +409,18 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                         </AlertDescription>
                       </Alert>
                     )}
+                    
+                    {/* Botón para ir al dashboard */}
+                    <div className="pt-3">
+                      <Button 
+                        onClick={handleGoToDashboard}
+                        className="w-full"
+                        size="sm"
+                      >
+                        <BarChart3 className="h-4 w-4 mr-2" />
+                        Ir al Dashboard
+                      </Button>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-3">
@@ -423,14 +448,16 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>
-            Cancelar
+            {result?.success ? 'Cerrar' : 'Cancelar'}
           </Button>
-        <Button 
-          onClick={processFile} 
-          disabled={!file || processing || (result?.success === true)}
-        >
-          {processing ? 'Procesando...' : 'Analizar Libro Diario'}
-        </Button>
+          {!result?.success && (
+            <Button 
+              onClick={processFile} 
+              disabled={!file || processing}
+            >
+              {processing ? 'Procesando...' : 'Analizar Libro Diario'}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
