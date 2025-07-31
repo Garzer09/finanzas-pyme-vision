@@ -49,10 +49,22 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
   };
 
   const handleFileUpload = useCallback(async (file: File) => {
+    // Validaciones mejoradas
     if (!file.name.match(/\.(xlsx|xls)$/i)) {
       toast({
         title: "Formato no válido",
         description: "Solo se permiten archivos Excel (.xlsx, .xls)",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validar tamaño de archivo (10MB máximo)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast({
+        title: "Archivo demasiado grande",
+        description: `El archivo debe ser menor a 10MB. Tamaño actual: ${Math.round(file.size / (1024 * 1024))}MB`,
         variant: "destructive",
       });
       return;
@@ -130,11 +142,37 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
       // Iniciar análisis con Claude
       await analyzeWithClaude(updatedSession);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading file:', error);
+      
+      // Mostrar mensajes de error más específicos
+      let errorMessage = "No se pudo procesar el archivo de prueba";
+      let errorTitle = "Error en la carga";
+      
+      if (error?.message) {
+        if (error.message.includes('File too large')) {
+          errorTitle = "Archivo demasiado grande";
+          errorMessage = "El archivo supera el tamaño máximo permitido (10MB)";
+        } else if (error.message.includes('Invalid file format')) {
+          errorTitle = "Formato inválido";
+          errorMessage = "Solo se permiten archivos Excel (.xlsx, .xls)";
+        } else if (error.message.includes('Processing timeout')) {
+          errorTitle = "Tiempo de procesamiento excedido";
+          errorMessage = "El archivo es muy complejo. Intenta con un archivo más pequeño";
+        } else if (error.message.includes('CPU Time exceeded')) {
+          errorTitle = "Procesamiento complejo";
+          errorMessage = "El archivo requiere demasiado procesamiento. Considera reducir el número de hojas o filas";
+        } else if (error.message.includes('Unauthorized')) {
+          errorTitle = "Error de autenticación";
+          errorMessage = "Sesión expirada. Recarga la página e intenta nuevamente";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
-        title: "Error en la carga",
-        description: "No se pudo procesar el archivo de prueba",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
       
@@ -284,6 +322,8 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
                 </h3>
                 <p className="text-muted-foreground mb-4">
                   O haz clic para seleccionar un archivo de prueba
+                  <br />
+                  <span className="text-xs">Tamaño máximo: 10MB • Formatos: .xlsx, .xls</span>
                 </p>
                 <input
                   type="file"
@@ -412,7 +452,15 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertDescription>
-            Error al procesar el archivo. Verifica el formato y vuelve a intentar.
+            <div className="space-y-2">
+              <p>Error al procesar el archivo. Posibles soluciones:</p>
+              <ul className="text-sm list-disc list-inside space-y-1 ml-2">
+                <li>Verifica que el archivo sea .xlsx o .xls válido</li>
+                <li>Reduce el tamaño del archivo (máximo 10MB)</li>
+                <li>Limita el número de hojas y filas en el archivo</li>
+                <li>Intenta nuevamente o usa un archivo más simple</li>
+              </ul>
+            </div>
           </AlertDescription>
         </Alert>
       )}
