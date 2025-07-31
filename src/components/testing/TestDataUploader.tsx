@@ -60,8 +60,8 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
 
     if (!sessionName.trim()) {
       toast({
-        title: "Nombre requerido",
-        description: "Por favor ingresa un nombre para la sesión de prueba",
+        title: "Nombre de sesión requerido",
+        description: "Por favor ingresa un nombre para la sesión de prueba antes de subir el archivo",
         variant: "destructive",
       });
       return;
@@ -249,13 +249,22 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
             <div className="space-y-4">
               {/* Campo para nombre de sesión */}
               <div className="space-y-2">
-                <Label htmlFor="session-name">Nombre de la sesión de prueba</Label>
+                <Label htmlFor="session-name">
+                  Nombre de la sesión de prueba 
+                  <span className="text-destructive ml-1">*</span>
+                </Label>
                 <Input
                   id="session-name"
                   placeholder="Ej: Prueba análisis financiero Q4 2024"
                   value={sessionName}
                   onChange={(e) => setSessionName(e.target.value)}
+                  className={!sessionName.trim() ? "border-muted-foreground/50" : ""}
                 />
+                {!sessionName.trim() && (
+                  <p className="text-xs text-muted-foreground">
+                    Ingresa un nombre antes de seleccionar el archivo
+                  </p>
+                )}
               </div>
 
               {/* Área de drag & drop */}
