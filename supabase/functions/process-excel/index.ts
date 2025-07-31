@@ -789,30 +789,28 @@ serve(async (req) => {
     )
 
     const tempUserId = crypto.randomUUID()
-    const formData = await req.formData()
-    const file = formData.get('file') as File
-    const targetUserId = formData.get('target_user_id') as string
+    const requestData = await req.json()
+    const { fileName, fileContent, documentTypes } = requestData
 
-    if (!file) {
-      log('error', 'No se proporcionó archivo')
-      return new Response('No file provided', { status: 400, headers: corsHeaders })
+    if (!fileName || !fileContent) {
+      log('error', 'No se proporcionó archivo o contenido')
+      return new Response('No file name or content provided', { status: 400, headers: corsHeaders })
     }
 
     log('info', 'Archivo recibido', { 
-      fileName: file.name, 
-      fileSize: file.size,
-      fileType: file.type 
+      fileName, 
+      contentLength: fileContent.length,
+      documentTypes 
     })
 
     // PASO 1: Preparar archivo para análisis
-    const fileBuffer = await file.arrayBuffer()
-    const base64Content = btoa(String.fromCharCode(...new Uint8Array(fileBuffer)))
+    const base64Content = fileContent
     
-    const isPDF = file.name.toLowerCase().endsWith('.pdf')
-    const isExcel = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')
+    const isPDF = fileName.toLowerCase().endsWith('.pdf')
+    const isExcel = fileName.toLowerCase().endsWith('.xlsx') || fileName.toLowerCase().endsWith('.xls')
     
     if (!isPDF && !isExcel) {
-      log('error', 'Tipo de archivo no soportado', { fileName: file.name })
+      log('error', 'Tipo de archivo no soportado', { fileName })
       return new Response('Tipo de archivo no soportado', { status: 400, headers: corsHeaders })
     }
 
@@ -825,7 +823,7 @@ serve(async (req) => {
 
     // PASO 3: Análisis inteligente de tipo de documento
     log('info', 'Analizando tipo de documento')
-    const documentType = await analyzeDocumentType(file.name, base64Content, anthropicKey)
+    const documentType = await analyzeDocumentType(fileName, base64Content, anthropicKey)
     log('info', 'Tipo de documento detectado', { documentType })
 
     // PASO 4: Procesamiento con Claude Opus usando prompts especializados
@@ -951,16 +949,16 @@ serve(async (req) => {
     })
 
     // Use target user ID if provided (for admin impersonation), otherwise use temp user
-    const effectiveUserId = targetUserId || tempUserId;
+    const effectiveUserId = tempUserId; // Para ahora usamos el temp user
 
     // Guardar el archivo en la base de datos
     const { data: fileRecord, error: fileError } = await supabaseClient
       .from('excel_files')
       .insert({
         user_id: effectiveUserId,
-        file_name: file.name,
-        file_path: `uploads/${effectiveUserId}/${Date.now()}_${file.name}`,
-        file_size: file.size,
+        file_name: fileName,
+        file_path: `uploads/${effectiveUserId}/${Date.now()}_${fileName}`,
+        file_size: fileContent.length,
         processing_status: 'completed',
         processing_result: processedData
       })
