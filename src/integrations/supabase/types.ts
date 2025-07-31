@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_mapping: {
+        Row: {
+          balance_sheet_section: string | null
+          created_at: string | null
+          income_statement_section: string | null
+          level: number | null
+          pgc_code: string
+          sign: number | null
+        }
+        Insert: {
+          balance_sheet_section?: string | null
+          created_at?: string | null
+          income_statement_section?: string | null
+          level?: number | null
+          pgc_code: string
+          sign?: number | null
+        }
+        Update: {
+          balance_sheet_section?: string | null
+          created_at?: string | null
+          income_statement_section?: string | null
+          level?: number | null
+          pgc_code?: string
+          sign?: number | null
+        }
+        Relationships: []
+      }
+      accounts: {
+        Row: {
+          code: string
+          company_id: string
+          created_at: string | null
+          level: number | null
+          name: string | null
+          parent_code: string | null
+          pgc_group: number | null
+        }
+        Insert: {
+          code: string
+          company_id: string
+          created_at?: string | null
+          level?: number | null
+          name?: string | null
+          parent_code?: string | null
+          pgc_group?: number | null
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          created_at?: string | null
+          level?: number | null
+          name?: string | null
+          parent_code?: string | null
+          pgc_group?: number | null
+        }
+        Relationships: []
+      }
       client_configurations: {
         Row: {
           client_name: string
@@ -469,6 +526,143 @@ export type Database = {
         }
         Relationships: []
       }
+      journal_entries: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          entry_no: number
+          id: number
+          memo: string | null
+          tx_date: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          entry_no: number
+          id?: number
+          memo?: string | null
+          tx_date: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          entry_no?: number
+          id?: number
+          memo?: string | null
+          tx_date?: string
+        }
+        Relationships: []
+      }
+      journal_lines: {
+        Row: {
+          account: string
+          company_id: string
+          created_at: string | null
+          credit: number | null
+          debit: number | null
+          description: string | null
+          doc_ref: string | null
+          entry_id: number
+          id: number
+          line_hash: string
+          line_no: number
+        }
+        Insert: {
+          account: string
+          company_id: string
+          created_at?: string | null
+          credit?: number | null
+          debit?: number | null
+          description?: string | null
+          doc_ref?: string | null
+          entry_id: number
+          id?: number
+          line_hash: string
+          line_no: number
+        }
+        Update: {
+          account?: string
+          company_id?: string
+          created_at?: string | null
+          credit?: number | null
+          debit?: number | null
+          description?: string | null
+          doc_ref?: string | null
+          entry_id?: number
+          id?: number
+          line_hash?: string
+          line_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "journal_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      memberships: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          role?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          role?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      processing_jobs: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          error_log_path: string | null
+          file_path: string
+          id: string
+          period: unknown | null
+          stats_json: Json | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          error_log_path?: string | null
+          file_path: string
+          id?: string
+          period?: unknown | null
+          stats_json?: Json | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          error_log_path?: string | null
+          file_path?: string
+          id?: string
+          period?: unknown | null
+          stats_json?: Json | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       shareholder_search_history: {
         Row: {
           company_name: string
@@ -770,7 +964,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      trial_balance_daily_mv: {
+        Row: {
+          account: string | null
+          balance: number | null
+          company_id: string | null
+          credit_sum: number | null
+          debit_sum: number | null
+          tx_date: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_user_role: {
@@ -784,6 +988,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      import_journal_lines: {
+        Args: { _company: string; _period: unknown; _rows: Json }
+        Returns: Json
+      }
       is_first_user: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -791,6 +999,10 @@ export type Database = {
       promote_user_to_admin: {
         Args: { target_user_id: string }
         Returns: undefined
+      }
+      refresh_materialized_views: {
+        Args: { _company: string }
+        Returns: Json
       }
     }
     Enums: {
