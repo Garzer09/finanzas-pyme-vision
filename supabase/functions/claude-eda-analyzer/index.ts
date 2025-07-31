@@ -173,7 +173,7 @@ Estructura JSON requerida:
   },
   "metadata": {
     "analysis_timestamp": "${new Date().toISOString()}",
-    "model": "claude-sonnet-4-20250514",
+    "model": "claude-3-5-sonnet-20241022",
     "confidence": numero_entre_0_y_1,
     "document_types": ${JSON.stringify(documentTypes)}
   }
@@ -190,7 +190,7 @@ Estructura JSON requerida:
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-3-5-sonnet-20241022',
         max_tokens: 4000,
         temperature: 0.1,
         system: systemPrompt,
