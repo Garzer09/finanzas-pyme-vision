@@ -98,20 +98,43 @@ Deno.serve(async (req) => {
     const formData = await req.formData()
     
     // Extract metadata
-    const companyId = formData.get('companyId') as string
+    const companyId = formData.get('company_id') as string
     const periodType = formData.get('period_type') as string
-    const periodStart = formData.get('period_start') as string
-    const periodEnd = formData.get('period_end') as string
+    const periodYear = parseInt(formData.get('period_year') as string)
+    const periodQuarter = formData.get('period_quarter') ? parseInt(formData.get('period_quarter') as string) : null
+    const periodMonth = formData.get('period_month') ? parseInt(formData.get('period_month') as string) : null
     const currencyCode = formData.get('currency_code') as string || 'EUR'
     const accountingStandard = formData.get('accounting_standard') as string || 'PGC'
-    const consolidation = formData.get('consolidation') as string || 'INDIVIDUAL'
+    const importMode = formData.get('import_mode') as string || 'REPLACE'
+    const dryRun = formData.get('dry_run') === 'true'
 
     // Validate required metadata
-    if (!companyId || !periodType || !periodStart) {
+    if (!companyId || !periodType || !periodYear) {
       return new Response(JSON.stringify({ 
-        error: 'Missing required metadata: companyId, period_type, period_start' 
+        error: 'Missing required metadata: company_id, period_type, period_year' 
       }), {
         status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // Check for existing job in progress
+    const { data: existingJob } = await supabase
+      .from('processing_jobs')
+      .select('id, status')
+      .eq('company_id', companyId)
+      .eq('period_type', periodType)
+      .eq('period_year', periodYear)
+      .eq('period_quarter', periodQuarter)
+      .eq('period_month', periodMonth)
+      .in('status', ['PARSING', 'VALIDATING', 'LOADING', 'AGGREGATING'])
+      .single()
+
+    if (existingJob) {
+      return new Response(JSON.stringify({ 
+        error: `Ya hay una carga en progreso para esta empresa y período (Job: ${existingJob.id})` 
+      }), {
+        status: 409,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
@@ -138,6 +161,31 @@ Deno.serve(async (req) => {
       })
     }
 
+    // Generate file pack hash for duplicate detection
+    const fileNames = Object.keys(csvFiles).sort()
+    const fileContents = await Promise.all(fileNames.map(name => csvFiles[name].text()))
+    const filePackHash = await crypto.subtle.digest('SHA-256', 
+      new TextEncoder().encode(fileNames.join('|') + fileContents.join('|'))
+    ).then(buffer => Array.from(new Uint8Array(buffer)).map(b => b.toString(16).padStart(2, '0')).join(''))
+
+    // Check for recent duplicate pack
+    const { data: duplicateJob } = await supabase
+      .from('processing_jobs')
+      .select('id, created_at')
+      .eq('file_pack_hash', filePackHash)
+      .eq('status', 'DONE')
+      .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      .single()
+
+    if (duplicateJob) {
+      return new Response(JSON.stringify({ 
+        error: `Pack de archivos duplicado procesado recientemente (Job: ${duplicateJob.id})` 
+      }), {
+        status: 409,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
     // Create processing job
     const jobId = crypto.randomUUID()
     const { error: jobError } = await supabase
@@ -146,6 +194,13 @@ Deno.serve(async (req) => {
         id: jobId,
         company_id: companyId,
         user_id: user.id,
+        period_type: periodType,
+        period_year: periodYear,
+        period_quarter: periodQuarter,
+        period_month: periodMonth,
+        import_mode: importMode,
+        dry_run: dryRun,
+        file_pack_hash: filePackHash,
         status: 'PARSING',
         file_path: `admin-pack/${jobId}`,
         stats_json: {
@@ -153,7 +208,7 @@ Deno.serve(async (req) => {
           progress_pct: 0,
           eta_seconds: 120,
           files_received: Object.keys(csvFiles).length,
-          message: 'Iniciando procesamiento de archivos CSV'
+          message: dryRun ? 'Iniciando validación (dry-run)' : 'Iniciando procesamiento de archivos CSV'
         }
       })
 
@@ -171,11 +226,13 @@ Deno.serve(async (req) => {
     EdgeRuntime.waitUntil(processJob(supabase, jobId, csvFiles, {
       companyId,
       periodType,
-      periodStart,
-      periodEnd,
+      periodYear,
+      periodQuarter,
+      periodMonth,
       currencyCode,
       accountingStandard,
-      consolidation,
+      importMode,
+      dryRun,
       uploadedBy: user.id
     }))
 
@@ -439,24 +496,26 @@ function validateCashflowData(rows: any[], metadata: any): { valid: boolean, err
 }
 
 async function loadNormalizedData(supabase: any, validatedData: { [key: string]: any[] }, metadata: any) {
-  const { companyId, periodType, periodStart, currencyCode, uploadedBy } = metadata
-  const periodDate = new Date(periodStart)
-  const periodYear = periodDate.getFullYear()
-  const periodQuarter = periodType === 'quarterly' ? Math.ceil((periodDate.getMonth() + 1) / 3) : null
-  const periodMonth = periodType === 'monthly' ? periodDate.getMonth() + 1 : null
+  const { companyId, periodType, periodYear, periodQuarter, periodMonth, currencyCode, uploadedBy, importMode, dryRun } = metadata
+  const periodDate = new Date(periodYear, (periodMonth || 1) - 1, 1)
   const jobId = crypto.randomUUID()
+
+  if (dryRun) {
+    console.log('Dry run mode: Skipping data insertion')
+    return
+  }
 
   // Load P&L data
   if (validatedData['cuenta-pyg.csv']) {
     await loadPyGData(supabase, validatedData['cuenta-pyg.csv'], {
-      companyId, periodDate, periodType, periodYear, periodQuarter, periodMonth, currencyCode, uploadedBy, jobId
+      companyId, periodDate, periodType, periodYear, periodQuarter, periodMonth, currencyCode, uploadedBy, jobId, importMode
     })
   }
 
   // Load Balance data
   if (validatedData['balance-situacion.csv']) {
     await loadBalanceData(supabase, validatedData['balance-situacion.csv'], {
-      companyId, periodDate, periodType, periodYear, periodQuarter, periodMonth, currencyCode, uploadedBy, jobId
+      companyId, periodDate, periodType, periodYear, periodQuarter, periodMonth, currencyCode, uploadedBy, jobId, importMode
     })
   }
 
@@ -470,14 +529,19 @@ async function loadNormalizedData(supabase: any, validatedData: { [key: string]:
 
 async function loadPyGData(supabase: any, rows: any[], context: any) {
   // Delete existing data for this period (REPLACE mode)
-  await supabase
-    .from('fs_pyg_lines')
-    .delete()
-    .eq('company_id', context.companyId)
-    .eq('period_type', context.periodType)
-    .eq('period_year', context.periodYear)
-    .eq('period_quarter', context.periodQuarter || null)
-    .eq('period_month', context.periodMonth || null)
+  if (context.importMode === 'REPLACE') {
+    const deleteQuery = supabase
+      .from('fs_pyg_lines')
+      .delete()
+      .eq('company_id', context.companyId)
+      .eq('period_type', context.periodType)
+      .eq('period_year', context.periodYear)
+
+    if (context.periodQuarter) deleteQuery.eq('period_quarter', context.periodQuarter)
+    if (context.periodMonth) deleteQuery.eq('period_month', context.periodMonth)
+
+    await deleteQuery
+  }
 
   // Transform to long format and insert
   const longData: any[] = []
@@ -515,14 +579,19 @@ async function loadPyGData(supabase: any, rows: any[], context: any) {
 
 async function loadBalanceData(supabase: any, rows: any[], context: any) {
   // Delete existing data for this period (REPLACE mode)
-  await supabase
-    .from('fs_balance_lines')
-    .delete()
-    .eq('company_id', context.companyId)
-    .eq('period_type', context.periodType)
-    .eq('period_year', context.periodYear)
-    .eq('period_quarter', context.periodQuarter || null)
-    .eq('period_month', context.periodMonth || null)
+  if (context.importMode === 'REPLACE') {
+    const deleteQuery = supabase
+      .from('fs_balance_lines')
+      .delete()
+      .eq('company_id', context.companyId)
+      .eq('period_type', context.periodType)
+      .eq('period_year', context.periodYear)
+
+    if (context.periodQuarter) deleteQuery.eq('period_quarter', context.periodQuarter)
+    if (context.periodMonth) deleteQuery.eq('period_month', context.periodMonth)
+
+    await deleteQuery
+  }
 
   // Transform to long format and insert
   const longData: any[] = []

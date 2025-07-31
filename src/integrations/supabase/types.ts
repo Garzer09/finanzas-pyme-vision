@@ -170,6 +170,42 @@ export type Database = {
         }
         Relationships: []
       }
+      companies: {
+        Row: {
+          accounting_standard: string | null
+          created_at: string
+          created_by: string | null
+          currency_code: string
+          id: string
+          logo_url: string | null
+          name: string
+          sector: string | null
+          updated_at: string
+        }
+        Insert: {
+          accounting_standard?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string
+          id?: string
+          logo_url?: string | null
+          name: string
+          sector?: string | null
+          updated_at?: string
+        }
+        Update: {
+          accounting_standard?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency_code?: string
+          id?: string
+          logo_url?: string | null
+          name?: string
+          sector?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       company_descriptions: {
         Row: {
           business_model: string | null
@@ -1116,10 +1152,17 @@ export type Database = {
         Row: {
           company_id: string
           created_at: string | null
+          dry_run: boolean | null
           error_log_path: string | null
+          file_pack_hash: string | null
           file_path: string
           id: string
+          import_mode: string | null
           period: unknown | null
+          period_month: number | null
+          period_quarter: number | null
+          period_type: string | null
+          period_year: number | null
           stats_json: Json | null
           status: string
           updated_at: string | null
@@ -1128,10 +1171,17 @@ export type Database = {
         Insert: {
           company_id: string
           created_at?: string | null
+          dry_run?: boolean | null
           error_log_path?: string | null
+          file_pack_hash?: string | null
           file_path: string
           id?: string
+          import_mode?: string | null
           period?: unknown | null
+          period_month?: number | null
+          period_quarter?: number | null
+          period_type?: string | null
+          period_year?: number | null
           stats_json?: Json | null
           status?: string
           updated_at?: string | null
@@ -1140,10 +1190,17 @@ export type Database = {
         Update: {
           company_id?: string
           created_at?: string | null
+          dry_run?: boolean | null
           error_log_path?: string | null
+          file_pack_hash?: string | null
           file_path?: string
           id?: string
+          import_mode?: string | null
           period?: unknown | null
+          period_month?: number | null
+          period_quarter?: number | null
+          period_type?: string | null
+          period_year?: number | null
           stats_json?: Json | null
           status?: string
           updated_at?: string | null

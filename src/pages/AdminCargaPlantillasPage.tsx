@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Upload, CheckCircle, AlertCircle, Info, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -53,15 +53,20 @@ export const AdminCargaPlantillasPage: React.FC = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  const [searchParams] = useSearchParams();
+  const companyId = searchParams.get('companyId');
+
   // Form state
   const [metadata, setMetadata] = useState({
-    company_id: '',
+    company_id: companyId || '',
     period_type: 'annual' as 'annual' | 'quarterly' | 'monthly',
-    period_start: '',
-    period_end: '',
+    period_year: new Date().getFullYear(),
+    period_quarter: null as number | null,
+    period_month: null as number | null,
     currency_code: 'EUR',
     accounting_standard: 'PGC',
-    consolidation: 'INDIVIDUAL'
+    import_mode: 'REPLACE' as 'REPLACE' | 'MERGE',
+    dry_run: false
   });
 
   // File state

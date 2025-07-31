@@ -49,6 +49,9 @@ import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import ClaudeTestingPage from "./pages/ClaudeTestingPage";
 import { AdminCargaPlantillasPage } from "./pages/AdminCargaPlantillasPage";
+import AdminEmpresasPage from "./pages/AdminEmpresasPage";
+import AdminCargasPage from "./pages/AdminCargasPage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 
 const App = () => (
   <ErrorBoundary>
@@ -67,10 +70,13 @@ const App = () => (
          <Route path="/archivos" element={<FilesDashboardPage />} />
          <Route path="/suscripcion" element={<SubscriptionPage />} />
          <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
-           <Route path="/admin/settings" element={<AdminSettingsPage />} />
-           <Route path="/admin/users" element={<AdminUsersPage />} />
-           <Route path="/admin/carga-plantillas" element={<AdminCargaPlantillasPage />} />
-           <Route path="/testing-claude" element={<ClaudeTestingPage />} />
+            <Route path="/admin/settings" element={<AdminSettingsPage />} />
+            <Route path="/admin/users" element={<AdminUsersPage />} />
+            <Route path="/admin/empresas" element={<AdminEmpresasPage />} />
+            <Route path="/admin/carga-plantillas" element={<AdminCargaPlantillasPage />} />
+            <Route path="/admin/cargas" element={<AdminCargasPage />} />
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            <Route path="/testing-claude" element={<ClaudeTestingPage />} />
         
         {/* Core Financial Analysis */}
         <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />
