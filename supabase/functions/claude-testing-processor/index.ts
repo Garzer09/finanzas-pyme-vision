@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8'
+import * as XLSX from "https://esm.sh/xlsx@0.18.5"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,12 +77,8 @@ serve(async (req) => {
     console.log('Parsing Excel file with SheetJS...')
     
     let workbook: any
-    let XLSX: any
-    
     try {
-      // Import XLSX dynamically
-      XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs')
-      console.log('XLSX imported successfully')
+      console.log('Using static XLSX import')
       workbook = XLSX.read(data, { type: 'array' })
       console.log('Excel file parsed successfully')
     } catch (xlsxError) {
