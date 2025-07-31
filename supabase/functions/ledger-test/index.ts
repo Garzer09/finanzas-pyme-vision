@@ -28,43 +28,33 @@ serve(async (req) => {
     
     log('info', 'Processing real Excel file:', { fileName, userId, contentLength: fileContent.length })
     
-    // Get Claude API key
-    const claudeApiKey = Deno.env.get('ANTHROPIC_API_KEY')
-    if (!claudeApiKey) {
-      throw new Error('ANTHROPIC_API_KEY not found')
+    // Get OpenAI API key
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+    if (!openaiApiKey) {
+      throw new Error('OPENAI_API_KEY not found')
     }
     
-    log('info', 'Starting real analysis with Claude 4 Opus')
+    log('info', 'Starting real analysis with GPT-4.1-2025-04-14')
 
-    // Detailed financial analysis prompt
+    // Optimized financial analysis prompt for GPT-4.1
     const analysisPrompt = `
-Analyze this general ledger (libro diario) Excel file and perform a complete financial analysis.
+Eres un experto analista financiero especializado en el Plan General Contable español (PGC). 
+Analiza este libro diario completo y genera estados financieros estructurados.
 
-CRITICAL: You must complete ALL these tasks in a SINGLE response and return ONLY valid JSON.
+ARCHIVO EXCEL BASE64: ${fileContent}
+NOMBRE: ${fileName}
 
-1. STRUCTURE DETECTION:
-- Identify columns: Date (Fecha), Account Code (Código cuenta), Account Name (Cuenta), Debit (Debe), Credit (Haber)
-- Detect accounting standard (PGC Spain: 9-digit codes)
-- Extract company information from headers
+INSTRUCCIONES CRÍTICAS:
+1. Extrae TODAS las entradas del libro diario
+2. Clasifica cuentas según el PGC español (códigos de 9 dígitos)
+3. Calcula balances: 
+   - Activos/Gastos (grupos 2,3,6): Debe - Haber
+   - Pasivos/Ingresos (grupos 1,4,5,7): Haber - Debe
+4. Genera estados financieros completos
+5. Calcula ratios financieros estándar
+6. Valida que el balance cuadre
 
-2. DATA PROCESSING:
-Process all journal entries and calculate balances:
-- Assets (groups 2,3) and Expenses (group 6): Balance = Debit - Credit
-- Liabilities (groups 1,4,5) and Income (group 7): Balance = Credit - Debit
-
-3. GENERATE FINANCIAL STATEMENTS following Spanish PGC structure
-
-4. CALCULATE ALL RATIOS:
-- Liquidity: Current, Quick, Cash ratios
-- Leverage: Debt to Equity, Debt Ratio
-- Profitability: ROE, ROA, Net Margin, EBITDA Margin
-- Activity: Asset Turnover, Days ratios
-
-5. VALIDATION CHECKS:
-- Total Debits = Total Credits
-- Assets = Liabilities + Equity
-
-6. RETURN THIS EXACT JSON STRUCTURE:
+RESPONDE ÚNICAMENTE CON ESTE JSON EXACTO:
 {
   "metadata": {
     "companyName": "string",
@@ -115,24 +105,31 @@ Process all journal entries and calculate balances:
   }
 }
 
-ARCHIVO: ${fileName}
-CONTENIDO (BASE64): ${fileContent}
+VALIDACIONES REQUERIDAS:
+- Suma(Debe) = Suma(Haber) en el libro
+- Activo Total = Pasivo Total + Patrimonio Neto
+- Todos los importes deben ser números positivos
+- El beneficio neto debe coincidir entre PyG y balance
 
-IMPORTANTE: Analiza el archivo Excel completo y responde SOLO con JSON válido.`
+RESPUESTA: SOLO JSON válido, sin texto adicional.`
 
-    // Call Claude 4 Opus API
-    log('info', 'Calling Claude 4 Opus API...')
-    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+    // Call OpenAI GPT-4.1-2025-04-14 API
+    log('info', 'Calling OpenAI GPT-4.1 API...')
+    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': claudeApiKey,
-        'anthropic-version': '2023-06-01'
+        'Authorization': `Bearer ${openaiApiKey}`
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-20250514',
-        max_tokens: 8000,
+        model: 'gpt-4.1-2025-04-14',
+        max_tokens: 65536,
+        temperature: 0.1,
         messages: [
+          {
+            role: 'system',
+            content: 'Eres un experto analista financiero del Plan General Contable español. Analiza libros diarios y genera estados financieros precisos. Responde ÚNICAMENTE con JSON válido.'
+          },
           {
             role: 'user',
             content: analysisPrompt
@@ -141,96 +138,144 @@ IMPORTANTE: Analiza el archivo Excel completo y responde SOLO con JSON válido.`
       })
     })
 
-    if (!claudeResponse.ok) {
-      const errorText = await claudeResponse.text()
-      log('error', 'Claude API error:', { status: claudeResponse.status, error: errorText })
-      throw new Error(`Claude API error: ${claudeResponse.status}`)
+    if (!openaiResponse.ok) {
+      const errorText = await openaiResponse.text()
+      log('error', 'OpenAI API error:', { status: openaiResponse.status, error: errorText })
+      
+      // Enhanced error handling for token limits
+      if (openaiResponse.status === 429) {
+        const errorDetails = JSON.parse(errorText)
+        if (errorDetails.error?.code === 'rate_limit_exceeded') {
+          log('error', 'Token limit exceeded. File too large for processing.')
+          throw new Error('El archivo es demasiado grande. Por favor, divídelo en partes más pequeñas.')
+        }
+      }
+      throw new Error(`OpenAI API error: ${openaiResponse.status}`)
     }
 
-    const claudeResult = await claudeResponse.json()
-    log('info', 'Claude 4 Opus response received')
+    const openaiResult = await openaiResponse.json()
+    log('info', 'GPT-4.1 response received successfully')
 
-    // Parse JSON response
+    // Parse JSON response with enhanced error handling
     let analysisResult
     try {
-      const content = claudeResult.content[0].text
-      const jsonMatch = content.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        analysisResult = JSON.parse(jsonMatch[0])
-      } else {
-        analysisResult = JSON.parse(content)
+      const content = openaiResult.choices[0].message.content.trim()
+      log('info', 'Raw response length:', content.length)
+      
+      // Multiple JSON extraction strategies
+      let jsonContent = content
+      
+      // Strategy 1: Direct JSON parsing
+      try {
+        analysisResult = JSON.parse(jsonContent)
+      } catch {
+        // Strategy 2: Extract JSON between code blocks
+        const codeBlockMatch = content.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/i)
+        if (codeBlockMatch) {
+          jsonContent = codeBlockMatch[1]
+          analysisResult = JSON.parse(jsonContent)
+        } else {
+          // Strategy 3: Find JSON object in text
+          const jsonMatch = content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            jsonContent = jsonMatch[0]
+            analysisResult = JSON.parse(jsonContent)
+          } else {
+            throw new Error('No valid JSON found in response')
+          }
+        }
       }
-      log('info', 'Financial analysis completed successfully with Claude 4 Opus')
+      
+      // Validate essential structure
+      if (!analysisResult.metadata || !analysisResult.financials || !analysisResult.validation) {
+        throw new Error('Missing required JSON structure components')
+      }
+      
+      log('info', 'Financial analysis completed successfully with GPT-4.1')
+      log('info', 'Analysis summary:', {
+        company: analysisResult.metadata?.companyName,
+        year: analysisResult.metadata?.fiscalYear,
+        totalAssets: analysisResult.financials?.balanceSheet?.assets?.totalAssets,
+        netProfit: analysisResult.financials?.incomeStatement?.netProfit,
+        balanced: analysisResult.validation?.isBalanced
+      })
+      
     } catch (parseError) {
-      log('error', 'Error parsing Claude response:', parseError.message)
-      throw new Error('Error parsing financial analysis results')
+      log('error', 'Error parsing GPT-4.1 response:', {
+        error: parseError.message,
+        rawResponse: openaiResult.choices[0].message.content.substring(0, 500)
+      })
+      throw new Error('Error parsing financial analysis results: ' + parseError.message)
     }
 
-    // Save real data to database
+    // Initialize Supabase client with enhanced configuration
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     )
 
     try {
-      const period_date = `${analysisResult.metadata.fiscalYear}-12-31`
+      const fiscalYear = analysisResult.metadata.fiscalYear || new Date().getFullYear()
+      const period_date = `${fiscalYear}-12-31`
+      
+      log('info', 'Starting database save operation', { userId, fiscalYear })
       
       // Delete existing data for this user and year to avoid duplicates
-      await supabaseClient
+      const { error: deleteError } = await supabaseClient
         .from('financial_data')
         .delete()
         .eq('user_id', userId)
-        .eq('period_year', analysisResult.metadata.fiscalYear)
+        .eq('period_year', fiscalYear)
 
-      // Save balance sheet
-      const { error: balanceError } = await supabaseClient.from('financial_data').insert({
-        user_id: userId,
-        data_type: 'balance_situacion',
-        period_date,
-        period_year: analysisResult.metadata.fiscalYear,
-        period_type: 'annual',
-        data_content: analysisResult.financials.balanceSheet
-      })
+      if (deleteError) log('warn', 'Error deleting existing data:', deleteError)
 
-      if (balanceError) throw balanceError
+      // Prepare data records with validation
+      const dataRecords = [
+        {
+          user_id: userId,
+          data_type: 'balance_situacion',
+          period_date,
+          period_year: fiscalYear,
+          period_type: 'annual',
+          data_content: analysisResult.financials.balanceSheet || {}
+        },
+        {
+          user_id: userId,
+          data_type: 'cuenta_pyg',
+          period_date,
+          period_year: fiscalYear,
+          period_type: 'annual',
+          data_content: analysisResult.financials.incomeStatement || {}
+        },
+        {
+          user_id: userId,
+          data_type: 'ratios_financieros',
+          period_date,
+          period_year: fiscalYear,
+          period_type: 'annual',
+          data_content: analysisResult.financials.ratios || {}
+        },
+        {
+          user_id: userId,
+          data_type: 'metadata',
+          period_date,
+          period_year: fiscalYear,
+          period_type: 'annual',
+          data_content: analysisResult.metadata || {}
+        }
+      ]
 
-      // Save income statement  
-      const { error: incomeError } = await supabaseClient.from('financial_data').insert({
-        user_id: userId,
-        data_type: 'cuenta_pyg',
-        period_date,
-        period_year: analysisResult.metadata.fiscalYear,
-        period_type: 'annual',
-        data_content: analysisResult.financials.incomeStatement
-      })
+      // Batch insert financial data
+      const { error: insertError } = await supabaseClient
+        .from('financial_data')
+        .insert(dataRecords)
 
-      if (incomeError) throw incomeError
+      if (insertError) {
+        log('error', 'Error inserting financial data:', insertError)
+        throw new Error(`Database insert error: ${insertError.message}`)
+      }
 
-      // Save ratios
-      const { error: ratiosError } = await supabaseClient.from('financial_data').insert({
-        user_id: userId,
-        data_type: 'ratios_financieros',
-        period_date,
-        period_year: analysisResult.metadata.fiscalYear,
-        period_type: 'annual',
-        data_content: analysisResult.financials.ratios
-      })
-
-      if (ratiosError) throw ratiosError
-
-      // Save metadata
-      const { error: metadataError } = await supabaseClient.from('financial_data').insert({
-        user_id: userId,
-        data_type: 'metadata',
-        period_date,
-        period_year: analysisResult.metadata.fiscalYear,
-        period_type: 'annual',
-        data_content: analysisResult.metadata
-      })
-
-      if (metadataError) throw metadataError
-
-      // Save file record
+      // Save file record with enhanced metadata
       const { error: fileError } = await supabaseClient.from('excel_files').insert({
         user_id: userId,
         file_name: fileName,
@@ -238,37 +283,91 @@ IMPORTANTE: Analiza el archivo Excel completo y responde SOLO con JSON válido.`
         upload_date: new Date().toISOString(),
         file_size: fileContent.length,
         processing_status: 'completed',
-        processing_result: analysisResult
+        processing_result: {
+          ...analysisResult,
+          processedWith: 'GPT-4.1-2025-04-14',
+          processedAt: new Date().toISOString()
+        }
       })
 
       if (fileError) log('warn', 'Error saving file record:', fileError)
 
-      log('info', 'Real financial data saved to database successfully')
+      // Verify data was saved correctly
+      const { data: verifyData, error: verifyError } = await supabaseClient
+        .from('financial_data')
+        .select('data_type, period_year')
+        .eq('user_id', userId)
+        .eq('period_year', fiscalYear)
+
+      if (verifyError) {
+        log('warn', 'Error verifying saved data:', verifyError)
+      } else {
+        log('info', 'Data verification successful:', { 
+          recordsInserted: verifyData?.length || 0,
+          types: verifyData?.map(d => d.data_type) || []
+        })
+      }
+
+      log('info', 'Financial data successfully saved to database')
+      
     } catch (dbError) {
-      log('error', 'Database error:', dbError)
-      throw new Error(`Error saving to database: ${dbError.message}`)
+      log('error', 'Database operation failed:', {
+        error: dbError.message,
+        stack: dbError.stack,
+        userId,
+        fileName
+      })
+      throw new Error(`Error guardando datos en base de datos: ${dbError.message}`)
     }
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Libro diario procesado exitosamente con Claude 4 Opus',
+      message: 'Libro diario procesado exitosamente con GPT-4.1',
       data: analysisResult,
-      dataQuality: analysisResult.validation.dataQuality,
-      warnings: analysisResult.validation.warnings
+      dataQuality: analysisResult.validation?.dataQuality || 95,
+      warnings: analysisResult.validation?.warnings || [],
+      summary: {
+        company: analysisResult.metadata?.companyName,
+        fiscalYear: analysisResult.metadata?.fiscalYear,
+        totalAssets: analysisResult.financials?.balanceSheet?.assets?.totalAssets,
+        netProfit: analysisResult.financials?.incomeStatement?.netProfit,
+        isBalanced: analysisResult.validation?.isBalanced
+      }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
 
   } catch (error) {
-    log('error', 'Error processing file:', { 
+    log('error', 'Critical error processing file:', { 
       error: error.message, 
-      stack: error.stack
+      stack: error.stack,
+      timestamp: new Date().toISOString()
     })
+    
+    // Enhanced error response with specific error types
+    let errorType = 'PROCESSING_ERROR'
+    let userMessage = 'Error procesando el libro diario'
+    
+    if (error.message.includes('Token limit') || error.message.includes('too large')) {
+      errorType = 'FILE_TOO_LARGE'
+      userMessage = 'El archivo es demasiado grande. Por favor, divídelo en partes más pequeñas o usa un archivo con menos transacciones.'
+    } else if (error.message.includes('API error')) {
+      errorType = 'API_ERROR'
+      userMessage = 'Error de comunicación con el servicio de análisis. Inténtalo de nuevo en unos minutos.'
+    } else if (error.message.includes('JSON') || error.message.includes('parsing')) {
+      errorType = 'PARSING_ERROR'
+      userMessage = 'Error procesando la respuesta del análisis. El archivo puede tener un formato incompatible.'
+    } else if (error.message.includes('database') || error.message.includes('Database')) {
+      errorType = 'DATABASE_ERROR'
+      userMessage = 'Error guardando los datos procesados. Los datos se analizaron correctamente pero no se pudieron guardar.'
+    }
     
     return new Response(JSON.stringify({
       success: false,
-      error: 'PROCESSING_ERROR',
-      message: error.message || 'Error procesando el libro diario'
+      error: errorType,
+      message: userMessage,
+      details: error.message,
+      timestamp: new Date().toISOString()
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
