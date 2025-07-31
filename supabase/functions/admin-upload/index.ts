@@ -1,5 +1,4 @@
-// @deno-types="https://cdn.sheetjs.com/xlsx-0.20.3/package/types/index.d.ts"
-import * as XLSX from "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
+import { parse as parseCSV } from "https://deno.land/std@0.224.0/csv/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
 
 const corsHeaders = {
@@ -225,37 +224,36 @@ async function processJob({ svc, jobId, companyId, period, filePath }: {
       throw new Error(`Download failed: ${downloadError.message}`);
     }
 
-    // Parse CSV (lightweight, no SheetJS needed)
+    // Robust CSV parsing with auto-detection
     const csvText = await fileData.text();
-    const lines = csvText.split('\n').filter(line => line.trim());
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const { headers, rows: parsedRows, sep } = await parseCsvText(csvText);
+    const headerMap = buildHeaderMap(headers);
     
-    const rawRows: any[] = lines.slice(1).map((line, index) => {
-      const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-      const row: any = {};
-      headers.forEach((header, i) => {
-        row[header] = values[i] || '';
-      });
-      return row;
-    }).filter(row => Object.values(row).some(val => val !== ''));
-
-    console.log(`Processing job ${jobId} - VALIDATING (${rawRows.length} rows)`);
+    console.log(`Processing job ${jobId} - VALIDATING (${parsedRows.length} rows)`);
     await setStatus("VALIDATING", { 
-      total_rows: rawRows.length,
-      message: `Validando ${rawRows.length} filas...`
+      total_rows: parsedRows.length,
+      headers_map: headerMap,
+      csv_sep: sep,
+      message: `Validando ${parsedRows.length} filas con separador '${sep}'...`
     });
 
-    // Normalize and validate data
-    const normalized = normalizeRows(rawRows);
-    const { validRows, rejectedRows, errors } = validateByEntry(normalized);
+    // Transform and validate data with intelligent mapping
+    const { ok: mappedRows, bad: mappingErrors, headers_map } = mapRows(parsedRows, headerMap);
+    const { ok: validRows, rej: rejectedRows } = validateByEntry(mappedRows);
+    
+    // Combine mapping and validation errors
+    const errors = mappingErrors.map(e => `Row ${e.i}: ${e.reason}`);
+    const allRejected = [...mappingErrors, ...rejectedRows];
 
     // Save artifacts
     let rejects_csv_path = null;
     let error_log_path = null;
 
-    if (rejectedRows.length > 0) {
-      const csv = createCSVFromRejectedRows(rejectedRows);
-      const rejectsPath = `jobs/${jobId}/rejects.csv`;
+    // Save sample of rejected rows for debugging
+    if (allRejected.length > 0) {
+      const sample = allRejected.slice(0, 50);
+      const csv = toCSV(sample);
+      const rejectsPath = `jobs/${jobId}/rejects_sample.csv`;
       await svc.storage
         .from("gl-artifacts")
         .upload(rejectsPath, new Blob([csv]), { upsert: true });
@@ -263,7 +261,7 @@ async function processJob({ svc, jobId, companyId, period, filePath }: {
     }
 
     if (errors.length > 0) {
-      const errorLog = JSON.stringify({ errors, timestamp: new Date().toISOString() }, null, 2);
+      const errorLog = JSON.stringify({ errors, headers_map, timestamp: new Date().toISOString() }, null, 2);
       const errorsPath = `jobs/${jobId}/errors.json`;
       await svc.storage
         .from("gl-artifacts")
@@ -271,12 +269,13 @@ async function processJob({ svc, jobId, companyId, period, filePath }: {
       error_log_path = errorsPath;
     }
 
-    console.log(`Processing job ${jobId} - LOADING (${validRows.length} valid, ${rejectedRows.length} rejected)`);
+    console.log(`Processing job ${jobId} - LOADING (${validRows.length} valid, ${allRejected.length} rejected)`);
     await setStatus("LOADING", { 
-      total_rows: rawRows.length,
+      total_rows: parsedRows.length,
       rows_valid: validRows.length,
-      rows_reject: rejectedRows.length,
+      rows_reject: allRejected.length,
       rows_loaded: 0,
+      headers_map,
       rejects_csv_path,
       error_log_path,
       message: `Preparando ${validRows.length} filas para inserción...`
@@ -369,102 +368,6 @@ async function processJob({ svc, jobId, companyId, period, filePath }: {
 }
 
 // Helper functions
-function normalizeRows(rawRows: any[]): any[] {
-  return rawRows.map((row, index) => {
-    try {
-      return {
-        entry_no: parseInt(String(row.entry_no || row.EntryNo || row.asiento || row.Asiento || '').replace(/[^\d]/g, '')) || null,
-        tx_date: normalizeDate(row.tx_date || row.TxDate || row.fecha || row.Fecha),
-        memo: String(row.memo || row.Memo || row.concepto || row.Concepto || '').trim(),
-        line_no: parseInt(String(row.line_no || row.LineNo || row.linea || row.Linea || '').replace(/[^\d]/g, '')) || (index + 1),
-        account: String(row.account || row.Account || row.cuenta || row.Cuenta || '').trim(),
-        description: String(row.description || row.Description || row.descripcion || row.Descripcion || '').trim(),
-        debit: parseAmount(row.debit || row.Debit || row.debe || row.Debe || '0'),
-        credit: parseAmount(row.credit || row.Credit || row.haber || row.Haber || '0'),
-        doc_ref: String(row.doc_ref || row.DocRef || row.referencia || row.Referencia || '').trim()
-      };
-    } catch (e) {
-      console.warn(`Error normalizing row ${index}:`, e);
-      return null;
-    }
-  }).filter(row => row !== null);
-}
-
-function normalizeDate(dateValue: any): string | null {
-  if (!dateValue) return null;
-  
-  try {
-    // Handle Excel serial numbers
-    if (typeof dateValue === 'number') {
-      const date = new Date((dateValue - 25569) * 86400 * 1000);
-      return date.toISOString().split('T')[0];
-    }
-    
-    // Handle string dates
-    const dateStr = String(dateValue);
-    const date = new Date(dateStr);
-    if (!isNaN(date.getTime())) {
-      return date.toISOString().split('T')[0];
-    }
-    
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-function parseAmount(value: any): number {
-  if (typeof value === 'number') return value;
-  if (!value) return 0;
-  
-  const cleanStr = String(value)
-    .replace(/[€$£¥₹]/g, '')
-    .replace(/\s/g, '')
-    .replace(/,(\d{3})/g, '$1')
-    .replace(/,(\d{1,2})$/, '.$1');
-  
-  const parsed = parseFloat(cleanStr);
-  return isNaN(parsed) ? 0 : parsed;
-}
-
-function validateByEntry(rows: any[]): { validRows: any[], rejectedRows: any[], errors: string[] } {
-  const validRows: any[] = [];
-  const rejectedRows: any[] = [];
-  const errors: string[] = [];
-  
-  // Group by entry_no and tx_date
-  const entriesMap = new Map<string, any[]>();
-  
-  for (const row of rows) {
-    if (!row.entry_no || !row.tx_date || !row.account) {
-      rejectedRows.push({ ...row, rejectReason: 'Missing required fields' });
-      continue;
-    }
-    
-    const entryKey = `${row.entry_no}_${row.tx_date}`;
-    if (!entriesMap.has(entryKey)) {
-      entriesMap.set(entryKey, []);
-    }
-    entriesMap.get(entryKey)!.push(row);
-  }
-  
-  // Validate each entry balances
-  for (const [entryKey, entryRows] of entriesMap) {
-    const totalDebit = entryRows.reduce((sum, row) => sum + (row.debit || 0), 0);
-    const totalCredit = entryRows.reduce((sum, row) => sum + (row.credit || 0), 0);
-    const diff = Math.abs(totalDebit - totalCredit);
-    
-    if (diff > 0.01) { // Allow for small rounding differences
-      const rejectReason = `Entry doesn't balance: Debit=${totalDebit}, Credit=${totalCredit}`;
-      entryRows.forEach(row => rejectedRows.push({ ...row, rejectReason }));
-      errors.push(`Entry ${entryKey}: ${rejectReason}`);
-    } else {
-      entryRows.forEach(row => validRows.push(row));
-    }
-  }
-  
-  return { validRows, rejectedRows, errors };
-}
 
 function createDynamicBatches(rows: any[], targetSizeBytes: number): any[][] {
   const batches: any[][] = [];
@@ -491,13 +394,160 @@ function createDynamicBatches(rows: any[], targetSizeBytes: number): any[][] {
   return batches;
 }
 
-function createCSVFromRejectedRows(rejectedRows: any[]): string {
-  if (rejectedRows.length === 0) return '';
-  
-  const headers = Object.keys(rejectedRows[0]);
+// ===== ROBUST CSV PARSER AND INTELLIGENT MAPPING =====
+
+async function parseCsvText(text: string): Promise<{ headers: string[]; rows: Record<string, string>[]; sep: string }> {
+  const firstLine = text.split(/\r?\n/).find(l => l.trim().length > 0) ?? "";
+  const candidates = [",", ";", "\t"];
+  const counts = candidates.map(c => (firstLine.match(new RegExp(`\\${c}`, "g")) || []).length);
+  const sep = candidates[counts.indexOf(Math.max(...counts))] || ",";
+
+  const parsed = parseCSV(text, { skipFirstRow: false, separator: sep, strip: true });
+  const [rawHeaders, ...rawRows] = parsed as string[][];
+  const headers = rawHeaders.map(h => h ?? "");
+  const rows = rawRows
+    .filter(r => r.some(cell => (cell ?? "").toString().trim() !== ""))
+    .map(r => Object.fromEntries(headers.map((h, i) => [h, r[i] ?? ""])));
+  return { headers, rows, sep };
+}
+
+const SYN = {
+  entry_no: ["entry_no","asiento","num_asiento","n_asiento","nº asiento","numero asiento","nº","numasiento"],
+  tx_date:  ["tx_date","fecha","f contable","fecha asiento","date"],
+  account:  ["account","cuenta","codigo cuenta","cod cuenta","cta","cta contable"],
+  description:["description","descripcion","concepto","glosa","detalle"],
+  debit:    ["debit","debe","cargo","importe debe"],
+  credit:   ["credit","haber","abono","importe haber"],
+  amount:   ["importe","amount","monto","importe neto"],
+  side:     ["dh","debe_haber","tipo","signo"],
+  doc_ref:  ["doc_ref","documento","doc","ref","referencia","nº doc","num doc"],
+  line_no:  ["line_no","apunte","num_apunte","nº apunte","linea","line"]
+};
+
+function slugify(s: string) {
+  return s.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/\s+/g," ").trim();
+}
+
+function buildHeaderMap(headers: string[]) {
+  const norm = headers.map(h => slugify(h));
+  const map: Record<string,string> = {};
+  const bind = (target: keyof typeof SYN) => {
+    for (const h of norm) {
+      if (SYN[target].some(alias => h === slugify(alias))) { 
+        map[target] = headers[norm.indexOf(h)]; 
+        return; 
+      }
+    }
+  };
+  bind("entry_no"); bind("tx_date"); bind("account"); bind("description");
+  bind("debit"); bind("credit"); bind("amount"); bind("side");
+  bind("doc_ref"); bind("line_no");
+  return map;
+}
+
+function normNumber(v: any): number {
+  if (v == null) return 0;
+  const s = String(v).trim();
+  if (s === "") return 0;
+  const t = s.replace(/\s/g,"").replace(/\./g,"").replace(/,/g,".");
+  const n = Number(t);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function normDate(v: any): string | null {
+  if (!v) return null;
+  const s = String(v).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if (m) {
+    let [_, d, M, y] = m; 
+    if (y.length === 2) y = (Number(y) > 50 ? "19"+y : "20"+y);
+    return `${y.padStart(4,"0")}-${M.padStart(2,"0")}-${d.padStart(2,"0")}`;
+  }
+  return null;
+}
+
+type RowOut = { 
+  entry_no: string; tx_date: string; account: string; description?: string|null;
+  debit: string; credit: string; doc_ref?: string|null; line_no: number 
+};
+
+function mapRows(rows: Record<string,string>[], H: Record<string,string>): { ok: RowOut[], bad: any[], headers_map: any } {
+  const ok: RowOut[] = []; 
+  const bad: any[] = [];
+  const counter: Record<string, number> = {};
+  let autoEntry = 0;
+
+  for (const [i, r] of rows.entries()) {
+    const date = normDate(r[H.tx_date!] ?? r["Fecha"]);
+    const account = (r[H.account!] ?? "").toString().trim();
+    const desc = (r[H.description!] ?? null) as any;
+    const doc = (r[H.doc_ref!] ?? null) as any;
+
+    let debit = 0, credit = 0;
+
+    if (H.debit && H.credit) {
+      debit = normNumber(r[H.debit]); 
+      credit = normNumber(r[H.credit]);
+    } else if (H.amount) {
+      const amt = normNumber(r[H.amount]);
+      const side = (r[H.side!] ?? "").toString().trim().toUpperCase();
+      if (side === "D" || side === "DEBE" || amt < 0) debit = Math.abs(amt);
+      else credit = Math.abs(amt);
+    }
+
+    let entry = (r[H.entry_no!] ?? "").toString().trim();
+    if (!entry) {
+      const ln = Number(r[H.line_no!]) || (i+1);
+      entry = `${normDate(r[H.tx_date!] ?? "") || "0000-00-00"}#${Math.ceil(ln/2)}`;
+    }
+
+    if (!date || !/^\d{3,9}$/.test(account) || (debit===0 && credit===0)) {
+      bad.push({ i, reason:"invalid_fields", entry, date, account, debit, credit });
+      continue;
+    }
+
+    counter[entry] = (counter[entry] ?? 0) + 1;
+    const line_no = counter[entry];
+
+    ok.push({
+      entry_no: entry,
+      tx_date: date,
+      account,
+      description: desc,
+      debit: debit.toFixed(2),
+      credit: credit.toFixed(2),
+      doc_ref: doc,
+      line_no
+    });
+  }
+  return { ok, bad, headers_map: H };
+}
+
+function validateByEntry(rows: RowOut[]): { ok: RowOut[], rej: any[] } {
+  const by: Record<string, { d:number; c:number }> = {};
+  for (const r of rows) {
+    const k = r.entry_no;
+    by[k] = by[k] ?? { d:0, c:0 };
+    by[k].d += Number(r.debit);
+    by[k].c += Number(r.credit);
+  }
+  const TOL = 0.05; // 5 centimos tolerance
+  const unbalanced = new Set(Object.entries(by).filter(([_,s]) => Math.abs(s.d - s.c) > TOL).map(([k]) => k));
+
+  const ok = rows.filter(r => !unbalanced.has(r.entry_no));
+  const rej = rows.filter(r => unbalanced.has(r.entry_no)).map(r => ({ reason:"unbalanced_entry", ...r }));
+  return { ok, rej };
+}
+
+function toCSV(data: any[]): string {
+  if (data.length === 0) return '';
+  const headers = Object.keys(data[0]);
   const csvContent = [
     headers.join(','),
-    ...rejectedRows.map(row => 
+    ...data.map(row => 
       headers.map(header => {
         const value = row[header];
         return typeof value === 'string' && value.includes(',') 
@@ -506,6 +556,9 @@ function createCSVFromRejectedRows(rejectedRows: any[]): string {
       }).join(',')
     )
   ].join('\n');
-  
   return csvContent;
+}
+
+function createCSVFromRejectedRows(rejectedRows: any[]): string {
+  return toCSV(rejectedRows);
 }
