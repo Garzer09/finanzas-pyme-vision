@@ -7,7 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Brain, Trash2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, AlertTriangle, Brain, Trash2, ArrowRight } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -28,9 +28,10 @@ interface TestSession {
 interface TestDataUploaderProps {
   onTestSessionChange: (session: TestSession | null) => void;
   currentSession: TestSession | null;
+  onContinue?: () => void;
 }
 
-export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDataUploaderProps) => {
+export const TestDataUploader = ({ onTestSessionChange, currentSession, onContinue }: TestDataUploaderProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -446,6 +447,16 @@ export const TestDataUploader = ({ onTestSessionChange, currentSession }: TestDa
             Archivo procesado exitosamente con Claude. Puedes continuar con la validación de cálculos.
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* Botón de continuación */}
+      {overallStatus === 'completed' && onContinue && (
+        <div className="flex justify-center">
+          <Button onClick={onContinue} size="lg" className="w-full max-w-md">
+            <ArrowRight className="h-4 w-4 mr-2" />
+            Continuar a Validación de Cálculos
+          </Button>
+        </div>
       )}
 
       {overallStatus === 'error' && (

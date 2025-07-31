@@ -4,11 +4,13 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle2, XCircle, AlertTriangle, Grid3X3, Database } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Grid3X3, Database, ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface CompletenessMatrixProps {
   testSession: any;
   onResultsUpdate: (results: { dataCompleteness: number; dashboardAvailability: number }) => void;
+  onContinue?: () => void;
 }
 
 interface ModuleRequirement {
@@ -90,7 +92,7 @@ const MODULE_REQUIREMENTS: Omit<ModuleRequirement, 'status' | 'availableFields' 
   }
 ];
 
-export const CompletenessMatrix = ({ testSession, onResultsUpdate }: CompletenessMatrixProps) => {
+export const CompletenessMatrix = ({ testSession, onResultsUpdate, onContinue }: CompletenessMatrixProps) => {
   const [moduleStatuses, setModuleStatuses] = useState<ModuleRequirement[]>([]);
   const [overallCompleteness, setOverallCompleteness] = useState(0);
   const [dashboardAvailability, setDashboardAvailability] = useState(0);
@@ -332,6 +334,16 @@ export const CompletenessMatrix = ({ testSession, onResultsUpdate }: Completenes
           </div>
         </CardContent>
       </Card>
+
+      {/* Botón de continuación */}
+      {overallCompleteness > 0 && onContinue && (
+        <div className="flex justify-center">
+          <Button onClick={onContinue} size="lg" className="w-full max-w-md">
+            <ArrowRight className="h-4 w-4 mr-2" />
+            Ver Resultados Finales
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

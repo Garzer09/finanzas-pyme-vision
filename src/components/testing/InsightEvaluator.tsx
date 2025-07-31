@@ -7,11 +7,12 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Lightbulb, Star, ThumbsUp, ThumbsDown, AlertTriangle, Brain } from 'lucide-react';
+import { Lightbulb, Star, ThumbsUp, ThumbsDown, AlertTriangle, Brain, ArrowRight } from 'lucide-react';
 
 interface InsightEvaluatorProps {
   testSession: any;
   onResultsUpdate: (quality: number) => void;
+  onContinue?: () => void;
 }
 
 interface InsightEvaluation {
@@ -26,24 +27,27 @@ interface InsightEvaluation {
   overallRating: number;
 }
 
-export const InsightEvaluator = ({ testSession, onResultsUpdate }: InsightEvaluatorProps) => {
+export const InsightEvaluator = ({ testSession, onResultsUpdate, onContinue }: InsightEvaluatorProps) => {
   const [insights, setInsights] = useState<InsightEvaluation[]>([]);
   const [currentInsightIndex, setCurrentInsightIndex] = useState(0);
   const [overallQuality, setOverallQuality] = useState(0);
   const [isEvaluating, setIsEvaluating] = useState(false);
 
   useEffect(() => {
-    if (testSession?.analysisResult?.insights) {
+    if (testSession?.analysisResult?.insights || testSession?.analysisResults?.insights) {
       initializeInsights();
     }
   }, [testSession]);
 
   const initializeInsights = () => {
-    const claudeInsights = testSession.analysisResult.insights || [];
+    // Acceso mejorado a los insights de Claude
+    const claudeInsights = testSession.analysisResult?.insights || 
+                          testSession.analysisResults?.insights || 
+                          [];
     
     const evaluations: InsightEvaluation[] = claudeInsights.map((insight: any, index: number) => ({
       id: `insight_${index}`,
-      text: insight.interpretation || insight.summary || 'Sin descripción',
+      text: insight.interpretation || insight.summary || insight.text || 'Sin descripción',
       category: categorizeInsight(insight),
       relevance: 0,
       accuracy: 0,
@@ -146,12 +150,15 @@ export const InsightEvaluator = ({ testSession, onResultsUpdate }: InsightEvalua
     ));
   };
 
-  if (!testSession?.analysisResult?.insights?.length) {
+  const hasInsights = testSession?.analysisResult?.insights?.length > 0 || 
+                    testSession?.analysisResults?.insights?.length > 0;
+
+  if (!hasInsights) {
     return (
       <Alert>
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          No se encontraron insights para evaluar. Asegúrate de que Claude haya completado el análisis del archivo.
+          No se encontraron insights para evaluar. Asegúrate de que Claude haya completado el análisis del archivo en las pestañas "Pipeline Robusto" o "Carga Simple".
         </AlertDescription>
       </Alert>
     );
@@ -390,6 +397,16 @@ export const InsightEvaluator = ({ testSession, onResultsUpdate }: InsightEvalua
             </Alert>
           </CardContent>
         </Card>
+      )}
+
+      {/* Botón de continuación */}
+      {overallQuality > 0 && onContinue && (
+        <div className="flex justify-center">
+          <Button onClick={onContinue} size="lg" className="w-full max-w-md">
+            <ArrowRight className="h-4 w-4 mr-2" />
+            Continuar a Matriz de Completitud
+          </Button>
+        </div>
       )}
     </div>
   );

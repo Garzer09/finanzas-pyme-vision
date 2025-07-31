@@ -6,11 +6,12 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Calculator, CheckCircle2, XCircle, AlertTriangle, TrendingUp } from 'lucide-react';
+import { Calculator, CheckCircle2, XCircle, AlertTriangle, TrendingUp, ArrowRight } from 'lucide-react';
 
 interface CalculationValidatorProps {
   testSession: any;
   onResultsUpdate: (accuracy: number) => void;
+  onContinue?: () => void;
 }
 
 interface KPIComparison {
@@ -36,7 +37,7 @@ const DEFAULT_KPIS: Omit<KPIComparison, 'claudeValue' | 'expectedValue' | 'diffe
   { name: 'Debt to Equity', formula: 'Pasivo Total / Patrimonio Neto', tolerance: 1.0 },
 ];
 
-export const CalculationValidator = ({ testSession, onResultsUpdate }: CalculationValidatorProps) => {
+export const CalculationValidator = ({ testSession, onResultsUpdate, onContinue }: CalculationValidatorProps) => {
   const [kpiComparisons, setKpiComparisons] = useState<KPIComparison[]>([]);
   const [isValidating, setIsValidating] = useState(false);
   const [overallAccuracy, setOverallAccuracy] = useState(0);
@@ -48,11 +49,18 @@ export const CalculationValidator = ({ testSession, onResultsUpdate }: Calculati
   }, [testSession]);
 
   const initializeKPIComparisons = () => {
-    const claudeCalculations = testSession.analysisResult.calculations?.key_metrics || {};
+    // Acceso mejorado a los datos calculados por Claude
+    const claudeCalculations = testSession.analysisResult?.calculations?.key_metrics || 
+                              testSession.analysisResults?.calculations?.key_metrics ||
+                              testSession.analysisResult?.financial_ratios ||
+                              testSession.analysisResults?.financial_ratios ||
+                              {};
     
     const comparisons: KPIComparison[] = DEFAULT_KPIS.map(kpi => ({
       ...kpi,
-      claudeValue: claudeCalculations[kpi.name.toLowerCase().replace(/\s+/g, '_')] || null,
+      claudeValue: claudeCalculations[kpi.name.toLowerCase().replace(/\s+/g, '_')] || 
+                   claudeCalculations[kpi.name] || 
+                   null,
       expectedValue: null,
       difference: null,
       status: 'pending'
@@ -126,12 +134,12 @@ export const CalculationValidator = ({ testSession, onResultsUpdate }: Calculati
     }
   };
 
-  if (!testSession?.analysisResult) {
+  if (!testSession?.analysisResult && !testSession?.analysisResults) {
     return (
       <Alert>
         <AlertTriangle className="h-4 w-4" />
         <AlertDescription>
-          Primero debes cargar y analizar un archivo en la pestaña "Carga de Datos".
+          Primero debes cargar y analizar un archivo en las pestañas "Pipeline Robusto" o "Carga Simple".
         </AlertDescription>
       </Alert>
     );
@@ -276,15 +284,25 @@ export const CalculationValidator = ({ testSession, onResultsUpdate }: Calculati
                 <AlertDescription>
                   <strong>Precisión General: {overallAccuracy.toFixed(1)}%</strong>
                   <br />
-                  {overallAccuracy >= 90 && "Excelente precisión. Claude está calculando correctamente los KPIs financieros."}
-                  {overallAccuracy >= 70 && overallAccuracy < 90 && "Buena precisión con algunas áreas de mejora. Revisa los cálculos marcados con advertencia."}
-                  {overallAccuracy < 70 && "Precisión baja. Se requiere revisión de los datos de entrada o recalibración del modelo."}
-                </AlertDescription>
-              </Alert>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              {overallAccuracy >= 90 && "Excelente precisión. Claude está calculando correctamente los KPIs financieros."}
+              {overallAccuracy >= 70 && overallAccuracy < 90 && "Buena precisión con algunas áreas de mejora. Revisa los cálculos marcados con advertencia."}
+              {overallAccuracy < 70 && "Precisión baja. Se requiere revisión de los datos de entrada o recalibración del modelo."}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </CardContent>
+    </Card>
+  )}
+
+  {/* Botón de continuación */}
+  {overallAccuracy > 0 && onContinue && (
+    <div className="flex justify-center">
+      <Button onClick={onContinue} size="lg" className="w-full max-w-md">
+        <ArrowRight className="h-4 w-4 mr-2" />
+        Continuar a Evaluación de Insights
+      </Button>
     </div>
-  );
+  )}
+</div>
+);
 };
