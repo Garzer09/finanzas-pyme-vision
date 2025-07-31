@@ -47,9 +47,26 @@ serve(async (req) => {
     }
 
     // Get OpenAI API key (using the secret name from Supabase)
-    const openaiApiKey = Deno.env.get('OpenAI - ChatGPT') || Deno.env.get('OPENAI_API_KEY')
+    log('info', 'Checking for OpenAI API key in environment variables')
+    
+    const possibleKeys = ['OpenAI - ChatGPT', 'OPENAI_API_KEY', 'openai_api_key', 'OpenAI', 'ChatGPT']
+    let openaiApiKey = null
+    
+    for (const keyName of possibleKeys) {
+      const key = Deno.env.get(keyName)
+      if (key) {
+        openaiApiKey = key
+        log('info', `Found OpenAI API key with name: ${keyName}`)
+        break
+      }
+    }
+    
     if (!openaiApiKey) {
-      throw new Error('OpenAI API key not found in environment')
+      const availableEnvVars = Object.keys(Deno.env.toObject()).filter(key => 
+        key.toLowerCase().includes('openai') || key.toLowerCase().includes('chatgpt')
+      )
+      log('error', 'OpenAI API key not found. Available env vars containing openai/chatgpt:', availableEnvVars)
+      throw new Error(`OpenAI API key not found. Checked: ${possibleKeys.join(', ')}`)
     }
 
     log('info', 'Starting real data processing with GPT-4o-mini')
