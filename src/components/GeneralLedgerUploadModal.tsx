@@ -19,7 +19,9 @@ import {
   BarChart3,
   Clock,
   Database,
-  Loader2
+  Loader2,
+  Download,
+  RefreshCw
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -36,13 +38,27 @@ interface GeneralLedgerUploadModalProps {
 interface ProcessingJob {
   id: string;
   status: string;
-  stats_json?: any;
+  stats_json?: {
+    stage?: string;
+    progress_pct?: number;
+    eta_seconds?: number;
+    total_rows?: number;
+    rows_valid?: number;
+    rows_reject?: number;
+    rows_loaded?: number;
+    batches_total?: number;
+    batches_done?: number;
+    avg_batch_ms?: number;
+    message?: string;
+    error_log_path?: string;
+    rejects_csv_path?: string;
+  };
   error_log_path?: string | null;
 }
 
 const STATUS_MESSAGES = {
-  PENDING: 'Preparando procesamiento...',
-  PARSING: 'Parseando archivo Excel con SheetJS...',
+  UPLOADING: 'Subiendo archivo...',
+  PARSING: 'Parseando datos CSV...',
   VALIDATING: 'Validando asientos contables...',
   LOADING: 'Insertando datos en base de datos...',
   AGGREGATING: 'Generando estados financieros...',
@@ -51,15 +67,34 @@ const STATUS_MESSAGES = {
   FAILED: 'Error en el procesamiento'
 };
 
-const STATUS_PROGRESS = {
-  PENDING: 10,
-  PARSING: 25,
-  VALIDATING: 50,
-  LOADING: 75,
-  AGGREGATING: 90,
-  DONE: 100,
-  PARTIAL_OK: 100,
-  FAILED: 0
+const getProgressLabel = (job: ProcessingJob | null, uploadProgress: number): string => {
+  if (!job) {
+    return uploadProgress > 0 ? `Subiendo archivo... ${uploadProgress}%` : 'Preparando...';
+  }
+
+  const stats = job.stats_json;
+  const stage = stats?.stage || job.status;
+
+  switch (stage) {
+    case 'PARSING':
+      return 'Parseando datos CSV...';
+    case 'VALIDATING':
+      return `Validando ${stats?.total_rows || 0} asientos contables...`;
+    case 'LOADING':
+      if (stats?.batches_total && stats?.batches_done !== undefined) {
+        const eta = stats.eta_seconds ? ` (ETA: ${stats.eta_seconds}s)` : '';
+        return `Insertando lote ${stats.batches_done + 1}/${stats.batches_total}...${eta}`;
+      }
+      return 'Insertando datos en base de datos...';
+    case 'AGGREGATING':
+      return 'Generando estados financieros...';
+    case 'DONE':
+      return 'Procesamiento completado exitosamente';
+    case 'FAILED':
+      return 'Error en el procesamiento';
+    default:
+      return STATUS_MESSAGES[stage] || 'Procesando...';
+  }
 };
 
 export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> = ({
@@ -75,65 +110,61 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
   const [fiscalYear, setFiscalYear] = useState(new Date().getFullYear());
   const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [jobId, setJobId] = useState<string | null>(null);
   const [job, setJob] = useState<ProcessingJob | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [converting, setConverting] = useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Poll job status when processing
+  // Realtime subscription for job progress
   useEffect(() => {
     if (!jobId || !processing) return;
 
-    const pollJob = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('processing_jobs')
-          .select('*')
-          .eq('id', jobId)
-          .single();
+    const channel = supabase
+      .channel('job-progress')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'processing_jobs',
+          filter: `id=eq.${jobId}`
+        },
+        (payload) => {
+          const updatedJob = payload.new as ProcessingJob;
+          setJob(updatedJob);
 
-        if (error) {
-          console.error('Error polling job:', error);
-          return;
-        }
-
-        setJob(data);
-
-        // Check if processing is complete
-        if (['DONE', 'PARTIAL_OK', 'FAILED'].includes(data.status)) {
-          setProcessing(false);
-          
-          if (data.status === 'DONE' || data.status === 'PARTIAL_OK') {
-            const statsJson = data.stats_json as any;
-            const totalInserted = statsJson?.metrics?.totalInserted || 0;
-            toast({
-              title: "¡Procesamiento completado!",
-              description: `${totalInserted} asientos procesados correctamente`,
-            });
-            onSuccess();
-          } else if (data.status === 'FAILED') {
-            const statsJson = data.stats_json as any;
-            toast({
-              title: "Error en el procesamiento",
-              description: statsJson?.error_message || 'Error desconocido',
-              variant: "destructive"
-            });
+          // Check if processing is complete
+          if (['DONE', 'PARTIAL_OK', 'FAILED'].includes(updatedJob.status)) {
+            setProcessing(false);
+            
+            if (updatedJob.status === 'DONE' || updatedJob.status === 'PARTIAL_OK') {
+              const stats = updatedJob.stats_json;
+              const totalInserted = stats?.rows_loaded || 0;
+              toast({
+                title: "¡Procesamiento completado!",
+                description: `${totalInserted} asientos procesados correctamente`,
+              });
+              onSuccess();
+            } else if (updatedJob.status === 'FAILED') {
+              const stats = updatedJob.stats_json;
+              toast({
+                title: "Error en el procesamiento",
+                description: stats?.message || 'Error desconocido',
+                variant: "destructive"
+              });
+            }
           }
         }
-      } catch (error) {
-        console.error('Error polling job:', error);
-      }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
     };
-
-    // Poll every 2 seconds
-    const interval = setInterval(pollJob, 2000);
-    
-    // Poll immediately
-    pollJob();
-
-    return () => clearInterval(interval);
   }, [jobId, processing, toast, onSuccess]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -165,13 +196,11 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
 
   const handleFileSelection = async (selectedFile: File) => {
     // Validate file type
-    const validTypes = [
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-excel',
-      'text/csv'
-    ];
+    const isExcel = selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls') || 
+                   selectedFile.type.includes('spreadsheet');
+    const isCsv = selectedFile.name.endsWith('.csv') || selectedFile.type.includes('csv');
     
-    if (!validTypes.includes(selectedFile.type)) {
+    if (!isExcel && !isCsv) {
       toast({
         title: "Tipo de archivo no válido",
         description: "Por favor, sube un archivo Excel (.xlsx, .xls) o CSV",
@@ -180,7 +209,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
       return;
     }
 
-    // Validate file size (40MB limit for new architecture)
+    // Validate file size (40MB limit)
     const maxSize = 40 * 1024 * 1024; // 40MB
     if (selectedFile.size > maxSize) {
       toast({
@@ -191,7 +220,45 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
       return;
     }
 
-    setFile(selectedFile);
+    // Convert Excel to CSV if needed
+    let finalFile = selectedFile;
+    if (isExcel) {
+      try {
+        setConverting(true);
+        toast({
+          title: "Convirtiendo Excel a CSV",
+          description: "Procesando archivo Excel en el navegador...",
+        });
+
+        // Dynamic import to avoid loading SheetJS always
+        const XLSX = await import("https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs");
+        
+        const buffer = await selectedFile.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: "array" });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const csv = XLSX.utils.sheet_to_csv(worksheet, { FS: ",", RS: "\n" });
+        
+        const csvBlob = new Blob([csv], { type: "text/csv" });
+        finalFile = new File([csvBlob], selectedFile.name.replace(/\.xlsx?$/i, ".csv"), { type: "text/csv" });
+        
+        toast({
+          title: "Conversión completada",
+          description: "Archivo Excel convertido a CSV exitosamente",
+        });
+      } catch (error) {
+        console.error('Error converting Excel to CSV:', error);
+        toast({
+          title: "Error de conversión",
+          description: "No se pudo convertir el archivo Excel. Intenta con un archivo CSV.",
+          variant: "destructive"
+        });
+        return;
+      } finally {
+        setConverting(false);
+      }
+    }
+
+    setFile(finalFile);
 
     // Auto-extract information from filename
     const fileName = selectedFile.name.toLowerCase();
@@ -212,6 +279,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
     }
 
     setUploading(true);
+    setUploadProgress(0);
     setJob(null);
 
     try {
@@ -230,35 +298,45 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
         throw new Error('No hay sesión activa');
       }
 
-      // Call admin-upload Edge Function
-      const response = await fetch('https://hlwchpmogvwmpuvwmvwv.supabase.co/functions/v1/admin-upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: formData
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Error ${response.status}: ${errorText}`);
-      }
-
-      const { jobId: newJobId } = await response.json();
+      // Use XMLHttpRequest for upload progress
+      const xhr = new XMLHttpRequest();
       
-      setJobId(newJobId);
-      setUploading(false);
-      setProcessing(true);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const progress = Math.round((e.loaded / e.total) * 15); // 0-15%
+          setUploadProgress(progress);
+        }
+      };
 
-      toast({
-        title: "Archivo subido correctamente",
-        description: "El procesamiento ha comenzado. Podrás ver el progreso en tiempo real.",
-      });
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          if (xhr.status === 202) {
+            const response = JSON.parse(xhr.responseText);
+            setJobId(response.jobId);
+            setUploading(false);
+            setProcessing(true);
+            setUploadProgress(15); // Start processing phase
+
+            toast({
+              title: "Archivo subido correctamente",
+              description: "El procesamiento ha comenzado. Podrás ver el progreso en tiempo real.",
+            });
+          } else {
+            const errorText = xhr.responseText;
+            throw new Error(`Error ${xhr.status}: ${errorText}`);
+          }
+        }
+      };
+
+      xhr.open('POST', 'https://hlwchpmogvwmpuvwmvwv.supabase.co/functions/v1/admin-upload');
+      xhr.setRequestHeader('Authorization', `Bearer ${session.access_token}`);
+      xhr.send(formData);
 
     } catch (error: any) {
       console.error('Error processing file:', error);
       setUploading(false);
       setProcessing(false);
+      setUploadProgress(0);
       
       toast({
         title: "Error de procesamiento",
@@ -275,8 +353,10 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
     setFiscalYear(new Date().getFullYear());
     setUploading(false);
     setProcessing(false);
+    setUploadProgress(0);
     setJob(null);
     setJobId(null);
+    setConverting(false);
     onClose();
   };
 
@@ -293,7 +373,28 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const currentProgress = job ? STATUS_PROGRESS[job.status] : 0;
+  const getCurrentProgress = (): number => {
+    if (uploading) return uploadProgress;
+    if (!job) return 0;
+    
+    const stats = job.stats_json;
+    if (stats?.progress_pct !== undefined) {
+      return Math.max(15, stats.progress_pct); // Ensure minimum 15% after upload
+    }
+    
+    // Fallback based on stage
+    switch (job.status) {
+      case 'PARSING': return 20;
+      case 'VALIDATING': return 35;
+      case 'LOADING': return 60;
+      case 'AGGREGATING': return 95;
+      case 'DONE': return 100;
+      case 'FAILED': return 0;
+      default: return 15;
+    }
+  };
+
+  const currentProgress = getCurrentProgress();
   const isCompleted = job && ['DONE', 'PARTIAL_OK'].includes(job.status);
   const isFailed = job && job.status === 'FAILED';
 
@@ -323,7 +424,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">Arrastra tu libro diario aquí</h3>
                   <p className="text-muted-foreground">
-                    O haz click para seleccionar el archivo Excel
+                    O haz click para seleccionar el archivo Excel o CSV
                   </p>
                   <div className="flex justify-center">
                     <Button variant="outline" onClick={() => document.getElementById('file-input')?.click()}>
@@ -338,12 +439,12 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Máximo 40MB • Formatos: Excel (.xlsx, .xls) o CSV
+                    Máximo 40MB • Excel se convierte automáticamente a CSV
                   </p>
                   <Alert className="mt-4">
-                    <AlertTriangle className="h-4 w-4" />
+                    <RefreshCw className="h-4 w-4" />
                     <AlertDescription>
-                      Para archivos mayores a 40MB, por favor usa formato CSV
+                      Los archivos Excel se procesan en tu navegador y se convierten a CSV automáticamente para mayor velocidad
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -352,7 +453,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
           )}
 
           {/* File preview and company info */}
-          {file && !processing && (
+          {file && !processing && !converting && (
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
@@ -361,7 +462,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                     <div>
                       <h4 className="font-semibold">{file.name}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {formatFileSize(file.size)}
+                        {formatFileSize(file.size)} • {file.type.includes('csv') ? 'CSV' : 'Excel convertido a CSV'}
                       </p>
                     </div>
                   </div>
@@ -411,58 +512,70 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
             </Card>
           )}
 
+          {/* Converting status */}
+          {converting && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm font-medium">Convirtiendo Excel a CSV en el navegador...</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Processing status */}
           {(uploading || processing) && (
             <Card>
               <CardContent className="p-4">
                 <div className="space-y-4">
-                  {uploading && (
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm font-medium">Subiendo archivo a Storage...</span>
-                    </div>
-                  )}
-                  
-                  {processing && job && (
-                    <>
-                      <div className="flex items-center gap-2">
+                      {uploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
                         <Database className="h-4 w-4 text-primary" />
-                        <span className="text-sm font-medium">
-                          {STATUS_MESSAGES[job.status]}
-                        </span>
-                        {!['DONE', 'PARTIAL_OK', 'FAILED'].includes(job.status) && (
-                          <Clock className="h-4 w-4 animate-pulse text-muted-foreground" />
-                        )}
-                      </div>
-                      
-                      <Progress value={currentProgress} className="w-full" />
-                      
-                      {job.stats_json && (
-                        <div className="text-xs text-muted-foreground space-y-1">
-                          {(() => {
-                            const stats = job.stats_json as any;
-                            const metrics = stats?.metrics;
-                            if (!metrics) return null;
-                            
-                            return (
-                              <>
-                                <div>Filas procesadas: {metrics.validRows} / {metrics.totalRows}</div>
-                                {metrics.rejectedRows > 0 && (
-                                  <div className="text-amber-600">
-                                    Filas rechazadas: {metrics.rejectedRows}
-                                  </div>
-                                )}
-                                {metrics.totalInserted !== undefined && (
-                                  <div className="text-green-600">
-                                    Asientos insertados: {metrics.totalInserted}
-                                  </div>
-                                )}
-                              </>
-                            );
-                          })()}
+                      )}
+                      <span className="text-sm font-medium">
+                        {getProgressLabel(job, uploadProgress)}
+                      </span>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {currentProgress}%
+                    </Badge>
+                  </div>
+                  
+                  <Progress value={currentProgress} className="w-full" />
+                  
+                  {job?.stats_json && (
+                    <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
+                      {job.stats_json.total_rows && (
+                        <div>
+                          <span className="font-medium">Total filas:</span> {job.stats_json.total_rows}
                         </div>
                       )}
-                    </>
+                      {job.stats_json.rows_valid && (
+                        <div>
+                          <span className="font-medium">Válidas:</span> {job.stats_json.rows_valid}
+                        </div>
+                      )}
+                      {job.stats_json.rows_reject && job.stats_json.rows_reject > 0 && (
+                        <div className="text-amber-600">
+                          <span className="font-medium">Rechazadas:</span> {job.stats_json.rows_reject}
+                        </div>
+                      )}
+                      {job.stats_json.rows_loaded && (
+                        <div className="text-green-600">
+                          <span className="font-medium">Insertadas:</span> {job.stats_json.rows_loaded}
+                        </div>
+                      )}
+                      {job.stats_json.eta_seconds && job.stats_json.eta_seconds > 0 && (
+                        <div className="col-span-2 flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          <span>ETA: {job.stats_json.eta_seconds}s</span>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
               </CardContent>
@@ -480,86 +593,100 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                       <span className="font-semibold">¡Procesamiento exitoso!</span>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Libro diario procesado con la nueva arquitectura robusta
+                      Libro diario procesado con el sistema optimizado
                     </p>
                     
-                    {(() => {
-                      const stats = job.stats_json as any;
-                      const metrics = stats?.metrics;
-                      if (!metrics) return null;
-                      
-                      return (
-                        <div className="space-y-2">
-                          <div className="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                              <span className="font-medium">Total asientos:</span> {metrics.totalInserted || 0}
-                            </div>
-                            <div>
-                              <span className="font-medium">Balance cuadra:</span> {metrics.entriesBalance ? '✅ Sí' : '❌ No'}
-                            </div>
+                    {job.stats_json && (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium">Total asientos:</span> {job.stats_json.rows_loaded || 0}
                           </div>
-                          
-                          {metrics.rejectedRows > 0 && (
-                            <Alert>
-                              <AlertTriangle className="h-4 w-4" />
-                              <AlertDescription>
-                                {metrics.rejectedRows} filas fueron rechazadas por errores de validación
-                              </AlertDescription>
-                            </Alert>
+                          <div>
+                            <span className="font-medium">Filas procesadas:</span> {job.stats_json.total_rows || 0}
+                          </div>
+                          {job.stats_json.rows_reject && job.stats_json.rows_reject > 0 && (
+                            <div className="col-span-2 text-amber-600">
+                              <span className="font-medium">Advertencia:</span> {job.stats_json.rows_reject} filas rechazadas
+                            </div>
                           )}
                         </div>
-                      );
-                    })()}
-                    
-                    <div className="pt-3">
-                      <Button 
-                        onClick={handleGoToDashboard}
-                        className="w-full"
-                        size="sm"
-                      >
-                        <BarChart3 className="h-4 w-4 mr-2" />
-                        Ver Estados Financieros
-                      </Button>
+                      )}
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-red-600">
-                      <XCircle className="h-5 w-5" />
-                      <span className="font-semibold">Error de procesamiento</span>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-red-600">
+                        <XCircle className="h-5 w-5" />
+                        <span className="font-semibold">Error en el procesamiento</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {job.stats_json?.message || 'Error desconocido durante el procesamiento'}
+                      </p>
+                      
+                      {/* Error actions */}
+                      {(job.stats_json?.error_log_path || job.stats_json?.rejects_csv_path) && (
+                        <div className="flex gap-2 mt-2">
+                          {job.stats_json.error_log_path && (
+                            <Button variant="outline" size="sm">
+                              <Download className="h-3 w-3 mr-1" />
+                              Ver logs de error
+                            </Button>
+                          )}
+                          {job.stats_json.rejects_csv_path && (
+                            <Button variant="outline" size="sm">
+                              <Download className="h-3 w-3 mr-1" />
+                              Descargar rechazados
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {(() => {
-                        const stats = job.stats_json as any;
-                        return stats?.error_message || 'Error desconocido';
-                      })()}
-                    </p>
-                    {job.error_log_path && (
-                      <Alert variant="destructive">
-                        <AlertDescription>
-                          Log de errores disponible en: {job.error_log_path}
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
-            {isCompleted ? 'Cerrar' : 'Cancelar'}
-          </Button>
-          {!processing && !isCompleted && !isFailed && (
+        <DialogFooter className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {processing && !['DONE', 'PARTIAL_OK', 'FAILED'].includes(job?.status || '') && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>No cierres esta ventana durante el procesamiento</span>
+              </div>
+            )}
+          </div>
+          
+          <div className="flex gap-2">
             <Button 
-              onClick={processFile} 
-              disabled={!file || uploading || !companyName}
+              variant="outline" 
+              onClick={handleClose}
+              disabled={uploading || (processing && !['DONE', 'PARTIAL_OK', 'FAILED'].includes(job?.status || ''))}
             >
-              {uploading ? 'Subiendo...' : 'Procesar con Nueva Arquitectura'}
+              {processing && !['DONE', 'PARTIAL_OK', 'FAILED'].includes(job?.status || '') ? 'Procesando...' : 'Cancelar'}
             </Button>
-          )}
+            
+            {isCompleted && (
+              <Button onClick={handleGoToDashboard} className="ml-2">
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Ver Estados Financieros
+              </Button>
+            )}
+            
+            {!file && !processing && !converting && (
+              <Button disabled>
+                Selecciona un archivo
+              </Button>
+            )}
+            
+            {file && !processing && !uploading && !converting && (
+              <Button onClick={processFile}>
+                <Upload className="h-4 w-4 mr-2" />
+                Procesar archivo
+              </Button>
+            )}
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

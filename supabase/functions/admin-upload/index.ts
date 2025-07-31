@@ -60,6 +60,11 @@ Deno.serve(async (req) => {
       return new Response("Bad Request - Missing file or companyId", { status: 400, headers: corsHeaders });
     }
 
+    // Only accept CSV files - Excel conversion happens on client
+    if (!file.type.includes("csv") && !file.name.endsWith('.csv')) {
+      return new Response("Por favor, sube un CSV. Los archivos Excel se convierten automáticamente en el cliente.", { status: 400, headers: corsHeaders });
+    }
+
     console.log(`Admin upload started by ${user.id} for company ${companyId}`);
 
     // Generate file path
@@ -87,9 +92,14 @@ Deno.serve(async (req) => {
         company_id: companyId,
         user_id: user.id,
         file_path: path,
-        status: "PENDING",
+        status: "UPLOADING",
         period: period ? `[${period},${period}]` : null,
-        stats_json: {}
+        stats_json: {
+          stage: "UPLOADING",
+          progress_pct: 15,
+          eta_seconds: 0,
+          message: "Archivo subido, iniciando procesamiento..."
+        }
       })
       .select()
       .single();
@@ -143,24 +153,68 @@ async function processJob({ svc, jobId, companyId, period, filePath }: {
   period: string;
   filePath: string;
 }) {
-  const updateJobStatus = async (status: string, extraStats: any = {}) => {
+  const setStatus = async (stage: string, extraStats: any = {}) => {
+    // Get current stats
+    const { data: currentJob } = await svc
+      .from("processing_jobs")
+      .select("stats_json")
+      .eq("id", jobId)
+      .single();
+    
+    const currentStats = currentJob?.stats_json || {};
+    const stats = { ...currentStats, stage, ...extraStats };
+    
+    // Calculate progress percentage
+    const progress_pct = typeof stats.progress_pct === "number" ? 
+      stats.progress_pct : 
+      stageToPct(stage, stats);
+    
+    // Calculate ETA
+    const eta_seconds = calcETA(stats);
+    
+    const finalStats = { ...stats, progress_pct, eta_seconds };
+    
     const { error } = await svc
       .from("processing_jobs")
       .update({ 
-        status, 
-        stats_json: extraStats,
+        status: stage, 
+        stats_json: finalStats,
         updated_at: new Date().toISOString()
       })
       .eq("id", jobId);
     
     if (error) {
-      console.error(`Failed to update job ${jobId} to ${status}:`, error);
+      console.error(`Failed to update job ${jobId} to ${stage}:`, error);
     }
+  };
+
+  const stageToPct = (stage: string, stats: any): number => {
+    switch (stage) {
+      case "PARSING": return 20;
+      case "VALIDATING": return 35;
+      case "LOADING":
+        if (stats.batches_total > 0 && stats.batches_done !== undefined) {
+          return 35 + Math.floor(55 * (stats.batches_done / stats.batches_total));
+        }
+        return 35;
+      case "AGGREGATING": return 95;
+      case "DONE": return 100;
+      case "FAILED": return 0;
+      default: return 15; // UPLOADING
+    }
+  };
+
+  const calcETA = (stats: any): number => {
+    if (stats.stage !== "LOADING" || !stats.avg_batch_ms || !stats.batches_total) {
+      return 0;
+    }
+    const remaining = Math.max(0, (stats.batches_total - (stats.batches_done || 0)));
+    return Math.round((stats.avg_batch_ms || 0) * remaining / 1000);
   };
 
   try {
     console.log(`Processing job ${jobId} - PARSING`);
-    await updateJobStatus("PARSING");
+    await setStatus("PARSING", { message: "Leyendo archivo CSV..." });
 
     // Download file from storage
     const { data: fileData, error: downloadError } = await svc.storage
@@ -171,54 +225,86 @@ async function processJob({ svc, jobId, companyId, period, filePath }: {
       throw new Error(`Download failed: ${downloadError.message}`);
     }
 
-    // Parse Excel with SheetJS
-    const buffer = await fileData.arrayBuffer();
-    const workbook = XLSX.read(buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const rawRows: any[] = XLSX.utils.sheet_to_json(worksheet, { raw: false, defval: null });
+    // Parse CSV (lightweight, no SheetJS needed)
+    const csvText = await fileData.text();
+    const lines = csvText.split('\n').filter(line => line.trim());
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    
+    const rawRows: any[] = lines.slice(1).map((line, index) => {
+      const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+      const row: any = {};
+      headers.forEach((header, i) => {
+        row[header] = values[i] || '';
+      });
+      return row;
+    }).filter(row => Object.values(row).some(val => val !== ''));
 
     console.log(`Processing job ${jobId} - VALIDATING (${rawRows.length} rows)`);
-    await updateJobStatus("VALIDATING", { totalRows: rawRows.length });
+    await setStatus("VALIDATING", { 
+      total_rows: rawRows.length,
+      message: `Validando ${rawRows.length} filas...`
+    });
 
     // Normalize and validate data
     const normalized = normalizeRows(rawRows);
     const { validRows, rejectedRows, errors } = validateByEntry(normalized);
 
-    // Save rejected rows if any
+    // Save artifacts
+    let rejects_csv_path = null;
+    let error_log_path = null;
+
     if (rejectedRows.length > 0) {
       const csv = createCSVFromRejectedRows(rejectedRows);
+      const rejectsPath = `jobs/${jobId}/rejects.csv`;
       await svc.storage
         .from("gl-artifacts")
-        .upload(`jobs/${jobId}/rejects.csv`, new Blob([csv]), { upsert: true });
+        .upload(rejectsPath, new Blob([csv]), { upsert: true });
+      rejects_csv_path = rejectsPath;
     }
 
-    // Save error log if any
     if (errors.length > 0) {
       const errorLog = JSON.stringify({ errors, timestamp: new Date().toISOString() }, null, 2);
+      const errorsPath = `jobs/${jobId}/errors.json`;
       await svc.storage
         .from("gl-artifacts")
-        .upload(`jobs/${jobId}/errors.json`, new Blob([errorLog]), { upsert: true });
+        .upload(errorsPath, new Blob([errorLog]), { upsert: true });
+      error_log_path = errorsPath;
     }
 
     console.log(`Processing job ${jobId} - LOADING (${validRows.length} valid, ${rejectedRows.length} rejected)`);
-    await updateJobStatus("LOADING", { 
-      totalRows: rawRows.length,
-      validRows: validRows.length,
-      rejectedRows: rejectedRows.length,
-      errors: errors.length
+    await setStatus("LOADING", { 
+      total_rows: rawRows.length,
+      rows_valid: validRows.length,
+      rows_reject: rejectedRows.length,
+      rows_loaded: 0,
+      rejects_csv_path,
+      error_log_path,
+      message: `Preparando ${validRows.length} filas para inserción...`
     });
 
-    // Insert data in batches
+    // Insert data in batches with progress tracking
     let totalInserted = 0;
     const batches = createDynamicBatches(validRows, 3 * 1024 * 1024); // 3MB batches
+    let totalMs = 0;
     
-    for (const batch of batches) {
+    await setStatus("LOADING", { 
+      batches_total: batches.length,
+      batches_done: 0,
+      avg_batch_ms: 0,
+      message: `Insertando lote 1/${batches.length}...`
+    });
+    
+    for (const [index, batch] of batches.entries()) {
+      const startTime = performance.now();
+      
       const { data: result, error: rpcError } = await svc.rpc("import_journal_lines", {
         _company: companyId,
         _period: period ? `[${period},${period}]` : null,
         _rows: batch
       });
+
+      const batchMs = performance.now() - startTime;
+      totalMs += batchMs;
 
       if (rpcError) {
         throw new Error(`Batch insert failed: ${rpcError.message}`);
@@ -227,15 +313,21 @@ async function processJob({ svc, jobId, companyId, period, filePath }: {
       if (result && result.inserted_lines) {
         totalInserted += result.inserted_lines;
       }
+
+      // Update progress after each batch
+      const avg_batch_ms = Math.round(totalMs / (index + 1));
+      await setStatus("LOADING", {
+        batches_done: index + 1,
+        rows_loaded: totalInserted,
+        avg_batch_ms,
+        message: `Insertando lote ${index + 2}/${batches.length}...`
+      });
     }
 
     console.log(`Processing job ${jobId} - AGGREGATING`);
-    await updateJobStatus("AGGREGATING", { 
-      totalRows: rawRows.length,
-      validRows: validRows.length,
-      rejectedRows: rejectedRows.length,
-      totalInserted,
-      errors: errors.length
+    await setStatus("AGGREGATING", { 
+      rows_loaded: totalInserted,
+      message: "Generando estados financieros..."
     });
 
     // Refresh materialized views
@@ -248,23 +340,16 @@ async function processJob({ svc, jobId, companyId, period, filePath }: {
     }
 
     console.log(`Processing job ${jobId} - DONE`);
-    await updateJobStatus("DONE", { 
-      totalRows: rawRows.length,
-      validRows: validRows.length,
-      rejectedRows: rejectedRows.length,
-      totalInserted,
-      errors: errors.length,
-      completedAt: new Date().toISOString()
+    await setStatus("DONE", { 
+      rows_loaded: totalInserted,
+      message: `Procesamiento completado. ${totalInserted} asientos insertados.`,
+      completed_at: new Date().toISOString()
     });
 
   } catch (error) {
     console.error(`Processing job ${jobId} failed:`, error);
-    await updateJobStatus("FAILED", { 
-      error: String(error),
-      failedAt: new Date().toISOString()
-    });
-
-    // Save detailed error log
+    
+    const errorPath = `jobs/${jobId}/failure.json`;
     const errorLog = JSON.stringify({ 
       error: String(error),
       stack: error instanceof Error ? error.stack : undefined,
@@ -273,7 +358,13 @@ async function processJob({ svc, jobId, companyId, period, filePath }: {
     
     await svc.storage
       .from("gl-artifacts")
-      .upload(`jobs/${jobId}/failure.json`, new Blob([errorLog]), { upsert: true });
+      .upload(errorPath, new Blob([errorLog]), { upsert: true });
+
+    await setStatus("FAILED", { 
+      message: `Error: ${String(error)}`,
+      error_log_path: errorPath,
+      failed_at: new Date().toISOString()
+    });
   }
 }
 
