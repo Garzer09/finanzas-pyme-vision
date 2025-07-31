@@ -9,8 +9,10 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Upload, FileText, CheckCircle2, AlertTriangle, Loader2, ArrowRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface TestSession {
+  id?: string;
   fileName: string;
   uploadStatus: 'idle' | 'uploading' | 'completed' | 'error';
   processingStatus: 'idle' | 'processing' | 'completed' | 'error';
@@ -23,6 +25,7 @@ interface TestSession {
   uploadedAt?: string;
   documentTypes?: string[];
   files?: File[];
+  fileSize?: number;
 }
 
 interface TestDataUploaderProps {
@@ -65,12 +68,12 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
     const validFiles = files.filter(file => file.name.match(/\.(xlsx|xls)$/i));
     
     if (validFiles.length === 0) {
-      alert('Por favor selecciona archivos Excel (.xlsx o .xls)');
+      toast.error('Por favor selecciona archivos Excel (.xlsx o .xls)');
       return;
     }
 
     if (selectedDocumentTypes.length === 0) {
-      alert('Por favor selecciona al menos un tipo de documento');
+      toast.error('Por favor selecciona al menos un tipo de documento');
       return;
     }
 
@@ -86,7 +89,8 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
       edaStatus: 'idle',
       uploadedAt: new Date().toISOString(),
       documentTypes: selectedDocumentTypes,
-      files: validFiles
+      files: validFiles,
+      fileSize: validFiles.reduce((total, file) => total + file.size, 0)
     };
 
     setTestSession(newSession);
@@ -95,71 +99,76 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
     try {
       setUploadProgress(25);
       
-      // Procesar todos los archivos de forma simulada (para testing)
-      const allData = { detectedSheets: [], detectedFields: {} };
+      // Procesar archivo con process-excel edge function
+      const file = validFiles[0]; // Por ahora procesamos el primer archivo
+      const base64Content = await fileToBase64(file);
       
-      for (const file of validFiles) {
-        // Simular análisis básico del archivo sin llamar a edge functions
-        console.log('Processing file:', file.name);
-        
-        const fileNameLower = file.name.toLowerCase();
-        let simulatedData: { detectedSheets: string[], detectedFields: Record<string, string[]> } = {
-          detectedSheets: ['Hoja1'],
-          detectedFields: { 'Hoja1': ['Columna A', 'Columna B', 'Datos'] }
-        };
-
-        // Determinar tipo de documento por nombre
-        if (fileNameLower.includes('balance') || fileNameLower.includes('situacion')) {
-          const sheetName = 'Balance de Situación';
-          simulatedData = {
-            detectedSheets: [sheetName],
-            detectedFields: {
-              [sheetName]: [
-                'Activo no corriente', 'Inmovilizado material', 'Activo corriente',
-                'Existencias', 'Deudores comerciales', 'Efectivo', 'Patrimonio neto',
-                'Capital', 'Reservas', 'Pasivo no corriente', 'Deudas a largo plazo',
-                'Pasivo corriente', 'Acreedores comerciales'
-              ]
-            }
-          };
-        } else if (fileNameLower.includes('pyg') || fileNameLower.includes('perdidas') || fileNameLower.includes('ganancias')) {
-          const sheetName = 'Cuenta PyG';
-          simulatedData = {
-            detectedSheets: [sheetName],
-            detectedFields: {
-              [sheetName]: [
-                'Ingresos de explotación', 'Cifra de negocios', 'Gastos de explotación',
-                'Aprovisionamientos', 'Gastos de personal', 'Amortizaciones',
-                'Resultado de explotación', 'Resultado financiero', 'Resultado antes de impuestos',
-                'Impuesto sobre beneficios', 'Resultado del ejercicio'
-              ]
-            }
-          };
+      setUploadProgress(50);
+      
+      console.log('Calling process-excel function...');
+      const { data: processedData, error: processError } = await supabase.functions.invoke('process-excel', {
+        body: { 
+          fileName: file.name,
+          fileContent: base64Content,
+          documentTypes: selectedDocumentTypes
         }
-        
-        // Combinar datos simulados
-        allData.detectedSheets = [...(allData.detectedSheets || []), ...(simulatedData.detectedSheets || [])];
-        Object.assign(allData.detectedFields, simulatedData.detectedFields || {});
+      });
+
+      if (processError) {
+        console.error('Process Excel error:', processError);
+        throw processError;
       }
 
+      console.log('Process Excel response:', processedData);
       setUploadProgress(75);
+
+      // Obtener el usuario actual
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      // Crear sesión en test_sessions table
+      const { data: dbSession, error: dbError } = await supabase
+        .from('test_sessions')
+        .insert({
+          user_id: user.id,
+          session_name: sessionName || `Sesión ${new Date().toLocaleDateString()}`,
+          file_name: file.name,
+          file_size: file.size,
+          upload_status: 'completed',
+          processing_status: 'completed',
+          analysis_status: 'pending',
+          eda_status: 'pending',
+          detected_sheets: processedData?.detectedSheets || [],
+          detected_fields: processedData?.detectedFields || {}
+        })
+        .select()
+        .single();
+
+      if (dbError) {
+        console.error('Database error:', dbError);
+        throw dbError;
+      }
 
       const updatedSession: TestSession = {
         ...newSession,
+        id: dbSession.id,
         uploadStatus: 'completed',
         processingStatus: 'completed',
-        detectedSheets: allData.detectedSheets,
-        detectedFields: allData.detectedFields
+        detectedSheets: processedData?.detectedSheets || [],
+        detectedFields: processedData?.detectedFields || {}
       };
 
       setTestSession(updatedSession);
       setUploadProgress(100);
 
-      // Iniciar EDA de forma simulada
-      await runEdaAnalysis(updatedSession);
+      // Iniciar EDA real
+      await runEdaAnalysis(updatedSession, processedData);
 
     } catch (error) {
       console.error('Error processing file:', error);
+      toast.error('Error procesando el archivo: ' + (error as Error).message);
       setTestSession({
         ...newSession,
         uploadStatus: 'error',
@@ -168,7 +177,7 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
     }
   };
 
-  const runEdaAnalysis = async (session: TestSession) => {
+  const runEdaAnalysis = async (session: TestSession, fileData: any) => {
     try {
       setEdaProgress(0);
       
@@ -180,85 +189,62 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
 
       setEdaProgress(25);
 
-      // Simular análisis EDA para testing
-      const simulatedEdaResults = {
-        eda_summary: {
-          total_sheets: session.detectedSheets?.length || 0,
-          total_fields: Object.values(session.detectedFields || {}).flat().length,
-          data_quality_score: 85.5,
-          coverage_score: 92.3
-        },
-        sheets_analysis: session.detectedSheets?.map((sheet, index) => ({
-          sheet_name: sheet,
-          sheet_type: sheet.toLowerCase().includes('balance') ? 'balance' :
-                     sheet.toLowerCase().includes('pyg') ? 'pyg' :
-                     sheet.toLowerCase().includes('flujo') ? 'cash_flow' : 'general',
-          fields_count: session.detectedFields?.[sheet]?.length || 0,
-          confidence: 0.85 + (index * 0.05),
-          data_quality: 82 + (index * 3),
-          coverage: ['ingresos', 'gastos', 'activos', 'pasivos'].slice(0, 2 + index)
-        })) || [],
-        field_mapping: {
-          identified_concepts: {
-            'activos': session.detectedFields?.[Object.keys(session.detectedFields || {})[0]]?.slice(0, 3) || [],
-            'pasivos': session.detectedFields?.[Object.keys(session.detectedFields || {})[0]]?.slice(3, 6) || [],
-            'ingresos': session.detectedFields?.[Object.keys(session.detectedFields || {})[0]]?.slice(6, 9) || []
-          },
-          unmapped_fields: session.detectedFields?.[Object.keys(session.detectedFields || {})[0]]?.slice(-2) || []
-        },
-        data_quality: {
-          completeness: {
-            by_concept: {
-              'activos': 95.2,
-              'pasivos': 88.7,
-              'ingresos': 92.1
-            }
-          },
-          issues: [
-            {
-              field: 'Fecha',
-              description: 'Formato de fecha inconsistente',
-              severity: 'medium'
-            }
-          ]
-        },
-        insights: [
-          {
-            title: 'Calidad de datos alta',
-            description: 'Los datos financieros presentan una calidad general excelente',
-            priority: 'low',
-            impact: 'Análisis confiable'
-          },
-          {
-            title: 'Estructura estándar detectada',
-            description: 'El archivo sigue las convenciones contables españolas',
-            priority: 'medium',
-            impact: 'Compatibilidad total'
-          }
-        ],
-        recommendations: {
-          analysis_feasibility: 'excellent',
-          dashboard_modules: ['Balance', 'P&G', 'Ratios', 'Flujos'],
-          missing_data: []
+      console.log('Calling claude-eda-analyzer function...');
+      const { data: edaResults, error: edaError } = await supabase.functions.invoke('claude-eda-analyzer', {
+        body: { 
+          sessionId: session.id,
+          fileData: fileData,
+          documentTypes: session.documentTypes
         }
-      };
+      });
 
+      if (edaError) {
+        console.error('EDA Analysis error:', edaError);
+        throw edaError;
+      }
+
+      console.log('EDA Analysis response:', edaResults);
       setEdaProgress(75);
+
+      // Actualizar sesión en DB con resultados EDA
+      if (session.id) {
+        const { error: updateError } = await supabase
+          .from('test_sessions')
+          .update({
+            eda_status: 'completed',
+            eda_results: edaResults
+          })
+          .eq('id', session.id);
+
+        if (updateError) {
+          console.error('Error updating EDA results:', updateError);
+        }
+      }
 
       const sessionWithEda = {
         ...updatedSession,
         edaStatus: 'completed' as const,
-        edaResults: simulatedEdaResults
+        edaResults: edaResults
       };
       
       setTestSession(sessionWithEda);
       setEdaProgress(100);
 
-      // Iniciar análisis principal
+      // Iniciar análisis financiero principal
       await analyzeWithClaude(sessionWithEda);
 
     } catch (error) {
       console.error('Error in EDA analysis:', error);
+      toast.error('Error en análisis EDA: ' + (error as Error).message);
+      
+      // Actualizar estado en DB
+      if (session.id) {
+        await supabase
+          .from('test_sessions')
+          .update({ eda_status: 'error' })
+          .eq('id', session.id);
+      }
+
       setTestSession({
         ...session,
         edaStatus: 'error'
@@ -278,39 +264,42 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
 
       setAnalysisProgress(25);
 
-      // Simular análisis de Claude para testing
-      const simulatedAnalysisResults = {
-        financial_analysis: {
-          summary: 'Análisis financiero completado con éxito',
-          key_metrics: {
-            liquidity_ratio: 1.45,
-            debt_ratio: 0.32,
-            profitability_margin: 12.8
-          },
-          insights: [
-            'La empresa presenta una buena posición de liquidez',
-            'El nivel de endeudamiento es moderado y sostenible',
-            'Los márgenes de rentabilidad están por encima del sector'
-          ]
-        },
-        validation_results: {
-          data_consistency: 96.5,
-          calculation_accuracy: 98.2,
-          completeness_score: 94.1
-        },
-        recommendations: [
-          'Monitorear la evolución del ratio de liquidez',
-          'Considerar oportunidades de optimización fiscal',
-          'Evaluar inversiones en activos productivos'
-        ]
-      };
+      console.log('Calling claude-testing-analyzer function...');
+      const { data: analysisResults, error: analysisError } = await supabase.functions.invoke('claude-testing-analyzer', {
+        body: { 
+          sessionId: session.id,
+          analysisType: 'financial_analysis'
+        }
+      });
 
+      if (analysisError) {
+        console.error('Financial Analysis error:', analysisError);
+        throw analysisError;
+      }
+
+      console.log('Financial Analysis response:', analysisResults);
       setAnalysisProgress(75);
+
+      // Actualizar sesión en DB con resultados del análisis
+      if (session.id) {
+        const { error: updateError } = await supabase
+          .from('test_sessions')
+          .update({
+            analysis_status: 'completed',
+            financial_analysis_results: analysisResults,
+            completed_at: new Date().toISOString()
+          })
+          .eq('id', session.id);
+
+        if (updateError) {
+          console.error('Error updating analysis results:', updateError);
+        }
+      }
 
       const finalSession = {
         ...updatedSession,
         analysisStatus: 'completed' as const,
-        analysisResults: simulatedAnalysisResults
+        analysisResults: analysisResults
       };
 
       setTestSession(finalSession);
@@ -318,9 +307,20 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
       
       // Notificar al componente padre
       onSessionChange?.(finalSession);
+      toast.success('Análisis completado exitosamente');
 
     } catch (error) {
       console.error('Error analyzing with Claude:', error);
+      toast.error('Error en análisis financiero: ' + (error as Error).message);
+      
+      // Actualizar estado en DB
+      if (session.id) {
+        await supabase
+          .from('test_sessions')
+          .update({ analysis_status: 'error' })
+          .eq('id', session.id);
+      }
+
       setTestSession({
         ...session,
         analysisStatus: 'error'
@@ -332,7 +332,12 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Extraer solo la parte base64 sin el prefijo data:...
+        const base64 = result.split(',')[1];
+        resolve(base64);
+      };
       reader.onerror = error => reject(error);
     });
   };
@@ -481,60 +486,85 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
                 </Button>
               </div>
 
-              {currentSessionStatus !== 'idle' && (
-                <div className="space-y-4">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Subida y procesamiento</span>
-                      <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
-                    </div>
-                    <Progress value={uploadProgress} />
+              {/* Progress indicators */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    {testSession.uploadStatus === 'completed' ? (
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                    ) : testSession.uploadStatus === 'error' ? (
+                      <AlertTriangle className="h-4 w-4 text-red-500" />
+                    ) : (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+                    <span className="text-sm font-medium">Carga</span>
                   </div>
-
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Análisis Exploratorio (EDA)</span>
-                      <span className="text-sm text-muted-foreground">{edaProgress}%</span>
-                    </div>
-                    <Progress value={edaProgress} />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Análisis Financiero</span>
-                      <span className="text-sm text-muted-foreground">{analysisProgress}%</span>
-                    </div>
-                    <Progress value={analysisProgress} />
-                  </div>
+                  <Progress value={uploadProgress} className="flex-1" />
+                  <span className="text-sm text-muted-foreground">{uploadProgress}%</span>
                 </div>
-              )}
 
-              {currentSessionStatus === 'completed' && testSession.detectedSheets && (
-                <Tabs defaultValue="sheets" className="mt-4">
+                {(testSession.edaStatus && testSession.edaStatus !== 'idle') && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      {testSession.edaStatus === 'completed' ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      ) : testSession.edaStatus === 'error' ? (
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                      ) : (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      )}
+                      <span className="text-sm font-medium">EDA</span>
+                    </div>
+                    <Progress value={edaProgress} className="flex-1" />
+                    <span className="text-sm text-muted-foreground">{edaProgress}%</span>
+                  </div>
+                )}
+
+                {(testSession.analysisStatus && testSession.analysisStatus !== 'idle') && (
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
+                      {testSession.analysisStatus === 'completed' ? (
+                        <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      ) : testSession.analysisStatus === 'error' ? (
+                        <AlertTriangle className="h-4 w-4 text-red-500" />
+                      ) : (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      )}
+                      <span className="text-sm font-medium">Análisis</span>
+                    </div>
+                    <Progress value={analysisProgress} className="flex-1" />
+                    <span className="text-sm text-muted-foreground">{analysisProgress}%</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Detected data preview */}
+              {testSession.detectedSheets && testSession.detectedSheets.length > 0 && (
+                <Tabs defaultValue="sheets" className="w-full">
                   <TabsList>
                     <TabsTrigger value="sheets">Hojas Detectadas</TabsTrigger>
-                    <TabsTrigger value="fields">Campos Identificados</TabsTrigger>
+                    <TabsTrigger value="fields">Campos Detectados</TabsTrigger>
                   </TabsList>
-                  
-                  <TabsContent value="sheets">
-                    <div className="grid grid-cols-2 gap-2">
-                      {testSession.detectedSheets.map((sheet) => (
-                        <Badge key={sheet} variant="outline" className="justify-center p-2">
-                          {sheet}
+                  <TabsContent value="sheets" className="space-y-2">
+                    {testSession.detectedSheets.map((sheet, index) => (
+                      <div key={index} className="flex items-center gap-2 p-2 bg-muted rounded">
+                        <FileText className="h-4 w-4" />
+                        <span className="font-medium">{sheet}</span>
+                        <Badge variant="secondary">
+                          {testSession.detectedFields?.[sheet]?.length || 0} campos
                         </Badge>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </TabsContent>
-                  
-                  <TabsContent value="fields">
+                  <TabsContent value="fields" className="space-y-2">
                     {Object.entries(testSession.detectedFields || {}).map(([sheet, fields]) => (
                       <div key={sheet} className="space-y-2">
-                        <h5 className="font-medium text-sm">{sheet}</h5>
-                        <div className="flex flex-wrap gap-1">
-                          {fields.map((field) => (
-                            <Badge key={field} variant="secondary" className="text-xs">
+                        <h5 className="font-medium">{sheet}</h5>
+                        <div className="grid grid-cols-2 gap-2 pl-4">
+                          {fields.map((field, index) => (
+                            <span key={index} className="text-sm text-muted-foreground">
                               {field}
-                            </Badge>
+                            </span>
                           ))}
                         </div>
                       </div>
@@ -543,11 +573,23 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
                 </Tabs>
               )}
 
+              {/* Status alerts */}
               {currentSessionStatus === 'completed' && (
                 <Alert>
                   <CheckCircle2 className="h-4 w-4" />
                   <AlertDescription>
-                    ¡Análisis EDA y financiero completados! Los datos están listos para validación.
+                    ¡Análisis completado! Los datos han sido procesados y están listos para el dashboard.
+                    {onContinue && (
+                      <Button 
+                        onClick={onContinue} 
+                        variant="outline" 
+                        size="sm" 
+                        className="ml-2"
+                      >
+                        Continuar al EDA
+                        <ArrowRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
@@ -556,7 +598,16 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
                 <Alert>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <AlertDescription>
-                    Realizando análisis exploratorio de datos (EDA)...
+                    Realizando análisis exploratorio de datos (EDA) con Claude...
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {currentSessionStatus === 'analyzing' && (
+                <Alert>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <AlertDescription>
+                    Claude está analizando los datos financieros...
                   </AlertDescription>
                 </Alert>
               )}
@@ -565,18 +616,9 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Error durante el procesamiento. Por favor, intenta nuevamente.
+                    Error durante el procesamiento. Revisa los logs y vuelve a intentar.
                   </AlertDescription>
                 </Alert>
-              )}
-
-              {currentSessionStatus === 'completed' && onContinue && (
-                <div className="flex justify-center pt-4">
-                  <Button onClick={onContinue} size="lg" className="flex items-center gap-2">
-                    Continuar al EDA
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
               )}
             </div>
           )}

@@ -35,6 +35,9 @@ export const EdaResults = ({ edaResults, onContinue, onEdaUpdate }: EdaResultsPr
     );
   }
 
+  // Handle both direct format and nested format from database
+  const edaData = edaResults.eda_results || edaResults;
+  
   const {
     eda_summary,
     sheets_analysis = [],
@@ -42,7 +45,7 @@ export const EdaResults = ({ edaResults, onContinue, onEdaUpdate }: EdaResultsPr
     data_quality = {},
     insights = [],
     recommendations = {}
-  } = edaResults;
+  } = edaData;
 
   const getQualityColor = (score: number) => {
     if (score >= 85) return 'text-green-600';

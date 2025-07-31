@@ -537,8 +537,12 @@ export type Database = {
           created_at: string
           detected_fields: Json | null
           detected_sheets: Json | null
+          eda_results: Json | null
+          eda_status: string | null
           file_name: string
           file_size: number | null
+          financial_analysis_results: Json | null
+          financial_analysis_status: string | null
           id: string
           manual_validations: Json | null
           processing_status: string
@@ -555,8 +559,12 @@ export type Database = {
           created_at?: string
           detected_fields?: Json | null
           detected_sheets?: Json | null
+          eda_results?: Json | null
+          eda_status?: string | null
           file_name: string
           file_size?: number | null
+          financial_analysis_results?: Json | null
+          financial_analysis_status?: string | null
           id?: string
           manual_validations?: Json | null
           processing_status?: string
@@ -573,8 +581,12 @@ export type Database = {
           created_at?: string
           detected_fields?: Json | null
           detected_sheets?: Json | null
+          eda_results?: Json | null
+          eda_status?: string | null
           file_name?: string
           file_size?: number | null
+          financial_analysis_results?: Json | null
+          financial_analysis_status?: string | null
           id?: string
           manual_validations?: Json | null
           processing_status?: string
