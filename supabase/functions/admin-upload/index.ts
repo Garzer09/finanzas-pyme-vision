@@ -111,13 +111,15 @@ Deno.serve(async (req) => {
     console.log(`Job ${job.id} created, starting background processing`);
 
     // Start background processing
-    EdgeRuntime.waitUntil(processJob({ 
+    processJob({ 
       svc, 
       jobId: job.id, 
       companyId, 
       period, 
       filePath: path 
-    }));
+    }).catch(error => {
+      console.error(`Background processing failed for job ${job.id}:`, error);
+    });
 
     return new Response(
       JSON.stringify({ jobId: job.id }), 
