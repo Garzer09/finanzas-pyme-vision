@@ -1,5 +1,8 @@
 project_id = "hlwchpmogvwmpuvwmvwv"
 
+[functions.admin-pack-upload]
+verify_jwt = false
+
 [functions.process-excel]
 verify_jwt = false
 
