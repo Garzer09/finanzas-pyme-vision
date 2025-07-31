@@ -111,8 +111,10 @@ export const AdminDashboard = () => {
   };
 
   const handleUploadSuccess = () => {
-    setShowUploadModal(false);
-    setUploadUserId(null);
+    // NO cerrar el modal automáticamente - dejamos que el usuario elija
+    // setShowUploadModal(false);
+    // setUploadUserId(null);
+    
     // Refresh data status
     fetchUsersDataStatus();
     toast({
