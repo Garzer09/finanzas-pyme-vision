@@ -231,7 +231,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
         });
 
         // Dynamic import to avoid loading SheetJS always
-        const XLSX = await import("https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs");
+        const XLSX = await import("xlsx");
         
         const buffer = await selectedFile.arrayBuffer();
         const workbook = XLSX.read(buffer, { type: "array" });
@@ -611,38 +611,38 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                             </div>
                           )}
                         </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-red-600">
-                        <XCircle className="h-5 w-5" />
-                        <span className="font-semibold">Error en el procesamiento</span>
                       </div>
-                      <p className="text-sm text-muted-foreground">
-                        {job.stats_json?.message || 'Error desconocido durante el procesamiento'}
-                      </p>
-                      
-                      {/* Error actions */}
-                      {(job.stats_json?.error_log_path || job.stats_json?.rejects_csv_path) && (
-                        <div className="flex gap-2 mt-2">
-                          {job.stats_json.error_log_path && (
-                            <Button variant="outline" size="sm">
-                              <Download className="h-3 w-3 mr-1" />
-                              Ver logs de error
-                            </Button>
-                          )}
-                          {job.stats_json.rejects_csv_path && (
-                            <Button variant="outline" size="sm">
-                              <Download className="h-3 w-3 mr-1" />
-                              Descargar rechazados
-                            </Button>
-                          )}
-                        </div>
-                      )}
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-red-600">
+                      <XCircle className="h-5 w-5" />
+                      <span className="font-semibold">Error en el procesamiento</span>
                     </div>
-                  )}
-                </div>
+                    <p className="text-sm text-muted-foreground">
+                      {job.stats_json?.message || 'Error desconocido durante el procesamiento'}
+                    </p>
+                    
+                    {/* Error actions */}
+                    {(job.stats_json?.error_log_path || job.stats_json?.rejects_csv_path) && (
+                      <div className="flex gap-2 mt-2">
+                        {job.stats_json.error_log_path && (
+                          <Button variant="outline" size="sm">
+                            <Download className="h-3 w-3 mr-1" />
+                            Ver logs de error
+                          </Button>
+                        )}
+                        {job.stats_json.rejects_csv_path && (
+                          <Button variant="outline" size="sm">
+                            <Download className="h-3 w-3 mr-1" />
+                            Descargar rechazados
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           )}
