@@ -159,7 +159,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
       const fileContent = await fileToBase64(file);
 
       // Llamar a la nueva edge function
-      const { data, error } = await supabase.functions.invoke('claude-ledger-analyzer', {
+      const { data, error } = await supabase.functions.invoke('ledger-test', {
         body: {
           userId,
           fileName: file.name,

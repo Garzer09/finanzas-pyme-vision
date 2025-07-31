@@ -35,3 +35,6 @@ verify_jwt = true
 
 [functions.claude-eda-analyzer]
 verify_jwt = false
+
+[functions.ledger-test]
+verify_jwt = false
