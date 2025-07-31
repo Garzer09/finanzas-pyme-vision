@@ -147,12 +147,13 @@ Deno.serve(async (req) => {
   }
 });
 
-async function processJob({ svc, jobId, companyId, period, filePath }: {
+async function processJob({ svc, jobId, companyId, period, filePath, headerMapOverride }: {
   svc: any;
   jobId: string;
   companyId: string;
   period: string;
   filePath: string;
+  headerMapOverride?: Record<string, string>;
 }) {
   const setStatus = async (stage: string, extraStats: any = {}) => {
     // Get current stats
@@ -229,19 +230,89 @@ async function processJob({ svc, jobId, companyId, period, filePath }: {
     // Robust CSV parsing with auto-detection
     const csvText = await fileData.text();
     const { headers, rows: parsedRows, sep } = await parseCsvText(csvText);
-    const headerMap = buildHeaderMap(headers);
+    
+    // Normalize headers for better matching
+    const headersRaw = [...headers];
+    const headersNorm = headers.map(h => normalizeHeader(h));
     
     console.log(`Processing job ${jobId} - VALIDATING (${parsedRows.length} rows)`);
     await setStatus("VALIDATING", { 
       total_rows: parsedRows.length,
-      headers_map: headerMap,
+      headers_raw: headersRaw,
+      headers_norm: headersNorm,
       csv_sep: sep,
+      progress_pct: 40,
       message: `Validando ${parsedRows.length} filas con separador '${sep}'...`
     });
+
+    // Build header mapping (use override if provided)
+    let headerMap = headerMapOverride || buildHeaderMap(headers);
+    
+    console.log('=== HEADER MAPPING DEBUG ===');
+    console.log('Raw headers:', headersRaw);
+    console.log('Normalized headers:', headersNorm);
+    console.log('Header mapping result:', headerMap);
+    console.log('Required fields:', ['entry_no', 'tx_date', 'account', 'debit', 'credit']);
+    
+    const requiredFields = ['entry_no', 'tx_date', 'account', 'debit', 'credit'];
+    const mappedFields = Object.keys(headerMap);
+    const missingFields = requiredFields.filter(field => !mappedFields.includes(field));
+    
+    console.log('Mapped fields:', mappedFields);
+    console.log('Missing required fields:', missingFields);
+
+    // Check mapping quality - if too many required fields missing, mark as needs mapping
+    if (Object.keys(headerMap).length === 0 || missingFields.length > 2) {
+      await setStatus("NEEDS_MAPPING", { 
+        total_rows: parsedRows.length,
+        headers_raw: headersRaw,
+        headers_norm: headersNorm,
+        headers_map: headerMap,
+        missing_fields: missingFields,
+        reason: 'poor_mapping',
+        progress_pct: 40,
+        message: 'Mapeo automático falló. Se requiere mapeo manual o normalización GPT.'
+      });
+      return;
+    }
 
     // Transform and validate data with intelligent mapping
     const { ok: mappedRows, bad: mappingErrors, headers_map } = mapRows(parsedRows, headerMap);
     const { ok: validRows, rej: rejectedRows } = validateByEntry(mappedRows);
+    
+    console.log(`Validation results: ${validRows.length} valid, ${rejectedRows.length} rejected`);
+    
+    // Quality threshold check
+    const validRatio = validRows.length / parsedRows.length;
+    console.log(`Quality ratio: ${validRatio} (${validRows.length}/${parsedRows.length})`);
+    
+    // If quality is low and no override provided, suggest manual mapping or GPT
+    if (validRatio < 0.8 && !headerMapOverride) {
+      // Save reject sample for manual review
+      const rejectSample = rejectedRows.slice(0, 50);
+      const rejectCsv = createCSVFromRejectedRows(rejectSample);
+      const rejectPath = `jobs/${jobId}/rejects_sample.csv`;
+      
+      await svc.storage.from('gl-artifacts').upload(rejectPath, rejectCsv, {
+        contentType: 'text/csv',
+        upsert: true
+      });
+      
+      await setStatus('NEEDS_MAPPING', {
+        total_rows: parsedRows.length,
+        valid_rows: validRows.length,
+        rejected_rows: rejectedRows.length,
+        valid_ratio: validRatio,
+        headers_raw: headersRaw,
+        headers_norm: headersNorm,
+        headers_map: headerMap,
+        reason: 'low_confidence',
+        artifacts: { rejects_sample: rejectPath },
+        progress_pct: 40,
+        message: `Solo ${Math.round(validRatio * 100)}% de filas válidas. Requiere mapeo manual o normalización GPT.`
+      });
+      return;
+    }
     
     // Combine mapping and validation errors
     const errors = mappingErrors.map(e => `Row ${e.i}: ${e.reason}`);
@@ -426,10 +497,17 @@ const SYN = {
   line_no:  ["line_no","apunte","num_apunte","nº apunte","linea","line"]
 };
 
-function slugify(s: string) {
+function normalizeHeader(s: string): string {
   return s.toLowerCase()
-    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
-    .replace(/\s+/g," ").trim();
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")  // Remove accents
+    .replace(/[\u00A0\u2000-\u200B\u2028\u2029\uFEFF]/g, " ")  // Remove NBSP and other whitespace
+    .replace(/\s+/g, " ")  // Normalize spaces
+    .trim()
+    .replace(/^[\uFEFF\uBBBF]/, "");  // Remove BOM
+}
+
+function slugify(s: string) {
+  return normalizeHeader(s);
 }
 
 function buildHeaderMap(headers: string[]) {

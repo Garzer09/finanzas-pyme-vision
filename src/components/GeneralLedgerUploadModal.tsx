@@ -21,7 +21,9 @@ import {
   Database,
   Loader2,
   Download,
-  RefreshCw
+  RefreshCw,
+  AlertCircle,
+  ExternalLink
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -38,34 +40,37 @@ interface GeneralLedgerUploadModalProps {
 interface ProcessingJob {
   id: string;
   status: string;
-  stats_json?: {
+  stats_json: {
     stage?: string;
     progress_pct?: number;
     eta_seconds?: number;
+    message?: string;
     total_rows?: number;
     rows_valid?: number;
     rows_reject?: number;
     rows_loaded?: number;
     batches_total?: number;
     batches_done?: number;
-    avg_batch_ms?: number;
-    message?: string;
-    error_log_path?: string;
+    headers_map?: Record<string, string>;
+    headers_raw?: string[];
+    headers_norm?: string[];
+    missing_fields?: string[];
+    valid_ratio?: number;
+    reason?: string;
+    artifacts?: {
+      rejects_sample?: string;
+      normalized_csv?: string;
+      rejects?: string;
+      meta?: string;
+    };
     rejects_csv_path?: string;
+    error_log_path?: string;
+    completed_at?: string;
+    failed_at?: string;
+    error?: string;
+    gpt_processed?: boolean;
   };
-  error_log_path?: string | null;
 }
-
-const STATUS_MESSAGES = {
-  UPLOADING: 'Subiendo archivo...',
-  PARSING: 'Parseando datos CSV...',
-  VALIDATING: 'Validando asientos contables...',
-  LOADING: 'Insertando datos en base de datos...',
-  AGGREGATING: 'Generando estados financieros...',
-  DONE: 'Procesamiento completado exitosamente',
-  PARTIAL_OK: 'Procesamiento completado con algunas advertencias',
-  FAILED: 'Error en el procesamiento'
-};
 
 const getProgressLabel = (job: ProcessingJob | null, uploadProgress: number): string => {
   if (!job) {
@@ -92,8 +97,14 @@ const getProgressLabel = (job: ProcessingJob | null, uploadProgress: number): st
       return 'Procesamiento completado exitosamente';
     case 'FAILED':
       return 'Error en el procesamiento';
+    case 'NEEDS_MAPPING':
+      return 'Requiere mapeo manual o normalización GPT';
+    case 'GPT_NORMALIZE':
+      return 'Normalizando con GPT...';
+    case 'GPT_PROCESSING':
+      return 'Procesando con inteligencia artificial...';
     default:
-      return STATUS_MESSAGES[stage] || 'Procesando...';
+      return 'Procesando...';
   }
 };
 
@@ -115,6 +126,9 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
   const [job, setJob] = useState<ProcessingJob | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [needsMapping, setNeedsMapping] = useState(false);
+  const [manualMapping, setManualMapping] = useState<Record<string, string>>({});
+  const [companyId, setCompanyId] = useState<string>('');
   
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -137,9 +151,13 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
           const updatedJob = payload.new as ProcessingJob;
           setJob(updatedJob);
 
-          // Check if processing is complete
-          if (['DONE', 'PARTIAL_OK', 'FAILED'].includes(updatedJob.status)) {
+          // Check if processing is complete or needs mapping
+          if (updatedJob.status === 'NEEDS_MAPPING') {
+            setNeedsMapping(true);
             setProcessing(false);
+          } else if (['DONE', 'PARTIAL_OK', 'FAILED'].includes(updatedJob.status)) {
+            setProcessing(false);
+            setNeedsMapping(false);
             
             if (updatedJob.status === 'DONE' || updatedJob.status === 'PARTIAL_OK') {
               const stats = updatedJob.stats_json;
@@ -148,7 +166,6 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                 title: "¡Procesamiento completado!",
                 description: `${totalInserted} asientos procesados correctamente`,
               });
-              onSuccess();
             } else if (updatedJob.status === 'FAILED') {
               const stats = updatedJob.stats_json;
               toast({
@@ -165,7 +182,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [jobId, processing, toast, onSuccess]);
+  }, [jobId, processing, toast]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -281,14 +298,16 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
     setUploading(true);
     setUploadProgress(0);
     setJob(null);
+    setNeedsMapping(false);
 
     try {
       // Create FormData for admin-upload function
-      const companyId = crypto.randomUUID();
+      const newCompanyId = crypto.randomUUID();
+      setCompanyId(newCompanyId);
       const period = `${fiscalYear}-01-01`;
 
       const formData = new FormData();
-      formData.append('companyId', companyId);
+      formData.append('companyId', newCompanyId);
       formData.append('period', period);
       formData.append('file', file);
 
@@ -346,6 +365,97 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
     }
   };
 
+  const handleManualMappingSubmit = async () => {
+    if (!job) return;
+    
+    try {
+      setProcessing(true);
+      setNeedsMapping(false);
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No hay sesión activa');
+      }
+
+      const response = await fetch('https://hlwchpmogvwmpuvwmvwv.supabase.co/functions/v1/admin-upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reprocess: true,
+          jobId: job.id,
+          companyId,
+          period: `${fiscalYear}-01-01`,
+          headerMapOverride: manualMapping
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+      
+      toast({
+        title: "Reprocesando con mapeo manual",
+        description: "Los datos se están procesando con tu mapeo personalizado.",
+      });
+    } catch (error) {
+      console.error('Manual mapping submission failed:', error);
+      setProcessing(false);
+      setNeedsMapping(true);
+      toast({
+        title: "Error en mapeo manual",
+        description: error instanceof Error ? error.message : 'Failed to reprocess with manual mapping',
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleGPTNormalize = async () => {
+    if (!job) return;
+    
+    try {
+      setProcessing(true);
+      setNeedsMapping(false);
+      
+      const response = await supabase.functions.invoke('gpt-normalize', {
+        body: {
+          jobId: job.id,
+          companyId,
+          period: `${fiscalYear}-01-01`
+        }
+      });
+      
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+      
+      toast({
+        title: "Normalizando con GPT",
+        description: "La inteligencia artificial está procesando y normalizando tus datos contables.",
+      });
+    } catch (error) {
+      console.error('GPT normalization failed:', error);
+      setProcessing(false);
+      setNeedsMapping(true);
+      toast({
+        title: "Error en normalización GPT",
+        description: error instanceof Error ? error.message : 'Failed to start GPT normalization',
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleGoToDashboard = () => {
+    if (companyId) {
+      navigate(`/dashboard?companyId=${companyId}`);
+    } else {
+      navigate('/home');
+    }
+    handleClose();
+  };
+
   const handleClose = () => {
     setFile(null);
     setCompanyName('');
@@ -357,12 +467,10 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
     setJob(null);
     setJobId(null);
     setConverting(false);
+    setNeedsMapping(false);
+    setManualMapping({});
+    setCompanyId('');
     onClose();
-  };
-
-  const handleGoToDashboard = () => {
-    handleClose();
-    navigate('/home');
   };
 
   const formatFileSize = (bytes: number) => {
@@ -386,6 +494,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
     switch (job.status) {
       case 'PARSING': return 20;
       case 'VALIDATING': return 35;
+      case 'NEEDS_MAPPING': return 40;
       case 'LOADING': return 60;
       case 'AGGREGATING': return 95;
       case 'DONE': return 100;
@@ -395,22 +504,22 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
   };
 
   const currentProgress = getCurrentProgress();
-  const isCompleted = job && ['DONE', 'PARTIAL_OK'].includes(job.status);
+  const isCompleted = job && job.status === 'DONE';
   const isFailed = job && job.status === 'FAILED';
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-primary" />
-            Subir Libro Diario - Nueva Arquitectura
+            Subir Libro Diario - Sistema Robusto con GPT
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* File upload area */}
-          {!file && !processing && (
+          {!file && !processing && !needsMapping && (
             <Card 
               className={`border-2 border-dashed transition-colors ${
                 dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
@@ -444,7 +553,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                   <Alert className="mt-4">
                     <RefreshCw className="h-4 w-4" />
                     <AlertDescription>
-                      Los archivos Excel se procesan en tu navegador y se convierten a CSV automáticamente para mayor velocidad
+                      <strong>Nuevo:</strong> Sistema robusto con mapeo automático inteligente y fallback GPT para normalización
                     </AlertDescription>
                   </Alert>
                 </div>
@@ -453,7 +562,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
           )}
 
           {/* File preview and company info */}
-          {file && !processing && !converting && (
+          {file && !processing && !converting && !needsMapping && (
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
@@ -498,81 +607,160 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                 </div>
 
                 <div className="mt-4">
-                  <Label htmlFor="fiscal-year">Ejercicio fiscal</Label>
+                  <Label htmlFor="fiscal-year">Año fiscal</Label>
                   <Input
                     id="fiscal-year"
                     type="number"
+                    min={2000}
+                    max={2050}
                     value={fiscalYear}
                     onChange={(e) => setFiscalYear(parseInt(e.target.value))}
-                    min="2000"
-                    max="2030"
+                    className="mt-1"
                   />
                 </div>
-              </CardContent>
-            </Card>
-          )}
 
-          {/* Converting status */}
-          {converting && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span className="text-sm font-medium">Convirtiendo Excel a CSV en el navegador...</span>
+                <div className="mt-6 flex gap-2">
+                  <Button onClick={processFile} className="flex-1">
+                    <Database className="h-4 w-4 mr-2" />
+                    Procesar Archivo
+                  </Button>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Processing status */}
+          {/* Conversion loading */}
+          {converting && (
+            <Card>
+              <CardContent className="p-6 text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Convirtiendo Excel a CSV</h3>
+                <p className="text-muted-foreground">
+                  Procesando archivo Excel en tu navegador...
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Manual mapping interface */}
+          {needsMapping && job && (
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 p-4 bg-yellow-50 text-yellow-800 rounded-lg mb-6">
+                  <AlertCircle className="h-5 w-5" />
+                  <div>
+                    <div className="font-medium">Mapeo Automático Falló</div>
+                    <div className="text-sm">
+                      {job.stats_json?.reason === 'poor_mapping' 
+                        ? 'No se pudieron detectar las columnas requeridas automáticamente'
+                        : `Solo ${Math.round((job.stats_json?.valid_ratio || 0) * 100)}% de filas válidas detectadas`
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                {job.stats_json?.headers_raw && (
+                  <div className="space-y-4">
+                    <h4 className="font-medium">Mapeo Manual de Columnas</h4>
+                    <div className="text-sm text-muted-foreground">
+                      Selecciona qué columna de tu CSV corresponde a cada campo requerido:
+                    </div>
+                    
+                    <div className="grid gap-3">
+                      {['entry_no', 'tx_date', 'account', 'description', 'debit', 'credit', 'doc_ref'].map(field => (
+                        <div key={field} className="flex items-center gap-3">
+                          <div className="w-28 text-sm font-medium">
+                            {field === 'entry_no' ? 'N° Asiento' :
+                             field === 'tx_date' ? 'Fecha' :
+                             field === 'account' ? 'Cuenta' :
+                             field === 'description' ? 'Descripción' :
+                             field === 'debit' ? 'Debe' :
+                             field === 'credit' ? 'Haber' :
+                             'Documento'}
+                            {['entry_no', 'tx_date', 'account', 'debit', 'credit'].includes(field) && (
+                              <span className="text-red-500">*</span>
+                            )}
+                          </div>
+                          <select
+                            value={manualMapping[field] || ''}
+                            onChange={(e) => setManualMapping(prev => ({
+                              ...prev,
+                              [field]: e.target.value
+                            }))}
+                            className="flex-1 px-3 py-2 border rounded-md text-sm"
+                          >
+                            <option value="">Seleccionar columna...</option>
+                            {job.stats_json.headers_raw.map(header => (
+                              <option key={header} value={header}>{header}</option>
+                            ))}
+                          </select>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2 mt-6">
+                      <Button 
+                        onClick={handleManualMappingSubmit}
+                        disabled={Object.keys(manualMapping).length < 3}
+                        className="flex-1"
+                      >
+                        Procesar con Mapeo Manual
+                      </Button>
+                      <Button 
+                        onClick={handleGPTNormalize}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Normalizar con GPT
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Processing progress */}
           {(uploading || processing) && (
             <Card>
-              <CardContent className="p-4">
+              <CardContent className="p-6">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {uploading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Database className="h-4 w-4 text-primary" />
-                      )}
-                      <span className="text-sm font-medium">
-                        {getProgressLabel(job, uploadProgress)}
-                      </span>
-                    </div>
-                    <Badge variant="outline" className="text-xs">
+                    <h3 className="text-lg font-semibold">
+                      {uploading ? 'Subiendo archivo' : 'Procesando datos'}
+                    </h3>
+                    <div className="text-sm text-muted-foreground">
                       {currentProgress}%
-                    </Badge>
+                    </div>
                   </div>
                   
                   <Progress value={currentProgress} className="w-full" />
                   
+                  <p className="text-sm text-muted-foreground">
+                    {getProgressLabel(job, uploadProgress)}
+                  </p>
+
                   {job?.stats_json && (
-                    <div className="grid grid-cols-2 gap-4 text-xs text-muted-foreground">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
                       {job.stats_json.total_rows && (
                         <div>
-                          <span className="font-medium">Total filas:</span> {job.stats_json.total_rows}
+                          <span className="font-medium">Filas totales:</span> {job.stats_json.total_rows}
                         </div>
                       )}
-                      {job.stats_json.rows_valid && (
+                      {job.stats_json.rows_valid !== undefined && (
                         <div>
-                          <span className="font-medium">Válidas:</span> {job.stats_json.rows_valid}
+                          <span className="font-medium">Filas válidas:</span> {job.stats_json.rows_valid}
                         </div>
                       )}
-                      {job.stats_json.rows_reject && job.stats_json.rows_reject > 0 && (
-                        <div className="text-amber-600">
-                          <span className="font-medium">Rechazadas:</span> {job.stats_json.rows_reject}
-                        </div>
-                      )}
-                      {job.stats_json.rows_loaded && (
-                        <div className="text-green-600">
-                          <span className="font-medium">Insertadas:</span> {job.stats_json.rows_loaded}
+                      {job.stats_json.rows_loaded !== undefined && (
+                        <div>
+                          <span className="font-medium">Filas insertadas:</span> {job.stats_json.rows_loaded}
                         </div>
                       )}
                       {job.stats_json.eta_seconds && job.stats_json.eta_seconds > 0 && (
-                        <div className="col-span-2 flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          <span>ETA: {job.stats_json.eta_seconds}s</span>
+                        <div>
+                          <span className="font-medium">ETA:</span> {job.stats_json.eta_seconds}s
                         </div>
                       )}
                     </div>
@@ -582,112 +770,68 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
             </Card>
           )}
 
-          {/* Results */}
-          {job && ['DONE', 'PARTIAL_OK', 'FAILED'].includes(job.status) && (
+          {/* Success state */}
+          {isCompleted && (
             <Card>
-              <CardContent className="p-4">
-                {isCompleted ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-green-600">
-                      <CheckCircle className="h-5 w-5" />
-                      <span className="font-semibold">¡Procesamiento exitoso!</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      Libro diario procesado con el sistema optimizado
-                    </p>
-                    
-                    {job.stats_json && (
-                      <div className="space-y-2">
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="font-medium">Total asientos:</span> {job.stats_json.rows_loaded || 0}
-                          </div>
-                          <div>
-                            <span className="font-medium">Filas procesadas:</span> {job.stats_json.total_rows || 0}
-                          </div>
-                          {job.stats_json.rows_reject && job.stats_json.rows_reject > 0 && (
-                            <div className="col-span-2 text-amber-600">
-                              <span className="font-medium">Advertencia:</span> {job.stats_json.rows_reject} filas rechazadas
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-red-600">
-                      <XCircle className="h-5 w-5" />
-                      <span className="font-semibold">Error en el procesamiento</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {job.stats_json?.message || 'Error desconocido durante el procesamiento'}
-                    </p>
-                    
-                    {/* Error actions */}
-                    {(job.stats_json?.error_log_path || job.stats_json?.rejects_csv_path) && (
-                      <div className="flex gap-2 mt-2">
-                        {job.stats_json.error_log_path && (
-                          <Button variant="outline" size="sm">
-                            <Download className="h-3 w-3 mr-1" />
-                            Ver logs de error
-                          </Button>
-                        )}
-                        {job.stats_json.rejects_csv_path && (
-                          <Button variant="outline" size="sm">
-                            <Download className="h-3 w-3 mr-1" />
-                            Descargar rechazados
-                          </Button>
-                        )}
-                      </div>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 p-4 bg-green-50 text-green-800 rounded-lg mb-4">
+                  <CheckCircle className="h-5 w-5" />
+                  <span>Procesamiento completado exitosamente</span>
+                  {job?.stats_json?.gpt_processed && (
+                    <Badge variant="secondary">Normalizado con GPT</Badge>
+                  )}
+                </div>
+                
+                {job?.stats_json && (
+                  <div className="space-y-2 text-sm text-muted-foreground mb-4">
+                    <div>Filas procesadas: {job.stats_json.total_rows || 0}</div>
+                    <div>Filas válidas: {job.stats_json.rows_valid || 0}</div>
+                    <div>Filas insertadas: {job.stats_json.rows_loaded || 0}</div>
+                    {job.stats_json.completed_at && (
+                      <div>Completado: {new Date(job.stats_json.completed_at).toLocaleString()}</div>
                     )}
                   </div>
                 )}
+                
+                <div className="flex gap-2">
+                  <Button onClick={handleClose} variant="outline">
+                    Cerrar
+                  </Button>
+                  <Button onClick={handleGoToDashboard}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Ir al Dashboard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Error state */}
+          {isFailed && (
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center gap-3 p-4 bg-red-50 text-red-800 rounded-lg mb-4">
+                  <XCircle className="h-5 w-5" />
+                  <div>
+                    <div className="font-medium">Error en el procesamiento</div>
+                    <div className="text-sm">
+                      {job?.stats_json?.message || 'Error desconocido'}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex gap-2">
+                  <Button onClick={handleClose} variant="outline">
+                    Cerrar
+                  </Button>
+                  <Button onClick={() => setFile(null)} variant="outline">
+                    Intentar de nuevo
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
         </div>
-
-        <DialogFooter className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {processing && !['DONE', 'PARTIAL_OK', 'FAILED'].includes(job?.status || '') && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>No cierres esta ventana durante el procesamiento</span>
-              </div>
-            )}
-          </div>
-          
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={handleClose}
-              disabled={uploading || (processing && !['DONE', 'PARTIAL_OK', 'FAILED'].includes(job?.status || ''))}
-            >
-              {processing && !['DONE', 'PARTIAL_OK', 'FAILED'].includes(job?.status || '') ? 'Procesando...' : 'Cancelar'}
-            </Button>
-            
-            {isCompleted && (
-              <Button onClick={handleGoToDashboard} className="ml-2">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Ver Estados Financieros
-              </Button>
-            )}
-            
-            {!file && !processing && !converting && (
-              <Button disabled>
-                Selecciona un archivo
-              </Button>
-            )}
-            
-            {file && !processing && !uploading && !converting && (
-              <Button onClick={processFile}>
-                <Upload className="h-4 w-4 mr-2" />
-                Procesar archivo
-              </Button>
-            )}
-          </div>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
