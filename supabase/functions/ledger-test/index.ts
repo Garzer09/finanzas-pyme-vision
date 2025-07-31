@@ -28,13 +28,13 @@ serve(async (req) => {
     
     log('info', 'Processing real Excel file:', { fileName, userId, contentLength: fileContent.length })
     
-    // Get OpenAI API key
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openaiApiKey) {
-      throw new Error('OPENAI_API_KEY not found')
+    // Get Claude API key
+    const claudeApiKey = Deno.env.get('ANTHROPIC_API_KEY')
+    if (!claudeApiKey) {
+      throw new Error('ANTHROPIC_API_KEY not found')
     }
     
-    log('info', 'Starting real analysis with GPT-4o-mini')
+    log('info', 'Starting real analysis with Claude 4 Opus')
 
     // Detailed financial analysis prompt
     const analysisPrompt = `
@@ -120,53 +120,49 @@ CONTENIDO (BASE64): ${fileContent}
 
 IMPORTANTE: Analiza el archivo Excel completo y responde SOLO con JSON válido.`
 
-    // Call OpenAI GPT-4o-mini
-    log('info', 'Calling OpenAI API...')
-    const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Claude 4 Opus API
+    log('info', 'Calling Claude 4 Opus API...')
+    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiApiKey}`
+        'x-api-key': claudeApiKey,
+        'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'claude-opus-4-20250514',
+        max_tokens: 8000,
         messages: [
-          {
-            role: 'system',
-            content: 'You are an expert financial analyst specialized in Spanish accounting standards (PGC). Analyze Excel files and extract comprehensive financial information. Return only valid JSON.'
-          },
           {
             role: 'user',
             content: analysisPrompt
           }
-        ],
-        max_tokens: 16000,
-        temperature: 0.1
+        ]
       })
     })
 
-    if (!openaiResponse.ok) {
-      const errorText = await openaiResponse.text()
-      log('error', 'OpenAI API error:', { status: openaiResponse.status, error: errorText })
-      throw new Error(`OpenAI API error: ${openaiResponse.status}`)
+    if (!claudeResponse.ok) {
+      const errorText = await claudeResponse.text()
+      log('error', 'Claude API error:', { status: claudeResponse.status, error: errorText })
+      throw new Error(`Claude API error: ${claudeResponse.status}`)
     }
 
-    const openaiResult = await openaiResponse.json()
-    log('info', 'GPT-4o-mini response received')
+    const claudeResult = await claudeResponse.json()
+    log('info', 'Claude 4 Opus response received')
 
     // Parse JSON response
     let analysisResult
     try {
-      const content = openaiResult.choices[0].message.content
+      const content = claudeResult.content[0].text
       const jsonMatch = content.match(/\{[\s\S]*\}/)
       if (jsonMatch) {
         analysisResult = JSON.parse(jsonMatch[0])
       } else {
         analysisResult = JSON.parse(content)
       }
-      log('info', 'Financial analysis completed successfully')
+      log('info', 'Financial analysis completed successfully with Claude 4 Opus')
     } catch (parseError) {
-      log('error', 'Error parsing GPT response:', parseError.message)
+      log('error', 'Error parsing Claude response:', parseError.message)
       throw new Error('Error parsing financial analysis results')
     }
 
@@ -255,7 +251,7 @@ IMPORTANTE: Analiza el archivo Excel completo y responde SOLO con JSON válido.`
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Libro diario procesado exitosamente con datos reales',
+      message: 'Libro diario procesado exitosamente con Claude 4 Opus',
       data: analysisResult,
       dataQuality: analysisResult.validation.dataQuality,
       warnings: analysisResult.validation.warnings
