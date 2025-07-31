@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { TestDataUploader } from '@/components/testing/TestDataUploader';
+import { DocumentProcessingPipeline } from '@/components/testing/DocumentProcessingPipeline';
 import { CalculationValidator } from '@/components/testing/CalculationValidator';
 import { InsightEvaluator } from '@/components/testing/InsightEvaluator';
 import { CompletenessMatrix } from '@/components/testing/CompletenessMatrix';
@@ -53,10 +54,14 @@ export default function ClaudeTestingPage() {
           </CardHeader>
           <CardContent>
             <Tabs defaultValue="upload" className="space-y-6">
-              <TabsList className="grid w-full grid-cols-5">
+              <TabsList className="grid w-full grid-cols-6">
+                <TabsTrigger value="pipeline" className="flex items-center gap-2">
+                  <Brain className="h-4 w-4" />
+                  Pipeline Robusto
+                </TabsTrigger>
                 <TabsTrigger value="upload" className="flex items-center gap-2">
                   <FileSpreadsheet className="h-4 w-4" />
-                  Carga de Datos
+                  Carga Simple
                 </TabsTrigger>
                 <TabsTrigger value="calculations" className="flex items-center gap-2">
                   <Calculator className="h-4 w-4" />
@@ -75,6 +80,32 @@ export default function ClaudeTestingPage() {
                   Resultados
                 </TabsTrigger>
               </TabsList>
+
+              <TabsContent value="pipeline" className="space-y-4">
+                <DocumentProcessingPipeline 
+                  onSessionComplete={(session) => {
+                    setCurrentTestSession({
+                      id: session.id,
+                      sessionName: session.sessionName,
+                      fileName: session.fileName,
+                      fileSize: session.fileSize,
+                      uploadStatus: 'completed',
+                      processingStatus: 'completed',
+                      analysisStatus: 'completed',
+                      detectedSheets: session.results?.extraction?.extracted_data?.sheets || [],
+                      detectedFields: session.results?.extraction?.extracted_data?.fields || {},
+                      analysisResults: session.results?.validation || {},
+                      createdAt: session.startTime
+                    });
+                    setTestingResults({
+                      calculationAccuracy: session.results?.validation?.confidence_scores?.overall_confidence || 0,
+                      insightQuality: session.results?.validation?.validation_results?.overall_score || 0,
+                      dataCompleteness: session.results?.validation?.confidence_scores?.completeness || 0,
+                      dashboardAvailability: session.results?.validation?.confidence_scores?.structure_quality || 0
+                    });
+                  }}
+                />
+              </TabsContent>
 
               <TabsContent value="upload" className="space-y-4">
                 <TestDataUploader 

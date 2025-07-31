@@ -82,7 +82,9 @@ Genera un análisis financiero completo que incluya:
 4. Alertas críticas (si las hay)
 5. Recomendaciones específicas
 
-Responde ÚNICAMENTE en formato JSON con esta estructura exacta:
+CRÍTICO: Responde ÚNICAMENTE en formato JSON válido. NO agregues texto adicional, explicaciones o comentarios fuera del JSON. La respuesta debe comenzar con "{" y terminar con "}".
+
+Estructura JSON requerida:
 {
   "insights": [
     {
@@ -118,7 +120,7 @@ Responde ÚNICAMENTE en formato JSON con esta estructura exacta:
   "metadata": {
     "analysisType": "${analysisType}",
     "timestamp": "${new Date().toISOString()}",
-    "model": "claude-opus-4-20250514",
+    "model": "claude-sonnet-4-20250514",
     "confidence": numero_entre_0_y_1
   }
 }`
@@ -134,7 +136,7 @@ Responde ÚNICAMENTE en formato JSON con esta estructura exacta:
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
         temperature: 0.1,
         system: systemPrompt,

@@ -11,3 +11,15 @@ verify_jwt = true
 
 [functions.claude-testing-analyzer]
 verify_jwt = true
+
+[functions.document-detector]
+verify_jwt = true
+
+[functions.data-extractor]
+verify_jwt = true
+
+[functions.data-normalizer]
+verify_jwt = true
+
+[functions.claude-financial-validator]
+verify_jwt = true
