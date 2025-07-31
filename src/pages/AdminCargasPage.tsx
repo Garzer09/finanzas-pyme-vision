@@ -6,8 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { DashboardHeader } from '@/components/DashboardHeader';
+import { AdminTopNavigation } from '@/components/AdminTopNavigation';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -232,22 +231,19 @@ export const AdminCargasPage: React.FC = () => {
   if (!companyId) {
     return (
       <RoleBasedAccess allowedRoles={['admin']}>
-        <div className="flex h-screen bg-background">
-          <DashboardSidebar />
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <DashboardHeader />
-            <main className="flex-1 overflow-auto p-6">
-              <div className="max-w-4xl mx-auto text-center py-12">
-                <h1 className="text-2xl font-bold text-foreground">ID de empresa no especificado</h1>
-                <p className="text-muted-foreground mt-2">
-                  Selecciona una empresa desde la página de empresas
-                </p>
-                <Button onClick={() => navigate('/admin/empresas')} className="mt-4">
-                  Volver a Empresas
-                </Button>
-              </div>
-            </main>
-          </div>
+        <div className="min-h-screen bg-background">
+          <AdminTopNavigation />
+          <main className="p-6">
+            <div className="max-w-4xl mx-auto text-center py-12">
+              <h1 className="text-2xl font-bold text-foreground">ID de empresa no especificado</h1>
+              <p className="text-muted-foreground mt-2">
+                Selecciona una empresa desde la página de empresas
+              </p>
+              <Button onClick={() => navigate('/admin/empresas')} className="mt-4">
+                Volver a Empresas
+              </Button>
+            </div>
+          </main>
         </div>
       </RoleBasedAccess>
     );
@@ -256,19 +252,16 @@ export const AdminCargasPage: React.FC = () => {
   if (loading) {
     return (
       <RoleBasedAccess allowedRoles={['admin']}>
-        <div className="flex h-screen bg-background">
-          <DashboardSidebar />
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <DashboardHeader />
-            <main className="flex-1 overflow-auto p-6">
-              <div className="max-w-6xl mx-auto">
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-4 text-muted-foreground">Cargando histórico...</p>
-                </div>
+        <div className="min-h-screen bg-background">
+          <AdminTopNavigation />
+          <main className="p-6">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Cargando histórico...</p>
               </div>
-            </main>
-          </div>
+            </div>
+          </main>
         </div>
       </RoleBasedAccess>
     );
@@ -276,12 +269,10 @@ export const AdminCargasPage: React.FC = () => {
 
   return (
     <RoleBasedAccess allowedRoles={['admin']}>
-      <div className="flex h-screen bg-background">
-        <DashboardSidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <DashboardHeader />
-          <main className="flex-1 overflow-auto p-6">
-            <div className="max-w-6xl mx-auto space-y-6">
+      <div className="min-h-screen bg-background">
+        <AdminTopNavigation />
+        <main className="p-6">
+          <div className="max-w-6xl mx-auto space-y-6">
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -454,9 +445,8 @@ export const AdminCargasPage: React.FC = () => {
                   )}
                 </CardContent>
               </Card>
-            </div>
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
     </RoleBasedAccess>
   );

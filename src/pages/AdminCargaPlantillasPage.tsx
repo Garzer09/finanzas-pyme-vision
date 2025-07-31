@@ -9,8 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
-import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { DashboardHeader } from '@/components/DashboardHeader';
+import { AdminTopNavigation } from '@/components/AdminTopNavigation';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -347,12 +346,10 @@ export const AdminCargaPlantillasPage: React.FC = () => {
 
   return (
     <RoleBasedAccess allowedRoles={['admin']}>
-      <div className="flex h-screen bg-background">
-        <DashboardSidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <DashboardHeader />
-          <main className="flex-1 overflow-auto p-6">
-            <div className="max-w-4xl mx-auto space-y-6">
+      <div className="min-h-screen bg-background">
+        <AdminTopNavigation />
+        <main className="p-6">
+          <div className="max-w-4xl mx-auto space-y-6">
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -763,9 +760,8 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                   </Button>
                 )}
               </div>
-            </div>
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
     </RoleBasedAccess>
   );

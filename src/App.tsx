@@ -47,7 +47,7 @@ import { SalesSegmentsModule } from "./components/modules/SalesSegmentsModule";
 import ConclusionsPage from "./pages/ConclusionsPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
-import ClaudeTestingPage from "./pages/ClaudeTestingPage";
+
 import { AdminCargaPlantillasPage } from "./pages/AdminCargaPlantillasPage";
 import AdminEmpresasPage from "./pages/AdminEmpresasPage";
 import AdminCargasPage from "./pages/AdminCargasPage";
@@ -76,7 +76,7 @@ const App = () => (
             <Route path="/admin/carga-plantillas" element={<AdminCargaPlantillasPage />} />
             <Route path="/admin/cargas" element={<AdminCargasPage />} />
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-            <Route path="/testing-claude" element={<ClaudeTestingPage />} />
+            
         
         {/* Core Financial Analysis */}
         <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />

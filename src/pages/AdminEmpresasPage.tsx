@@ -8,8 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { DashboardHeader } from '@/components/DashboardHeader';
+import { AdminTopNavigation } from '@/components/AdminTopNavigation';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -187,19 +186,16 @@ export const AdminEmpresasPage: React.FC = () => {
   if (loading) {
     return (
       <RoleBasedAccess allowedRoles={['admin']}>
-        <div className="flex h-screen bg-background">
-          <DashboardSidebar />
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <DashboardHeader />
-            <main className="flex-1 overflow-auto p-6">
-              <div className="max-w-6xl mx-auto">
-                <div className="text-center py-12">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-4 text-muted-foreground">Cargando empresas...</p>
-                </div>
+        <div className="min-h-screen bg-background">
+          <AdminTopNavigation />
+          <main className="p-6">
+            <div className="max-w-6xl mx-auto">
+              <div className="text-center py-12">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                <p className="mt-4 text-muted-foreground">Cargando empresas...</p>
               </div>
-            </main>
-          </div>
+            </div>
+          </main>
         </div>
       </RoleBasedAccess>
     );
@@ -207,12 +203,10 @@ export const AdminEmpresasPage: React.FC = () => {
 
   return (
     <RoleBasedAccess allowedRoles={['admin']}>
-      <div className="flex h-screen bg-background">
-        <DashboardSidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <DashboardHeader />
-          <main className="flex-1 overflow-auto p-6">
-            <div className="max-w-6xl mx-auto space-y-6">
+      <div className="min-h-screen bg-background">
+        <AdminTopNavigation />
+        <main className="p-6">
+          <div className="max-w-6xl mx-auto space-y-6">
               {/* Header */}
               <div className="flex justify-between items-center">
                 <div className="space-y-2">
@@ -425,9 +419,8 @@ export const AdminEmpresasPage: React.FC = () => {
                   })}
                 </div>
               )}
-            </div>
-          </main>
-        </div>
+          </div>
+        </main>
       </div>
     </RoleBasedAccess>
   );

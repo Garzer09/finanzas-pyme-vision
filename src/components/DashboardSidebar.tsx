@@ -29,8 +29,7 @@ import {
   Briefcase,
   TrendingDown,
   Upload,
-  Shield,
-  UserCog
+  Shield
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUserRole } from '@/hooks/useUserRole';
@@ -147,12 +146,6 @@ export const DashboardSidebar = () => {
           icon: Shield,
           color: 'text-primary'
         },
-        {
-          path: '/testing-claude',
-          label: 'Testing Claude',
-          icon: UserCog,
-          color: 'text-warning-600'
-        }
       ]
     }] : []),
     {
