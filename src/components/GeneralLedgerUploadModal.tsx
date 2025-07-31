@@ -215,65 +215,40 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
     setJob(null);
 
     try {
-      // Generate unique job ID
-      const newJobId = crypto.randomUUID();
-      setJobId(newJobId);
+      // Create FormData for admin-upload function
+      const companyId = crypto.randomUUID();
+      const period = `${fiscalYear}-01-01`;
 
-      // Create file path for Storage
-      const companyId = crypto.randomUUID(); // In production, this would come from user's company
-      const yearMonth = `${fiscalYear}${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-      const fileName = `${newJobId}.xlsx`;
-      const filePath = `company/${companyId}/${yearMonth}/${fileName}`;
+      const formData = new FormData();
+      formData.append('companyId', companyId);
+      formData.append('period', period);
+      formData.append('file', file);
 
-      // Upload file to Storage
-      const { error: uploadError } = await supabase.storage
-        .from('gl-uploads')
-        .upload(filePath, file, { upsert: false });
-
-      if (uploadError) {
-        throw new Error(`Error uploading file: ${uploadError.message}`);
+      // Get session for authorization
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('No hay sesión activa');
       }
 
-      // Create processing job record
-      const { error: jobError } = await supabase
-        .from('processing_jobs')
-        .insert({
-          id: newJobId,
-          company_id: companyId,
-          user_id: userId,
-          file_path: filePath,
-          period: `[${fiscalYear}-01-01,${fiscalYear}-12-31]`,
-          status: 'PENDING'
-        });
-
-      if (jobError) {
-        throw new Error(`Error creating job: ${jobError.message}`);
-      }
-
-      setUploading(false);
-      setProcessing(true);
-
-      // Call Edge Function with file path (no base64!)
-      const { data, error } = await supabase.functions.invoke('intelligent-ledger-processor', {
-        body: {
-          jobId: newJobId,
-          filePath,
-          companyId,
-          userId,
-          period: `${fiscalYear}-12-31`,
-          fiscalYear,
-          companyName,
-          taxId
-        }
+      // Call admin-upload Edge Function
+      const response = await fetch('https://hlwchpmogvwmpuvwmvwv.supabase.co/functions/v1/admin-upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: formData
       });
 
-      if (error) {
-        throw new Error(`Edge function error: ${error.message}`);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Error ${response.status}: ${errorText}`);
       }
 
-      if (data.status !== 'accepted') {
-        throw new Error('Processing not accepted by server');
-      }
+      const { jobId: newJobId } = await response.json();
+      
+      setJobId(newJobId);
+      setUploading(false);
+      setProcessing(true);
 
       toast({
         title: "Archivo subido correctamente",
