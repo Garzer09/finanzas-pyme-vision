@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.8'
-import * as XLSX from 'https://deno.land/x/sheetjs@v0.18.3/xlsx.mjs'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,11 +12,19 @@ serve(async (req) => {
   }
 
   try {
+    console.log('Starting claude-testing-processor...')
+    
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
     
+    console.log('Environment check:', {
+      hasSupabaseUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey
+    })
+    
     if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase configuration')
       throw new Error('Missing Supabase configuration')
     }
 
@@ -35,24 +42,52 @@ serve(async (req) => {
 
     // Get user from authorization header
     const authHeader = req.headers.get('authorization')
+    console.log('Auth header present:', !!authHeader)
+    
     if (!authHeader) {
+      console.error('Missing authorization header')
       throw new Error('Missing authorization header')
     }
 
+    console.log('Attempting to get user from token...')
     const { data: { user }, error: authError } = await supabase.auth.getUser(
       authHeader.replace('Bearer ', '')
     )
 
+    console.log('Auth result:', { 
+      hasUser: !!user, 
+      userId: user?.id,
+      authError: authError?.message 
+    })
+
     if (authError || !user) {
-      throw new Error('Unauthorized')
+      console.error('Authentication failed:', authError)
+      throw new Error(`Unauthorized: ${authError?.message || 'No user found'}`)
     }
 
     // Read file as ArrayBuffer
+    console.log('Reading file as ArrayBuffer...')
     const arrayBuffer = await file.arrayBuffer()
     const data = new Uint8Array(arrayBuffer)
     
+    console.log(`File data length: ${data.length} bytes`)
+    
     // Parse Excel file using SheetJS
-    const workbook = XLSX.read(data, { type: 'array' })
+    console.log('Parsing Excel file with SheetJS...')
+    
+    let workbook: any
+    let XLSX: any
+    
+    try {
+      // Import XLSX dynamically
+      XLSX = await import('https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs')
+      console.log('XLSX imported successfully')
+      workbook = XLSX.read(data, { type: 'array' })
+      console.log('Excel file parsed successfully')
+    } catch (xlsxError) {
+      console.error('Error importing or using XLSX:', xlsxError)
+      throw new Error(`Failed to parse Excel file: ${xlsxError.message}`)
+    }
     
     console.log(`Workbook sheets: ${workbook.SheetNames.join(', ')}`)
 
@@ -60,23 +95,44 @@ serve(async (req) => {
     const sheets = workbook.SheetNames
     const detectedFields: Record<string, string[]> = {}
     
+    console.log('Processing sheets...')
     sheets.forEach(sheetName => {
+      console.log(`Processing sheet: ${sheetName}`)
       const worksheet = workbook.Sheets[sheetName]
       if (worksheet) {
-        // Convert to JSON to get headers/fields
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
-        
-        if (jsonData.length > 0) {
-          // Get headers from first row
-          const headers = jsonData[0] as string[]
-          detectedFields[sheetName] = headers.filter(h => h && typeof h === 'string')
+        try {
+          // Convert to JSON to get headers/fields
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 }) as any[][]
+          
+          if (jsonData.length > 0) {
+            // Get headers from first row
+            const headers = jsonData[0] as string[]
+            detectedFields[sheetName] = headers.filter(h => h && typeof h === 'string')
+            console.log(`Sheet ${sheetName} headers:`, detectedFields[sheetName])
+          } else {
+            console.log(`Sheet ${sheetName} is empty`)
+            detectedFields[sheetName] = []
+          }
+        } catch (sheetError) {
+          console.error(`Error processing sheet ${sheetName}:`, sheetError)
+          detectedFields[sheetName] = []
         }
       }
     })
 
-    console.log(`Detected fields:`, detectedFields)
+    console.log(`Final detected fields:`, detectedFields)
 
     // Create test session in database
+    console.log('Creating test session in database...')
+    console.log('Session data:', {
+      user_id: user.id,
+      session_name: sessionName,
+      file_name: file.name,
+      file_size: file.size,
+      sheetsCount: sheets.length,
+      fieldsCount: Object.keys(detectedFields).length
+    })
+    
     const { data: session, error: sessionError } = await supabase
       .from('test_sessions')
       .insert({
@@ -94,6 +150,7 @@ serve(async (req) => {
 
     if (sessionError) {
       console.error('Database error:', sessionError)
+      console.error('Full session error details:', JSON.stringify(sessionError, null, 2))
       throw new Error(`Failed to create test session: ${sessionError.message}`)
     }
 
