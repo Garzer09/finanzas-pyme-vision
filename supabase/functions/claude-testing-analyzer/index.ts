@@ -67,11 +67,17 @@ IMPORTANTE:
 - Usa valores numéricos realistas y consistentes
 - Genera recomendaciones específicas y accionables`
 
-    const userPrompt = `Analiza los siguientes datos financieros detectados:
+    // Get EDA results for better context
+    const edaResults = session.eda_results || {}
+    
+    const userPrompt = `Analiza los siguientes datos financieros usando los resultados del análisis exploratorio previo:
 
 ARCHIVO: ${session.file_name}
 HOJAS DETECTADAS: ${JSON.stringify(session.detected_sheets)}
 CAMPOS DETECTADOS: ${JSON.stringify(session.detected_fields)}
+
+ANÁLISIS EXPLORATORIO (EDA):
+${JSON.stringify(edaResults, null, 2)}
 
 TIPO DE ANÁLISIS: ${analysisType}
 

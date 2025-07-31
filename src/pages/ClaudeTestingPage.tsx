@@ -59,6 +59,11 @@ interface StepStatus {
 export default function ClaudeTestingPage() {
   const [currentTestSession, setCurrentTestSession] = useState<StandardTestSession | null>(null);
   const [currentStep, setCurrentStep] = useState<TestingStep>('upload');
+
+  const resetSession = () => {
+    setCurrentTestSession(null);
+    setCurrentStep('upload');
+  };
   const [testingResults, setTestingResults] = useState({
     calculationAccuracy: 0,
     insightQuality: 0,
