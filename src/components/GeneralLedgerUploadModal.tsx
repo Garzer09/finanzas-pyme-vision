@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,7 +16,10 @@ import {
   Calendar,
   Building2,
   FileText,
-  BarChart3
+  BarChart3,
+  Clock,
+  Database,
+  Loader2
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -30,24 +33,34 @@ interface GeneralLedgerUploadModalProps {
   isAdminImpersonating?: boolean;
 }
 
-interface FilePreview {
-  name: string;
-  size: number;
-  type: string;
-  rows: number;
-  columns: string[];
+interface ProcessingJob {
+  id: string;
+  status: string;
+  stats_json?: any;
+  error_log_path?: string | null;
 }
 
-interface AnalysisResult {
-  success: boolean;
-  error?: string;
-  message: string;
-  data?: any;
-  dataQuality?: number;
-  warnings?: any[];
-  errors?: any[];
-  suggestions?: string[];
-}
+const STATUS_MESSAGES = {
+  PENDING: 'Preparando procesamiento...',
+  PARSING: 'Parseando archivo Excel con SheetJS...',
+  VALIDATING: 'Validando asientos contables...',
+  LOADING: 'Insertando datos en base de datos...',
+  AGGREGATING: 'Generando estados financieros...',
+  DONE: 'Procesamiento completado exitosamente',
+  PARTIAL_OK: 'Procesamiento completado con algunas advertencias',
+  FAILED: 'Error en el procesamiento'
+};
+
+const STATUS_PROGRESS = {
+  PENDING: 10,
+  PARSING: 25,
+  VALIDATING: 50,
+  LOADING: 75,
+  AGGREGATING: 90,
+  DONE: 100,
+  PARTIAL_OK: 100,
+  FAILED: 0
+};
 
 export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> = ({
   isOpen,
@@ -57,17 +70,68 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
   isAdminImpersonating = false
 }) => {
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<FilePreview | null>(null);
   const [companyName, setCompanyName] = useState('');
   const [taxId, setTaxId] = useState('');
   const [fiscalYear, setFiscalYear] = useState(new Date().getFullYear());
+  const [uploading, setUploading] = useState(false);
   const [processing, setProcessing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
+  const [job, setJob] = useState<ProcessingJob | null>(null);
   const [dragOver, setDragOver] = useState(false);
   
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Poll job status when processing
+  useEffect(() => {
+    if (!jobId || !processing) return;
+
+    const pollJob = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('processing_jobs')
+          .select('*')
+          .eq('id', jobId)
+          .single();
+
+        if (error) {
+          console.error('Error polling job:', error);
+          return;
+        }
+
+        setJob(data);
+
+        // Check if processing is complete
+        if (['DONE', 'PARTIAL_OK', 'FAILED'].includes(data.status)) {
+          setProcessing(false);
+          
+          if (data.status === 'DONE' || data.status === 'PARTIAL_OK') {
+            toast({
+              title: "¡Procesamiento completado!",
+              description: `${data.stats_json?.metrics?.totalInserted || 0} asientos procesados correctamente`,
+            });
+            onSuccess();
+          } else if (data.status === 'FAILED') {
+            toast({
+              title: "Error en el procesamiento",
+              description: data.stats_json?.error_message || 'Error desconocido',
+              variant: "destructive"
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error polling job:', error);
+      }
+    };
+
+    // Poll every 2 seconds
+    const interval = setInterval(pollJob, 2000);
+    
+    // Poll immediately
+    pollJob();
+
+    return () => clearInterval(interval);
+  }, [jobId, processing, toast, onSuccess]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -97,7 +161,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
   };
 
   const handleFileSelection = async (selectedFile: File) => {
-    // Validar tipo de archivo
+    // Validate file type
     const validTypes = [
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-excel',
@@ -113,28 +177,20 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
       return;
     }
 
-    // Validar tamaño (máximo 100MB)
-    if (selectedFile.size > 100 * 1024 * 1024) {
+    // Validate file size (40MB limit for new architecture)
+    const maxSize = 40 * 1024 * 1024; // 40MB
+    if (selectedFile.size > maxSize) {
       toast({
         title: "Archivo demasiado grande",
-        description: "El archivo no puede superar los 100MB",
+        description: "El archivo no puede superar los 40MB. Para archivos más grandes, use formato CSV.",
         variant: "destructive"
       });
       return;
     }
 
     setFile(selectedFile);
-    
-    // Generar vista previa simple
-    setPreview({
-      name: selectedFile.name,
-      size: selectedFile.size,
-      type: selectedFile.type,
-      rows: 0, // Se calculará después
-      columns: ['Fecha', 'Cuenta', 'Debe', 'Haber'] // Columnas esperadas
-    });
 
-    // Auto-extraer información del nombre del archivo
+    // Auto-extract information from filename
     const fileName = selectedFile.name.toLowerCase();
     const yearMatch = fileName.match(/20\d{2}/);
     if (yearMatch) {
@@ -143,95 +199,111 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
   };
 
   const processFile = async () => {
-    if (!file) return;
+    if (!file || !companyName) {
+      toast({
+        title: "Datos incompletos",
+        description: "Por favor, completa el nombre de la empresa antes de continuar",
+        variant: "destructive"
+      });
+      return;
+    }
 
-    setProcessing(true);
-    setProgress(0);
-    setResult(null);
+    setUploading(true);
+    setJob(null);
 
     try {
-      // Simular progreso
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
-      }, 500);
+      // Generate unique job ID
+      const newJobId = crypto.randomUUID();
+      setJobId(newJobId);
 
-      // Convertir archivo a base64
-      const fileContent = await fileToBase64(file);
+      // Create file path for Storage
+      const companyId = crypto.randomUUID(); // In production, this would come from user's company
+      const yearMonth = `${fiscalYear}${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+      const fileName = `${newJobId}.xlsx`;
+      const filePath = `company/${companyId}/${yearMonth}/${fileName}`;
 
-      // Llamar a la nueva edge function inteligente
+      // Upload file to Storage
+      const { error: uploadError } = await supabase.storage
+        .from('gl-uploads')
+        .upload(filePath, file, { upsert: false });
+
+      if (uploadError) {
+        throw new Error(`Error uploading file: ${uploadError.message}`);
+      }
+
+      // Create processing job record
+      const { error: jobError } = await supabase
+        .from('processing_jobs')
+        .insert({
+          id: newJobId,
+          company_id: companyId,
+          user_id: userId,
+          file_path: filePath,
+          period: `[${fiscalYear}-01-01,${fiscalYear}-12-31]`,
+          status: 'PENDING'
+        });
+
+      if (jobError) {
+        throw new Error(`Error creating job: ${jobError.message}`);
+      }
+
+      setUploading(false);
+      setProcessing(true);
+
+      // Call Edge Function with file path (no base64!)
       const { data, error } = await supabase.functions.invoke('intelligent-ledger-processor', {
         body: {
+          jobId: newJobId,
+          filePath,
+          companyId,
           userId,
-          fileName: file.name,
-          fileContent,
+          period: `${fiscalYear}-12-31`,
+          fiscalYear,
           companyName,
-          taxId,
-          fiscalYear
+          taxId
         }
       });
 
-      clearInterval(progressInterval);
-      setProgress(100);
-
-      if (error) throw error;
-
-      setResult(data);
-
-      if (data.success) {
-        toast({
-          title: "¡Éxito!",
-          description: `Libro diario procesado correctamente. Calidad: ${data.dataQuality}%`,
-        });
-        
-        // Llamar onSuccess pero no cerrar automáticamente
-        onSuccess();
+      if (error) {
+        throw new Error(`Edge function error: ${error.message}`);
       }
+
+      if (data.status !== 'accepted') {
+        throw new Error('Processing not accepted by server');
+      }
+
+      toast({
+        title: "Archivo subido correctamente",
+        description: "El procesamiento ha comenzado. Podrás ver el progreso en tiempo real.",
+      });
 
     } catch (error: any) {
       console.error('Error processing file:', error);
-      setResult({
-        success: false,
-        error: 'PROCESSING_ERROR',
-        message: error.message || 'Error procesando el archivo'
-      });
+      setUploading(false);
+      setProcessing(false);
       
       toast({
         title: "Error de procesamiento",
         description: error.message || 'Error procesando el archivo',
         variant: "destructive"
       });
-    } finally {
-      setProcessing(false);
     }
-  };
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const base64 = reader.result as string;
-        resolve(base64.split(',')[1]); // Remover el prefijo data:...;base64,
-      };
-      reader.onerror = error => reject(error);
-    });
   };
 
   const handleClose = () => {
     setFile(null);
-    setPreview(null);
     setCompanyName('');
     setTaxId('');
     setFiscalYear(new Date().getFullYear());
+    setUploading(false);
     setProcessing(false);
-    setProgress(0);
-    setResult(null);
+    setJob(null);
+    setJobId(null);
     onClose();
   };
 
   const handleGoToDashboard = () => {
     handleClose();
-    // Navegar a /home donde se mostrará el dashboard del usuario
     navigate('/home');
   };
 
@@ -243,19 +315,23 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  const currentProgress = job ? STATUS_PROGRESS[job.status] : 0;
+  const isCompleted = job && ['DONE', 'PARTIAL_OK'].includes(job.status);
+  const isFailed = job && job.status === 'FAILED';
+
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5 text-primary" />
-            Subir Libro Diario
+            Subir Libro Diario - Nueva Arquitectura
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Zona de carga de archivos */}
-          {!file && (
+          {/* File upload area */}
+          {!file && !processing && (
             <Card 
               className={`border-2 border-dashed transition-colors ${
                 dragOver ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'
@@ -284,34 +360,37 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                     />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Máximo 100MB • Formatos: Excel (.xlsx, .xls) o CSV
+                    Máximo 40MB • Formatos: Excel (.xlsx, .xls) o CSV
                   </p>
+                  <Alert className="mt-4">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      Para archivos mayores a 40MB, por favor usa formato CSV
+                    </AlertDescription>
+                  </Alert>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Vista previa del archivo */}
-          {file && preview && (
+          {/* File preview and company info */}
+          {file && !processing && (
             <Card>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <FileSpreadsheet className="h-8 w-8 text-green-600" />
                     <div>
-                      <h4 className="font-semibold">{preview.name}</h4>
+                      <h4 className="font-semibold">{file.name}</h4>
                       <p className="text-sm text-muted-foreground">
-                        {formatFileSize(preview.size)}
+                        {formatFileSize(file.size)}
                       </p>
                     </div>
                   </div>
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={() => {
-                      setFile(null);
-                      setPreview(null);
-                    }}
+                    onClick={() => setFile(null)}
                   >
                     <XCircle className="h-4 w-4" />
                   </Button>
@@ -319,12 +398,13 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
 
                 <div className="mt-4 grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="company-name">Nombre de la empresa</Label>
+                    <Label htmlFor="company-name">Nombre de la empresa *</Label>
                     <Input
                       id="company-name"
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
                       placeholder="Ej: Mi Empresa S.L."
+                      required
                     />
                   </div>
                   <div className="space-y-2">
@@ -349,66 +429,94 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                     max="2030"
                   />
                 </div>
+              </CardContent>
+            </Card>
+          )}
 
-                <div className="mt-4">
-                  <h5 className="text-sm font-medium mb-2">Columnas esperadas:</h5>
-                  <div className="flex gap-2 flex-wrap">
-                    {preview.columns.map((col, idx) => (
-                      <Badge key={idx} variant="outline">{col}</Badge>
-                    ))}
-                  </div>
+          {/* Processing status */}
+          {(uploading || processing) && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="space-y-4">
+                  {uploading && (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm font-medium">Subiendo archivo a Storage...</span>
+                    </div>
+                  )}
+                  
+                  {processing && job && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Database className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">
+                          {STATUS_MESSAGES[job.status]}
+                        </span>
+                        {!['DONE', 'PARTIAL_OK', 'FAILED'].includes(job.status) && (
+                          <Clock className="h-4 w-4 animate-pulse text-muted-foreground" />
+                        )}
+                      </div>
+                      
+                      <Progress value={currentProgress} className="w-full" />
+                      
+                      {job.stats_json?.metrics && (
+                        <div className="text-xs text-muted-foreground space-y-1">
+                          <div>Filas procesadas: {job.stats_json.metrics.validRows} / {job.stats_json.metrics.totalRows}</div>
+                          {job.stats_json.metrics.rejectedRows > 0 && (
+                            <div className="text-amber-600">
+                              Filas rechazadas: {job.stats_json.metrics.rejectedRows}
+                            </div>
+                          )}
+                          {job.stats_json.metrics.totalInserted !== undefined && (
+                            <div className="text-green-600">
+                              Asientos insertados: {job.stats_json.metrics.totalInserted}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Barra de progreso */}
-          {processing && (
+          {/* Results */}
+          {job && ['DONE', 'PARTIAL_OK', 'FAILED'].includes(job.status) && (
             <Card>
               <CardContent className="p-4">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
-                    <span className="text-sm font-medium">Analizando libro diario...</span>
-                  </div>
-                  <Progress value={progress} className="w-full" />
-                  <p className="text-xs text-muted-foreground">
-                    Claude está procesando y validando los datos contables
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Resultados */}
-          {result && (
-            <Card>
-              <CardContent className="p-4">
-                {result.success ? (
+                {isCompleted ? (
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 text-green-600">
                       <CheckCircle className="h-5 w-5" />
                       <span className="font-semibold">¡Procesamiento exitoso!</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{result.message}</p>
-                    {result.dataQuality && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">Calidad de datos:</span>
-                        <Badge variant={result.dataQuality >= 80 ? "default" : "secondary"}>
-                          {result.dataQuality}%
-                        </Badge>
+                    <p className="text-sm text-muted-foreground">
+                      Libro diario procesado con la nueva arquitectura robusta
+                    </p>
+                    
+                    {job.stats_json?.metrics && (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium">Total asientos:</span> {job.stats_json.metrics.totalInserted}
+                          </div>
+                          <div>
+                            <span className="font-medium">Balance cuadra:</span> {job.stats_json.metrics.entriesBalance ? '✅ Sí' : '❌ No'}
+                          </div>
+                        </div>
+                        
+                        {job.stats_json.metrics.rejectedRows > 0 && (
+                          <Alert>
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>
+                              {job.stats_json.metrics.rejectedRows} filas fueron rechazadas por errores de validación
+                            </AlertDescription>
+                          </Alert>
+                        )}
                       </div>
                     )}
-                    {result.warnings && result.warnings.length > 0 && (
-                      <Alert>
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>
-                          {result.warnings.length} advertencias detectadas
-                        </AlertDescription>
-                      </Alert>
-                    )}
                     
-                    {/* Botón para ir al dashboard */}
                     <div className="pt-3">
                       <Button 
                         onClick={handleGoToDashboard}
@@ -416,7 +524,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                         size="sm"
                       >
                         <BarChart3 className="h-4 w-4 mr-2" />
-                        Ir al Dashboard
+                        Ver Estados Financieros
                       </Button>
                     </div>
                   </div>
@@ -426,16 +534,15 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                       <XCircle className="h-5 w-5" />
                       <span className="font-semibold">Error de procesamiento</span>
                     </div>
-                    <p className="text-sm text-muted-foreground">{result.message}</p>
-                    {result.errors && result.errors.length > 0 && (
-                      <div className="space-y-2">
-                        <h6 className="text-sm font-semibold">Errores detectados:</h6>
-                        {result.errors.map((error, idx) => (
-                          <Alert key={idx} variant="destructive">
-                            <AlertDescription>{error.message}</AlertDescription>
-                          </Alert>
-                        ))}
-                      </div>
+                    <p className="text-sm text-muted-foreground">
+                      {job.stats_json?.error_message || 'Error desconocido'}
+                    </p>
+                    {job.error_log_path && (
+                      <Alert variant="destructive">
+                        <AlertDescription>
+                          Log de errores disponible en: {job.error_log_path}
+                        </AlertDescription>
+                      </Alert>
                     )}
                   </div>
                 )}
@@ -446,14 +553,14 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose}>
-            {result?.success ? 'Cerrar' : 'Cancelar'}
+            {isCompleted ? 'Cerrar' : 'Cancelar'}
           </Button>
-          {!result?.success && (
+          {!processing && !isCompleted && !isFailed && (
             <Button 
               onClick={processFile} 
-              disabled={!file || processing}
+              disabled={!file || uploading || !companyName}
             >
-              {processing ? 'Procesando...' : 'Analizar Libro Diario'}
+              {uploading ? 'Subiendo...' : 'Procesar con Nueva Arquitectura'}
             </Button>
           )}
         </DialogFooter>

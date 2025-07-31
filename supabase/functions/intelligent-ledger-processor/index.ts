@@ -1,5 +1,5 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+// @deno-types="https://cdn.sheetjs.com/xlsx-0.20.3/package/types/index.d.ts"
+import * as XLSX from "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -7,513 +7,613 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Utility function for logging
+interface ProcessingJob {
+  id: string;
+  companyId: string;
+  userId: string;
+  filePath: string;
+  period?: string;
+  fiscalYear?: number;
+}
+
+interface JournalLine {
+  entry_no: number;
+  tx_date: string;
+  memo?: string;
+  line_no: number;
+  account: string;
+  description?: string;
+  debit: number;
+  credit: number;
+  doc_ref?: string;
+}
+
+interface ValidationResult {
+  validRows: JournalLine[];
+  rejectedRows: any[];
+  metrics: {
+    totalRows: number;
+    validRows: number;
+    rejectedRows: number;
+    totalDebit: number;
+    totalCredit: number;
+    entriesBalance: boolean;
+  };
+}
+
 const log = (level: string, message: string, data?: any) => {
   const timestamp = new Date().toISOString();
-  console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}`, data ? JSON.stringify(data, null, 2) : '');
+  console.log(`[${timestamp}] [${level}] ${message}`, data ? JSON.stringify(data) : '');
 };
 
-interface ProcessingChunk {
-  period: string;
-  data: any[];
-  totalAmount: number;
-  accountCount: number;
-}
-
-interface ConsolidatedResults {
-  balance_situacion: any;
-  cuenta_pyg: any;
-  ratios_financieros: any;
-  metadata: any;
-}
-
-// Excel data parser using built-in text processing
-const parseExcelData = (base64Content: string): any[] => {
-  try {
-    // Decode base64 and extract meaningful data
-    const binaryString = atob(base64Content);
-    
-    // Look for patterns that indicate accounting entries
-    // This is a simplified parser - in production you'd use a proper XLSX library
-    const lines = binaryString.split('\n').filter(line => line.trim());
-    const accountingEntries: any[] = [];
-    
-    // Extract entries that look like accounting data
-    for (const line of lines) {
-      // Look for patterns like account codes (3-6 digits) followed by amounts
-      const accountMatch = line.match(/(\d{3,6})\s+([0-9.,]+)/);
-      if (accountMatch) {
-        const accountCode = accountMatch[1];
-        const amount = parseFloat(accountMatch[2].replace(',', '.'));
-        
-        // Only include accounts from Spanish Chart of Accounts (100-999)
-        if (parseInt(accountCode) >= 100 && parseInt(accountCode) <= 999) {
-          accountingEntries.push({
-            account_code: accountCode,
-            amount: amount,
-            description: line.substring(0, 50).trim(),
-            period: extractPeriodFromLine(line)
-          });
-        }
-      }
-    }
-    
-    log('INFO', `Extracted ${accountingEntries.length} accounting entries`);
-    return accountingEntries;
-  } catch (error) {
-    log('ERROR', 'Error parsing Excel data', { error: error.message });
-    throw new Error('Failed to parse Excel data');
-  }
-};
-
-const extractPeriodFromLine = (line: string): string => {
-  // Try to extract date patterns from the line
-  const dateMatch = line.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
-  if (dateMatch) {
-    const year = dateMatch[3].length === 2 ? `20${dateMatch[3]}` : dateMatch[3];
-    return `${year}-${dateMatch[2].padStart(2, '0')}`;
-  }
-  return '2024-12'; // Default fallback
-};
-
-// Intelligent chunking system
-const createIntelligentChunks = (data: any[]): ProcessingChunk[] => {
-  const chunks: ProcessingChunk[] = [];
-  const groupedByPeriod: { [key: string]: any[] } = {};
-  
-  // Group by period
-  data.forEach(entry => {
-    const period = entry.period || '2024-12';
-    if (!groupedByPeriod[period]) {
-      groupedByPeriod[period] = [];
-    }
-    groupedByPeriod[period].push(entry);
-  });
-  
-  // Create chunks with max 100 entries each
-  Object.entries(groupedByPeriod).forEach(([period, entries]) => {
-    const maxEntriesPerChunk = 100;
-    for (let i = 0; i < entries.length; i += maxEntriesPerChunk) {
-      const chunkData = entries.slice(i, i + maxEntriesPerChunk);
-      const totalAmount = chunkData.reduce((sum, entry) => sum + (entry.amount || 0), 0);
-      
-      chunks.push({
-        period,
-        data: chunkData,
-        totalAmount,
-        accountCount: chunkData.length
-      });
-    }
-  });
-  
-  log('INFO', `Created ${chunks.length} intelligent chunks`);
-  return chunks;
-};
-
-// Optimized prompt for GPT-4.1
-const createOptimizedPrompt = (chunk: ProcessingChunk, chunkIndex: number, totalChunks: number): string => {
-  return `Eres un experto contable español especializado en el Plan General Contable (PGC). 
-
-DATOS A ANALIZAR (Chunk ${chunkIndex + 1}/${totalChunks}):
-Período: ${chunk.period}
-Número de asientos: ${chunk.accountCount}
-Total monetario: ${chunk.totalAmount.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
-
-ASIENTOS CONTABLES:
-${JSON.stringify(chunk.data, null, 2)}
-
-INSTRUCCIONES ESPECÍFICAS:
-1. Analiza ÚNICAMENTE estos asientos contables del chunk actual
-2. Clasifica las cuentas según el PGC español:
-   - Grupo 1: Financiación básica (100-199)
-   - Grupo 2: Inmovilizado (200-299)
-   - Grupo 3: Existencias (300-399)
-   - Grupo 4: Acreedores y deudores (400-499)
-   - Grupo 5: Cuentas financieras (500-599)
-   - Grupo 6: Compras y gastos (600-699)
-   - Grupo 7: Ventas e ingresos (700-799)
-
-3. Genera un análisis PARCIAL para este chunk con:
-   - Balance de situación (parcial)
-   - Cuenta de PyG (parcial)
-   - Ratios relevantes (parciales)
-   - Metadatos del chunk
-
-FORMATO DE RESPUESTA (JSON válido):
-{
-  "chunk_info": {
-    "chunk_number": ${chunkIndex + 1},
-    "total_chunks": ${totalChunks},
-    "period": "${chunk.period}",
-    "entries_count": ${chunk.accountCount}
-  },
-  "balance_situacion_parcial": {
-    "activo": {
-      "activo_no_corriente": {},
-      "activo_corriente": {}
-    },
-    "pasivo": {
-      "patrimonio_neto": {},
-      "pasivo_no_corriente": {},
-      "pasivo_corriente": {}
-    }
-  },
-  "cuenta_pyg_parcial": {
-    "ingresos": {},
-    "gastos": {},
-    "resultado_parcial": 0
-  },
-  "ratios_parciales": {
-    "liquidez": 0,
-    "solvencia": 0,
-    "rentabilidad": 0
-  },
-  "validaciones": {
-    "balance_cuadra": true,
-    "sumas_verificadas": true,
-    "errores": []
-  }
-}
-
-IMPORTANTE: Responde ÚNICAMENTE con el JSON válido, sin texto adicional.`;
-};
-
-// Multi-model API calling system
-const callAIAPI = async (prompt: string, model: 'gpt4' | 'claude' | 'gemini' = 'gpt4'): Promise<any> => {
-  const maxRetries = 3;
-  let lastError: Error | null = null;
-
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      if (model === 'gpt4') {
-        const openaiKey = Deno.env.get('OPENAI_API_KEY');
-        if (!openaiKey) throw new Error('OpenAI API key not found');
-
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openaiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4-1106-preview', // Using GPT-4 Turbo for better performance
-            messages: [
-              {
-                role: 'system',
-                content: 'Eres un experto contable español. Responde únicamente con JSON válido.'
-              },
-              {
-                role: 'user',
-                content: prompt
-              }
-            ],
-            temperature: 0.1,
-            max_tokens: 4000,
-            response_format: { type: "json_object" }
-          }),
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
-        }
-
-        const data = await response.json();
-        return JSON.parse(data.choices[0].message.content);
-      }
-
-      // Add Claude and Gemini fallbacks here if needed
-      throw new Error('Model not implemented yet');
-
-    } catch (error) {
-      lastError = error as Error;
-      log('WARN', `API call attempt ${attempt} failed`, { model, error: error.message });
-      
-      if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
-      }
-    }
-  }
-
-  throw lastError || new Error('All API attempts failed');
-};
-
-// Consolidate partial results into final financial statements
-const consolidateResults = (chunkResults: any[]): ConsolidatedResults => {
-  const consolidated: ConsolidatedResults = {
-    balance_situacion: {
-      activo: { activo_no_corriente: {}, activo_corriente: {} },
-      pasivo: { patrimonio_neto: {}, pasivo_no_corriente: {}, pasivo_corriente: {} }
-    },
-    cuenta_pyg: {
-      ingresos: {},
-      gastos: {},
-      resultado_ejercicio: 0
-    },
-    ratios_financieros: {
-      liquidez: { ratio_corriente: 0, ratio_rapido: 0 },
-      solvencia: { ratio_endeudamiento: 0, ratio_autonomia: 0 },
-      rentabilidad: { roe: 0, roa: 0 }
-    },
-    metadata: {
-      chunks_procesados: chunkResults.length,
-      total_asientos: 0,
-      periodo_analisis: '',
-      fecha_procesamiento: new Date().toISOString()
-    }
-  };
-
-  // Consolidate balance sheet
-  chunkResults.forEach(chunk => {
-    if (chunk.balance_situacion_parcial) {
-      // Merge activo no corriente
-      Object.entries(chunk.balance_situacion_parcial.activo?.activo_no_corriente || {}).forEach(([key, value]) => {
-        consolidated.balance_situacion.activo.activo_no_corriente[key] = 
-          (consolidated.balance_situacion.activo.activo_no_corriente[key] || 0) + (value as number);
-      });
-      
-      // Merge activo corriente
-      Object.entries(chunk.balance_situacion_parcial.activo?.activo_corriente || {}).forEach(([key, value]) => {
-        consolidated.balance_situacion.activo.activo_corriente[key] = 
-          (consolidated.balance_situacion.activo.activo_corriente[key] || 0) + (value as number);
-      });
-      
-      // Merge pasivo
-      ['patrimonio_neto', 'pasivo_no_corriente', 'pasivo_corriente'].forEach(section => {
-        Object.entries(chunk.balance_situacion_parcial.pasivo?.[section] || {}).forEach(([key, value]) => {
-          consolidated.balance_situacion.pasivo[section][key] = 
-            (consolidated.balance_situacion.pasivo[section][key] || 0) + (value as number);
-        });
-      });
-    }
-
-    // Consolidate P&L
-    if (chunk.cuenta_pyg_parcial) {
-      Object.entries(chunk.cuenta_pyg_parcial.ingresos || {}).forEach(([key, value]) => {
-        consolidated.cuenta_pyg.ingresos[key] = 
-          (consolidated.cuenta_pyg.ingresos[key] || 0) + (value as number);
-      });
-      
-      Object.entries(chunk.cuenta_pyg_parcial.gastos || {}).forEach(([key, value]) => {
-        consolidated.cuenta_pyg.gastos[key] = 
-          (consolidated.cuenta_pyg.gastos[key] || 0) + (value as number);
-      });
-    }
-
-    // Update metadata
-    consolidated.metadata.total_asientos += chunk.chunk_info?.entries_count || 0;
-  });
-
-  // Calculate final result
-  const totalIngresos = Object.values(consolidated.cuenta_pyg.ingresos).reduce((sum, val) => sum + (val as number), 0);
-  const totalGastos = Object.values(consolidated.cuenta_pyg.gastos).reduce((sum, val) => sum + (val as number), 0);
-  consolidated.cuenta_pyg.resultado_ejercicio = totalIngresos - totalGastos;
-
-  // Calculate consolidated ratios
-  const totalActivo = Object.values(consolidated.balance_situacion.activo.activo_corriente).reduce((sum, val) => sum + (val as number), 0) +
-                     Object.values(consolidated.balance_situacion.activo.activo_no_corriente).reduce((sum, val) => sum + (val as number), 0);
-  
-  const totalPasivoCorriente = Object.values(consolidated.balance_situacion.pasivo.pasivo_corriente).reduce((sum, val) => sum + (val as number), 0);
-  const totalActivoCorriente = Object.values(consolidated.balance_situacion.activo.activo_corriente).reduce((sum, val) => sum + (val as number), 0);
-
-  if (totalPasivoCorriente > 0) {
-    consolidated.ratios_financieros.liquidez.ratio_corriente = totalActivoCorriente / totalPasivoCorriente;
-  }
-
-  log('INFO', 'Consolidation completed', { 
-    totalAsientos: consolidated.metadata.total_asientos,
-    resultado: consolidated.cuenta_pyg.resultado_ejercicio 
-  });
-
-  return consolidated;
-};
-
-serve(async (req) => {
+Deno.serve(async (req) => {
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    log('INFO', '🚀 Intelligent Ledger Processor started');
-
-    const { userId, fileName, fileContent, companyName, taxId, fiscalYear } = await req.json();
-
-    if (!userId || !fileName || !fileContent) {
-      throw new Error('Missing required fields: userId, fileName, or fileContent');
-    }
-
-    log('INFO', 'Processing request', { 
-      fileName, 
-      userId, 
-      companyName,
-      fiscalYear,
-      contentLength: fileContent.length 
+    const { filePath, companyId, userId, period, fiscalYear, jobId } = await req.json();
+    
+    log('INFO', '🚀 Starting ledger processing job', { 
+      jobId, 
+      filePath, 
+      companyId, 
+      userId,
+      period,
+      fiscalYear
     });
 
-    // Step 1: Parse Excel data
-    log('INFO', 'Step 1: Parsing Excel data...');
-    const extractedData = parseExcelData(fileContent);
-
-    if (extractedData.length === 0) {
-      throw new Error('No accounting data found in the file');
+    // Validate required parameters
+    if (!filePath || !companyId || !userId || !jobId) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required parameters' }),
+        { status: 400, headers: corsHeaders }
+      );
     }
 
-    // Step 2: Create intelligent chunks
-    log('INFO', 'Step 2: Creating intelligent chunks...');
-    const chunks = createIntelligentChunks(extractedData);
+    // Start background processing with EdgeRuntime.waitUntil
+    EdgeRuntime.waitUntil(processJobInBackground({
+      id: jobId,
+      companyId,
+      userId,
+      filePath,
+      period,
+      fiscalYear
+    }));
 
-    // Step 3: Process each chunk with AI
-    log('INFO', 'Step 3: Processing chunks with AI...');
-    const chunkResults: any[] = [];
+    // Return immediate 202 response
+    return new Response(
+      JSON.stringify({ 
+        jobId,
+        status: 'accepted',
+        message: 'Processing started in background'
+      }),
+      { status: 202, headers: corsHeaders }
+    );
+
+  } catch (error) {
+    log('ERROR', 'Request handling failed', { error: error.message });
+    return new Response(
+      JSON.stringify({ error: 'Invalid request format' }),
+      { status: 400, headers: corsHeaders }
+    );
+  }
+});
+
+async function processJobInBackground(job: ProcessingJob) {
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+
+  try {
+    log('INFO', 'Starting background processing', { jobId: job.id });
+
+    // Update job status to PARSING
+    await updateJobStatus(supabase, job.id, 'PARSING');
+
+    // Check file size first
+    const fileSize = await getFileSize(supabase, job.filePath);
+    const maxSize = 40 * 1024 * 1024; // 40MB limit
     
-    for (let i = 0; i < chunks.length; i++) {
-      const chunk = chunks[i];
-      log('INFO', `Processing chunk ${i + 1}/${chunks.length}`, {
-        period: chunk.period,
-        entries: chunk.accountCount,
-        amount: chunk.totalAmount
-      });
+    if (fileSize > maxSize) {
+      throw new Error(`File too large: ${(fileSize / 1024 / 1024).toFixed(1)}MB. Maximum allowed: 40MB. Please use CSV format for larger files.`);
+    }
 
-      const prompt = createOptimizedPrompt(chunk, i, chunks.length);
+    // Read Excel file from Storage
+    log('INFO', 'Reading Excel file from Storage', { filePath: job.filePath, sizeMB: (fileSize / 1024 / 1024).toFixed(1) });
+    const fileBuffer = await readFileFromStorage(supabase, job.filePath);
+    
+    // Parse Excel with SheetJS
+    log('INFO', 'Parsing Excel with SheetJS');
+    const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    
+    if (!sheetName) {
+      throw new Error('No worksheets found in Excel file');
+    }
+
+    const worksheet = workbook.Sheets[sheetName];
+    const rawRows = XLSX.utils.sheet_to_json(worksheet, { 
+      raw: false, 
+      defval: null,
+      header: 1 // Get as array of arrays first to detect headers
+    });
+
+    if (rawRows.length === 0) {
+      throw new Error('No data found in Excel worksheet');
+    }
+
+    // Convert to objects with proper headers
+    const headers = rawRows[0] as string[];
+    const dataRows = rawRows.slice(1).map(row => {
+      const obj: any = {};
+      headers.forEach((header, index) => {
+        obj[header] = (row as any[])[index];
+      });
+      return obj;
+    });
+
+    log('INFO', 'Excel parsed successfully', { 
+      totalRows: dataRows.length, 
+      headers: headers.slice(0, 10) 
+    });
+
+    // Update job status to VALIDATING
+    await updateJobStatus(supabase, job.id, 'VALIDATING');
+
+    // Validate and normalize data
+    const validationResult = validateAndNormalizeData(dataRows);
+    
+    log('INFO', 'Validation completed', validationResult.metrics);
+
+    // Save rejected rows if any
+    if (validationResult.rejectedRows.length > 0) {
+      await saveRejectedRows(supabase, job.id, validationResult.rejectedRows);
+    }
+
+    if (validationResult.validRows.length === 0) {
+      throw new Error('No valid journal entries found after validation');
+    }
+
+    // Update job status to LOADING
+    await updateJobStatus(supabase, job.id, 'LOADING', {
+      metrics: validationResult.metrics
+    });
+
+    // Create dynamic batches based on JSON size (target 2-5MB per batch)
+    const batches = createDynamicBatches(validationResult.validRows, 3 * 1024 * 1024); // 3MB target
+    
+    log('INFO', 'Created batches for processing', { 
+      totalBatches: batches.length,
+      avgBatchSize: Math.round(validationResult.validRows.length / batches.length)
+    });
+
+    let totalInserted = 0;
+    let batchErrors = 0;
+
+    // Process each batch
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
       
       try {
-        const result = await callAIAPI(prompt, 'gpt4');
-        chunkResults.push(result);
-        log('INFO', `Chunk ${i + 1} processed successfully`);
+        log('INFO', `Processing batch ${i + 1}/${batches.length}`, { batchSize: batch.length });
+        
+        const result = await supabase.rpc('import_journal_lines', {
+          _company: job.companyId,
+          _period: job.period ? `[${job.period},${job.period}]` : null,
+          _rows: batch
+        });
+
+        if (result.error) {
+          log('ERROR', `Batch ${i + 1} failed`, { error: result.error });
+          batchErrors++;
+        } else {
+          totalInserted += result.data?.inserted_lines || 0;
+          log('INFO', `Batch ${i + 1} completed`, { 
+            inserted: result.data?.inserted_lines,
+            totalSoFar: totalInserted
+          });
+        }
       } catch (error) {
-        log('ERROR', `Failed to process chunk ${i + 1}`, { error: error.message });
-        // Continue with other chunks instead of failing completely
+        log('ERROR', `Batch ${i + 1} processing failed`, { error: error.message });
+        batchErrors++;
       }
     }
 
-    if (chunkResults.length === 0) {
-      throw new Error('Failed to process any chunks');
-    }
-
-    // Step 4: Consolidate results
-    log('INFO', 'Step 4: Consolidating results...');
-    const consolidatedResults = consolidateResults(chunkResults);
-
-    // Step 5: Save to Supabase
-    log('INFO', 'Step 5: Saving to Supabase...');
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase configuration missing');
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Delete existing data for this user and fiscal year
-    await supabase
-      .from('financial_data')
-      .delete()
-      .eq('user_id', userId)
-      .eq('period_year', parseInt(fiscalYear));
-
-    // Insert consolidated data
-    const insertData = [
-      {
-        user_id: userId,
-        data_type: 'balance_situacion',
-        period_date: `${fiscalYear}-12-31`,
-        period_year: parseInt(fiscalYear),
-        period_type: 'annual',
-        data_content: consolidatedResults.balance_situacion
-      },
-      {
-        user_id: userId,
-        data_type: 'cuenta_pyg',
-        period_date: `${fiscalYear}-12-31`,
-        period_year: parseInt(fiscalYear),
-        period_type: 'annual',
-        data_content: consolidatedResults.cuenta_pyg
-      },
-      {
-        user_id: userId,
-        data_type: 'ratios_financieros',
-        period_date: `${fiscalYear}-12-31`,
-        period_year: parseInt(fiscalYear),
-        period_type: 'annual',
-        data_content: consolidatedResults.ratios_financieros
-      }
-    ];
-
-    const { error: insertError } = await supabase
-      .from('financial_data')
-      .insert(insertData);
-
-    if (insertError) {
-      throw new Error(`Failed to save financial data: ${insertError.message}`);
-    }
-
-    // Save file metadata
-    const { error: fileError } = await supabase
-      .from('excel_files')
-      .insert({
-        user_id: userId,
-        file_name: fileName,
-        file_path: `processed/${fileName}`,
-        file_size: fileContent.length,
-        processing_status: 'completed',
-        processing_result: consolidatedResults.metadata
-      });
-
-    if (fileError) {
-      log('WARN', 'Failed to save file metadata', { error: fileError.message });
-    }
-
-    // Verify data was saved
-    const { data: verificationData, error: verificationError } = await supabase
-      .from('financial_data')
-      .select('id, data_type')
-      .eq('user_id', userId)
-      .eq('period_year', parseInt(fiscalYear));
-
-    if (verificationError || !verificationData || verificationData.length === 0) {
-      throw new Error('Failed to verify saved data');
-    }
-
-    log('INFO', '✅ Processing completed successfully', {
-      chunksProcessed: chunkResults.length,
-      totalEntries: consolidatedResults.metadata.total_asientos,
-      savedRecords: verificationData.length
+    // Update job status to AGGREGATING
+    await updateJobStatus(supabase, job.id, 'AGGREGATING', {
+      metrics: { ...validationResult.metrics, totalInserted, batchErrors }
     });
 
-    return new Response(JSON.stringify({
-      success: true,
-      message: 'Archivo procesado exitosamente con nueva arquitectura',
-      data: {
-        chunks_procesados: chunkResults.length,
-        asientos_totales: consolidatedResults.metadata.total_asientos,
-        resultado_ejercicio: consolidatedResults.cuenta_pyg.resultado_ejercicio,
-        registros_guardados: verificationData.length
-      },
-      dataQuality: {
-        coverage: 'Completo',
-        confidence: 'Alto',
-        issues: [],
-        warnings: []
+    // Refresh materialized views
+    log('INFO', 'Refreshing materialized views');
+    const refreshResult = await supabase.rpc('refresh_materialized_views', {
+      _company: job.companyId
+    });
+
+    if (refreshResult.error) {
+      log('WARN', 'Failed to refresh materialized views', { error: refreshResult.error });
+    }
+
+    // Final status update
+    const finalStatus = batchErrors > 0 ? 'PARTIAL_OK' : 'DONE';
+    await updateJobStatus(supabase, job.id, finalStatus, {
+      metrics: { 
+        ...validationResult.metrics, 
+        totalInserted, 
+        batchErrors,
+        completedAt: new Date().toISOString()
       }
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+    log('INFO', 'Processing completed successfully', { 
+      jobId: job.id, 
+      status: finalStatus,
+      totalInserted,
+      batchErrors
     });
 
   } catch (error) {
     log('ERROR', 'Processing failed', { 
-      error: error.message,
+      jobId: job.id, 
+      error: error.message, 
       stack: error.stack 
     });
 
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-      errorType: 'processing_error',
-      details: 'Error en la nueva arquitectura de procesamiento'
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // Save error details
+    await saveErrorLog(supabase, job.id, error);
+    
+    // Update job status to FAILED
+    await updateJobStatus(supabase, job.id, 'FAILED', {
+      error_message: error.message,
+      failed_at: new Date().toISOString()
     });
   }
-});
+}
+
+async function updateJobStatus(supabase: any, jobId: string, status: string, additionalData?: any) {
+  const updateData: any = { 
+    status, 
+    updated_at: new Date().toISOString() 
+  };
+  
+  if (additionalData) {
+    updateData.stats_json = additionalData;
+  }
+
+  const { error } = await supabase
+    .from('processing_jobs')
+    .update(updateData)
+    .eq('id', jobId);
+
+  if (error) {
+    log('ERROR', 'Failed to update job status', { jobId, status, error });
+  } else {
+    log('INFO', 'Job status updated', { jobId, status });
+  }
+}
+
+async function getFileSize(supabase: any, filePath: string): Promise<number> {
+  try {
+    // Try to get file info from Storage
+    const { data, error } = await supabase.storage
+      .from('gl-uploads')
+      .list(filePath.substring(0, filePath.lastIndexOf('/')), {
+        search: filePath.substring(filePath.lastIndexOf('/') + 1)
+      });
+
+    if (error || !data || data.length === 0) {
+      throw new Error(`File not found: ${filePath}`);
+    }
+
+    return data[0].metadata?.size || 0;
+  } catch (error) {
+    log('WARN', 'Could not get file size, proceeding with download', { filePath, error: error.message });
+    return 0; // Allow processing to continue
+  }
+}
+
+async function readFileFromStorage(supabase: any, filePath: string): Promise<ArrayBuffer> {
+  try {
+    // Try reading from mounted filesystem first (if available)
+    try {
+      const fsPath = `/s3/${filePath}`;
+      const fileData = await Deno.readFile(fsPath);
+      log('INFO', 'File read from mounted filesystem', { filePath: fsPath });
+      return fileData.buffer;
+    } catch {
+      // Fall back to Storage API download
+      log('INFO', 'Mounted filesystem not available, using Storage API');
+    }
+
+    // Download from Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('gl-uploads')
+      .download(filePath);
+
+    if (error) {
+      throw new Error(`Failed to download file: ${error.message}`);
+    }
+
+    return await data.arrayBuffer();
+  } catch (error) {
+    throw new Error(`Failed to read file from storage: ${error.message}`);
+  }
+}
+
+function validateAndNormalizeData(rawRows: any[]): ValidationResult {
+  const validRows: JournalLine[] = [];
+  const rejectedRows: any[] = [];
+  let totalDebit = 0;
+  let totalCredit = 0;
+
+  // Group rows by entry_no to validate balance per entry
+  const entriesByNo = new Map<number, any[]>();
+
+  for (let i = 0; i < rawRows.length; i++) {
+    const row = rawRows[i];
+    const rowIndex = i + 2; // +2 because Excel is 1-indexed and we skipped header
+
+    try {
+      // Extract and validate fields
+      const entry_no = parseInt(row['Asiento'] || row['Entry'] || row['entry_no'] || '');
+      const account = String(row['Cuenta'] || row['Account'] || row['account'] || '').trim();
+      const debitStr = String(row['Debe'] || row['Debit'] || row['debit'] || '0').replace(/[^\d.,\-]/g, '');
+      const creditStr = String(row['Haber'] || row['Credit'] || row['credit'] || '0').replace(/[^\d.,\-]/g, '');
+      const tx_date = normalizeDate(row['Fecha'] || row['Date'] || row['tx_date']);
+      
+      // Validate required fields
+      if (!entry_no || isNaN(entry_no)) {
+        throw new Error('Invalid or missing entry number');
+      }
+
+      if (!account || !/^\d{3,9}$/.test(account)) {
+        throw new Error('Invalid account code format (must be 3-9 digits)');
+      }
+
+      if (!tx_date) {
+        throw new Error('Invalid or missing date');
+      }
+
+      // Parse amounts
+      const debit = parseAmount(debitStr);
+      const credit = parseAmount(creditStr);
+
+      // Validate amounts
+      if (debit < 0 || credit < 0) {
+        throw new Error('Negative amounts not allowed');
+      }
+
+      if (debit === 0 && credit === 0) {
+        throw new Error('Both debit and credit cannot be zero');
+      }
+
+      if (debit > 0 && credit > 0) {
+        throw new Error('Both debit and credit cannot be positive');
+      }
+
+      // Create normalized journal line
+      const journalLine: JournalLine = {
+        entry_no,
+        tx_date,
+        memo: String(row['Concepto'] || row['Memo'] || row['memo'] || '').trim() || undefined,
+        line_no: parseInt(row['Linea'] || row['Line'] || row['line_no'] || '1'),
+        account,
+        description: String(row['Descripcion'] || row['Description'] || row['description'] || '').trim() || undefined,
+        debit,
+        credit,
+        doc_ref: String(row['Documento'] || row['Document'] || row['doc_ref'] || '').trim() || undefined
+      };
+
+      // Group by entry for balance validation
+      if (!entriesByNo.has(entry_no)) {
+        entriesByNo.set(entry_no, []);
+      }
+      entriesByNo.get(entry_no)!.push({ journalLine, rowIndex });
+
+      totalDebit += debit;
+      totalCredit += credit;
+
+    } catch (error) {
+      rejectedRows.push({
+        row_index: rowIndex,
+        original_data: row,
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  // Validate balance per entry
+  let entriesBalance = true;
+  for (const [entryNo, lines] of entriesByNo.entries()) {
+    const entryDebit = lines.reduce((sum, { journalLine }) => sum + journalLine.debit, 0);
+    const entryCredit = lines.reduce((sum, { journalLine }) => sum + journalLine.credit, 0);
+    
+    if (Math.abs(entryDebit - entryCredit) > 0.01) { // Allow for rounding
+      entriesBalance = false;
+      // Move all lines of this entry to rejected
+      lines.forEach(({ journalLine, rowIndex }) => {
+        rejectedRows.push({
+          row_index: rowIndex,
+          original_data: journalLine,
+          error: `Entry ${entryNo} does not balance: Debit ${entryDebit}, Credit ${entryCredit}`,
+          timestamp: new Date().toISOString()
+        });
+      });
+    } else {
+      // Add valid lines
+      lines.forEach(({ journalLine }) => validRows.push(journalLine));
+    }
+  }
+
+  return {
+    validRows,
+    rejectedRows,
+    metrics: {
+      totalRows: rawRows.length,
+      validRows: validRows.length,
+      rejectedRows: rejectedRows.length,
+      totalDebit,
+      totalCredit,
+      entriesBalance
+    }
+  };
+}
+
+function normalizeDate(dateValue: any): string | null {
+  if (!dateValue) return null;
+
+  try {
+    let date: Date;
+
+    if (typeof dateValue === 'number') {
+      // Excel serial date
+      date = XLSX.SSF.parse_date_code(dateValue);
+    } else if (typeof dateValue === 'string') {
+      // String date - try various formats
+      const cleaned = dateValue.trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(cleaned)) {
+        date = new Date(cleaned);
+      } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(cleaned)) {
+        const [day, month, year] = cleaned.split('/');
+        date = new Date(`${year}-${month}-${day}`);
+      } else {
+        date = new Date(cleaned);
+      }
+    } else {
+      date = new Date(dateValue);
+    }
+
+    if (isNaN(date.getTime())) {
+      return null;
+    }
+
+    // Format as YYYY-MM-DD
+    return date.toISOString().split('T')[0];
+  } catch {
+    return null;
+  }
+}
+
+function parseAmount(amountStr: string): number {
+  if (!amountStr || amountStr.trim() === '') return 0;
+  
+  // Remove any non-numeric characters except dots, commas, and minus
+  const cleaned = amountStr.replace(/[^\d.,\-]/g, '');
+  
+  // Handle European format (comma as decimal separator)
+  let normalized = cleaned;
+  if (cleaned.includes(',') && cleaned.includes('.')) {
+    // Both comma and dot - assume comma is thousands separator
+    normalized = cleaned.replace(/,/g, '');
+  } else if (cleaned.includes(',') && !cleaned.includes('.')) {
+    // Only comma - assume decimal separator
+    normalized = cleaned.replace(',', '.');
+  }
+  
+  const amount = parseFloat(normalized);
+  return isNaN(amount) ? 0 : Math.abs(amount); // Always positive, sign determined by debit/credit column
+}
+
+function createDynamicBatches(rows: JournalLine[], targetSizeBytes: number): JournalLine[][] {
+  const batches: JournalLine[][] = [];
+  let currentBatch: JournalLine[] = [];
+  let currentBatchSize = 0;
+
+  for (const row of rows) {
+    const rowSize = JSON.stringify(row).length;
+    
+    if (currentBatchSize + rowSize > targetSizeBytes && currentBatch.length > 0) {
+      // Start new batch
+      batches.push(currentBatch);
+      currentBatch = [row];
+      currentBatchSize = rowSize;
+    } else {
+      // Add to current batch
+      currentBatch.push(row);
+      currentBatchSize += rowSize;
+    }
+  }
+
+  // Add final batch if not empty
+  if (currentBatch.length > 0) {
+    batches.push(currentBatch);
+  }
+
+  return batches;
+}
+
+async function saveRejectedRows(supabase: any, jobId: string, rejectedRows: any[]) {
+  try {
+    const csv = createCSVFromRejectedRows(rejectedRows);
+    const fileName = `jobs/${jobId}/rejected_rows.csv`;
+    
+    const { error } = await supabase.storage
+      .from('gl-artifacts')
+      .upload(fileName, new Blob([csv], { type: 'text/csv' }), { upsert: true });
+
+    if (error) {
+      log('ERROR', 'Failed to save rejected rows CSV', { jobId, error });
+    } else {
+      log('INFO', 'Rejected rows saved to CSV', { jobId, fileName, count: rejectedRows.length });
+      
+      // Update job with error log path
+      await supabase
+        .from('processing_jobs')
+        .update({ error_log_path: fileName })
+        .eq('id', jobId);
+    }
+  } catch (error) {
+    log('ERROR', 'Failed to save rejected rows', { jobId, error: error.message });
+  }
+}
+
+function createCSVFromRejectedRows(rejectedRows: any[]): string {
+  if (rejectedRows.length === 0) return '';
+
+  const headers = ['Row Index', 'Error', 'Timestamp', 'Original Data'];
+  const csvRows = [headers.join(',')];
+
+  for (const rejected of rejectedRows) {
+    const row = [
+      rejected.row_index,
+      `"${rejected.error.replace(/"/g, '""')}"`,
+      rejected.timestamp,
+      `"${JSON.stringify(rejected.original_data).replace(/"/g, '""')}"`
+    ];
+    csvRows.push(row.join(','));
+  }
+
+  return csvRows.join('\n');
+}
+
+async function saveErrorLog(supabase: any, jobId: string, error: Error) {
+  try {
+    const errorLog = {
+      jobId,
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString()
+    };
+
+    const fileName = `jobs/${jobId}/error.log`;
+    const logContent = JSON.stringify(errorLog, null, 2);
+    
+    const { error: uploadError } = await supabase.storage
+      .from('gl-artifacts')
+      .upload(fileName, new Blob([logContent], { type: 'application/json' }), { upsert: true });
+
+    if (!uploadError) {
+      // Update job with error log path
+      await supabase
+        .from('processing_jobs')
+        .update({ error_log_path: fileName })
+        .eq('id', jobId);
+    }
+  } catch (saveError) {
+    log('ERROR', 'Failed to save error log', { jobId, saveError: saveError.message });
+  }
+}
