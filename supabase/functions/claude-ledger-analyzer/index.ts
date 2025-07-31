@@ -46,10 +46,10 @@ serve(async (req) => {
       throw new Error('Faltan parámetros requeridos: userId, fileName, fileContent')
     }
 
-    // Get OpenAI API key
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
+    // Get OpenAI API key (using the secret name from Supabase)
+    const openaiApiKey = Deno.env.get('OpenAI - ChatGPT') || Deno.env.get('OPENAI_API_KEY')
     if (!openaiApiKey) {
-      throw new Error('OPENAI_API_KEY not found in environment')
+      throw new Error('OpenAI API key not found in environment')
     }
 
     log('info', 'Starting real data processing with GPT-4o-mini')
