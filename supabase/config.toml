@@ -3,6 +3,9 @@ project_id = "hlwchpmogvwmpuvwmvwv"
 [functions.process-excel]
 verify_jwt = false
 
+[functions.simple-excel-parser]
+verify_jwt = false
+
 [functions.admin-users]
 verify_jwt = true
 
@@ -10,7 +13,7 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.claude-testing-analyzer]
-verify_jwt = true
+verify_jwt = false
 
 [functions.document-detector]
 verify_jwt = true
@@ -25,4 +28,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.claude-eda-analyzer]
-verify_jwt = true
+verify_jwt = false

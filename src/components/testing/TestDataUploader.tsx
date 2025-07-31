@@ -99,7 +99,7 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
       const allData = { detectedSheets: [], detectedFields: {} };
       
       for (const file of validFiles) {
-        const { data, error } = await supabase.functions.invoke('process-excel', {
+        const { data, error } = await supabase.functions.invoke('simple-excel-parser', {
           body: { 
             file: await fileToBase64(file),
             fileName: file.name
