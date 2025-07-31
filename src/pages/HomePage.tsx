@@ -39,12 +39,8 @@ const HomePage = () => {
   const [recentFiles, setRecentFiles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Redireccionar admins al panel de administración
-  useEffect(() => {
-    if (!roleLoading && userRole === 'admin') {
-      navigate('/admin/users');
-    }
-  }, [userRole, roleLoading, navigate]);
+  // Nota: Ya no redirigimos automáticamente a los admins
+  // Permitimos que puedan ver dashboards de usuarios cuando están impersonando
 
   useEffect(() => {
     if (user) {

@@ -37,6 +37,8 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useCompanyLogo } from '@/hooks/useCompanyLogo';
 import { useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
 import { CompanyLogo } from '@/components/CompanyLogo';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 export const DashboardSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -53,7 +55,8 @@ export const DashboardSidebar = () => {
   const currentPath = location.pathname;
   const { isAdmin } = useUserRole();
   const { logoUrl } = useCompanyLogo();
-  const { isImpersonating } = useAdminImpersonation();
+  const { isImpersonating, impersonatedUserInfo, setImpersonation } = useAdminImpersonation();
+  const navigate = useNavigate();
 
   // Function to get the section key based on current path
   const getSectionFromPath = (path: string): string | null => {
@@ -353,6 +356,35 @@ export const DashboardSidebar = () => {
           )}
         </button>
       </div>
+
+      {/* Admin Impersonation Banner */}
+      {isAdmin && isImpersonating && impersonatedUserInfo && (
+        <div className="mx-4 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-blue-800 mb-1">Viendo como:</p>
+              <p className="text-sm font-semibold text-blue-900 truncate">
+                {impersonatedUserInfo.email}
+              </p>
+              <p className="text-xs text-blue-700 truncate">
+                {impersonatedUserInfo.company_name}
+              </p>
+            </div>
+          </div>
+          <Button
+            onClick={() => {
+              setImpersonation(null, null);
+              navigate('/admin/users');
+            }}
+            size="sm"
+            variant="outline"
+            className="w-full mt-2 text-xs border-blue-300 text-blue-700 hover:bg-blue-100"
+          >
+            <Shield className="h-3 w-3 mr-1" />
+            Volver a Panel Admin
+          </Button>
+        </div>
+      )}
 
       {/* Navigation with modern styling */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto scrollbar-hide">

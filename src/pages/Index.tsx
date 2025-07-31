@@ -2,20 +2,27 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUserRole } from '@/hooks/useUserRole';
 
 const Index = () => {
   const { user, loading } = useAuth();
+  const { userRole, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading) {
+    if (!loading && !roleLoading) {
       if (user) {
-        navigate('/home');
+        // Detectar rol y redirigir apropiadamente
+        if (userRole === 'admin') {
+          navigate('/admin/users');
+        } else {
+          navigate('/home');
+        }
       } else {
         navigate('/auth');
       }
     }
-  }, [user, loading, navigate]);
+  }, [user, userRole, loading, roleLoading, navigate]);
 
   if (loading) {
     return (

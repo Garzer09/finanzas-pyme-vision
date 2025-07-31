@@ -228,9 +228,8 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
 
   const handleGoToDashboard = () => {
     handleClose();
-    // Navegar a la página principal donde el contexto de impersonación 
-    // mostrará los datos del usuario correcto
-    navigate('/');
+    // Navegar a /home donde se mostrará el dashboard del usuario
+    navigate('/home');
   };
 
   const formatFileSize = (bytes: number) => {
