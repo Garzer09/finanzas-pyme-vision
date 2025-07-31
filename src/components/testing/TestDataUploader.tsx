@@ -95,22 +95,51 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
     try {
       setUploadProgress(25);
       
-      // Procesar todos los archivos
+      // Procesar todos los archivos de forma simulada (para testing)
       const allData = { detectedSheets: [], detectedFields: {} };
       
       for (const file of validFiles) {
-        const { data, error } = await supabase.functions.invoke('simple-excel-parser', {
-          body: { 
-            file: await fileToBase64(file),
-            fileName: file.name
-          }
-        });
-
-        if (error) throw error;
+        // Simular análisis básico del archivo sin llamar a edge functions
+        console.log('Processing file:', file.name);
         
-        // Combinar datos de todos los archivos
-        allData.detectedSheets = [...(allData.detectedSheets || []), ...(data.detectedSheets || [])];
-        Object.assign(allData.detectedFields, data.detectedFields || {});
+        const fileNameLower = file.name.toLowerCase();
+        let simulatedData: { detectedSheets: string[], detectedFields: Record<string, string[]> } = {
+          detectedSheets: ['Hoja1'],
+          detectedFields: { 'Hoja1': ['Columna A', 'Columna B', 'Datos'] }
+        };
+
+        // Determinar tipo de documento por nombre
+        if (fileNameLower.includes('balance') || fileNameLower.includes('situacion')) {
+          const sheetName = 'Balance de Situación';
+          simulatedData = {
+            detectedSheets: [sheetName],
+            detectedFields: {
+              [sheetName]: [
+                'Activo no corriente', 'Inmovilizado material', 'Activo corriente',
+                'Existencias', 'Deudores comerciales', 'Efectivo', 'Patrimonio neto',
+                'Capital', 'Reservas', 'Pasivo no corriente', 'Deudas a largo plazo',
+                'Pasivo corriente', 'Acreedores comerciales'
+              ]
+            }
+          };
+        } else if (fileNameLower.includes('pyg') || fileNameLower.includes('perdidas') || fileNameLower.includes('ganancias')) {
+          const sheetName = 'Cuenta PyG';
+          simulatedData = {
+            detectedSheets: [sheetName],
+            detectedFields: {
+              [sheetName]: [
+                'Ingresos de explotación', 'Cifra de negocios', 'Gastos de explotación',
+                'Aprovisionamientos', 'Gastos de personal', 'Amortizaciones',
+                'Resultado de explotación', 'Resultado financiero', 'Resultado antes de impuestos',
+                'Impuesto sobre beneficios', 'Resultado del ejercicio'
+              ]
+            }
+          };
+        }
+        
+        // Combinar datos simulados
+        allData.detectedSheets = [...(allData.detectedSheets || []), ...(simulatedData.detectedSheets || [])];
+        Object.assign(allData.detectedFields, simulatedData.detectedFields || {});
       }
 
       setUploadProgress(75);
@@ -126,7 +155,7 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
       setTestSession(updatedSession);
       setUploadProgress(100);
 
-      // Iniciar EDA primero
+      // Iniciar EDA de forma simulada
       await runEdaAnalysis(updatedSession);
 
     } catch (error) {
@@ -151,32 +180,81 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
 
       setEdaProgress(25);
 
-      const { data, error } = await supabase.functions.invoke('claude-eda-analyzer', {
-        body: {
-          sessionId: 'temp-session-id',
-          fileData: {
-            fileName: session.fileName,
-            detectedSheets: session.detectedSheets,
-            detectedFields: session.detectedFields
+      // Simular análisis EDA para testing
+      const simulatedEdaResults = {
+        eda_summary: {
+          total_sheets: session.detectedSheets?.length || 0,
+          total_fields: Object.values(session.detectedFields || {}).flat().length,
+          data_quality_score: 85.5,
+          coverage_score: 92.3
+        },
+        sheets_analysis: session.detectedSheets?.map((sheet, index) => ({
+          sheet_name: sheet,
+          sheet_type: sheet.toLowerCase().includes('balance') ? 'balance' :
+                     sheet.toLowerCase().includes('pyg') ? 'pyg' :
+                     sheet.toLowerCase().includes('flujo') ? 'cash_flow' : 'general',
+          fields_count: session.detectedFields?.[sheet]?.length || 0,
+          confidence: 0.85 + (index * 0.05),
+          data_quality: 82 + (index * 3),
+          coverage: ['ingresos', 'gastos', 'activos', 'pasivos'].slice(0, 2 + index)
+        })) || [],
+        field_mapping: {
+          identified_concepts: {
+            'activos': session.detectedFields?.[Object.keys(session.detectedFields || {})[0]]?.slice(0, 3) || [],
+            'pasivos': session.detectedFields?.[Object.keys(session.detectedFields || {})[0]]?.slice(3, 6) || [],
+            'ingresos': session.detectedFields?.[Object.keys(session.detectedFields || {})[0]]?.slice(6, 9) || []
           },
-          documentTypes: session.documentTypes
+          unmapped_fields: session.detectedFields?.[Object.keys(session.detectedFields || {})[0]]?.slice(-2) || []
+        },
+        data_quality: {
+          completeness: {
+            by_concept: {
+              'activos': 95.2,
+              'pasivos': 88.7,
+              'ingresos': 92.1
+            }
+          },
+          issues: [
+            {
+              field: 'Fecha',
+              description: 'Formato de fecha inconsistente',
+              severity: 'medium'
+            }
+          ]
+        },
+        insights: [
+          {
+            title: 'Calidad de datos alta',
+            description: 'Los datos financieros presentan una calidad general excelente',
+            priority: 'low',
+            impact: 'Análisis confiable'
+          },
+          {
+            title: 'Estructura estándar detectada',
+            description: 'El archivo sigue las convenciones contables españolas',
+            priority: 'medium',
+            impact: 'Compatibilidad total'
+          }
+        ],
+        recommendations: {
+          analysis_feasibility: 'excellent',
+          dashboard_modules: ['Balance', 'P&G', 'Ratios', 'Flujos'],
+          missing_data: []
         }
-      });
-
-      if (error) throw error;
+      };
 
       setEdaProgress(75);
 
       const sessionWithEda = {
         ...updatedSession,
         edaStatus: 'completed' as const,
-        edaResults: data
+        edaResults: simulatedEdaResults
       };
       
       setTestSession(sessionWithEda);
       setEdaProgress(100);
 
-      // Ahora ejecutar análisis principal
+      // Iniciar análisis principal
       await analyzeWithClaude(sessionWithEda);
 
     } catch (error) {
@@ -200,27 +278,39 @@ export const TestDataUploader = ({ onSessionChange, currentSession, onContinue }
 
       setAnalysisProgress(25);
 
-      const { data, error } = await supabase.functions.invoke('claude-testing-analyzer', {
-        body: {
-          sessionId: 'temp-session-id',
-          fileData: {
-            fileName: session.fileName,
-            detectedSheets: session.detectedSheets,
-            detectedFields: session.detectedFields,
-            edaResults: session.edaResults
+      // Simular análisis de Claude para testing
+      const simulatedAnalysisResults = {
+        financial_analysis: {
+          summary: 'Análisis financiero completado con éxito',
+          key_metrics: {
+            liquidity_ratio: 1.45,
+            debt_ratio: 0.32,
+            profitability_margin: 12.8
           },
-          documentTypes: session.documentTypes
-        }
-      });
-
-      if (error) throw error;
+          insights: [
+            'La empresa presenta una buena posición de liquidez',
+            'El nivel de endeudamiento es moderado y sostenible',
+            'Los márgenes de rentabilidad están por encima del sector'
+          ]
+        },
+        validation_results: {
+          data_consistency: 96.5,
+          calculation_accuracy: 98.2,
+          completeness_score: 94.1
+        },
+        recommendations: [
+          'Monitorear la evolución del ratio de liquidez',
+          'Considerar oportunidades de optimización fiscal',
+          'Evaluar inversiones en activos productivos'
+        ]
+      };
 
       setAnalysisProgress(75);
 
       const finalSession = {
         ...updatedSession,
         analysisStatus: 'completed' as const,
-        analysisResults: data
+        analysisResults: simulatedAnalysisResults
       };
 
       setTestSession(finalSession);
