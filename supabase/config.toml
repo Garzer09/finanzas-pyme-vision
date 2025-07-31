@@ -18,6 +18,9 @@ verify_jwt = false
 [functions.claude-comprehensive-analyzer]
 verify_jwt = false
 
+[functions.claude-ledger-analyzer]
+verify_jwt = false
+
 [functions.document-detector]
 verify_jwt = true
 

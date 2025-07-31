@@ -327,6 +327,10 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                 user={user}
                 hasData={usersWithData[user.id] || false}
                 onClick={() => handleUserClick(user)}
+                onUploadLedger={() => {
+                  // Aquí podrías abrir el modal de carga específico para este usuario
+                  console.log('Upload ledger for user:', user.id);
+                }}
               />
             ))}
           </div>
