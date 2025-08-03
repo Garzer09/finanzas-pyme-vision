@@ -415,11 +415,11 @@ function validatePyGData(rows: any[], metadata: any): { valid: boolean, errors: 
       continue
     }
 
-    // Validate amounts are positive
+    // Validate amounts are numbers (negative values allowed in P&L)
     for (const [key, value] of Object.entries(row)) {
       if (key !== 'Concepto' && key !== 'Notas' && value) {
         const amount = parseFloat(String(value).replace(',', '.').replace(/[^\\d.-]/g, ''))
-        if (isNaN(amount) || amount < 0) {
+        if (isNaN(amount)) {
           errors.push(`Importe inválido en ${concept}, columna ${key}: ${value}`)
         }
       }
