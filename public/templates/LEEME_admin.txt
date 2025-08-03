@@ -1,0 +1,27 @@
+INSTRUCCIONES RÁPIDAS (ADMIN)
+
+1) Rellena primero los metadatos en la app (Periodo y Moneda).
+2) Completa al menos estos ficheros CSV (UTF-8, separador coma, punto decimal, sin miles):
+   - cuenta-pyg.csv
+   - balance-situacion.csv
+   Opcionales: pool-deuda.csv, pool-deuda-vencimientos.csv, estado-flujos.csv, datos-operativos.csv, supuestos-financieros.csv, info-empresa.csv
+
+3) Años en columnas: 2022, 2023, 2024 (puedes cambiar los encabezados por los años que necesites, pero sé consistente en todos los archivos de ese periodo).
+
+REGLAS IMPORTANTES
+- No incluyas filas de título de sección (solo conceptos con valores).
+- En Balance: el sistema comprobará que Total Activo ≈ Patrimonio Neto + Total Pasivo (tolerancia 0,01).
+- En P&L: no pongas EBIT/EBITDA/BAI ni márgenes; los calcula el sistema.
+- Fechas en formato ISO YYYY-MM-DD (p.ej., Vencimiento en pool-deuda.csv).
+- Si un dato no aplica, deja la celda en blanco.
+
+EJEMPLOS
+- En cuenta-pyg.csv, "Cifra de negocios" debe contener ventas netas de cada año.
+- En balance-situacion.csv, "Efectivo y equivalentes" es caja+bancos.
+- En pool-deuda.csv, "Tipo_Interes" en porcentaje (p.ej., 3.50) y "Vencimiento" en YYYY-MM-DD.
+
+SOPORTE
+Si la app marca errores, revisa que:
+- Los encabezados de columnas son exactos.
+- Usas punto decimal y no pones separadores de miles.
+- No incluyes totales/secciones como filas.
