@@ -11,9 +11,7 @@ const CANONICAL_CSV_NAMES = {
   'estado-flujos.csv': 'cashflow',
   'datos-operativos.csv': 'operational',
   'supuestos-financieros.csv': 'assumptions',
-  'info-empresa.csv': 'company_info',
-  // Benchmark externo (no fuente de verdad)
-  'ratios-financieros.csv': 'benchmarks'
+  'info-empresa.csv': 'company_info'
 }
 
 const REQUIRED_FILES = ['cuenta-pyg.csv', 'balance-situacion.csv']
@@ -386,11 +384,19 @@ async function validateCsvData(fileType: string, rows: any[], metadata: any): Pr
     return validateBalanceData(rows, metadata)
   } else if (fileType === 'debt_pool') {
     return validateDebtPoolData(rows, metadata)
+  } else if (fileType === 'debt_maturities') {
+    return validateDebtMaturityData(rows, metadata)
   } else if (fileType === 'cashflow') {
     return validateCashflowData(rows, metadata)
+  } else if (fileType === 'operational') {
+    return validateOperationalData(rows, metadata)
+  } else if (fileType === 'assumptions') {
+    return validateAssumptionsData(rows, metadata)
+  } else if (fileType === 'company_info') {
+    return validateCompanyInfoData(rows, metadata)
   }
   
-  // Other file types - basic validation
+  // Unknown file types - basic validation
   return { valid: true, errors: [], data: rows }
 }
 
@@ -473,8 +479,9 @@ function validateDebtPoolData(rows: any[], metadata: any): { valid: boolean, err
   const validRows: any[] = []
 
   for (const row of rows) {
-    const interestRate = parseFloat(row['Tipo de Interés (%)'] || '0')
+    const interestRate = parseFloat(row['Tipo_Interes'] || '0')
     const maturityDate = row['Vencimiento']
+    const currency = row['Moneda'] || 'EUR'
 
     if (interestRate < 0 || interestRate > 100) {
       errors.push(`Tipo de interés inválido: ${interestRate}%`)
@@ -482,6 +489,98 @@ function validateDebtPoolData(rows: any[], metadata: any): { valid: boolean, err
 
     if (maturityDate && !/^\d{4}-\d{2}-\d{2}$/.test(maturityDate)) {
       errors.push(`Fecha de vencimiento inválida: ${maturityDate}`)
+    }
+
+    if (!['EUR', 'USD', 'GBP'].includes(currency)) {
+      errors.push(`Moneda no soportada: ${currency}`)
+    }
+
+    validRows.push(row)
+  }
+
+  return { valid: errors.length === 0, errors, data: validRows }
+}
+
+function validateDebtMaturityData(rows: any[], metadata: any): { valid: boolean, errors: string[], data: any[] } {
+  const errors: string[] = []
+  const validRows: any[] = []
+
+  for (const row of rows) {
+    const loanKey = row['Loan_Key']?.trim()
+    const year = parseInt(row['Year'] || '0')
+
+    if (!loanKey) {
+      errors.push('Loan_Key requerido para vincular con pool de deuda')
+      continue
+    }
+
+    if (year < 2020 || year > 2050) {
+      errors.push(`Año inválido: ${year}`)
+    }
+
+    validRows.push(row)
+  }
+
+  return { valid: errors.length === 0, errors, data: validRows }
+}
+
+function validateOperationalData(rows: any[], metadata: any): { valid: boolean, errors: string[], data: any[] } {
+  const errors: string[] = []
+  const validRows: any[] = []
+
+  for (const row of rows) {
+    const concept = row['Concepto']?.trim()
+    const unit = row['Unidad']?.trim()
+
+    if (!concept) {
+      errors.push('Concepto requerido en datos operativos')
+      continue
+    }
+
+    if (!unit) {
+      errors.push(`Unidad requerida para concepto: ${concept}`)
+    }
+
+    validRows.push(row)
+  }
+
+  return { valid: errors.length === 0, errors, data: validRows }
+}
+
+function validateAssumptionsData(rows: any[], metadata: any): { valid: boolean, errors: string[], data: any[] } {
+  const errors: string[] = []
+  const validRows: any[] = []
+
+  for (const row of rows) {
+    const concept = row['Concepto']?.trim()
+    const value = row['Valor']
+
+    if (!concept) {
+      errors.push('Concepto requerido en supuestos financieros')
+      continue
+    }
+
+    if (value && isNaN(parseFloat(String(value).replace(',', '.')))) {
+      errors.push(`Valor inválido para ${concept}: ${value}`)
+    }
+
+    validRows.push(row)
+  }
+
+  return { valid: errors.length === 0, errors, data: validRows }
+}
+
+function validateCompanyInfoData(rows: any[], metadata: any): { valid: boolean, errors: string[], data: any[] } {
+  const errors: string[] = []
+  const validRows: any[] = []
+
+  const requiredFields = ['Nombre']
+  for (const row of rows) {
+    const campo = row['Campo']?.trim()
+    const valor = row['Valor']?.trim()
+
+    if (requiredFields.includes(campo) && !valor) {
+      errors.push(`Campo requerido sin valor: ${campo}`)
     }
 
     validRows.push(row)
@@ -519,10 +618,45 @@ async function loadNormalizedData(supabase: any, validatedData: { [key: string]:
     })
   }
 
-  // Load other data types...
+  // Load Cashflow data
+  if (validatedData['estado-flujos.csv']) {
+    await loadCashflowData(supabase, validatedData['estado-flujos.csv'], {
+      companyId, periodDate, periodType, periodYear, periodQuarter, periodMonth, currencyCode, uploadedBy, jobId, importMode
+    })
+  }
+
+  // Load Operational data
+  if (validatedData['datos-operativos.csv']) {
+    await loadOperationalData(supabase, validatedData['datos-operativos.csv'], {
+      companyId, periodDate, periodType, periodYear, periodQuarter, periodMonth, currencyCode, uploadedBy, jobId, importMode
+    })
+  }
+
+  // Load Financial assumptions
+  if (validatedData['supuestos-financieros.csv']) {
+    await loadAssumptionsData(supabase, validatedData['supuestos-financieros.csv'], {
+      companyId, currencyCode, uploadedBy, jobId
+    })
+  }
+
+  // Load Company info
+  if (validatedData['info-empresa.csv']) {
+    await loadCompanyInfoData(supabase, validatedData['info-empresa.csv'], {
+      companyId, uploadedBy, jobId
+    })
+  }
+
+  // Load Debt pool data
   if (validatedData['pool-deuda.csv']) {
     await loadDebtData(supabase, validatedData['pool-deuda.csv'], {
       companyId, currencyCode, uploadedBy, jobId
+    })
+  }
+
+  // Load Debt maturities
+  if (validatedData['pool-deuda-vencimientos.csv']) {
+    await loadDebtMaturityData(supabase, validatedData['pool-deuda-vencimientos.csv'], {
+      companyId, uploadedBy, jobId
     })
   }
 }
@@ -636,17 +770,247 @@ async function loadBalanceData(supabase: any, rows: any[], context: any) {
   }
 }
 
+async function loadCashflowData(supabase: any, rows: any[], context: any) {
+  // Delete existing data for this period (REPLACE mode)
+  if (context.importMode === 'REPLACE') {
+    const deleteQuery = supabase
+      .from('fs_cashflow_lines')
+      .delete()
+      .eq('company_id', context.companyId)
+      .eq('period_type', context.periodType)
+      .eq('period_year', context.periodYear)
+
+    if (context.periodQuarter) deleteQuery.eq('period_quarter', context.periodQuarter)
+    if (context.periodMonth) deleteQuery.eq('period_month', context.periodMonth)
+
+    await deleteQuery
+  }
+
+  // Transform to long format and insert
+  const longData: any[] = []
+  for (const row of rows) {
+    const concept = row['Concepto']?.trim()
+    if (!concept) continue
+
+    // Determine category based on concept
+    let category = 'OPERATIVO'
+    if (concept.includes('Inversión') || concept.includes('Inmovilizado')) category = 'INVERSION'
+    if (concept.includes('Capital') || concept.includes('Dividendo') || concept.includes('Deuda')) category = 'FINANCIACION'
+
+    for (const [key, value] of Object.entries(row)) {
+      if (key !== 'Concepto' && key !== 'Notas' && value && /^\d{4}$/.test(key)) {
+        const amount = parseFloat(String(value).replace(',', '.').replace(/[^\\d.-]/g, ''))
+        if (!isNaN(amount)) {
+          longData.push({
+            company_id: context.companyId,
+            period_date: context.periodDate,
+            period_type: context.periodType,
+            period_year: context.periodYear,
+            period_quarter: context.periodQuarter,
+            period_month: context.periodMonth,
+            category,
+            concept,
+            amount,
+            currency_code: context.currencyCode,
+            uploaded_by: context.uploadedBy,
+            job_id: context.jobId
+          })
+        }
+      }
+    }
+  }
+
+  if (longData.length > 0) {
+    const { error } = await supabase.from('fs_cashflow_lines').insert(longData)
+    if (error) throw error
+  }
+}
+
+async function loadOperationalData(supabase: any, rows: any[], context: any) {
+  // Delete existing data for this period (REPLACE mode)
+  if (context.importMode === 'REPLACE') {
+    const deleteQuery = supabase
+      .from('operational_metrics')
+      .delete()
+      .eq('company_id', context.companyId)
+      .eq('period_type', context.periodType)
+      .eq('period_year', context.periodYear)
+
+    if (context.periodQuarter) deleteQuery.eq('period_quarter', context.periodQuarter)
+    if (context.periodMonth) deleteQuery.eq('period_month', context.periodMonth)
+
+    await deleteQuery
+  }
+
+  // Transform to long format and insert
+  const longData: any[] = []
+  for (const row of rows) {
+    const concept = row['Concepto']?.trim()
+    const unit = row['Unidad']?.trim() || 'units'
+    if (!concept) continue
+
+    for (const [key, value] of Object.entries(row)) {
+      if (key !== 'Concepto' && key !== 'Unidad' && key !== 'Descripción' && value && /^\d{4}$/.test(key)) {
+        const amount = parseFloat(String(value).replace(',', '.').replace(/[^\\d.-]/g, ''))
+        if (!isNaN(amount)) {
+          longData.push({
+            company_id: context.companyId,
+            period_date: context.periodDate,
+            period_type: context.periodType,
+            period_year: context.periodYear,
+            period_quarter: context.periodQuarter,
+            period_month: context.periodMonth,
+            metric_name: concept,
+            unit,
+            value: amount,
+            uploaded_by: context.uploadedBy,
+            job_id: context.jobId
+          })
+        }
+      }
+    }
+  }
+
+  if (longData.length > 0) {
+    const { error } = await supabase.from('operational_metrics').insert(longData)
+    if (error) throw error
+  }
+}
+
+async function loadAssumptionsData(supabase: any, rows: any[], context: any) {
+  // Delete existing data (REPLACE mode)
+  await supabase
+    .from('financial_assumptions_normalized')
+    .delete()
+    .eq('company_id', context.companyId)
+
+  // Transform and insert
+  const longData: any[] = []
+  for (const row of rows) {
+    const concept = row['Concepto']?.trim()
+    const value = row['Valor']
+    const unit = row['Unidad']?.trim() || 'percentage'
+    const notes = row['Notas']
+
+    if (!concept || !value) continue
+
+    const numericValue = parseFloat(String(value).replace(',', '.').replace(/[^\\d.-]/g, ''))
+    if (isNaN(numericValue)) continue
+
+    // Determine category
+    let category = 'GENERAL'
+    if (concept.includes('ingreso') || concept.includes('venta')) category = 'INGRESOS'
+    if (concept.includes('coste') || concept.includes('gasto')) category = 'COSTES'
+    if (concept.includes('CAPEX') || concept.includes('inversión')) category = 'INVERSION'
+    if (concept.includes('WACC') || concept.includes('financiación')) category = 'FINANCIACION'
+
+    longData.push({
+      company_id: context.companyId,
+      assumption_category: category,
+      assumption_name: concept,
+      assumption_value: numericValue,
+      unit,
+      notes,
+      period_type: 'annual',
+      period_year: new Date().getFullYear(),
+      uploaded_by: context.uploadedBy,
+      job_id: context.jobId
+    })
+  }
+
+  if (longData.length > 0) {
+    const { error } = await supabase.from('financial_assumptions_normalized').insert(longData)
+    if (error) throw error
+  }
+}
+
+async function loadCompanyInfoData(supabase: any, rows: any[], context: any) {
+  // Upsert company info
+  const companyData: any = { id: context.companyId }
+  
+  for (const row of rows) {
+    const campo = row['Campo']?.trim()
+    const valor = row['Valor']?.trim()
+    
+    if (!campo || !valor) continue
+
+    // Map fields to company table columns
+    switch (campo.toLowerCase()) {
+      case 'nombre':
+        companyData.name = valor
+        break
+      case 'sector':
+        companyData.sector = valor
+        break
+      case 'currency_code':
+        companyData.currency_code = valor
+        break
+      case 'accounting_standard':
+        companyData.accounting_standard = valor
+        break
+    }
+  }
+
+  if (Object.keys(companyData).length > 1) {
+    const { error } = await supabase
+      .from('companies')
+      .upsert(companyData, { onConflict: 'id' })
+    
+    if (error) throw error
+  }
+
+  // Also store full info in normalized table
+  const infoData = {
+    company_id: context.companyId,
+    company_name: companyData.name || 'Unknown',
+    sector: companyData.sector,
+    uploaded_by: context.uploadedBy,
+    job_id: context.jobId
+  }
+
+  for (const row of rows) {
+    const campo = row['Campo']?.trim()
+    const valor = row['Valor']?.trim()
+    
+    switch (campo?.toLowerCase()) {
+      case 'industria':
+        infoData.industry = valor
+        break
+      case 'empleados':
+        infoData.employees_count = parseInt(valor) || null
+        break
+      case 'año fundación':
+        infoData.founded_year = parseInt(valor) || null
+        break
+      case 'sede':
+        infoData.headquarters = valor
+        break
+      case 'web':
+        infoData.website = valor
+        break
+      case 'descripción':
+        infoData.description = valor
+        break
+    }
+  }
+
+  await supabase
+    .from('company_info_normalized')
+    .upsert(infoData, { onConflict: 'company_id' })
+}
+
 async function loadDebtData(supabase: any, rows: any[], context: any) {
   // Process debt pool data
   for (const row of rows) {
-    const entityName = row['Entidad Financiera']?.trim()
-    const loanType = row['Tipo de Financiación']?.trim()
+    const entityName = row['Entidad']?.trim()
+    const loanType = row['Tipo_Financiacion']?.trim()
     const maturityDate = row['Vencimiento']
+    const currency = row['Moneda'] || context.currencyCode
 
     if (!entityName || !loanType) continue
 
     // Generate stable loan key
-    const loanKey = `${entityName}|${loanType}|${maturityDate}|${context.currencyCode}`.toLowerCase()
+    const loanKey = `${entityName}|${loanType}|${maturityDate}|${currency}`.toLowerCase()
 
     // Upsert loan
     const { data: loan, error: loanError } = await supabase
@@ -656,12 +1020,12 @@ async function loadDebtData(supabase: any, rows: any[], context: any) {
         loan_key: loanKey,
         entity_name: entityName,
         loan_type: loanType,
-        initial_amount: parseFloat(row['Principal Inicial'] || '0'),
-        interest_rate: parseFloat(row['Tipo de Interés (%)'] || '0'),
+        initial_amount: parseFloat(row['Principal_Inicial'] || '0'),
+        interest_rate: parseFloat(row['Tipo_Interes'] || '0'),
         maturity_date: maturityDate,
-        guarantees: row['Garantías'],
+        guarantees: row['Garantias'],
         observations: row['Observaciones'],
-        currency_code: context.currencyCode,
+        currency_code: currency,
         uploaded_by: context.uploadedBy,
         job_id: context.jobId
       }, {
@@ -677,7 +1041,7 @@ async function loadDebtData(supabase: any, rows: any[], context: any) {
 
     // Insert year-end balances
     for (const [key, value] of Object.entries(row)) {
-      if (/^Saldo Pendiente \d{4}$/.test(key) && value) {
+      if (/^Saldo_\d{4}$/.test(key) && value) {
         const year = parseInt(key.match(/\d{4}/)?.[0] || '0')
         const balance = parseFloat(String(value).replace(',', '.').replace(/[^\\d.-]/g, ''))
         
@@ -695,6 +1059,35 @@ async function loadDebtData(supabase: any, rows: any[], context: any) {
         }
       }
     }
+  }
+}
+
+async function loadDebtMaturityData(supabase: any, rows: any[], context: any) {
+  // Process debt maturity schedule
+  for (const row of rows) {
+    const loanKey = row['Loan_Key']?.trim()
+    const year = parseInt(row['Year'] || '0')
+    
+    if (!loanKey || year === 0) continue
+
+    const maturityData = {
+      company_id: context.companyId,
+      maturity_year: year,
+      principal_amount: parseFloat(row['Due_Principal'] || '0'),
+      interest_amount: parseFloat(row['Due_Interest'] || '0'),
+      total_amount: parseFloat(row['Due_Principal'] || '0') + parseFloat(row['Due_Interest'] || '0'),
+      breakdown_json: {
+        loan_key: loanKey,
+        new_drawdowns: parseFloat(row['New_Drawdowns'] || '0'),
+        scheduled_repayments: parseFloat(row['Scheduled_Repayments'] || '0')
+      },
+      uploaded_by: context.uploadedBy,
+      job_id: context.jobId
+    }
+
+    await supabase
+      .from('debt_maturities')
+      .upsert(maturityData, { onConflict: 'company_id,maturity_year' })
   }
 }
 
