@@ -10,7 +10,6 @@ import {
   Database,
   CheckCircle,
   AlertCircle,
-  BarChart3,
   Users
 } from 'lucide-react';
 
@@ -118,34 +117,18 @@ export const UserCard: React.FC<UserCardProps> = ({
 
       {/* Botones de acción */}
       <div className="px-6 pb-4 pt-2 border-t bg-muted/20">
-        <div className="flex gap-2">
-          {hasData && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={(e) => {
-                e.stopPropagation();
-                onClick();
-              }}
-              className="flex-1"
-            >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Ver Dashboard
-            </Button>
-          )}
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={(e) => {
-              e.stopPropagation();
-              onManageMemberships();
-            }}
-            className={hasData ? "flex-1" : "w-full"}
-          >
-            <Users className="h-4 w-4 mr-2" />
-            Asignar Empresas
-          </Button>
-        </div>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={(e) => {
+            e.stopPropagation();
+            onManageMemberships();
+          }}
+          className="w-full"
+        >
+          <Users className="h-4 w-4 mr-2" />
+          Asignar Empresas
+        </Button>
       </div>
     </Card>
   );
