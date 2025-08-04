@@ -10,7 +10,6 @@ import {
   Database,
   CheckCircle,
   AlertCircle,
-  Upload,
   BarChart3,
   Users
 } from 'lucide-react';
@@ -28,7 +27,6 @@ interface UserCardProps {
   lastDataUpdate?: string;
   dataQuality?: number;
   onClick: () => void;
-  onUploadLedger: () => void;
   onManageMemberships: () => void;
 }
 
@@ -38,7 +36,6 @@ export const UserCard: React.FC<UserCardProps> = ({
   lastDataUpdate,
   dataQuality,
   onClick,
-  onUploadLedger,
   onManageMemberships
 }) => {
   
@@ -121,34 +118,21 @@ export const UserCard: React.FC<UserCardProps> = ({
 
       {/* Botones de acción */}
       <div className="px-6 pb-4 pt-2 border-t bg-muted/20">
-        <div className="space-y-2">
-          <div className="flex gap-2">
+        <div className="flex gap-2">
+          {hasData && (
             <Button 
-              variant={hasData ? "outline" : "default"} 
+              variant="outline" 
               size="sm" 
               onClick={(e) => {
                 e.stopPropagation();
-                onUploadLedger();
+                onClick();
               }}
               className="flex-1"
             >
-              <Upload className="h-4 w-4 mr-2" />
-              {hasData ? 'Actualizar' : 'Subir'} Libro Diario
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Ver Dashboard
             </Button>
-            {hasData && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClick();
-                }}
-              >
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Ver Dashboard
-              </Button>
-            )}
-          </div>
+          )}
           <Button 
             variant="outline" 
             size="sm" 
@@ -156,7 +140,7 @@ export const UserCard: React.FC<UserCardProps> = ({
               e.stopPropagation();
               onManageMemberships();
             }}
-            className="w-full"
+            className={hasData ? "flex-1" : "w-full"}
           >
             <Users className="h-4 w-4 mr-2" />
             Asignar Empresas

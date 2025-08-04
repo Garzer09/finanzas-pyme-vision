@@ -383,7 +383,6 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                 user={user}
                 hasData={usersWithData[user.id] || false}
                 onClick={() => handleUserClick(user)}
-                onUploadLedger={() => handleUploadLedger(user.id)}
                 onManageMemberships={() => handleManageMemberships(user.id)}
               />
             ))}
