@@ -34,7 +34,8 @@ export const usePhysicalUnitsData = () => {
   const [physicalData, setPhysicalData] = useState<PhysicalUnitsData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user, loading: authLoading } = useAuth();
+  const { user, initialized } = useAuth();
+  const authLoading = !initialized;
   const mounted = useRef(true);
   const lastFetchRef = useRef<string>('');
 

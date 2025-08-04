@@ -4,21 +4,21 @@ import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
-  const { user, loading } = useAuth();
+  const { user, initialized } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading) {
+    if (initialized) {
       if (user) {
         // Si el usuario está autenticado, redirigir a /redirect para manejo de roles
         navigate('/redirect');
       }
       // Si no está autenticado, permanecer en la landing page
     }
-  }, [user, loading, navigate]);
+  }, [user, initialized, navigate]);
 
   // Mientras está cargando, mostrar spinner
-  if (loading) {
+  if (!initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

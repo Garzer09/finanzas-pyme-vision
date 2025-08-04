@@ -5,7 +5,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { supabase } from '@/integrations/supabase/client';
 
 const RedirectPage = () => {
-  const { user, loading } = useAuth();
+  const { user, initialized } = useAuth();
   const { userRole, loading: roleLoading } = useUserRole();
   const [directRole, setDirectRole] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -43,7 +43,7 @@ const RedirectPage = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!loading && !roleLoading) {
+    if (initialized && !roleLoading) {
       if (user) {
         console.log('🚀 RedirectPage Final Routing:', { 
           userId: user.id, 
@@ -70,9 +70,9 @@ const RedirectPage = () => {
         navigate('/auth');
       }
     }
-  }, [user, userRole, directRole, loading, roleLoading, navigate]);
+  }, [user, userRole, directRole, initialized, roleLoading, navigate]);
 
-  if (loading || roleLoading) {
+  if (!initialized || roleLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>

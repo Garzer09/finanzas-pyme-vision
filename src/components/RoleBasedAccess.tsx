@@ -22,7 +22,7 @@ export const RoleBasedAccess: React.FC<RoleBasedAccessProps> = ({
     );
   }
 
-  if (!userRole || !allowedRoles.includes(userRole)) {
+  if (!userRole || !allowedRoles.includes(userRole as 'admin' | 'user')) {
     return fallback || (
       <div className="bg-muted border border-border rounded-lg p-6 text-center">
         <h3 className="text-lg font-semibold text-foreground mb-2">Acceso Restringido</h3>

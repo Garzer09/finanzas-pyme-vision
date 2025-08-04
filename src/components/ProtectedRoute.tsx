@@ -6,10 +6,11 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, loading } = useAuth();
+  const { authStatus, initialized } = useAuth();
   const location = useLocation();
 
-  if (loading) {
+  // Mostrar loading solo mientras no esté inicializado
+  if (!initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -17,7 +18,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  if (!user) {
+  // Redirigir solo después de la inicialización
+  if (authStatus === 'unauthenticated') {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 

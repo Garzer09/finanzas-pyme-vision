@@ -5,8 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  loading: boolean;
-  userRole: 'admin' | 'user' | null;
+  authStatus: 'unknown' | 'authenticated' | 'unauthenticated';
+  role: 'admin' | 'viewer' | 'none';
+  initialized: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, data?: any) => Promise<{ error: any }>;
   signOut: (redirectTo?: string) => Promise<void>;
@@ -26,13 +27,14 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
+  const [authStatus, setAuthStatus] = useState<'unknown' | 'authenticated' | 'unauthenticated'>('unknown');
+  const [role, setRole] = useState<'admin' | 'viewer' | 'none'>('none');
+  const [initialized, setInitialized] = useState(false);
 
-  const fetchUserRole = useCallback(async (userId: string) => {
+  const fetchUserRole = useCallback(async (userId: string): Promise<'admin' | 'viewer'> => {
     if (!userId) {
       console.log('❌ fetchUserRole: No userId provided');
-      return;
+      return 'viewer';
     }
     
     console.log('🔍 fetchUserRole called for userId:', userId);
@@ -44,10 +46,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('🔧 RPC result:', { rpcData, rpcError });
       
-      if (!rpcError && rpcData) {
-        console.log('✅ Role from RPC:', rpcData);
-        setUserRole(rpcData);
-        return;
+      if (!rpcError && rpcData === 'admin') {
+        console.log('✅ Role from RPC: admin');
+        return 'admin';
       }
       
       // Fallback to direct table query
@@ -60,85 +61,115 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log('📊 Table query result:', { tableData, tableError });
       
-      if (!tableError && tableData?.role) {
-        console.log('✅ Role from table:', tableData.role);
-        setUserRole(tableData.role);
-        return;
+      if (!tableError && tableData?.role === 'admin') {
+        console.log('✅ Role from table: admin');
+        return 'admin';
       }
       
-      // If no role found, set as null
-      console.log('❌ No role found, setting to null');
-      setUserRole(null);
+      // Default to viewer
+      console.log('ℹ️ No admin role found, defaulting to viewer');
+      return 'viewer';
       
     } catch (error) {
       console.error('❌ Error in fetchUserRole:', error);
-      setUserRole(null);
+      return 'viewer';
     }
   }, []);
 
   useEffect(() => {
+    let mounted = true;
     let authSubscription: any = null;
 
     const initAuth = async () => {
       try {
         console.log('🚀 Initializing Auth...');
         
-        // Set up auth state listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, session) => {
-            console.log('🔄 Auth state change:', { event, user: session?.user?.email });
-            
-            setSession(session);
-            setUser(session?.user ?? null);
-            
-            // Fetch user role when session is established
-            if (session?.user?.id) {
-              console.log('👤 User found, fetching role...');
-              await fetchUserRole(session.user.id);
-            } else {
-              console.log('❌ No user, clearing role');
-              setUserRole(null);
-            }
-            
-            setLoading(false);
-          }
-        );
-        
-        authSubscription = subscription;
-
-        // Check for existing session
-        console.log('🔍 Checking existing session...');
+        // Check for existing session first
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('❌ Session check error:', error);
-          setLoading(false);
+          if (!mounted) return;
+          setAuthStatus('unauthenticated');
+          setRole('none');
           return;
         }
         
         console.log('📋 Session check result:', { hasSession: !!session, user: session?.user?.email });
         
+        if (!mounted) return;
+        
         setSession(session);
         setUser(session?.user ?? null);
+        setAuthStatus(session ? 'authenticated' : 'unauthenticated');
         
         if (session?.user?.id) {
           console.log('👤 Existing user found, fetching role...');
-          await fetchUserRole(session.user.id);
+          const userRole = await fetchUserRole(session.user.id);
+          if (mounted) {
+            setRole(userRole);
+          }
         } else {
           console.log('❌ No existing user');
-          setUserRole(null);
+          setRole('none');
         }
         
-        setLoading(false);
       } catch (error) {
         console.error('❌ Auth initialization error:', error);
-        setLoading(false);
+        if (mounted) {
+          setAuthStatus('unauthenticated');
+          setRole('none');
+        }
+      } finally {
+        if (mounted) {
+          setInitialized(true);
+          console.log('✅ Auth initialization completed');
+        }
       }
     };
 
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('🔄 Auth state change:', { event, user: session?.user?.email });
+        
+        if (!mounted) return;
+        
+        setSession(session);
+        setUser(session?.user ?? null);
+        setAuthStatus(session ? 'authenticated' : 'unauthenticated');
+        
+        try {
+          if (session?.user?.id) {
+            console.log('👤 User found, fetching role...');
+            const userRole = await fetchUserRole(session.user.id);
+            if (mounted) {
+              setRole(userRole);
+            }
+          } else {
+            console.log('❌ No user, clearing role');
+            if (mounted) {
+              setRole('none');
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error in auth state change:', error);
+          if (mounted) {
+            setRole(session ? 'viewer' : 'none');
+          }
+        } finally {
+          if (mounted) {
+            setInitialized(true);
+          }
+        }
+      }
+    );
+    
+    authSubscription = subscription;
     initAuth();
 
     return () => {
+      mounted = false;
       if (authSubscription) {
         authSubscription.unsubscribe();
       }
@@ -170,7 +201,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signOut = async (redirectTo: string = '/') => {
     console.log('🚪 Signing out...');
     await supabase.auth.signOut();
-    setUserRole(null);
+    setRole('none');
+    setAuthStatus('unauthenticated');
+    setInitialized(true);
     
     // Redirect to specified path
     if (typeof window !== 'undefined') {
@@ -189,8 +222,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value: AuthContextType = {
     user,
     session,
-    loading,
-    userRole,
+    authStatus,
+    role,
+    initialized,
     signIn,
     signUp,
     signOut,
