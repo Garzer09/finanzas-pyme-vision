@@ -40,7 +40,7 @@ const AuthPage = () => {
     rememberMe: false
   });
 
-  const { authStatus, role, initialized } = useAuth();
+  const { authStatus, role, roleStatus, initialized } = useAuth();
 
   useEffect(() => {
     // Fase 1: Instrumentación
@@ -55,9 +55,11 @@ const AuthPage = () => {
     });
     
     setTokenLoading(false);
-    
-    // Solo redirigir después de login exitoso cuando esté autenticado
-    if (initialized && authStatus === 'authenticated') {
+  }, [user, authStatus, role, initialized, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
+
+  // Separate useEffect for navigation - only after successful authentication
+  useEffect(() => {
+    if (initialized && authStatus === 'authenticated' && roleStatus === 'ready') {
       console.debug('[NAVIGATE] Auth successful, redirecting by role', { from: '/auth', role });
       if (role === 'admin') {
         navigate('/admin/empresas', { replace: true });
@@ -65,7 +67,7 @@ const AuthPage = () => {
         navigate('/app/mis-empresas', { replace: true });
       }
     }
-  }, [user, authStatus, role, initialized, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp, navigate]);
+  }, [initialized, authStatus, role, roleStatus, navigate]);
   
   // Fase 2: Eliminar redirección automática que causa rebote
   // Solo redirigir después de login exitoso, NO en montaje

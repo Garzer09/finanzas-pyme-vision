@@ -35,71 +35,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Sticky role ref to prevent admin downgrade during refresh
   const lastKnownRoleRef = useRef<'admin' | 'viewer' | 'none'>('none');
-  const fetchControllerRef = useRef<AbortController | null>(null);
+  const roleReqIdRef = useRef(0); // Serial ID to ignore stale responses
 
-  const fetchUserRole = useCallback(async (userId: string): Promise<'admin' | 'viewer'> => {
+  const fetchUserRole = useCallback(async (userId: string, reqId: number): Promise<'admin' | 'viewer'> => {
     if (!userId) {
       console.log('❌ fetchUserRole: No userId provided');
       return 'viewer';
     }
     
-    // Cancel previous request if exists
-    if (fetchControllerRef.current) {
-      fetchControllerRef.current.abort();
-    }
-    
-    // Create new abort controller for this request
-    fetchControllerRef.current = new AbortController();
-    const { signal } = fetchControllerRef.current;
-    
-    console.log('🔍 [INSTRUMENTATION] fetchUserRole called for userId:', userId);
+    console.log('🔍 [INSTRUMENTATION] fetchUserRole called for userId:', userId, 'reqId:', reqId);
     
     try {
-      // Reduced timeout to 5s for faster recovery
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('fetchUserRole timeout')), 5000)
-      );
+      // Use RPC without parameters for SECURITY DEFINER
+      const { data: rpcData, error: rpcError } = await supabase.rpc('get_user_role');
       
-      // Try RPC function first with timeout
-      const rpcPromise = supabase
-        .rpc('get_user_role', { user_uuid: userId });
+      // Check if this response is still relevant
+      if (reqId !== roleReqIdRef.current) {
+        console.log('🚫 [INSTRUMENTATION] Ignoring stale response, reqId:', reqId, 'current:', roleReqIdRef.current);
+        return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
+      }
       
-      const { data: rpcData, error: rpcError } = await Promise.race([rpcPromise, timeoutPromise]);
-      
-      console.log('🔧 [INSTRUMENTATION] RPC result:', { rpcData, rpcError });
+      console.log('🔧 [INSTRUMENTATION] RPC result:', { rpcData, rpcError, reqId });
       
       if (!rpcError && rpcData === 'admin') {
         console.log('✅ [INSTRUMENTATION] Role from RPC: admin');
         return 'admin';
       }
       
-      // Fallback to direct table query with timeout
-      console.log('⚠️ [INSTRUMENTATION] RPC failed, trying direct table query...');
-      const tablePromise = supabase
+      // Fallback: check table directly
+      const { data: tableData, error: tableError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .maybeSingle();
       
-      const { data: tableData, error: tableError } = await Promise.race([tablePromise, timeoutPromise]);
+      // Check again if response is still relevant
+      if (reqId !== roleReqIdRef.current) {
+        console.log('🚫 [INSTRUMENTATION] Ignoring stale fallback response, reqId:', reqId);
+        return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
+      }
       
-      console.log('📊 [INSTRUMENTATION] Table query result:', { tableData, tableError });
+      console.log('📊 [INSTRUMENTATION] Table query result:', { tableData, tableError, reqId });
       
       if (!tableError && tableData?.role === 'admin') {
         console.log('✅ [INSTRUMENTATION] Role from table: admin');
         return 'admin';
       }
       
-      // Default to viewer
       console.log('ℹ️ [INSTRUMENTATION] No admin role found, defaulting to viewer');
       return 'viewer';
       
     } catch (error) {
-      if (error.name === 'AbortError') {
-        console.log('🚫 [INSTRUMENTATION] fetchUserRole aborted');
-        return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-      }
-      console.error('❌ [INSTRUMENTATION] Error in fetchUserRole (with timeout):', error);
+      console.error('❌ [INSTRUMENTATION] Error in fetchUserRole:', error, 'reqId:', reqId);
       // Preserve admin role on error if it was previously admin
       return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
     }
@@ -136,17 +123,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (session?.user?.id) {
           console.log('👤 [INSTRUMENTATION] Existing user found, fetching role...');
           setRoleStatus('loading');
+          const reqId = ++roleReqIdRef.current;
           try {
-            const userRole = await fetchUserRole(session.user.id);
-            if (mounted) {
+            const userRole = await fetchUserRole(session.user.id, reqId);
+            if (mounted && reqId === roleReqIdRef.current) {
               setRole(userRole);
               lastKnownRoleRef.current = userRole;
               setRoleStatus('ready');
             }
           } catch (error) {
             console.error('❌ [INSTRUMENTATION] Error fetching role during init:', error);
-            if (mounted) {
-              setRole('viewer');
+            if (mounted && reqId === roleReqIdRef.current) {
+              setRole(lastKnownRoleRef.current || 'viewer');
               setRoleStatus('ready');
             }
           }
@@ -200,6 +188,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setAuthStatus(session ? 'authenticated' : 'unauthenticated');
           
           if (session?.user?.id) {
+            // Increment request ID for race condition protection
+            const reqId = ++roleReqIdRef.current;
+            
             // For TOKEN_REFRESHED, keep admin role sticky during revalidation
             if (event === 'TOKEN_REFRESHED' && lastKnownRoleRef.current === 'admin') {
               console.log('🔄 [INSTRUMENTATION] TOKEN_REFRESHED: keeping admin role sticky during revalidation');
@@ -209,16 +200,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             
             try {
-              const userRole = await fetchUserRole(session.user.id);
-              if (mounted) {
-                console.log(`✅ [INSTRUMENTATION] Role fetched after ${event}:`, userRole);
+              const userRole = await fetchUserRole(session.user.id, reqId);
+              // Only update if this is the most recent request
+              if (mounted && reqId === roleReqIdRef.current) {
+                console.log(`✅ [INSTRUMENTATION] Role fetched after ${event}:`, userRole, 'reqId:', reqId);
                 setRole(userRole);
                 lastKnownRoleRef.current = userRole;
                 setRoleStatus('ready');
+              } else {
+                console.log(`🚫 [INSTRUMENTATION] Ignoring stale role response:`, userRole, 'reqId:', reqId, 'current:', roleReqIdRef.current);
               }
             } catch (error) {
-              console.error(`❌ [INSTRUMENTATION] Error fetching role during ${event}:`, error);
-              if (mounted) {
+              console.error(`❌ [INSTRUMENTATION] Error fetching role during ${event}:`, error, 'reqId:', reqId);
+              if (mounted && reqId === roleReqIdRef.current) {
                 // Preserve admin role on error if it was previously admin
                 const fallbackRole = lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
                 console.log(`🛡️ [INSTRUMENTATION] Using fallback role:`, fallbackRole);
