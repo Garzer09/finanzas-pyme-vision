@@ -28,92 +28,75 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<'admin' | 'user' | null>(null);
-  const mounted = useRef(true);
-  const roleCache = useRef<Record<string, 'admin' | 'user'>>({});
 
   const fetchUserRole = useCallback(async (userId: string) => {
-    if (!mounted.current || !userId) {
-      console.log('fetchUserRole early return:', { mounted: mounted.current, userId });
+    if (!userId) {
+      console.log('❌ fetchUserRole: No userId provided');
       return;
     }
     
-    console.log('fetchUserRole called for userId:', userId);
+    console.log('🔍 fetchUserRole called for userId:', userId);
     
-    // Check cache first
-    if (roleCache.current[userId]) {
-      console.log('Role found in cache:', roleCache.current[userId]);
-      setUserRole(roleCache.current[userId]);
-      return;
-    }
-
     try {
-      console.log('About to call get_user_role function...');
-      
-      // Try the database function first (this bypasses RLS)
-      const { data: functionData, error: functionError } = await supabase
+      // Try RPC function first
+      const { data: rpcData, error: rpcError } = await supabase
         .rpc('get_user_role', { user_uuid: userId });
       
-      console.log('Function call completed:', { functionData, functionError });
+      console.log('🔧 RPC result:', { rpcData, rpcError });
       
-      if (!functionError && functionData) {
-        const role = functionData as 'admin' | 'user';
-        console.log('SUCCESS: Role from function:', role);
-        roleCache.current[userId] = role;
-        setUserRole(role);
+      if (!rpcError && rpcData) {
+        console.log('✅ Role from RPC:', rpcData);
+        setUserRole(rpcData);
         return;
       }
       
-      console.log('Function failed, trying direct table query...');
-      
       // Fallback to direct table query
+      console.log('⚠️ RPC failed, trying direct table query...');
       const { data: tableData, error: tableError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
       
-      console.log('Table query completed:', { tableData, tableError });
+      console.log('📊 Table query result:', { tableData, tableError });
       
-      if (!mounted.current) return;
-      
-      if (tableError) {
-        console.error('Table query failed:', tableError);
-        setUserRole(null);
+      if (!tableError && tableData?.role) {
+        console.log('✅ Role from table:', tableData.role);
+        setUserRole(tableData.role);
         return;
       }
       
-      const role = tableData?.role || null;
-      console.log('SUCCESS: Role from table:', role);
+      // If no role found, set as null
+      console.log('❌ No role found, setting to null');
+      setUserRole(null);
       
-      if (role) {
-        roleCache.current[userId] = role;
-      }
-      setUserRole(role);
     } catch (error) {
-      if (!mounted.current) return;
-      console.error('CATCH: Error in fetchUserRole:', error);
+      console.error('❌ Error in fetchUserRole:', error);
       setUserRole(null);
     }
   }, []);
 
   useEffect(() => {
-    mounted.current = true;
     let authSubscription: any = null;
 
     const initAuth = async () => {
       try {
+        console.log('🚀 Initializing Auth...');
+        
         // Set up auth state listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           async (event, session) => {
-            if (!mounted.current) return;
+            console.log('🔄 Auth state change:', { event, user: session?.user?.email });
             
             setSession(session);
             setUser(session?.user ?? null);
             
             // Fetch user role when session is established
             if (session?.user?.id) {
+              console.log('👤 User found, fetching role...');
               await fetchUserRole(session.user.id);
             } else {
+              console.log('❌ No user, clearing role');
               setUserRole(null);
             }
             
@@ -123,28 +106,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         authSubscription = subscription;
 
-        // Check for existing session with timeout
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('Auth timeout')), 10000)
-        );
+        // Check for existing session
+        console.log('🔍 Checking existing session...');
+        const { data: { session }, error } = await supabase.auth.getSession();
         
-        const sessionPromise = supabase.auth.getSession();
+        if (error) {
+          console.error('❌ Session check error:', error);
+          setLoading(false);
+          return;
+        }
         
-        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
-        
-        if (!mounted.current) return;
+        console.log('📋 Session check result:', { hasSession: !!session, user: session?.user?.email });
         
         setSession(session);
         setUser(session?.user ?? null);
         
         if (session?.user?.id) {
+          console.log('👤 Existing user found, fetching role...');
           await fetchUserRole(session.user.id);
+        } else {
+          console.log('❌ No existing user');
+          setUserRole(null);
         }
         
         setLoading(false);
       } catch (error) {
-        if (!mounted.current) return;
-        console.error('Auth initialization error:', error);
+        console.error('❌ Auth initialization error:', error);
         setLoading(false);
       }
     };
@@ -152,7 +139,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
 
     return () => {
-      mounted.current = false;
       if (authSubscription) {
         authSubscription.unsubscribe();
       }
@@ -182,9 +168,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async (redirectTo: string = '/') => {
+    console.log('🚪 Signing out...');
     await supabase.auth.signOut();
-    // Clear any cached data
-    roleCache.current = {};
     setUserRole(null);
     
     // Redirect to specified path
