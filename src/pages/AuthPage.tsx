@@ -11,8 +11,9 @@ import { Separator } from '@/components/ui/separator';
 import { TrendingUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { shouldNavigateAfterAuth, isAuthLoading } from '@/types/auth';
 const AuthPage = () => {
-  const { user, signIn, signUp, updatePassword } = useAuth();
+  const { signIn, signUp, updatePassword, authState } = useAuth();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
@@ -21,7 +22,7 @@ const AuthPage = () => {
   const [isPasswordReset, setIsPasswordReset] = useState(false);
   const [loading, setLoading] = useState(false);
   const [tokenLoading, setTokenLoading] = useState(false);
-  const [isRecoveryMode, setIsRecoveryMode] = useState(false); // New state to track recovery mode
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -37,34 +38,31 @@ const AuthPage = () => {
     rememberMe: false
   });
 
-  const { authStatus, role, roleStatus, initialized, hasJustLoggedIn } = useAuth();
-
-  // ✅ ROLLBACK: Navegación solo después de login explícito
+  // ✅ Simplified navigation logic using unified state
   useEffect(() => {
-    if (authStatus === 'authenticated' && roleStatus === 'ready' && role && role !== 'none' && hasJustLoggedIn) {
-      console.debug('[AUTH-PAGE] Navigation triggered after explicit login:', { authStatus, roleStatus, role, hasJustLoggedIn });
-      const targetPath = role === 'admin' ? '/admin/empresas' : '/app/mis-empresas';
-      console.debug('[AUTH-PAGE] Navigating to:', targetPath);
+    const targetPath = shouldNavigateAfterAuth(authState, window.location.pathname);
+    if (targetPath) {
+      console.debug('[AUTH-PAGE] Navigation triggered:', { 
+        authState: authState.status, 
+        targetPath,
+        role: authState.status === 'authenticated' ? authState.role : 'none'
+      });
       navigate(targetPath, { replace: true });
     }
-  }, [authStatus, roleStatus, role, hasJustLoggedIn, navigate]);
+  }, [authState, navigate]);
 
   useEffect(() => {
-    // Debug temporal
+    // Debug logging for state changes
     console.debug('[AUTH-PAGE] State debug:', { 
       path: '/auth', 
-      user: !!user, 
-      authStatus,
-      role,
-      roleStatus,
-      initialized,
-      hasJustLoggedIn,
+      authState: authState.status,
+      role: authState.status === 'authenticated' ? authState.role : 'none',
       isRecoveryMode,
       state: isPasswordReset ? 'password-reset' : isPasswordRecovery ? 'recovery' : isSignUp ? 'signup' : 'login'
     });
     
     setTokenLoading(false);
-  }, [user, authStatus, role, roleStatus, initialized, hasJustLoggedIn, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
+  }, [authState, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
@@ -170,12 +168,12 @@ const AuthPage = () => {
             variant: "destructive"
           });
         } else {
-          console.debug('[AUTH-PAGE] Login successful, AuthContext will handle role resolution and navigation');
+          console.debug('[AUTH-PAGE] Login successful');
           toast({
             title: "¡Bienvenido!",
             description: "Has iniciado sesión correctamente"
           });
-          // ✅ ROLLBACK: AuthContext maneja todo automáticamente
+          // Navigation will be handled automatically by useEffect watching authState
         }
       }
     } finally {
@@ -318,12 +316,12 @@ const AuthPage = () => {
               )}
 
 
-              <Button type="submit" className="w-full" disabled={loading || authStatus === 'authenticating' || (authStatus === 'authenticated' && roleStatus === 'resolving')}>
-                {(loading || authStatus === 'authenticating' || (authStatus === 'authenticated' && roleStatus === 'resolving')) ? (
+              <Button type="submit" className="w-full" disabled={loading || isAuthLoading(authState)}>
+                {(loading || isAuthLoading(authState)) ? (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    {roleStatus === 'resolving' 
-                      ? 'Resolviendo acceso...'
+                    {authState.status === 'authenticating' 
+                      ? 'Iniciando sesión...'
                       : isPasswordReset 
                         ? 'Actualizando contraseña...' 
                         : isPasswordRecovery 
@@ -344,15 +342,15 @@ const AuthPage = () => {
                 )}
               </Button>
 
-              {/* ✅ UI para errores de rol */}
-              {roleStatus === 'error' && (
+              {/* ✅ UI para errores de autenticación */}
+              {authState.status === 'error' && (
                 <div className="text-center space-y-2">
-                  <p className="text-sm text-destructive">Error al resolver permisos</p>
+                  <p className="text-sm text-destructive">{authState.error}</p>
                   <Button 
                     type="button" 
                     variant="outline" 
                     size="sm"
-                    onClick={() => window.location.reload()}
+                    onClick={authState.retry}
                   >
                     Reintentar
                   </Button>
