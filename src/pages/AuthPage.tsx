@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Navigate, useSearchParams, useNavigate } from 'react-router-dom';
+import { Navigate, useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,10 +14,11 @@ import { useCompanyLogo } from '@/hooks/useCompanyLogo';
 import { CompanyLogo } from '@/components/CompanyLogo';
 import { supabase } from '@/integrations/supabase/client';
 const AuthPage = () => {
-  const { user, signIn, signUp, updatePassword } = useAuth();
+  const { user, signIn, signUp, updatePassword, initialized, authStatus, role } = useAuth();
   const { logoUrl } = useCompanyLogo();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLogin, setIsLogin] = useState(true);
   const [isSignUp, setIsSignUp] = useState(false);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
@@ -41,16 +42,32 @@ const AuthPage = () => {
   });
 
   useEffect(() => {
-    // Fase 1: Instrumentación
-    console.debug('[AUTH]', { 
+    // Fase 1: Instrumentación mejorada
+    console.debug('[AUTH] AuthPage:', { 
       path: '/auth', 
+      initialized,
+      authStatus,
+      role,
       user: !!user, 
       isRecoveryMode,
-      state: isPasswordReset ? 'password-reset' : isPasswordRecovery ? 'recovery' : isSignUp ? 'signup' : 'login'
+      state: isPasswordReset ? 'password-reset' : isPasswordRecovery ? 'recovery' : isSignUp ? 'signup' : 'login',
+      locationState: location.state
     });
     
     setTokenLoading(false);
-  }, [user, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
+    
+    // Fase 4: Solo redirigir si autenticado Y completamente inicializado
+    if (initialized && authStatus === 'authenticated' && !isPasswordReset && !isPasswordRecovery) {
+      console.debug('[AUTH] AuthPage: User authenticated, redirecting based on role');
+      if (role === 'admin') {
+        console.debug('[AUTH] AuthPage: Redirecting admin to /admin/empresas');
+        navigate('/admin/empresas', { replace: true });
+      } else if (role === 'viewer') {
+        console.debug('[AUTH] AuthPage: Redirecting viewer to /app/mis-empresas');
+        navigate('/app/mis-empresas', { replace: true });
+      }
+    }
+  }, [initialized, authStatus, role, user, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp, navigate, location.state]);
   
   // Fase 2: Eliminar redirección automática que causa rebote
   // Solo redirigir después de login exitoso, NO en montaje

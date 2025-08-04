@@ -12,7 +12,7 @@ export const useSessionTimeout = ({
   timeoutMinutes = 120, // 2 hours default
   warningMinutes = 15 // 15 minutes warning
 }: UseSessionTimeoutOptions = {}) => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, role } = useAuth();
   const navigate = useNavigate();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const warningRef = useRef<NodeJS.Timeout | null>(null);
@@ -31,6 +31,11 @@ export const useSessionTimeout = ({
 
     if (!user) return;
 
+    // Adjust timeout based on user role - admins get longer sessions
+    const effectiveTimeoutMinutes = role === 'admin' ? 240 : timeoutMinutes; // 4 hours for admins
+
+    console.debug('🕐 SessionTimeout: Reset timeout for', role, 'user -', effectiveTimeoutMinutes, 'minutes');
+
     // Set warning timeout
     warningRef.current = setTimeout(() => {
       toast({
@@ -38,10 +43,11 @@ export const useSessionTimeout = ({
         description: `Tu sesión expirará en ${warningMinutes} minutos por inactividad.`,
         duration: 10000,
       });
-    }, (timeoutMinutes - warningMinutes) * 60 * 1000);
+    }, (effectiveTimeoutMinutes - warningMinutes) * 60 * 1000);
 
     // Set logout timeout
     timeoutRef.current = setTimeout(async () => {
+      console.debug('🕐 SessionTimeout: Session expired, signing out');
       toast({
         title: "Sesión expirada",
         description: "Tu sesión ha expirado por inactividad.",
@@ -49,9 +55,9 @@ export const useSessionTimeout = ({
       });
       
       await signOut();
-      navigate('/');
-    }, timeoutMinutes * 60 * 1000);
-  }, [user, signOut, navigate, timeoutMinutes, warningMinutes]);
+      // Don't navigate to avoid interfering with auth flow
+    }, effectiveTimeoutMinutes * 60 * 1000);
+  }, [user, signOut, role, timeoutMinutes, warningMinutes]);
 
   // Track user activity
   useEffect(() => {

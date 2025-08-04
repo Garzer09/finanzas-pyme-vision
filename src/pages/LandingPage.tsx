@@ -12,12 +12,13 @@ const LandingPage = () => {
 
   // Redirección automática cuando el estado esté inicializado
   useEffect(() => {
-    // Fase 1: Instrumentación
-    console.debug('[AUTH]', { 
+    // Fase 1: Instrumentación mejorada
+    console.debug('[AUTH] LandingPage:', { 
       path: location.pathname,
       initialized, 
       authStatus, 
       role,
+      locationState: location.state,
       fromManualNavigation: location.state?.from === 'manual'
     });
     
@@ -27,8 +28,12 @@ const LandingPage = () => {
       return;
     }
     
-    // Fase 5: No redirigir si llegó manualmente (ej: click en Comenzar)
-    if (location.state?.from === 'manual') {
+    // Fase 3: Mejorar detección de navegación manual
+    const isManualNavigation = location.state?.from === 'manual' || 
+                               location.state?.manual === true ||
+                               location.pathname === '/' && !location.state;
+
+    if (isManualNavigation) {
       console.log('Manual navigation detected, not auto-redirecting');
       return;
     }
@@ -49,8 +54,8 @@ const LandingPage = () => {
   }, [initialized, authStatus, role, location.pathname, location.state]);
 
   const handleGetStarted = () => {
-    console.log('🔘 CTA clicked - navigating to /auth');
-    navigate('/auth');
+    console.log('🔘 CTA clicked - navigating to /auth with manual flag');
+    navigate('/auth', { state: { from: 'manual' } });
   };
 
 
