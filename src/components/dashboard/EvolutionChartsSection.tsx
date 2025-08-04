@@ -63,42 +63,121 @@ export const EvolutionChartsSection: React.FC = () => {
 
   const evolutionData = validateChartData(getRealEvolutionData());
 
-  // Datos para gráfico de cascada P&G - validados para evitar NaN
-  const rawWaterfallPGData = [
-    { name: 'Facturación', value: 2450000, type: 'positive' as const },
-    { name: 'Coste Ventas', value: -1470000, type: 'negative' as const },
-    { name: 'Margen Bruto', value: 980000, type: 'total' as const },
-    { name: 'Gastos Operativos', value: -632000, type: 'negative' as const },
-    { name: 'EBITDA', value: 348000, type: 'total' as const },
-    { name: 'Amortizaciones', value: -85000, type: 'negative' as const },
-    { name: 'EBIT', value: 263000, type: 'total' as const },
-    { name: 'Gastos Financieros', value: -43000, type: 'negative' as const },
-    { name: 'Beneficio Neto', value: 220000, type: 'positive' as const }
-  ];
+  // Calculate dynamic domain for balance charts based on real data
+  const getBalanceChartDomain = () => {
+    if (balanceData.length === 0) return [0, 2500000];
+    const maxValue = Math.max(
+      ...balanceData.map(item => item.total || 0)
+    );
+    return [0, Math.ceil(maxValue * 1.1)]; // Add 10% padding
+  };
 
-  const waterfallPGData = rawWaterfallPGData.map(item => ({
-    ...item,
-    value: safeNumber(item.value, 0)
-  }));
+  const balanceChartDomain = getBalanceChartDomain();
 
-  // Datos para estructura de balance - validados para evitar NaN
-  const rawBalanceData = [
-    {
-      category: 'Activo',
-      corriente: 850000,
-      noCorriente: 1650000,
-      total: 2500000
-    },
-    {
-      category: 'Pasivo + PN',
-      corriente: 420000,
-      noCorriente: 780000,
-      patrimonioNeto: 1300000,
-      total: 2500000
+  // Get real waterfall P&G data from database or fallback to demo
+  const getRealWaterfallData = () => {
+    if (!hasRealData) {
+      // Demo data when no real data available
+      return [
+        { name: 'Facturación', value: 2450000, type: 'positive' as const },
+        { name: 'Coste Ventas', value: -1470000, type: 'negative' as const },
+        { name: 'Margen Bruto', value: 980000, type: 'total' as const },
+        { name: 'Gastos Operativos', value: -632000, type: 'negative' as const },
+        { name: 'EBITDA', value: 348000, type: 'total' as const },
+        { name: 'Amortizaciones', value: -85000, type: 'negative' as const },
+        { name: 'EBIT', value: 263000, type: 'total' as const },
+        { name: 'Gastos Financieros', value: -43000, type: 'negative' as const },
+        { name: 'Beneficio Neto', value: 220000, type: 'positive' as const }
+      ];
     }
-  ];
 
-  const balanceData = validateChartData(rawBalanceData);
+    // Real data from database
+    const pygData = getLatestData('estado_pyg');
+    if (!pygData?.data_content) return [];
+
+    const content = pygData.data_content;
+    
+    // Build waterfall from real P&G data
+    const facturacion = safeNumber(content.ingresos_explotacion || content.ventas || content.cifra_negocios, 0);
+    const costeVentas = Math.abs(safeNumber(content.aprovisionamientos || content.compras || content.consumos, 0)) * -1;
+    const margenBruto = facturacion + costeVentas;
+    const gastosOperativos = Math.abs(safeNumber(content.gastos_personal + content.otros_gastos_explotacion, 0)) * -1;
+    const ebitda = margenBruto + gastosOperativos;
+    const amortizaciones = Math.abs(safeNumber(content.amortizaciones || content.dotaciones_amortizacion, 0)) * -1;
+    const ebit = ebitda + amortizaciones;
+    const gastosFinancieros = Math.abs(safeNumber(content.gastos_financieros, 0)) * -1;
+    const beneficioNeto = safeNumber(content.resultado_neto || content.resultado_ejercicio, 0);
+
+    return [
+      { name: 'Facturación', value: facturacion, type: 'positive' as const },
+      { name: 'Coste Ventas', value: costeVentas, type: 'negative' as const },
+      { name: 'Margen Bruto', value: margenBruto, type: 'total' as const },
+      { name: 'Gastos Operativos', value: gastosOperativos, type: 'negative' as const },
+      { name: 'EBITDA', value: ebitda, type: 'total' as const },
+      { name: 'Amortizaciones', value: amortizaciones, type: 'negative' as const },
+      { name: 'EBIT', value: ebit, type: 'total' as const },
+      { name: 'Gastos Financieros', value: gastosFinancieros, type: 'negative' as const },
+      { name: 'Beneficio Neto', value: beneficioNeto, type: 'positive' as const }
+    ];
+  };
+
+  const waterfallPGData = validateChartData(getRealWaterfallData());
+
+  // Get real balance structure data from database or fallback to demo
+  const getRealBalanceData = () => {
+    if (!hasRealData) {
+      // Demo data when no real data available
+      return [
+        {
+          category: 'Activo',
+          corriente: 850000,
+          noCorriente: 1650000,
+          total: 2500000
+        },
+        {
+          category: 'Pasivo + PN',
+          corriente: 420000,
+          noCorriente: 780000,
+          patrimonioNeto: 1300000,
+          total: 2500000
+        }
+      ];
+    }
+
+    // Real data from database
+    const balanceData = getLatestData('estado_balance');
+    if (!balanceData?.data_content) return [];
+
+    const content = balanceData.data_content;
+    
+    // Extract balance sheet components
+    const activoCorriente = safeNumber(content.activo_corriente, 0);
+    const activoNoCorriente = safeNumber(content.activo_no_corriente || content.inmovilizado, 0);
+    const totalActivo = activoCorriente + activoNoCorriente;
+    
+    const pasivoCorriente = safeNumber(content.pasivo_corriente || content.acreedores_corto_plazo, 0);
+    const pasivoNoCorriente = safeNumber(content.pasivo_no_corriente || content.acreedores_largo_plazo, 0);
+    const patrimonioNeto = safeNumber(content.patrimonio_neto || content.fondos_propios, 0);
+    const totalPasivoPn = pasivoCorriente + pasivoNoCorriente + patrimonioNeto;
+
+    return [
+      {
+        category: 'Activo',
+        corriente: activoCorriente,
+        noCorriente: activoNoCorriente,
+        total: totalActivo
+      },
+      {
+        category: 'Pasivo + PN',
+        corriente: pasivoCorriente,
+        noCorriente: pasivoNoCorriente,
+        patrimonioNeto: patrimonioNeto,
+        total: totalPasivoPn
+      }
+    ];
+  };
+
+  const balanceData = validateChartData(getRealBalanceData());
 
   if (loading) {
     return (
@@ -259,7 +338,7 @@ export const EvolutionChartsSection: React.FC = () => {
                     <XAxis 
                       type="number" 
                       hide
-                      domain={[0, 2500000]}
+                      domain={balanceChartDomain}
                     />
                     <Tooltip 
                       formatter={(value) => [`${(safeNumber(value, 0) / 1000000).toFixed(1)}M€`]}
@@ -288,7 +367,7 @@ export const EvolutionChartsSection: React.FC = () => {
                     <XAxis 
                       type="number" 
                       hide
-                      domain={[0, 2500000]}
+                      domain={balanceChartDomain}
                     />
                     <Tooltip 
                       formatter={(value) => [`${(safeNumber(value, 0) / 1000000).toFixed(1)}M€`]}

@@ -32,8 +32,12 @@ serve(async (req) => {
 
     console.log('Processing file:', fileName);
 
-    // Simular análisis básico del archivo Excel
-    // En una implementación real, aquí se usaría una librería como xlsx para parsear el archivo
+    // Development mode - using mock data for testing
+    // TODO: Replace with actual Excel parsing library (like xlsx) for production
+    const isDevelopmentMode = true; // Set to false when real Excel parsing is implemented
+    
+    console.log('Development mode enabled - using mock data for Excel parsing');
+
     const mockParsedData: ParsedExcelData = {
       detectedSheets: [],
       detectedFields: {},
@@ -144,7 +148,10 @@ serve(async (req) => {
         detectedFields: mockParsedData.detectedFields,
         sheetsData: mockParsedData.sheetsData,
         fileName: fileName,
-        message: 'Archivo analizado correctamente para testing'
+        message: isDevelopmentMode 
+          ? 'Archivo analizado correctamente (DESARROLLO - datos de prueba)'
+          : 'Archivo analizado correctamente',
+        developmentMode: isDevelopmentMode
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

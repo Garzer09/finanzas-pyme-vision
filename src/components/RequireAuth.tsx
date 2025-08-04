@@ -26,13 +26,13 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center space-y-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          <p className="text-sm text-muted-foreground">Inicializando...</p>
+          <p className="text-sm text-muted-foreground">Cargando...</p>
         </div>
       </div>
     );
   }
 
-  // 2️⃣ Error en auth: permitimos reintentar
+  // 2️⃣ Error de autenticación: mostramos opción de reintentar
   if (authState.status === 'error') {
     console.error('🔐 [REQUIRE-AUTH] Auth error:', authState.error);
     return (
@@ -49,20 +49,11 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
 
   // 3️⃣ No autenticado: redirigimos a login preservando la ubicación
   if (authState.status === 'unauthenticated') {
-    return (
-      <Navigate
-        to="/login"
-        state={{ from: location }}
-        replace
-      />
-    );
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // 4️⃣ Autenticado pero sin permisos: mensaje de "no autorizado"
-  if (
-    authState.status === 'authenticated' &&
-    !canAccessProtectedRoute(authState)
-  ) {
+  if (authState.status === 'authenticated' && !canAccessProtectedRoute(authState)) {
     console.warn(
       '🔐 [REQUIRE-AUTH] Usuario sin permisos intentando acceder a:',
       location.pathname
