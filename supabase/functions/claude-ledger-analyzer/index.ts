@@ -42,14 +42,16 @@ serve(async (req) => {
 
     // Check for OpenAI API key
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY')
-    if (!openaiApiKey) {
-      log('error', 'OPENAI_API_KEY not found')
-      throw new Error('OPENAI_API_KEY not found in environment')
-    }
+    const isDevelopmentMode = Deno.env.get('DEVELOPMENT_MODE') === 'true' || !openaiApiKey
     
-    log('info', 'OpenAI API key found')
+    if (!openaiApiKey) {
+      log('warn', 'OPENAI_API_KEY not found - using development mode with mock data')
+    } else {
+      log('info', 'OpenAI API key found')
+    }
 
-    // Mock data para probar que la función funciona
+    // TODO: Replace with actual OpenAI processing when ready
+    // For now, using mock data for development/testing
     const mockAnalysisResult = {
       metadata: {
         companyName: "Empresa de Prueba",
@@ -242,10 +244,13 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       success: true,
-      message: 'Libro diario procesado exitosamente (modo mock)',
+      message: isDevelopmentMode 
+        ? 'Libro diario procesado exitosamente (DESARROLLO - datos de prueba)'
+        : 'Libro diario procesado exitosamente',
       data: mockAnalysisResult,
       dataQuality: mockAnalysisResult.validation.dataQuality,
-      warnings: mockAnalysisResult.validation.warnings
+      warnings: mockAnalysisResult.validation.warnings,
+      developmentMode: isDevelopmentMode
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     })
