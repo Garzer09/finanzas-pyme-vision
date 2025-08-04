@@ -40,9 +40,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('🔍 fetchUserRole called for userId:', userId);
     
     try {
-      // Fase 3: Añadir timeout más corto para evitar cuelgues
+      // Fase 3: Añadir timeout para evitar cuelgues
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('fetchUserRole timeout')), 5000)
+        setTimeout(() => reject(new Error('fetchUserRole timeout')), 10000)
       );
       
       // Try RPC function first with timeout
