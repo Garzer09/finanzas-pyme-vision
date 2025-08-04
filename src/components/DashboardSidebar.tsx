@@ -38,9 +38,27 @@ import { useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
 import { CompanyLogo } from '@/components/CompanyLogo';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSessionTimeout } from '@/hooks/useSessionTimeout';
+import { LogOut, AlertCircle } from 'lucide-react';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export const DashboardSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
+  const { signOut } = useAuth();
+  
+  // Initialize session timeout
+  useSessionTimeout({ timeoutMinutes: 120, warningMinutes: 15 });
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
     situacion: true,
     supuestos: false,
@@ -465,6 +483,49 @@ export const DashboardSidebar = () => {
           </div>
         ))}
       </nav>
+
+      {/* Logout Section */}
+      <div className="mt-auto pt-4 border-t border-steel-700/30">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <button
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-steel-800/50 transition-all duration-200 rounded-lg group",
+                collapsed && "justify-center"
+              )}
+              title={collapsed ? "Cerrar Sesión" : undefined}
+            >
+              <LogOut className="h-5 w-5 flex-shrink-0" />
+              {!collapsed && <span className="font-medium">Cerrar Sesión</span>}
+              {collapsed && (
+                <div className="absolute left-full ml-3 px-3 py-2 bg-slate-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 shadow-lg">
+                  Cerrar Sesión
+                </div>
+              )}
+            </button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertCircle className="h-5 w-5 text-amber-500" />
+                Confirmar Cierre de Sesión
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                ¿Estás seguro de que quieres cerrar tu sesión? Tendrás que volver a iniciar sesión para acceder a la aplicación.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={() => signOut('/')}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Cerrar Sesión
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
 
     </div>
   );

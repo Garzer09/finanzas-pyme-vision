@@ -9,7 +9,7 @@ interface AuthContextType {
   userRole: 'admin' | 'user' | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, data?: any) => Promise<{ error: any }>;
-  signOut: () => Promise<void>;
+  signOut: (redirectTo?: string) => Promise<void>;
   updatePassword: (password: string) => Promise<{ error: any }>;
 }
 
@@ -158,8 +158,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
-  const signOut = async () => {
+  const signOut = async (redirectTo: string = '/') => {
     await supabase.auth.signOut();
+    // Clear any cached data
+    roleCache.current = {};
+    setUserRole(null);
+    
+    // Redirect to specified path
+    if (typeof window !== 'undefined') {
+      window.location.href = redirectTo;
+    }
   };
 
   const updatePassword = async (password: string) => {

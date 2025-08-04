@@ -11,13 +11,23 @@ const RedirectPage = () => {
   useEffect(() => {
     if (!loading && !roleLoading) {
       if (user) {
+        console.log('RedirectPage Debug:', { 
+          userId: user.id, 
+          userRole, 
+          email: user.email,
+          timestamp: new Date().toISOString()
+        });
+        
         // Detectar rol y redirigir apropiadamente
         if (userRole === 'admin') {
+          console.log('Redirecting admin to /admin/empresas');
           navigate('/admin/empresas');
         } else {
+          console.log('Redirecting user to /app/mis-empresas');
           navigate('/app/mis-empresas');
         }
       } else {
+        console.log('No user found, redirecting to /auth');
         navigate('/auth');
       }
     }

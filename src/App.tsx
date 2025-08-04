@@ -8,6 +8,7 @@ import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PeriodProvider } from "./contexts/PeriodContext";
 import { AdminImpersonationProvider } from "./contexts/AdminImpersonationContext";
+import { SessionTimeoutProvider } from "./components/SessionTimeoutProvider";
 
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
@@ -60,10 +61,11 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 
 const App = () => (
   <ErrorBoundary>
-    <AuthProvider>
-      <AdminImpersonationProvider>
-        <PeriodProvider>
-          <TooltipProvider>
+      <AuthProvider>
+        <AdminImpersonationProvider>
+          <SessionTimeoutProvider>
+            <PeriodProvider>
+              <TooltipProvider>
           <Toaster />
           <Sonner />
           <Routes>
@@ -136,10 +138,11 @@ const App = () => (
         <Route path="*" element={<NotFound />} />
           </Routes>
           <DebugToolbar />
-          </TooltipProvider>
-        </PeriodProvider>
-      </AdminImpersonationProvider>
-    </AuthProvider>
+              </TooltipProvider>
+            </PeriodProvider>
+          </SessionTimeoutProvider>
+        </AdminImpersonationProvider>
+      </AuthProvider>
   </ErrorBoundary>
 );
 
