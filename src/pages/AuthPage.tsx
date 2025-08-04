@@ -40,17 +40,32 @@ const AuthPage = () => {
     rememberMe: false
   });
 
+  const { authStatus, role, initialized } = useAuth();
+
   useEffect(() => {
     // Fase 1: Instrumentación
     console.debug('[AUTH]', { 
       path: '/auth', 
       user: !!user, 
+      authStatus,
+      role,
+      initialized,
       isRecoveryMode,
       state: isPasswordReset ? 'password-reset' : isPasswordRecovery ? 'recovery' : isSignUp ? 'signup' : 'login'
     });
     
     setTokenLoading(false);
-  }, [user, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
+    
+    // Solo redirigir después de login exitoso cuando esté autenticado
+    if (initialized && authStatus === 'authenticated') {
+      console.debug('[NAVIGATE] Auth successful, redirecting by role', { from: '/auth', role });
+      if (role === 'admin') {
+        navigate('/admin/empresas', { replace: true });
+      } else {
+        navigate('/app/mis-empresas', { replace: true });
+      }
+    }
+  }, [user, authStatus, role, initialized, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp, navigate]);
   
   // Fase 2: Eliminar redirección automática que causa rebote
   // Solo redirigir después de login exitoso, NO en montaje
@@ -96,7 +111,7 @@ const AuthPage = () => {
           
           // Redirect to home after successful password update
           setTimeout(() => {
-            window.location.href = '/home';
+            window.location.href = '/';
           }, 1500);
         }
       } else if (isPasswordRecovery) {
@@ -161,9 +176,8 @@ const AuthPage = () => {
             title: "¡Bienvenido!",
             description: "Has iniciado sesión correctamente"
           });
-          // Redirigir solo después de login exitoso
-          console.debug('[AUTH] Login successful, redirecting to /');
-          navigate('/');
+          // No redirigir aquí, se maneja en useEffect cuando authStatus cambie
+          console.debug('[AUTH] Login successful, waiting for auth state change');
         }
       }
     } finally {

@@ -45,12 +45,12 @@ const LandingPage = () => {
         navigate('/app/mis-empresas', { replace: true });
       }
     }
-    // Si no está autenticado, se queda en /
-  }, [initialized, authStatus, role, location.pathname, location.state]);
+    // Si no está autenticado, se queda en / (no hacer nada)
+  }, [initialized, authStatus, role, location.state]); // Eliminé location.pathname y navigate de dependencias
 
   const handleGetStarted = () => {
-    console.log('🔘 CTA clicked - navigating to /auth');
-    navigate('/auth');
+    console.debug('[NAVIGATE] CTA clicked', { from: '/', to: '/auth', reason: 'user_action' });
+    navigate('/auth', { state: { from: 'manual' } }); // Añadir state para indicar navegación manual
   };
 
 
