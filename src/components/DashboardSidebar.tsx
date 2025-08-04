@@ -77,6 +77,11 @@ export const DashboardSidebar = () => {
 
   // Function to get the section key based on current path
   const getSectionFromPath = (path: string): string | null => {
+    // Dashboard Principal
+    if (path === '/home' || path === '/') {
+      return null; // No section to expand for dashboard
+    }
+    
     // Admin section
     if (path.includes('/admin') || path.includes('/excel-upload')) {
       return 'admin';
@@ -170,7 +175,7 @@ export const DashboardSidebar = () => {
       title: '1. Resumen Ejecutivo',
       items: [
         {
-          path: isAdmin && isImpersonating ? '/home' : (isAdmin ? '/admin/users' : '/home'),
+          path: '/home',
           label: 'Dashboard Principal',
           icon: Home,
           color: 'text-steel-600'
