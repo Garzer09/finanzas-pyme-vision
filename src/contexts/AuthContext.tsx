@@ -44,11 +44,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     resetTimer: resetInactivityTimer
   } = useInactivityDetection(
     () => {
-      console.log('🕐 [AUTH] Inactivity warning');
       setInactivityWarning(true);
     },
     () => {
-      console.log('🕐 [AUTH] Inactivity timeout — signing out');
       handleSignOut();
     }
   );
@@ -79,7 +77,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // reuse in-flight
       if (inFlightRef.current) {
-        console.log('🔄 [AUTH] Reusing in-flight role fetch');
         try {
           return await inFlightRef.current;
         } catch {
@@ -87,11 +84,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       }
 
-      console.log('🔍 [AUTH] fetchUserRole:', userId, 'reqId=', reqId);
       const promise = retryOperation(async () => {
         // stale check
         if (reqId !== roleReqIdRef.current) {
-          console.log('🚫 [AUTH] Stale role fetch');
           return lastKnownRoleRef.current;
         }
 
@@ -99,7 +94,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const { data: rpcData, error: rpcErr } = await supabase.rpc(
           'get_user_role'
         );
-        console.log('🔧 [AUTH] RPC result', { rpcData, rpcErr });
 
         if (!rpcErr && rpcData === 'admin') return 'admin';
 
@@ -109,7 +103,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           .select('role')
           .eq('user_id', userId)
           .maybeSingle();
-        console.log('📊 [AUTH] Table result', { tbl, tblErr });
 
         if (!tblErr && tbl?.role === 'admin') return 'admin';
         return 'viewer';
@@ -129,20 +122,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Centralized state transitions
   const transitionState = useCallback(
     (newState: AuthState) => {
-      console.log('🔄 [AUTH] ', authState.status, '→', newState.status);
       setAuthState(newState);
       if (newState.status === 'authenticated') {
         resetInactivityTimer();
       }
     },
-    [authState.status, resetInactivityTimer]
+    [resetInactivityTimer]
   );
 
   // === Auth actions ===
 
   const handleSignIn = useCallback(
     async (email: string, password: string) => {
-      console.log('🔐 [AUTH] signIn');
       transitionState({ status: 'authenticating' });
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -178,7 +169,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const handleSignOut = useCallback(
     async (redirectTo: string = '/') => {
-      console.log('🚪 [AUTH] signOut');
       await supabase.auth.signOut();
       transitionState({ status: 'unauthenticated' });
       lastKnownRoleRef.current = 'none';
@@ -197,7 +187,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const handleRefreshRole = useCallback(async () => {
     if (authState.status !== 'authenticated') return;
-    console.log('🔄 [AUTH] manual role refresh');
     const reqId = ++roleReqIdRef.current;
     try {
       const userRole = await fetchUserRole(
@@ -225,7 +214,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     let sub: any;
 
     const init = async () => {
-      console.log('🚀 [AUTH] initializing');
       const {
         data: { session },
         error
@@ -233,7 +221,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!mounted) return;
 
       if (error) {
-        console.error('❌ [AUTH] getSession error', error);
+        console.error('Auth session error:', error);
         transitionState({ status: 'unauthenticated' });
         return;
       }
@@ -276,7 +264,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     sub = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
-        console.log('🔄 [AUTH] onAuthStateChange', event);
 
         if (event === 'SIGNED_OUT') {
           transitionState({ status: 'unauthenticated' });
