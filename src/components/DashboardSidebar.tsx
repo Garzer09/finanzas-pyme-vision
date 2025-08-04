@@ -57,7 +57,7 @@ export const DashboardSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const { signOut } = useAuth();
   
-  // Initialize session timeout
+  // Initialize session timeout (moved here to ensure AuthProvider is available)
   useSessionTimeout({ timeoutMinutes: 120, warningMinutes: 15 });
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
     situacion: true,

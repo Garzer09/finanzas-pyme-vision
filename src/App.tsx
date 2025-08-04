@@ -8,7 +8,6 @@ import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PeriodProvider } from "./contexts/PeriodContext";
 import { AdminImpersonationProvider } from "./contexts/AdminImpersonationContext";
-import { SessionTimeoutProvider } from "./components/SessionTimeoutProvider";
 
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
@@ -63,9 +62,8 @@ const App = () => (
   <ErrorBoundary>
       <AuthProvider>
         <AdminImpersonationProvider>
-          <SessionTimeoutProvider>
-            <PeriodProvider>
-              <TooltipProvider>
+          <PeriodProvider>
+            <TooltipProvider>
           <Toaster />
           <Sonner />
           <Routes>
@@ -140,7 +138,6 @@ const App = () => (
           <DebugToolbar />
               </TooltipProvider>
             </PeriodProvider>
-          </SessionTimeoutProvider>
         </AdminImpersonationProvider>
       </AuthProvider>
   </ErrorBoundary>
