@@ -7,6 +7,7 @@ interface AuthContextType {
   session: Session | null;
   authStatus: 'unknown' | 'authenticated' | 'unauthenticated';
   role: 'admin' | 'viewer' | 'none';
+  roleStatus: 'idle' | 'loading' | 'ready';
   initialized: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, data?: any) => Promise<{ error: any }>;
@@ -29,7 +30,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [authStatus, setAuthStatus] = useState<'unknown' | 'authenticated' | 'unauthenticated'>('unknown');
   const [role, setRole] = useState<'admin' | 'viewer' | 'none'>('none');
+  const [roleStatus, setRoleStatus] = useState<'idle' | 'loading' | 'ready'>('idle');
   const [initialized, setInitialized] = useState(false);
+  
+  // Sticky role ref to prevent admin downgrade during refresh
+  const lastKnownRoleRef = useRef<'admin' | 'viewer' | 'none'>('none');
+  const fetchControllerRef = useRef<AbortController | null>(null);
 
   const fetchUserRole = useCallback(async (userId: string): Promise<'admin' | 'viewer'> => {
     if (!userId) {
@@ -37,12 +43,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return 'viewer';
     }
     
-    console.log('🔍 fetchUserRole called for userId:', userId);
+    // Cancel previous request if exists
+    if (fetchControllerRef.current) {
+      fetchControllerRef.current.abort();
+    }
+    
+    // Create new abort controller for this request
+    fetchControllerRef.current = new AbortController();
+    const { signal } = fetchControllerRef.current;
+    
+    console.log('🔍 [INSTRUMENTATION] fetchUserRole called for userId:', userId);
     
     try {
-      // Fase 3: Añadir timeout para evitar cuelgues
+      // Reduced timeout to 5s for faster recovery
       const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('fetchUserRole timeout')), 10000)
+        setTimeout(() => reject(new Error('fetchUserRole timeout')), 5000)
       );
       
       // Try RPC function first with timeout
@@ -51,15 +66,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const { data: rpcData, error: rpcError } = await Promise.race([rpcPromise, timeoutPromise]);
       
-      console.log('🔧 RPC result:', { rpcData, rpcError });
+      console.log('🔧 [INSTRUMENTATION] RPC result:', { rpcData, rpcError });
       
       if (!rpcError && rpcData === 'admin') {
-        console.log('✅ Role from RPC: admin');
+        console.log('✅ [INSTRUMENTATION] Role from RPC: admin');
         return 'admin';
       }
       
       // Fallback to direct table query with timeout
-      console.log('⚠️ RPC failed, trying direct table query...');
+      console.log('⚠️ [INSTRUMENTATION] RPC failed, trying direct table query...');
       const tablePromise = supabase
         .from('user_roles')
         .select('role')
@@ -68,20 +83,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       const { data: tableData, error: tableError } = await Promise.race([tablePromise, timeoutPromise]);
       
-      console.log('📊 Table query result:', { tableData, tableError });
+      console.log('📊 [INSTRUMENTATION] Table query result:', { tableData, tableError });
       
       if (!tableError && tableData?.role === 'admin') {
-        console.log('✅ Role from table: admin');
+        console.log('✅ [INSTRUMENTATION] Role from table: admin');
         return 'admin';
       }
       
       // Default to viewer
-      console.log('ℹ️ No admin role found, defaulting to viewer');
+      console.log('ℹ️ [INSTRUMENTATION] No admin role found, defaulting to viewer');
       return 'viewer';
       
     } catch (error) {
-      console.error('❌ Error in fetchUserRole (with timeout):', error);
-      return 'viewer';
+      if (error.name === 'AbortError') {
+        console.log('🚫 [INSTRUMENTATION] fetchUserRole aborted');
+        return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
+      }
+      console.error('❌ [INSTRUMENTATION] Error in fetchUserRole (with timeout):', error);
+      // Preserve admin role on error if it was previously admin
+      return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
     }
   }, []);
 
@@ -91,20 +111,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const initAuth = async () => {
       try {
-        console.log('🚀 Initializing Auth...');
+        console.log('🚀 [INSTRUMENTATION] Initializing Auth...');
         
         // Check for existing session first
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
-          console.error('❌ Session check error:', error);
+          console.error('❌ [INSTRUMENTATION] Session check error:', error);
           if (!mounted) return;
           setAuthStatus('unauthenticated');
           setRole('none');
+          setRoleStatus('ready');
           return;
         }
         
-        console.log('📋 Session check result:', { hasSession: !!session, user: session?.user?.email });
+        console.log('📋 [INSTRUMENTATION] Session check result:', { hasSession: !!session, user: session?.user?.email });
         
         if (!mounted) return;
         
@@ -113,26 +134,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setAuthStatus(session ? 'authenticated' : 'unauthenticated');
         
         if (session?.user?.id) {
-          console.log('👤 Existing user found, fetching role...');
-          const userRole = await fetchUserRole(session.user.id);
-          if (mounted) {
-            setRole(userRole);
+          console.log('👤 [INSTRUMENTATION] Existing user found, fetching role...');
+          setRoleStatus('loading');
+          try {
+            const userRole = await fetchUserRole(session.user.id);
+            if (mounted) {
+              setRole(userRole);
+              lastKnownRoleRef.current = userRole;
+              setRoleStatus('ready');
+            }
+          } catch (error) {
+            console.error('❌ [INSTRUMENTATION] Error fetching role during init:', error);
+            if (mounted) {
+              setRole('viewer');
+              setRoleStatus('ready');
+            }
           }
         } else {
-          console.log('❌ No existing user');
+          console.log('❌ [INSTRUMENTATION] No existing user');
           setRole('none');
+          setRoleStatus('ready');
         }
         
       } catch (error) {
-        console.error('❌ Auth initialization error:', error);
+        console.error('❌ [INSTRUMENTATION] Auth initialization error:', error);
         if (mounted) {
           setAuthStatus('unauthenticated');
           setRole('none');
+          setRoleStatus('ready');
         }
       } finally {
         if (mounted) {
           setInitialized(true);
-          console.log('✅ Auth initialization completed');
+          console.log('✅ [INSTRUMENTATION] Auth initialization completed');
         }
       }
     };
@@ -140,38 +174,69 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 Auth state change:', { event, user: session?.user?.email });
+        console.log('🔄 [INSTRUMENTATION] Auth state change:', { event, user: session?.user?.email, path: window.location.pathname });
+        console.log('📊 [INSTRUMENTATION] AUTH STATE BEFORE:', { authStatus, role, roleStatus, initialized });
         
         if (!mounted) return;
         
-        setSession(session);
-        setUser(session?.user ?? null);
-        setAuthStatus(session ? 'authenticated' : 'unauthenticated');
+        // Handle different auth events
+        if (event === 'SIGNED_OUT') {
+          console.log('🚪 [INSTRUMENTATION] SIGNED_OUT event');
+          setSession(null);
+          setUser(null);
+          setAuthStatus('unauthenticated');
+          setRole('none');
+          setRoleStatus('ready');
+          lastKnownRoleRef.current = 'none';
+          setInitialized(true);
+          return;
+        }
         
-        try {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          console.log(`🔐 [INSTRUMENTATION] ${event} event`);
+          
+          setSession(session);
+          setUser(session?.user ?? null);
+          setAuthStatus(session ? 'authenticated' : 'unauthenticated');
+          
           if (session?.user?.id) {
-            console.log('👤 User found, fetching role...');
-            const userRole = await fetchUserRole(session.user.id);
-            if (mounted) {
-              setRole(userRole);
+            // For TOKEN_REFRESHED, keep admin role sticky during revalidation
+            if (event === 'TOKEN_REFRESHED' && lastKnownRoleRef.current === 'admin') {
+              console.log('🔄 [INSTRUMENTATION] TOKEN_REFRESHED: keeping admin role sticky during revalidation');
+              setRoleStatus('loading'); // Show we're revalidating but don't change role yet
+            } else {
+              setRoleStatus('loading');
+            }
+            
+            try {
+              const userRole = await fetchUserRole(session.user.id);
+              if (mounted) {
+                console.log(`✅ [INSTRUMENTATION] Role fetched after ${event}:`, userRole);
+                setRole(userRole);
+                lastKnownRoleRef.current = userRole;
+                setRoleStatus('ready');
+              }
+            } catch (error) {
+              console.error(`❌ [INSTRUMENTATION] Error fetching role during ${event}:`, error);
+              if (mounted) {
+                // Preserve admin role on error if it was previously admin
+                const fallbackRole = lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
+                console.log(`🛡️ [INSTRUMENTATION] Using fallback role:`, fallbackRole);
+                setRole(fallbackRole);
+                setRoleStatus('ready');
+              }
             }
           } else {
-            console.log('❌ No user, clearing role');
-            if (mounted) {
-              setRole('none');
-            }
+            console.log('❌ [INSTRUMENTATION] No user in session');
+            setRole('none');
+            setRoleStatus('ready');
+            lastKnownRoleRef.current = 'none';
           }
-        } catch (error) {
-          console.error('❌ Error in auth state change:', error);
-          if (mounted) {
-            setRole(session ? 'viewer' : 'none');
-          }
-        } finally {
-          // Fase 3: Asegurar que initialized=true incluso si fetchUserRole falla
-          if (mounted) {
-            setInitialized(true);
-          }
+          
+          setInitialized(true);
         }
+        
+        console.log('📊 [INSTRUMENTATION] AUTH STATE AFTER:', { authStatus, role, roleStatus, initialized });
       }
     );
     
@@ -234,6 +299,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     authStatus,
     role,
+    roleStatus,
     initialized,
     signIn,
     signUp,

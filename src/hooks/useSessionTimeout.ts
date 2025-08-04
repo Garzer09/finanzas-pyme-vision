@@ -12,7 +12,10 @@ export const useSessionTimeout = ({
   timeoutMinutes = 120, // 2 hours default
   warningMinutes = 15 // 15 minutes warning
 }: UseSessionTimeoutOptions = {}) => {
-  const { user, signOut } = useAuth();
+  const { user, role, signOut } = useAuth();
+  
+  // Extend timeout for admin users (8 hours vs 2 hours)
+  const effectiveTimeoutMinutes = role === 'admin' ? 480 : timeoutMinutes;
   const navigate = useNavigate();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const warningRef = useRef<NodeJS.Timeout | null>(null);
@@ -38,7 +41,7 @@ export const useSessionTimeout = ({
         description: `Tu sesión expirará en ${warningMinutes} minutos por inactividad.`,
         duration: 10000,
       });
-    }, (timeoutMinutes - warningMinutes) * 60 * 1000);
+    }, (effectiveTimeoutMinutes - warningMinutes) * 60 * 1000);
 
     // Set logout timeout
     timeoutRef.current = setTimeout(async () => {
@@ -50,8 +53,8 @@ export const useSessionTimeout = ({
       
       await signOut();
       navigate('/');
-    }, timeoutMinutes * 60 * 1000);
-  }, [user, signOut, navigate, timeoutMinutes, warningMinutes]);
+    }, effectiveTimeoutMinutes * 60 * 1000);
+  }, [user, role, signOut, navigate, effectiveTimeoutMinutes, warningMinutes]);
 
   // Track user activity
   useEffect(() => {
@@ -91,7 +94,7 @@ export const useSessionTimeout = ({
     getLastActivity: () => lastActivityRef.current,
     getTimeUntilExpiry: () => {
       const elapsed = Date.now() - lastActivityRef.current;
-      const remaining = (timeoutMinutes * 60 * 1000) - elapsed;
+      const remaining = (effectiveTimeoutMinutes * 60 * 1000) - elapsed;
       return Math.max(0, remaining);
     }
   };
