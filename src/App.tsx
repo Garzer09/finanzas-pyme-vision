@@ -67,7 +67,10 @@ const App = () => {
   const location = useLocation();
   
   React.useEffect(() => {
-    console.debug('[ROUTE]', location.pathname);
+    // Only log routes in development or when debug is enabled
+    if (process.env.NODE_ENV === 'development' || localStorage.getItem('debug_mode') === 'true') {
+      console.debug('[ROUTE]', location.pathname);
+    }
   }, [location.pathname]);
 
   return (
