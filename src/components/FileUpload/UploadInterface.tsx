@@ -1,14 +1,37 @@
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, FileSpreadsheet, Brain, X, Play } from 'lucide-react';
+import { Upload, FileSpreadsheet, Brain, X, Play, AlertCircle, RotateCcw } from 'lucide-react';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { ProgressTracker } from './ProgressTracker';
 import { FileValidator } from './FileValidator';
 import { cn } from '@/lib/utils';
 
+interface ProcessedData {
+  success: boolean;
+  detectedSheets: string[];
+  detectedFields: Record<string, string[]>;
+  sheetsData: Array<{
+    name: string;
+    fields: string[];
+    sampleData: Record<string, any>[];
+    rowCount?: number;
+    hasHeaders?: boolean;
+  }>;
+  fileName: string;
+  fileSize: number;
+  processingTime: number;
+  message: string;
+  performance: {
+    fileSize: string;
+    processingTime: string;
+    estimatedRows: number;
+    streamingMode: boolean;
+  };
+}
+
 interface UploadInterfaceProps {
-  onUploadComplete?: (fileId: string, processedData: any) => void;
+  onUploadComplete?: (fileId: string, processedData: ProcessedData) => void;
   targetUserId?: string;
   className?: string;
 }
@@ -29,12 +52,15 @@ export const UploadInterface: React.FC<UploadInterfaceProps> = ({
     validationResult,
     error,
     estimatedTimeRemaining,
+    canRetry,
+    retryCount,
     handleFileSelection,
     handleDragOver,
     handleDragLeave,
     handleDrop,
     cancelUpload,
-    resetState
+    resetState,
+    retryUpload
   } = useFileUpload({
     onUploadComplete,
     targetUserId
@@ -238,11 +264,44 @@ export const UploadInterface: React.FC<UploadInterfaceProps> = ({
           </div>
         </div>
 
-        {/* Error Display */}
+        {/* Error Display with Retry Option */}
         {error && (
-          <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <div className="text-red-700 text-sm">
-              <strong>Error:</strong> {error}
+          <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 flex-shrink-0" />
+              <div className="flex-1">
+                <div className="text-red-700 text-sm font-medium mb-1">
+                  Error al procesar archivo
+                </div>
+                <div className="text-red-600 text-sm mb-3">
+                  {error}
+                </div>
+                {retryCount > 0 && (
+                  <div className="text-red-500 text-xs mb-3">
+                    Intento {retryCount}/3
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  {canRetry && (
+                    <Button
+                      size="sm"
+                      onClick={retryUpload}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      <RotateCcw className="h-4 w-4 mr-1" />
+                      Reintentar
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={resetState}
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    Seleccionar otro archivo
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         )}

@@ -1,8 +1,8 @@
 import React from 'react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
-import { CheckCircle, AlertCircle, FileText, HardDrive, Clock } from 'lucide-react';
-import { validateFile, createFilePreview, estimateProcessingTime, FileValidationResult } from '@/utils/fileProcessing';
+import { CheckCircle, AlertCircle, FileText, HardDrive, Clock, Eye } from 'lucide-react';
+import { validateFile, createFilePreview, createFileContentPreview, estimateProcessingTime, FileValidationResult } from '@/utils/fileProcessing';
 
 interface FileValidatorProps {
   file: File | null;
@@ -13,17 +13,37 @@ export const FileValidator: React.FC<FileValidatorProps> = ({
   file, 
   onValidationComplete 
 }) => {
-  if (!file) return null;
+  const [contentPreview, setContentPreview] = React.useState<{
+    hasPreview: boolean;
+    headers: string[];
+    sampleRows: string[][];
+    totalEstimatedRows: number;
+  }>({ hasPreview: false, headers: [], sampleRows: [], totalEstimatedRows: 0 });
 
-  const preview = createFilePreview(file);
-  const { validation } = preview;
+  // Handle file processing and validation
+  const preview = React.useMemo(() => {
+    return file ? createFilePreview(file) : null;
+  }, [file]);
+
+  const validation = preview?.validation || null;
+
+  // Load content preview for CSV files
+  React.useEffect(() => {
+    if (file && preview?.type === 'csv') {
+      createFileContentPreview(file).then(setContentPreview);
+    } else {
+      setContentPreview({ hasPreview: false, headers: [], sampleRows: [], totalEstimatedRows: 0 });
+    }
+  }, [file, preview?.type]);
 
   // Notify parent of validation result
   React.useEffect(() => {
-    if (onValidationComplete) {
+    if (onValidationComplete && validation) {
       onValidationComplete(validation);
     }
   }, [validation, onValidationComplete]);
+
+  if (!file || !preview) return null;
 
   const getValidationIcon = () => {
     if (validation.isValid) {
@@ -117,6 +137,62 @@ export const FileValidator: React.FC<FileValidatorProps> = ({
               <li>Análisis automático con IA Claude</li>
               <li>Extracción de P&G, Balance, Flujos y Ratios</li>
             </ul>
+          </div>
+        )}
+
+        {/* Content Preview for CSV files */}
+        {contentPreview.hasPreview && (
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Eye className="h-4 w-4 text-steel-600" />
+              <span className="text-sm font-medium text-steel-700">
+                Vista previa del contenido
+              </span>
+            </div>
+            
+            <div className="bg-slate-50 rounded border p-3 max-h-48 overflow-auto">
+              {/* Headers */}
+              <div className="grid gap-1 mb-2">
+                <div className="text-xs font-medium text-slate-600 mb-1">
+                  Columnas detectadas ({contentPreview.headers.length}):
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {contentPreview.headers.slice(0, 8).map((header, index) => (
+                    <span 
+                      key={index}
+                      className="px-2 py-1 bg-steel-100 text-steel-700 rounded text-xs"
+                    >
+                      {header}
+                    </span>
+                  ))}
+                  {contentPreview.headers.length > 8 && (
+                    <span className="text-xs text-slate-500">
+                      +{contentPreview.headers.length - 8} más...
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Sample Data */}
+              {contentPreview.sampleRows.length > 0 && (
+                <div>
+                  <div className="text-xs font-medium text-slate-600 mb-1">
+                    Datos de muestra:
+                  </div>
+                  <div className="space-y-1">
+                    {contentPreview.sampleRows.slice(0, 3).map((row, rowIndex) => (
+                      <div key={rowIndex} className="text-xs text-slate-600 truncate">
+                        {row.slice(0, 3).join(' | ')}
+                        {row.length > 3 && ' | ...'}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-2">
+                    Filas estimadas: {contentPreview.totalEstimatedRows.toLocaleString()}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
       </CardContent>

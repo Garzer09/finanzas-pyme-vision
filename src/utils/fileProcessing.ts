@@ -138,3 +138,76 @@ export function estimateProcessingTime(fileSizeBytes: number): string {
   if (sizeMB < 30) return '5-10 minutos';
   return '10-15 minutos';
 }
+
+/**
+ * Creates a preview of file content for CSV files
+ */
+export async function createFileContentPreview(file: File, maxLines = 5): Promise<{
+  hasPreview: boolean;
+  headers: string[];
+  sampleRows: string[][];
+  totalEstimatedRows: number;
+}> {
+  if (detectFileType(file) !== 'csv') {
+    return {
+      hasPreview: false,
+      headers: [],
+      sampleRows: [],
+      totalEstimatedRows: 0
+    };
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = e.target?.result as string;
+        const lines = text.split('\n').filter(line => line.trim().length > 0);
+        
+        if (lines.length === 0) {
+          resolve({
+            hasPreview: false,
+            headers: [],
+            sampleRows: [],
+            totalEstimatedRows: 0
+          });
+          return;
+        }
+
+        const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        const sampleRows = lines.slice(1, maxLines + 1).map(line => 
+          line.split(',').map(cell => cell.trim().replace(/"/g, ''))
+        );
+
+        resolve({
+          hasPreview: true,
+          headers,
+          sampleRows,
+          totalEstimatedRows: lines.length - 1 // Subtract header row
+        });
+      } catch (error) {
+        console.error('Error creating file preview:', error);
+        resolve({
+          hasPreview: false,
+          headers: [],
+          sampleRows: [],
+          totalEstimatedRows: 0
+        });
+      }
+    };
+    
+    reader.onerror = () => {
+      resolve({
+        hasPreview: false,
+        headers: [],
+        sampleRows: [],
+        totalEstimatedRows: 0
+      });
+    };
+
+    // Read only first 50KB for preview to avoid memory issues
+    const previewSize = Math.min(file.size, 50 * 1024);
+    const blob = file.slice(0, previewSize);
+    reader.readAsText(blob);
+  });
+}

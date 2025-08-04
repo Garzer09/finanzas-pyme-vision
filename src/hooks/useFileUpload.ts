@@ -8,7 +8,9 @@ export interface UseFileUploadOptions {
   maxRows?: number;
   allowedFormats?: string[];
   targetUserId?: string;
-  onUploadComplete?: (fileId: string, processedData: any) => void;
+  maxRetries?: number;
+  retryDelay?: number;
+  onUploadComplete?: (fileId: string, processedData: ProcessedData) => void;
 }
 
 export interface FileUploadState {
@@ -21,6 +23,32 @@ export interface FileUploadState {
   validationResult: FileValidationResult | null;
   error: string | null;
   estimatedTimeRemaining?: string;
+  retryCount: number;
+  canRetry: boolean;
+}
+
+interface ProcessedData {
+  success: boolean;
+  detectedSheets: string[];
+  detectedFields: Record<string, string[]>;
+  sheetsData: Array<{
+    name: string;
+    fields: string[];
+    sampleData: Record<string, any>[];
+    rowCount?: number;
+    hasHeaders?: boolean;
+  }>;
+  fileName: string;
+  fileSize: number;
+  processingTime: number;
+  message: string;
+  performance: {
+    fileSize: string;
+    processingTime: string;
+    estimatedRows: number;
+    streamingMode: boolean;
+    financialType?: string;
+  };
 }
 
 const DEFAULT_STEPS: ProgressStep[] = [
@@ -45,7 +73,9 @@ export const useFileUpload = (options: UseFileUploadOptions = {}) => {
     progress: 0,
     steps: [...DEFAULT_STEPS],
     validationResult: null,
-    error: null
+    error: null,
+    retryCount: 0,
+    canRetry: false
   });
 
   const updateStep = useCallback((stepId: string, status: ProgressStep['status'], error?: string) => {
@@ -117,9 +147,17 @@ export const useFileUpload = (options: UseFileUploadOptions = {}) => {
       progress: 0,
       steps: [...DEFAULT_STEPS],
       validationResult: null,
-      error: null
+      error: null,
+      retryCount: 0,
+      canRetry: false
     });
   }, []);
+
+  const retryUpload = useCallback(() => {
+    if (state.file && state.canRetry) {
+      return processFile(state.file, true);
+    }
+  }, [state.file, state.canRetry, processFile]);
 
   const validateFileAndSetState = useCallback((file: File) => {
     const processingOptions = {
@@ -139,14 +177,19 @@ export const useFileUpload = (options: UseFileUploadOptions = {}) => {
     return validationResult;
   }, [options]);
 
-  const processFile = useCallback(async (file: File) => {
+  const processFile = useCallback(async (file: File, isRetry = false) => {
     const startTime = Date.now();
+    const maxRetries = options.maxRetries || 3;
+    const retryDelay = options.retryDelay || 2000;
+    
     setState(prev => ({ 
       ...prev, 
       isUploading: true, 
       error: null,
       progress: 0,
-      estimatedTimeRemaining: estimateTimeRemaining(0, startTime)
+      estimatedTimeRemaining: estimateTimeRemaining(0, startTime),
+      retryCount: isRetry ? prev.retryCount + 1 : 0,
+      canRetry: false
     }));
 
     abortController.current = new AbortController();
@@ -175,27 +218,54 @@ export const useFileUpload = (options: UseFileUploadOptions = {}) => {
       updateStep('parsing', 'processing');
       await simulateProgress('parsing', 1500, 25, 40);
 
-      // Call the simple-excel-parser function
-      const response = await fetch('https://hlwchpmogvwmpuvwmvwv.supabase.co/functions/v1/simple-excel-parser', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          file: base64File,
-          fileName: file.name
-        }),
-        signal: abortController.current.signal
-      });
+      // Call the simple-excel-parser function with retry logic
+      let response;
+      let attempts = 0;
+      const maxAttempts = isRetry ? 1 : maxRetries;
+      
+      while (attempts < maxAttempts) {
+        try {
+          response = await fetch('https://hlwchpmogvwmpuvwmvwv.supabase.co/functions/v1/simple-excel-parser', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              file: base64File,
+              fileName: file.name
+            }),
+            signal: abortController.current.signal
+          });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+          if (response.ok) {
+            break; // Success, exit retry loop
+          }
+          
+          attempts++;
+          if (attempts < maxAttempts) {
+            console.log(`Attempt ${attempts} failed, retrying in ${retryDelay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          }
+        } catch (fetchError: any) {
+          attempts++;
+          if (attempts >= maxAttempts) {
+            throw fetchError;
+          }
+          console.log(`Network error on attempt ${attempts}, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, retryDelay));
+        }
+      }
+
+      if (!response || !response.ok) {
+        throw new Error(`HTTP error! status: ${response?.status || 'Network Error'}`);
       }
 
       const result = await response.json();
       updateStep('parsing', 'completed');
 
       if (!result.success) {
+        const isRetryable = result.retryable !== false;
+        setState(prev => ({ ...prev, canRetry: isRetryable }));
         throw new Error(result.error || 'Error parsing file');
       }
 
@@ -223,7 +293,9 @@ export const useFileUpload = (options: UseFileUploadOptions = {}) => {
       setState(prev => ({ 
         ...prev, 
         isUploading: false,
-        estimatedTimeRemaining: undefined
+        estimatedTimeRemaining: undefined,
+        error: null,
+        canRetry: false
       }));
 
       toast({
@@ -240,11 +312,16 @@ export const useFileUpload = (options: UseFileUploadOptions = {}) => {
     } catch (error: any) {
       console.error('File upload error:', error);
       
+      const isRetryable = !error.message.includes('too large') && 
+                         !error.message.includes('not supported') &&
+                         state.retryCount < maxRetries;
+      
       setState(prev => ({ 
         ...prev, 
         isUploading: false, 
         error: error.message,
-        estimatedTimeRemaining: undefined
+        estimatedTimeRemaining: undefined,
+        canRetry: isRetryable
       }));
 
       // Mark current step as error
@@ -267,7 +344,8 @@ export const useFileUpload = (options: UseFileUploadOptions = {}) => {
     estimateTimeRemaining, 
     options, 
     toast,
-    state.currentStep
+    state.currentStep,
+    state.retryCount
   ]);
 
   const handleFileSelection = useCallback((file: File) => {
@@ -323,6 +401,7 @@ export const useFileUpload = (options: UseFileUploadOptions = {}) => {
     handleDragLeave,
     handleDrop,
     cancelUpload,
-    resetState
+    resetState,
+    retryUpload
   };
 };
