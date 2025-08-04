@@ -95,26 +95,32 @@ Deno.serve(async (req) => {
     // Parse form data
     const formData = await req.formData()
     
-    // Extract metadata
-    const companyId = formData.get('company_id') as string
-    const periodType = formData.get('period_type') as string
-    const periodYear = parseInt(formData.get('period_year') as string)
-    const periodQuarter = formData.get('period_quarter') ? parseInt(formData.get('period_quarter') as string) : null
-    const periodMonth = formData.get('period_month') ? parseInt(formData.get('period_month') as string) : null
+    // Extract metadata - support both old and new formats
+    const companyId = formData.get('companyId') || formData.get('company_id') as string
+    const selectedYears = formData.getAll('selected_years[]').map(y => parseInt(y as string)).filter(y => !isNaN(y))
     const currencyCode = formData.get('currency_code') as string || 'EUR'
     const accountingStandard = formData.get('accounting_standard') as string || 'PGC'
     const importMode = formData.get('import_mode') as string || 'REPLACE'
     const dryRun = formData.get('dry_run') === 'true'
 
+    // Legacy support for period-based metadata
+    const periodType = formData.get('period_type') as string || 'annual'
+    const periodYear = parseInt(formData.get('period_year') as string) || (selectedYears.length > 0 ? selectedYears[0] : new Date().getFullYear())
+    const periodQuarter = formData.get('period_quarter') ? parseInt(formData.get('period_quarter') as string) : null
+    const periodMonth = formData.get('period_month') ? parseInt(formData.get('period_month') as string) : null
+
     // Validate required metadata
-    if (!companyId || !periodType || !periodYear) {
+    if (!companyId) {
       return new Response(JSON.stringify({ 
-        error: 'Missing required metadata: company_id, period_type, period_year' 
+        error: 'Missing required metadata: companyId' 
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+
+    // If selectedYears is provided, use it; otherwise use legacy period approach
+    const yearsToProcess = selectedYears.length > 0 ? selectedYears : [periodYear]
 
     // Check for existing job in progress
     const { data: existingJob } = await supabase
@@ -206,6 +212,9 @@ Deno.serve(async (req) => {
           progress_pct: 0,
           eta_seconds: 120,
           files_received: Object.keys(csvFiles).length,
+          detected_years: [],
+          selected_years: yearsToProcess,
+          per_year: {},
           message: dryRun ? 'Iniciando validación (dry-run)' : 'Iniciando procesamiento de archivos CSV'
         }
       })
@@ -223,6 +232,7 @@ Deno.serve(async (req) => {
     // Start background processing
     EdgeRuntime.waitUntil(processJob(supabase, jobId, csvFiles, {
       companyId,
+      yearsToProcess,
       periodType,
       periodYear,
       periodQuarter,
@@ -261,18 +271,36 @@ async function processJob(
   metadata: any
 ) {
   try {
-    await setStatus(supabase, jobId, 'PARSING', 10, 'Parseando archivos CSV...')
+    await setStatus(supabase, jobId, 'PARSING', 10, 'Parseando archivos CSV...', metadata.yearsToProcess)
 
     // Parse all CSV files
     const parsedFiles: { [key: string]: any[] } = {}
+    const detectedYears: number[] = []
+    
     for (const [fileName, file] of Object.entries(csvFiles)) {
       const text = await file.text()
       const rows = await parseCsvText(text)
       parsedFiles[fileName] = rows
       console.log(`Parsed ${fileName}: ${rows.length} rows`)
+      
+      // Detect years from P&L and Balance files
+      if (fileName === 'cuenta-pyg.csv' || fileName === 'balance-situacion.csv') {
+        const fileYears = extractYearsFromCsvContent(text)
+        fileYears.forEach(year => {
+          if (!detectedYears.includes(year)) {
+            detectedYears.push(year)
+          }
+        })
+      }
     }
 
-    await setStatus(supabase, jobId, 'VALIDATING', 30, 'Validando datos contables...')
+    // Update detected years
+    await updateJobStats(supabase, jobId, {
+      detected_years: detectedYears.sort(),
+      selected_years: metadata.yearsToProcess
+    })
+
+    await setStatus(supabase, jobId, 'VALIDATING', 30, 'Validando datos contables...', metadata.yearsToProcess)
 
     // Validate each file
     const validationErrors: string[] = []
@@ -290,33 +318,43 @@ async function processJob(
     }
 
     if (validationErrors.length > 0) {
-      await setStatus(supabase, jobId, 'FAILED', 100, `Validación fallida: ${validationErrors.join('; ')}`)
+      await setStatus(supabase, jobId, 'FAILED', 100, `Validación fallida: ${validationErrors.join('; ')}`, metadata.yearsToProcess)
       
       // Save error artifacts
       await saveErrorArtifacts(supabase, jobId, validationErrors)
       return
     }
 
-    await setStatus(supabase, jobId, 'LOADING', 60, 'Cargando datos en base de datos...')
+    // Skip loading if dry run
+    if (metadata.dryRun) {
+      await setStatus(supabase, jobId, 'DONE', 100, 'Validación completada exitosamente (dry-run)', metadata.yearsToProcess)
+      return
+    }
 
-    // Transform and load data
-    await loadNormalizedData(supabase, validatedData, metadata)
+    await setStatus(supabase, jobId, 'LOADING', 60, 'Cargando datos en base de datos...', metadata.yearsToProcess)
 
-    await setStatus(supabase, jobId, 'AGGREGATING', 80, 'Calculando ratios financieros...')
+    // Transform and load data per year (REPLACE mode)
+    for (const year of metadata.yearsToProcess) {
+      await updateYearStatus(supabase, jobId, year, 'LOADING')
+      await loadNormalizedDataForYear(supabase, validatedData, metadata, year)
+      await updateYearStatus(supabase, jobId, year, 'DONE')
+    }
+
+    await setStatus(supabase, jobId, 'AGGREGATING', 80, 'Calculando ratios financieros...', metadata.yearsToProcess)
 
     // Calculate ratios
     await supabase.rpc('refresh_ratios_mv')
 
-    await setStatus(supabase, jobId, 'DONE', 100, 'Procesamiento completado exitosamente')
+    await setStatus(supabase, jobId, 'DONE', 100, 'Procesamiento completado exitosamente', metadata.yearsToProcess)
 
   } catch (error) {
     console.error(`Job ${jobId} failed:`, error)
-    await setStatus(supabase, jobId, 'FAILED', 100, `Error: ${error.message}`)
+    await setStatus(supabase, jobId, 'FAILED', 100, `Error: ${error.message}`, metadata.yearsToProcess || [])
   }
 }
 
 // Helper functions
-async function setStatus(supabase: any, jobId: string, status: string, progress: number, message: string) {
+async function setStatus(supabase: any, jobId: string, status: string, progress: number, message: string, yearsToProcess: number[] = []) {
   await supabase
     .from('processing_jobs')
     .update({
@@ -325,10 +363,62 @@ async function setStatus(supabase: any, jobId: string, status: string, progress:
         stage: status,
         progress_pct: progress,
         message,
+        selected_years: yearsToProcess,
         updated_at: new Date().toISOString()
       }
     })
     .eq('id', jobId)
+}
+
+async function updateJobStats(supabase: any, jobId: string, stats: any) {
+  const { data: currentJob } = await supabase
+    .from('processing_jobs')
+    .select('stats_json')
+    .eq('id', jobId)
+    .single()
+
+  const updatedStats = { ...currentJob?.stats_json, ...stats }
+  
+  await supabase
+    .from('processing_jobs')
+    .update({ stats_json: updatedStats })
+    .eq('id', jobId)
+}
+
+async function updateYearStatus(supabase: any, jobId: string, year: number, status: string) {
+  const { data: currentJob } = await supabase
+    .from('processing_jobs')
+    .select('stats_json')
+    .eq('id', jobId)
+    .single()
+
+  const currentStats = currentJob?.stats_json || {}
+  const perYear = currentStats.per_year || {}
+  perYear[year] = { status, rows_valid: 0, rows_reject: 0 }
+
+  await updateJobStats(supabase, jobId, { per_year: perYear })
+}
+
+function extractYearsFromCsvContent(csvContent: string): number[] {
+  const lines = csvContent.split('\n')
+  if (lines.length === 0) return []
+  
+  const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''))
+  const years: number[] = []
+  
+  headers.forEach(header => {
+    const year = parseInt(header)
+    if (!isNaN(year) && year >= 2000 && year <= 2030) {
+      years.push(year)
+    }
+  })
+  
+  return years.sort()
+}
+
+async function loadNormalizedDataForYear(supabase: any, validatedData: { [key: string]: any[] }, metadata: any, year: number) {
+  // Similar to loadNormalizedData but filtered for specific year
+  await loadNormalizedData(supabase, validatedData, { ...metadata, periodYear: year })
 }
 
 async function parseCsvText(text: string): Promise<any[]> {
