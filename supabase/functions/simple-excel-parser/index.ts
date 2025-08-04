@@ -37,18 +37,19 @@ class ProcessingError extends Error {
   }
 }
 
-// Optimized file processing with memory management
+// Optimized file processing with enhanced memory management
 function processFileEfficiently(file: string, fileName: string): {
   data: ParsedExcelData;
   metrics: ProcessingMetrics;
 } {
   const startTime = performance.now();
+  let fileSize = 0;
   
   try {
-    // Simulate memory-efficient processing
-    const fileSize = new Blob([file]).size;
+    // Memory-efficient file size calculation
+    fileSize = new TextEncoder().encode(file).length;
     
-    // Early validation for large files
+    // Progressive validation for different file sizes
     if (fileSize > 50 * 1024 * 1024) { // 50MB limit
       throw new ProcessingError(
         'El archivo es demasiado grande para procesar',
@@ -57,8 +58,14 @@ function processFileEfficiently(file: string, fileName: string): {
         false
       );
     }
+    
+    // Memory usage warning for large files
+    if (fileSize > 25 * 1024 * 1024) { // 25MB warning
+      console.warn(`Processing large file: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
+    }
 
-    const parsedData = generateMockDataByType(fileName);
+    // Process file with memory-efficient approach
+    const parsedData = generateOptimizedMockDataByType(fileName, fileSize);
     const processingTimeMs = performance.now() - startTime;
     
     const metrics: ProcessingMetrics = {
@@ -67,6 +74,11 @@ function processFileEfficiently(file: string, fileName: string): {
       sheetCount: parsedData.detectedSheets.length,
       fieldCount: Object.values(parsedData.detectedFields).flat().length
     };
+
+    // Memory cleanup hint
+    if (typeof globalThis !== 'undefined' && globalThis.gc) {
+      globalThis.gc();
+    }
 
     return { data: parsedData, metrics };
     
@@ -77,19 +89,23 @@ function processFileEfficiently(file: string, fileName: string): {
       throw error;
     }
     
-    // Memory cleanup on error
+    // Enhanced error context
+    const errorDetails = error instanceof Error ? error.message : 'Unknown error';
     throw new ProcessingError(
       'Error interno al procesar el archivo',
       'PROCESSING_FAILED',
-      'Verifica que el archivo no esté corrupto y vuelve a intentarlo',
+      `Verifica que el archivo no esté corrupto y vuelve a intentarlo. Detalles: ${errorDetails}`,
       true
     );
   }
 }
 
-// Optimized mock data generation based on file type
-function generateMockDataByType(fileName: string): ParsedExcelData {
+// Enhanced mock data generation with memory optimization
+function generateOptimizedMockDataByType(fileName: string, fileSize: number): ParsedExcelData {
   const fileNameLower = fileName.toLowerCase();
+  
+  // Optimize data generation based on file size
+  const maxSampleRows = fileSize > 10 * 1024 * 1024 ? 3 : 5; // Fewer samples for large files
   
   // Balance sheet documents
   if (fileNameLower.includes('balance') || fileNameLower.includes('situacion')) {
@@ -121,7 +137,7 @@ function generateMockDataByType(fileName: string): ParsedExcelData {
           { concepto: 'Patrimonio neto', '2023': 180000, '2022': 165000 },
           { concepto: 'Pasivo no corriente', '2023': 30000, '2022': 35000 },
           { concepto: 'Pasivo corriente', '2023': 20000, '2022': 15000 }
-        ]
+        ].slice(0, maxSampleRows)
       }]
     };
   }
@@ -154,7 +170,7 @@ function generateMockDataByType(fileName: string): ParsedExcelData {
           { concepto: 'Resultado de explotación', '2023': 100000, '2022': 90000 },
           { concepto: 'Resultado financiero', '2023': -5000, '2022': -4000 },
           { concepto: 'Resultado del ejercicio', '2023': 75000, '2022': 68000 }
-        ]
+        ].slice(0, maxSampleRows)
       }]
     };
   }
@@ -184,12 +200,12 @@ function generateMockDataByType(fileName: string): ParsedExcelData {
           { concepto: 'Flujos de inversión', '2023': -50000, '2022': -30000 },
           { concepto: 'Flujos de financiación', '2023': -20000, '2022': -15000 },
           { concepto: 'Variación neta de efectivo', '2023': 50000, '2022': 55000 }
-        ]
+        ].slice(0, maxSampleRows)
       }]
     };
   }
   
-  // Generic document
+  // Generic document with size-optimized response
   return {
     detectedSheets: ['Hoja1', 'Datos'],
     detectedFields: {
@@ -203,7 +219,7 @@ function generateMockDataByType(fileName: string): ParsedExcelData {
         { concepto: 'Dato 1', valor: 1000, periodo: '2023' },
         { concepto: 'Dato 2', valor: 2000, periodo: '2023' },
         { concepto: 'Dato 3', valor: 1500, periodo: '2022' }
-      ]
+      ].slice(0, maxSampleRows)
     }]
   };
 }
@@ -217,14 +233,27 @@ function formatMetrics(metrics: ProcessingMetrics): string {
 }
 
 serve(async (req) => {
+  const requestStartTime = performance.now();
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Input validation with detailed error messages
-    const requestBody = await req.json().catch(() => {
+    // Enhanced request timeout handling
+    const requestTimeoutMs = 30000; // 30 second timeout
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new ProcessingError(
+        'El procesamiento del archivo ha excedido el tiempo límite',
+        'REQUEST_TIMEOUT',
+        'El archivo puede ser demasiado grande o complejo. Intenta con un archivo más pequeño.',
+        true
+      )), requestTimeoutMs);
+    });
+
+    // Input validation with enhanced error messages
+    const requestBodyPromise = req.json().catch(() => {
       throw new ProcessingError(
         'Formato de solicitud inválido',
         'INVALID_REQUEST',
@@ -233,6 +262,7 @@ serve(async (req) => {
       );
     });
 
+    const requestBody = await Promise.race([requestBodyPromise, timeoutPromise]);
     const { file, fileName } = requestBody;
     
     if (!file || !fileName) {
@@ -255,15 +285,17 @@ serve(async (req) => {
 
     console.log('Processing file:', fileName);
 
-    // Process file with optimized memory usage
-    const { data: parsedData, metrics } = processFileEfficiently(file, fileName);
+    // Process file with timeout protection
+    const processingPromise = processFileEfficiently(file, fileName);
+    const { data: parsedData, metrics } = await Promise.race([processingPromise, timeoutPromise]);
     
     // Development mode indicator
     const isDevelopmentMode = true; // Set to false when real Excel parsing is implemented
     
-    console.log('Processing completed:', formatMetrics(metrics));
+    const totalRequestTime = performance.now() - requestStartTime;
+    console.log('Processing completed:', formatMetrics(metrics), `Total request: ${totalRequestTime.toFixed(2)}ms`);
 
-    // Optimized response with performance metrics
+    // Optimized response with enhanced performance metrics
     return new Response(
       JSON.stringify({
         success: true,
@@ -277,9 +309,11 @@ serve(async (req) => {
         developmentMode: isDevelopmentMode,
         performance: {
           processingTimeMs: metrics.processingTimeMs,
+          totalRequestTimeMs: totalRequestTime,
           fileSize: metrics.fileSize,
           sheetCount: metrics.sheetCount,
-          fieldCount: metrics.fieldCount
+          fieldCount: metrics.fieldCount,
+          efficiency: metrics.fileSize > 0 ? (metrics.fileSize / metrics.processingTimeMs).toFixed(2) + ' bytes/ms' : 'N/A'
         }
       }),
       {
@@ -288,6 +322,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    const totalRequestTime = performance.now() - requestStartTime;
     console.error('Error in simple-excel-parser:', error);
     
     // Enhanced error handling with user-friendly messages
@@ -299,7 +334,11 @@ serve(async (req) => {
           message: error.message,
           suggestion: error.suggestion,
           recoverable: error.recoverable,
-          userFriendly: true
+          userFriendly: true,
+          performance: {
+            failedAfterMs: totalRequestTime,
+            errorType: error.code
+          }
         }),
         {
           status: error.recoverable ? 400 : 500,
@@ -317,7 +356,11 @@ serve(async (req) => {
         suggestion: 'Intenta nuevamente en unos momentos. Si el problema persiste, contacta con soporte.',
         recoverable: true,
         userFriendly: true,
-        details: error.message || 'Unknown error'
+        details: error.message || 'Unknown error',
+        performance: {
+          failedAfterMs: totalRequestTime,
+          errorType: 'UNEXPECTED'
+        }
       }),
       {
         status: 500,

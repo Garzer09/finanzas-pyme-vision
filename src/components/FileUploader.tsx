@@ -12,6 +12,7 @@ import {
   getFileTypeDescription, 
   detectFinancialDocumentType,
   estimateProcessingTime,
+  getUploadStrategy,
   type FileValidationOptions 
 } from '@/utils/fileValidation';
 import { UploadProgress, useUploadProgress } from '@/components/UploadProgress';
@@ -73,25 +74,32 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
     setValidationSuggestion(undefined);
   }, []);
 
-  const handleFileValidation = useCallback((file: File) => {
+  const handleFileValidation = useCallback(async (file: File) => {
     clearValidationErrors();
     
-    const validation = validateFile(file, {
-      allowedExtensions: acceptedFormats,
-      ...validationOptions
-    });
+    try {
+      const validation = await validateFile(file, {
+        allowedExtensions: acceptedFormats,
+        ...validationOptions
+      });
 
-    if (!validation.isValid) {
-      setValidationError(validation.error);
-      setValidationSuggestion(validation.suggestion);
+      if (!validation.isValid) {
+        setValidationError(validation.error);
+        setValidationSuggestion(validation.suggestion);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      setValidationError('Error validando el archivo');
+      setValidationSuggestion('Intenta seleccionar el archivo nuevamente');
       return false;
     }
-
-    return true;
   }, [acceptedFormats, validationOptions, clearValidationErrors]);
 
   const processFileUpload = useCallback(async (file: File) => {
-    if (!handleFileValidation(file)) {
+    const isValid = await handleFileValidation(file);
+    if (!isValid) {
       return;
     }
 
@@ -257,33 +265,56 @@ export const FileUploader: React.FC<FileUploaderProps> = ({
         </CardContent>
       </Card>
 
-      {/* File Preview */}
+      {/* File Preview with Enhanced Information */}
       {showFilePreview && selectedFile && !isUploading && (
         <Card className="border border-blue-200 bg-blue-50">
           <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <FileText className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="text-sm font-medium text-blue-900">{selectedFile.name}</p>
-                  <div className="flex items-center space-x-4 text-xs text-blue-700">
-                    <span>{formatFileSize(selectedFile.size)}</span>
-                    <span>{getFileTypeDescription(selectedFile)}</span>
-                    {detectFinancialDocumentType(selectedFile.name) && (
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                        {detectFinancialDocumentType(selectedFile.name)}
-                      </Badge>
-                    )}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">{selectedFile.name}</p>
+                    <div className="flex items-center space-x-4 text-xs text-blue-700">
+                      <span>{formatFileSize(selectedFile.size)}</span>
+                      <span>{getFileTypeDescription(selectedFile)}</span>
+                      {detectFinancialDocumentType(selectedFile.name) && (
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                          {detectFinancialDocumentType(selectedFile.name)}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-xs text-blue-600">
+                  <div className="flex items-center space-x-1">
+                    <Eye className="h-3 w-3" />
+                    <span>Tiempo estimado: {estimateProcessingTime(selectedFile.size)}</span>
                   </div>
                 </div>
               </div>
               
-              <div className="text-xs text-blue-600">
-                <div className="flex items-center space-x-1">
-                  <Eye className="h-3 w-3" />
-                  <span>Tiempo estimado: {estimateProcessingTime(selectedFile.size)}</span>
-                </div>
-              </div>
+              {/* Upload Strategy Information */}
+              {(() => {
+                const strategy = getUploadStrategy(selectedFile, validationOptions);
+                return (
+                  <div className="bg-blue-100 rounded-lg p-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-blue-800">Estrategia de subida:</span>
+                      <span className="text-blue-700 capitalize">{strategy.strategy}</span>
+                    </div>
+                    {strategy.chunkCount && (
+                      <div className="text-xs text-blue-600 mt-1">
+                        Se procesará en {strategy.chunkCount} partes para optimizar el rendimiento
+                      </div>
+                    )}
+                    <div className="text-xs text-blue-600 mt-1">
+                      {strategy.recommendation}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>

@@ -15,6 +15,12 @@ export interface UploadProgressProps {
   onRetry?: () => void;
   className?: string;
   showEstimate?: boolean;
+  showPerformanceMetrics?: boolean;
+  processingMetrics?: {
+    throughput?: string;
+    efficiency?: string;
+    memoryUsage?: string;
+  };
 }
 
 export const UploadProgress: React.FC<UploadProgressProps> = ({
@@ -25,7 +31,9 @@ export const UploadProgress: React.FC<UploadProgressProps> = ({
   onCancel,
   onRetry,
   className,
-  showEstimate = true
+  showEstimate = true,
+  showPerformanceMetrics = false,
+  processingMetrics
 }) => {
   const [elapsed, setElapsed] = useState(0);
   const [uploadSpeed, setUploadSpeed] = useState(0);
@@ -161,7 +169,7 @@ export const UploadProgress: React.FC<UploadProgressProps> = ({
             </div>
           </div>
 
-          {/* Status details */}
+          {/* Status details with enhanced metrics */}
           <div className="flex items-center justify-between text-xs text-gray-500">
             <div className="flex items-center space-x-4">
               {status === 'uploading' && uploadSpeed > 0 && (
@@ -189,29 +197,88 @@ export const UploadProgress: React.FC<UploadProgressProps> = ({
             )}
           </div>
 
-          {/* Error state */}
-          {status === 'error' && error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-sm text-red-700 mb-2">{error}</p>
-              {onRetry && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onRetry}
-                  className="border-red-200 text-red-700 hover:bg-red-50"
-                >
-                  Reintentar
-                </Button>
-              )}
+          {/* Performance metrics for development/debugging */}
+          {showPerformanceMetrics && processingMetrics && (
+            <div className="bg-gray-50 rounded-lg p-2 space-y-1">
+              <div className="text-xs font-medium text-gray-700">Métricas de rendimiento:</div>
+              <div className="grid grid-cols-3 gap-2 text-xs text-gray-600">
+                {processingMetrics.throughput && (
+                  <div>
+                    <span className="font-medium">Rendimiento:</span>
+                    <div>{processingMetrics.throughput}</div>
+                  </div>
+                )}
+                {processingMetrics.efficiency && (
+                  <div>
+                    <span className="font-medium">Eficiencia:</span>
+                    <div>{processingMetrics.efficiency}</div>
+                  </div>
+                )}
+                {processingMetrics.memoryUsage && (
+                  <div>
+                    <span className="font-medium">Memoria:</span>
+                    <div>{processingMetrics.memoryUsage}</div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          {/* Success state */}
+          {/* Enhanced error state with troubleshooting */}
+          {status === 'error' && error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm text-red-700 mb-2">{error}</p>
+              
+              {/* Contextual troubleshooting tips */}
+              <div className="text-xs text-red-600 mb-3 space-y-1">
+                <div className="font-medium">Posibles soluciones:</div>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Verifica tu conexión a internet</li>
+                  <li>Asegúrate de que el archivo no esté corrupto</li>
+                  <li>Intenta con un archivo más pequeño</li>
+                  {file.size > 25 * 1024 * 1024 && (
+                    <li>El archivo es grande - considera dividirlo en partes</li>
+                  )}
+                </ul>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                {onRetry && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onRetry}
+                    className="border-red-200 text-red-700 hover:bg-red-50"
+                  >
+                    Reintentar
+                  </Button>
+                )}
+                <span className="text-xs text-red-500">
+                  Error después de {formatTime(elapsed)}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Enhanced success state with performance summary */}
           {status === 'completed' && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-              <p className="text-sm text-green-700">
-                ✅ Archivo procesado correctamente en {formatTime(elapsed)}
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-green-700">
+                  ✅ Archivo procesado correctamente en {formatTime(elapsed)}
+                </p>
+                {showPerformanceMetrics && processingMetrics?.efficiency && (
+                  <span className="text-xs text-green-600 font-medium">
+                    {processingMetrics.efficiency}
+                  </span>
+                )}
+              </div>
+              
+              {/* File processing summary */}
+              <div className="mt-2 text-xs text-green-600 grid grid-cols-2 gap-2">
+                <div>Tamaño: {formatFileSize(file.size)}</div>
+                <div>Duración: {formatTime(elapsed)}</div>
+              </div>
             </div>
           )}
         </div>
