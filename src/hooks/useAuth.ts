@@ -6,9 +6,11 @@ import {
   getAuthError, 
   getAuthRetry 
 } from '@/types/auth';
+import { validateSession, createSessionRecovery } from '@/utils/authHelpers';
+import { useCallback } from 'react';
 
 /**
- * Enhanced useAuth hook with utility functions
+ * Enhanced useAuth hook with utility functions and session management
  * Provides both the raw context and convenient helpers
  */
 export function useAuth() {
@@ -18,10 +20,51 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider');
   }
 
+  // Enhanced session validation
+  const validateCurrentSession = useCallback(() => {
+    if (context.authState.status === 'authenticated') {
+      return validateSession(context.authState.user, context.authState.session);
+    }
+    return { isValid: false, needsRefresh: false, reason: 'Not authenticated' };
+  }, [context.authState]);
+
+  // Session recovery with automatic retry
+  const recoverSession = useCallback(async () => {
+    const sessionRecovery = createSessionRecovery(
+      async () => {
+        // Refresh the session via Supabase
+        await context.refreshRole();
+      }
+    );
+    return sessionRecovery();
+  }, [context.refreshRole]);
+
+  // Enhanced retry with session recovery
+  const enhancedRetry = useCallback(async () => {
+    try {
+      const originalRetry = getAuthRetry(context.authState);
+      
+      if (originalRetry) {
+        originalRetry();
+      } else {
+        // Attempt session recovery
+        const recovered = await recoverSession();
+        if (!recovered) {
+          // If recovery fails, force re-authentication
+          await context.signOut('/login');
+        }
+      }
+    } catch (error) {
+      console.error('Enhanced retry failed:', error);
+      // Fallback to sign out
+      await context.signOut('/login');
+    }
+  }, [context.authState, context.signOut, recoverSession]);
+
   return {
     ...context,
     
-    // Utility functions
+    // Enhanced utility functions
     shouldNavigateAfterAuth: (currentPath: string) => 
       shouldNavigateAfterAuth(context.authState, currentPath),
     
@@ -33,7 +76,11 @@ export function useAuth() {
     
     error: getAuthError(context.authState),
     
-    retry: getAuthRetry(context.authState),
+    retry: enhancedRetry,
+    
+    // Session management
+    validateCurrentSession,
+    recoverSession,
     
     // Computed properties for convenience
     isAuthenticated: context.authState.status === 'authenticated',
@@ -41,6 +88,10 @@ export function useAuth() {
     isInitializing: context.authState.status === 'initializing',
     isAuthenticating: context.authState.status === 'authenticating',
     hasError: context.authState.status === 'error',
+    
+    // Session status indicators
+    sessionValid: validateCurrentSession().isValid,
+    sessionNeedsRefresh: validateCurrentSession().needsRefresh,
   };
 }
 
