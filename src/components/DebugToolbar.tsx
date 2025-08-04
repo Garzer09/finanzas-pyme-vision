@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useDebugTools } from '@/hooks/useDebugTools';
 import { DebugDashboard } from '@/components/DebugDashboard';
+import { AuthFlowDebugDashboard } from '@/components/AuthFlowDebugDashboard';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Bug, Activity, AlertTriangle, Zap } from 'lucide-react';
+import { Bug, Activity, AlertTriangle, Zap, Shield } from 'lucide-react';
 
 export const DebugToolbar: React.FC = () => {
   const { healthStatus, isDebugEnabled, enableDebugMode } = useDebugTools();
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [isAuthFlowDashboardOpen, setIsAuthFlowDashboardOpen] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -19,14 +21,22 @@ export const DebugToolbar: React.FC = () => {
   }, [isDebugEnabled]);
 
   useEffect(() => {
-    // Keyboard shortcut to toggle debug (Ctrl/Cmd + Shift + D)
+    // Keyboard shortcuts for debug dashboards
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'D') {
-        e.preventDefault();
-        if (!isDebugEnabled) {
-          enableDebugMode();
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey) {
+        if (e.key === 'D') {
+          e.preventDefault();
+          if (!isDebugEnabled) {
+            enableDebugMode();
+          }
+          setIsDashboardOpen(true);
+        } else if (e.key === 'A') {
+          e.preventDefault();
+          if (!isDebugEnabled) {
+            enableDebugMode();
+          }
+          setIsAuthFlowDashboardOpen(true);
         }
-        setIsDashboardOpen(true);
       }
     };
 
@@ -83,14 +93,25 @@ export const DebugToolbar: React.FC = () => {
           </div>
         )}
 
-        {/* Debug button */}
-        <Button
-          onClick={() => setIsDashboardOpen(true)}
-          className="rounded-full w-12 h-12 shadow-lg hover:shadow-xl transition-all"
-          title="Open Debug Dashboard (Ctrl+Shift+D)"
-        >
-          {getStatusIcon()}
-        </Button>
+        {/* Debug buttons */}
+        <div className="flex flex-col gap-2">
+          <Button
+            onClick={() => setIsDashboardOpen(true)}
+            className="rounded-full w-12 h-12 shadow-lg hover:shadow-xl transition-all"
+            title="Open Debug Dashboard (Ctrl+Shift+D)"
+          >
+            {getStatusIcon()}
+          </Button>
+          
+          <Button
+            onClick={() => setIsAuthFlowDashboardOpen(true)}
+            className="rounded-full w-12 h-12 shadow-lg hover:shadow-xl transition-all"
+            title="Open Auth Flow Dashboard (Ctrl+Shift+A)"
+            variant="outline"
+          >
+            <Shield className="h-4 w-4" />
+          </Button>
+        </div>
 
         {/* Quick info on hover */}
         {healthStatus && (
@@ -125,6 +146,11 @@ export const DebugToolbar: React.FC = () => {
       <DebugDashboard 
         isOpen={isDashboardOpen} 
         onClose={() => setIsDashboardOpen(false)} 
+      />
+      
+      <AuthFlowDebugDashboard 
+        isOpen={isAuthFlowDashboardOpen} 
+        onClose={() => setIsAuthFlowDashboardOpen(false)} 
       />
     </>
   );
