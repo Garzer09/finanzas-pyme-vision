@@ -2,28 +2,22 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUserRole } from '@/hooks/useUserRole';
 
 const Index = () => {
   const { user, loading } = useAuth();
-  const { userRole, loading: roleLoading } = useUserRole();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !roleLoading) {
+    if (!loading) {
       if (user) {
-        // Detectar rol y redirigir apropiadamente
-        if (userRole === 'admin') {
-          navigate('/admin/empresas');
-        } else {
-          navigate('/app/mis-empresas');
-        }
-      } else {
-        navigate('/auth');
+        // Si el usuario está autenticado, redirigir a /redirect para manejo de roles
+        navigate('/redirect');
       }
+      // Si no está autenticado, permanecer en la landing page
     }
-  }, [user, userRole, loading, roleLoading, navigate]);
+  }, [user, loading, navigate]);
 
+  // Mientras está cargando, mostrar spinner
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -32,7 +26,8 @@ const Index = () => {
     );
   }
 
-  return null;
+  // Si no está autenticado, mostrar la landing page
+  return null; // Esto se manejará en App.tsx con LandingPage
 };
 
 export default Index;

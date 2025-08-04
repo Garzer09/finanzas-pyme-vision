@@ -43,13 +43,15 @@ const AuthPage = () => {
   useEffect(() => {
     // Redirect authenticated users unless in recovery mode
     if (user && !isRecoveryMode) {
+      navigate('/redirect');
       return;
     }
     setTokenLoading(false);
-  }, [user, isRecoveryMode]);
-  // Only redirect to home if user is logged in AND not in recovery mode
+  }, [user, isRecoveryMode, navigate]);
+  
+  // Only redirect if user is logged in AND not in recovery mode
   if (user && !isRecoveryMode) {
-    return <Navigate to="/home" replace />;
+    return <Navigate to="/redirect" replace />;
   }
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
@@ -158,6 +160,8 @@ const AuthPage = () => {
             title: "¡Bienvenido!",
             description: "Has iniciado sesión correctamente"
           });
+          // Redirigir a /redirect para manejo de roles
+          navigate('/redirect');
         }
       }
     } finally {
