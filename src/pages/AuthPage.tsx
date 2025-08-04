@@ -41,18 +41,19 @@ const AuthPage = () => {
   });
 
   useEffect(() => {
-    // Redirect authenticated users unless in recovery mode
-    if (user && !isRecoveryMode) {
-      navigate('/');
-      return;
-    }
+    // Fase 1: Instrumentación
+    console.debug('[AUTH]', { 
+      path: '/auth', 
+      user: !!user, 
+      isRecoveryMode,
+      state: isPasswordReset ? 'password-reset' : isPasswordRecovery ? 'recovery' : isSignUp ? 'signup' : 'login'
+    });
+    
     setTokenLoading(false);
-  }, [user, isRecoveryMode, navigate]);
+  }, [user, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
   
-  // Only redirect if user is logged in AND not in recovery mode
-  if (user && !isRecoveryMode) {
-    return <Navigate to="/" replace />;
-  }
+  // Fase 2: Eliminar redirección automática que causa rebote
+  // Solo redirigir después de login exitoso, NO en montaje
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
@@ -160,7 +161,8 @@ const AuthPage = () => {
             title: "¡Bienvenido!",
             description: "Has iniciado sesión correctamente"
           });
-          // Redirigir a / para manejo de roles
+          // Redirigir solo después de login exitoso
+          console.debug('[AUTH] Login successful, redirecting to /');
           navigate('/');
         }
       }

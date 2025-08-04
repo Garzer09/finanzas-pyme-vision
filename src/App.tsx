@@ -1,3 +1,4 @@
+import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -51,14 +52,22 @@ import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import ViewerMisEmpresasPage from "./pages/ViewerMisEmpresasPage";
 import ViewerDashboardPage from "./pages/ViewerDashboardPage";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
 import { AdminCargaPlantillasPage } from "./pages/AdminCargaPlantillasPage";
 import AdminEmpresasPage from "./pages/AdminEmpresasPage";
 import AdminCargasPage from "./pages/AdminCargasPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 
-const App = () => (
+const App = () => {
+  // Fase 1: Instrumentación - logs de navegación
+  const location = useLocation();
+  
+  React.useEffect(() => {
+    console.debug('[ROUTE]', location.pathname);
+  }, [location.pathname]);
+
+  return (
   <ErrorBoundary>
       <AuthProvider>
         <AdminImpersonationProvider>
@@ -145,6 +154,7 @@ const App = () => (
         </AdminImpersonationProvider>
       </AuthProvider>
   </ErrorBoundary>
-);
+  );
+};
 
 export default App;

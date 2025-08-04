@@ -5,6 +5,7 @@ export const RequireAdmin = () => {
   const { authStatus, role, initialized } = useAuth();
   const location = useLocation();
 
+  // Fase 1: Instrumentación - logs de guards
   console.log('👑 RequireAdmin:', { authStatus, role, initialized, path: location.pathname });
 
   // Show loading spinner while authentication is being initialized
@@ -18,11 +19,13 @@ export const RequireAdmin = () => {
 
   // Redirect to auth if not authenticated
   if (authStatus !== 'authenticated') {
+    console.log('👑 RequireAdmin: Redirecting unauthenticated user to /auth');
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   // Redirect non-admin users to their dashboard
   if (role !== 'admin') {
+    console.log('👑 RequireAdmin: Redirecting non-admin user to /app/mis-empresas');
     return <Navigate to="/app/mis-empresas" replace />;
   }
 

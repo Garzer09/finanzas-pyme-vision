@@ -5,6 +5,7 @@ export const RequireAuth = () => {
   const { authStatus, initialized } = useAuth();
   const location = useLocation();
 
+  // Fase 1: Instrumentación - logs de guards
   console.log('🔐 RequireAuth:', { authStatus, initialized, path: location.pathname });
 
   // Show loading spinner while authentication is being initialized
@@ -18,6 +19,7 @@ export const RequireAuth = () => {
 
   // Redirect to auth if not authenticated
   if (authStatus !== 'authenticated') {
+    console.log('🔐 RequireAuth: Redirecting unauthenticated user to /auth');
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 

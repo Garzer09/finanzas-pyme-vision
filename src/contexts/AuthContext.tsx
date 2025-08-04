@@ -40,9 +40,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('🔍 fetchUserRole called for userId:', userId);
     
     try {
-      // Try RPC function first
-      const { data: rpcData, error: rpcError } = await supabase
+      // Fase 3: Añadir timeout para evitar cuelgues
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('fetchUserRole timeout')), 10000)
+      );
+      
+      // Try RPC function first with timeout
+      const rpcPromise = supabase
         .rpc('get_user_role', { user_uuid: userId });
+      
+      const { data: rpcData, error: rpcError } = await Promise.race([rpcPromise, timeoutPromise]);
       
       console.log('🔧 RPC result:', { rpcData, rpcError });
       
@@ -51,13 +58,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return 'admin';
       }
       
-      // Fallback to direct table query
+      // Fallback to direct table query with timeout
       console.log('⚠️ RPC failed, trying direct table query...');
-      const { data: tableData, error: tableError } = await supabase
+      const tablePromise = supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .maybeSingle();
+      
+      const { data: tableData, error: tableError } = await Promise.race([tablePromise, timeoutPromise]);
       
       console.log('📊 Table query result:', { tableData, tableError });
       
@@ -71,7 +80,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return 'viewer';
       
     } catch (error) {
-      console.error('❌ Error in fetchUserRole:', error);
+      console.error('❌ Error in fetchUserRole (with timeout):', error);
       return 'viewer';
     }
   }, []);
@@ -158,6 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setRole(session ? 'viewer' : 'none');
           }
         } finally {
+          // Fase 3: Asegurar que initialized=true incluso si fetchUserRole falla
           if (mounted) {
             setInitialized(true);
           }
