@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -33,16 +33,32 @@ import NOFAnalysisPage from "./pages/NOFAnalysisPage";
 import BreakEvenPage from "./pages/BreakEvenPage";
 import DebtPoolPage from "./pages/DebtPoolPage";
 import DebtServicePage from "./pages/DebtServicePage";
-// Existing modules
-import { KeyFinancialAssumptionsModule } from "./components/modules/KeyFinancialAssumptionsModule";
-import { FinancialAnalysisModule } from "./components/modules/FinancialAnalysisModule";
-import { ProjectionsModule } from "./components/modules/ProjectionsModule";
-import { SensitivityModuleNew } from "./components/modules/SensitivityModuleNew";
-import { EVAValuationModule } from "./components/modules/EVAValuationModule";
-import { SituacionActualModule } from "./components/modules/SituacionActualModule";
-import { SimulatorModule } from "./components/modules/SimulatorModule";
-import { PremisasIngresosModule } from "./components/modules/PremisasIngresosModule";
 
+// Lazy load heavy modules for better performance
+const KeyFinancialAssumptionsModule = React.lazy(() => 
+  import("./components/modules/KeyFinancialAssumptionsModule").then(m => ({ default: m.KeyFinancialAssumptionsModule }))
+);
+const FinancialAnalysisModule = React.lazy(() => 
+  import("./components/modules/FinancialAnalysisModule").then(m => ({ default: m.FinancialAnalysisModule }))
+);
+const ProjectionsModule = React.lazy(() => 
+  import("./components/modules/ProjectionsModule").then(m => ({ default: m.ProjectionsModule }))
+);
+const SensitivityModuleNew = React.lazy(() => 
+  import("./components/modules/SensitivityModuleNew").then(m => ({ default: m.SensitivityModuleNew }))
+);
+const EVAValuationModule = React.lazy(() => 
+  import("./components/modules/EVAValuationModule").then(m => ({ default: m.EVAValuationModule }))
+);
+const SituacionActualModule = React.lazy(() => 
+  import("./components/modules/SituacionActualModule").then(m => ({ default: m.SituacionActualModule }))
+);
+const SimulatorModule = React.lazy(() => 
+  import("./components/modules/SimulatorModule").then(m => ({ default: m.SimulatorModule }))
+);
+
+// Existing modules - keeping non-lazy for frequently used components
+import { PremisasIngresosModule } from "./components/modules/PremisasIngresosModule";
 import { ProfitLossCurrentModule } from "./components/modules/ProfitLossCurrentModule";
 import { BalanceSheetCurrentModule } from "./components/modules/BalanceSheetCurrentModule";
 import { FinancialRatiosCurrentModule } from "./components/modules/FinancialRatiosCurrentModule";
@@ -61,6 +77,14 @@ import AdminEmpresasPage from "./pages/AdminEmpresasPage";
 import AdminCargasPage from "./pages/AdminCargasPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import { RootRedirect } from "./components/RootRedirect";
+
+// Loading component for lazy-loaded modules
+const ModuleLoadingFallback = () => (
+  <div className="flex items-center justify-center h-64">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+    <span className="ml-3 text-muted-foreground">Cargando módulo...</span>
+  </div>
+);
 
 const App = () => {
   // Fase 1: Instrumentación - logs de navegación
@@ -109,32 +133,76 @@ const App = () => {
               <Route path="/servicio-deuda" element={<DebtServicePage />} />
               
               {/* Sección 3 - Situación Actual */}
-              <Route path="/situacion-actual" element={<SituacionActualModule />} />
+              <Route path="/situacion-actual" element={
+                <Suspense fallback={<ModuleLoadingFallback />}>
+                  <SituacionActualModule />
+                </Suspense>
+              } />
               <Route path="/pyg-actual" element={<ProfitLossCurrentModule />} />
               <Route path="/pyg-analitico-actual" element={<AnalyticalPLCurrentModule />} />
               <Route path="/balance-actual" element={<BalanceSheetCurrentModule />} />
-              <Route path="/flujos-actual" element={<FinancialAnalysisModule />} />
+              <Route path="/flujos-actual" element={
+                <Suspense fallback={<ModuleLoadingFallback />}>
+                  <FinancialAnalysisModule />
+                </Suspense>
+              } />
               <Route path="/ratios-actual" element={<FinancialRatiosCurrentModule />} />
-              <Route path="/punto-muerto-actual" element={<FinancialAnalysisModule />} />
-              <Route path="/endeudamiento-actual" element={<FinancialAnalysisModule />} />
-              <Route path="/servicio-deuda-actual" element={<FinancialAnalysisModule />} />
-              <Route path="/nof-actual" element={<FinancialAnalysisModule />} />
+              <Route path="/punto-muerto-actual" element={
+                <Suspense fallback={<ModuleLoadingFallback />}>
+                  <FinancialAnalysisModule />
+                </Suspense>
+              } />
+              <Route path="/endeudamiento-actual" element={
+                <Suspense fallback={<ModuleLoadingFallback />}>
+                  <FinancialAnalysisModule />
+                </Suspense>
+              } />
+              <Route path="/servicio-deuda-actual" element={
+                <Suspense fallback={<ModuleLoadingFallback />}>
+                  <FinancialAnalysisModule />
+                </Suspense>
+              } />
+              <Route path="/nof-actual" element={
+                <Suspense fallback={<ModuleLoadingFallback />}>
+                  <FinancialAnalysisModule />
+                </Suspense>
+              } />
               <Route path="/segmentos-actual" element={<SalesSegmentsModule />} />
               
               {/* Sección 4 - Supuestos */}
-              <Route path="/supuestos-financieros" element={<KeyFinancialAssumptionsModule />} />
+              <Route path="/supuestos-financieros" element={
+                <Suspense fallback={<ModuleLoadingFallback />}>
+                  <KeyFinancialAssumptionsModule />
+                </Suspense>
+              } />
               
               {/* Sección 5 - Proyecciones */}
-              <Route path="/proyecciones" element={<ProjectionsModule />} />
+              <Route path="/proyecciones" element={
+                <Suspense fallback={<ModuleLoadingFallback />}>
+                  <ProjectionsModule />
+                </Suspense>
+              } />
               
               {/* Sección 6 - Sensibilidad */}
-              <Route path="/escenarios" element={<SensitivityModuleNew />} />
+              <Route path="/escenarios" element={
+                <Suspense fallback={<ModuleLoadingFallback />}>
+                  <SensitivityModuleNew />
+                </Suspense>
+              } />
               
               {/* Sección 7 - Valoración EVA */}
-              <Route path="/valoracion-eva" element={<EVAValuationModule />} />
+              <Route path="/valoracion-eva" element={
+                <Suspense fallback={<ModuleLoadingFallback />}>
+                  <EVAValuationModule />
+                </Suspense>
+              } />
               
               {/* Simulador */}
-              <Route path="/simulador" element={<SimulatorModule />} />
+              <Route path="/simulador" element={
+                <Suspense fallback={<ModuleLoadingFallback />}>
+                  <SimulatorModule />
+                </Suspense>
+              } />
               
               {/* Conclusiones */}
               <Route path="/conclusiones" element={<ConclusionsPage />} />

@@ -19,6 +19,31 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks for better caching
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          ui: ['@radix-ui/react-accordion', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-popover'],
+          charts: ['recharts'],
+          forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+          supabase: ['@supabase/supabase-js'],
+          query: ['@tanstack/react-query'],
+          excel: ['xlsx'],
+          utils: ['lodash', 'date-fns', 'clsx']
+        }
+      }
+    },
+    // Increase chunk size warning limit for vendor chunks
+    chunkSizeWarningLimit: 600,
+    // Enable minification and tree shaking with default minifier
+    minify: mode === 'production',
+    // Optimize CSS
+    cssCodeSplit: true,
+    // Source maps for production debugging
+    sourcemap: mode === 'production' ? 'hidden' : true
+  },
   test: {
     globals: true,
     environment: 'jsdom',
