@@ -146,14 +146,18 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       ...CANONICAL_FILES.obligatorios,
       ...CANONICAL_FILES.opcionales
     };
+    
+    // Check file name
     if (!allCanonicalNames[fileName]) {
       return {
         isValid: false,
         fileName: file.name,
         canonicalName: fileName,
-        error: `Nombre de archivo no reconocido. Renómbralo a uno de los nombres esperados.`
+        error: `Nombre de archivo no reconocido. Debe ser uno de: ${Object.keys(allCanonicalNames).join(', ')}`
       };
     }
+    
+    // Check file size
     if (file.size === 0) {
       return {
         isValid: false,
@@ -162,8 +166,8 @@ export const AdminCargaPlantillasPage: React.FC = () => {
         error: 'El archivo está vacío'
       };
     }
-    if (file.size > 40 * 1024 * 1024) {
-      // 40MB limit
+    
+    if (file.size > 40 * 1024 * 1024) { // 40MB limit
       return {
         isValid: false,
         fileName: file.name,
@@ -171,6 +175,17 @@ export const AdminCargaPlantillasPage: React.FC = () => {
         error: 'El archivo es demasiado grande (máximo 40MB)'
       };
     }
+    
+    // Check file type
+    if (!file.type.includes('text/csv') && !fileName.endsWith('.csv')) {
+      return {
+        isValid: false,
+        fileName: file.name,
+        canonicalName: fileName,
+        error: 'El archivo debe ser un CSV válido'
+      };
+    }
+    
     return {
       isValid: true,
       fileName: file.name,
@@ -180,22 +195,65 @@ export const AdminCargaPlantillasPage: React.FC = () => {
 
   // Step 1 handlers
   const handleEmpresaUpload = async () => {
-    if (!empresaFile || !user) return;
+    if (!empresaFile || !user) {
+      toast({
+        title: "Error",
+        description: "Falta el archivo o la sesión de usuario",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Additional file validation
+    if (empresaFile.size === 0) {
+      toast({
+        title: "Error",
+        description: "El archivo está vacío. Por favor, selecciona un archivo válido.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (empresaFile.size > 10 * 1024 * 1024) { // 10MB limit
+      toast({
+        title: "Error",
+        description: "El archivo es demasiado grande (máximo 10MB)",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsUploadingInfo(true);
+    setProcessingError(null);
+    
     try {
       const formData = new FormData();
       formData.append('file', empresaFile);
       formData.append('targetUserId', user.id);
       
+      // Add timeout for the request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
       const response = await supabase.functions.invoke('empresa-cualitativa-processor', {
-        body: formData
+        body: formData,
+        headers: {
+          signal: controller.signal
+        }
       });
+      
+      clearTimeout(timeoutId);
       
       if (response.error) {
         throw new Error(response.error.message || 'Error procesando archivo');
       }
       
       const result = response.data;
+      
+      if (!result || !result.company_name) {
+        throw new Error('El archivo no contiene información válida de empresa');
+      }
+      
       setCompanyInfo(result);
       toast({
         title: "Empresa detectada",
@@ -203,9 +261,22 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       });
     } catch (error) {
       console.error('Error uploading empresa file:', error);
+      
+      let errorMessage = 'Error desconocido';
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          errorMessage = 'La carga del archivo tardó demasiado. Intenta con un archivo más pequeño.';
+        } else if (error.message.includes('fetch')) {
+          errorMessage = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setProcessingError(errorMessage);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : 'Error desconocido',
+        title: "Error al procesar archivo",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -239,10 +310,31 @@ export const AdminCargaPlantillasPage: React.FC = () => {
   // Step 2 handlers
   const handleObligatoriosDrop = useCallback((e: React.DragEvent, expectedFileName: string) => {
     e.preventDefault();
+    
+    // Prevent uploading while processing
+    if (isProcessing) {
+      toast({
+        title: "Upload en progreso",
+        description: "Espera a que termine el procesamiento actual",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const files = Array.from(e.dataTransfer.files);
     const file = files[0];
-    if (!file) return;
+    
+    if (!file) {
+      toast({
+        title: "No se detectó archivo",
+        description: "Por favor, selecciona un archivo válido",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     const validation = validateFile(file);
+    
     if (validation.isValid && validation.canonicalName === expectedFileName) {
       setObligatoriosFiles(prev => ({
         ...prev,
@@ -252,50 +344,95 @@ export const AdminCargaPlantillasPage: React.FC = () => {
         ...prev,
         [expectedFileName]: validation
       }));
+      
+      // Clear any previous error for this file
+      setProcessingError(null);
+      
+      toast({
+        title: "Archivo cargado",
+        description: `${expectedFileName} cargado correctamente`,
+      });
+      
       detectYearsFromFiles({
         ...obligatoriosFiles,
         [expectedFileName]: file
       }, opcionalesFiles);
     } else {
+      const errorMsg = validation.canonicalName !== expectedFileName 
+        ? `Se esperaba ${expectedFileName}, pero se recibió ${validation.canonicalName}`
+        : validation.error || `Archivo ${expectedFileName} no válido`;
+        
       setFileValidations(prev => ({
         ...prev,
         [expectedFileName]: {
           ...validation,
-          error: validation.error || `Se esperaba el archivo ${expectedFileName}`
+          error: errorMsg
         }
       }));
+      
       toast({
         title: "Archivo incorrecto",
-        description: `Se esperaba ${expectedFileName}`,
+        description: errorMsg,
         variant: "destructive"
       });
     }
-  }, [validateFile, toast, obligatoriosFiles, opcionalesFiles]);
+  }, [validateFile, toast, obligatoriosFiles, opcionalesFiles, isProcessing]);
   const handleOpcionalesFiles = useCallback((files: FileList) => {
-    const newFiles = {
-      ...opcionalesFiles
-    };
-    const newValidations = {
-      ...fileValidations
-    };
+    // Prevent uploading while processing
+    if (isProcessing) {
+      toast({
+        title: "Upload en progreso",
+        description: "Espera a que termine el procesamiento actual",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    const newFiles = { ...opcionalesFiles };
+    const newValidations = { ...fileValidations };
+    let successCount = 0;
+    let errorCount = 0;
+    const errors: string[] = [];
+    
     Array.from(files).forEach(file => {
       const validation = validateFile(file);
+      
       if (validation.isValid) {
-        newFiles[validation.canonicalName] = file;
-        newValidations[validation.canonicalName] = validation;
+        // Check if it's an optional file
+        if (CANONICAL_FILES.opcionales[validation.canonicalName]) {
+          newFiles[validation.canonicalName] = file;
+          newValidations[validation.canonicalName] = validation;
+          successCount++;
+        } else {
+          errors.push(`${file.name} no es un archivo opcional válido`);
+          errorCount++;
+        }
       } else {
         newValidations[file.name] = validation;
-        toast({
-          title: "Archivo no válido",
-          description: validation.error,
-          variant: "destructive"
-        });
+        errors.push(`${file.name}: ${validation.error}`);
+        errorCount++;
       }
     });
+    
     setOpcionalesFiles(newFiles);
     setFileValidations(newValidations);
-    detectYearsFromFiles(obligatoriosFiles, newFiles);
-  }, [opcionalesFiles, fileValidations, validateFile, toast, obligatoriosFiles]);
+    
+    if (successCount > 0) {
+      toast({
+        title: `${successCount} archivo(s) opcional(es) cargado(s)`,
+        description: "Archivos opcionales procesados correctamente",
+      });
+      detectYearsFromFiles(obligatoriosFiles, newFiles);
+    }
+    
+    if (errorCount > 0) {
+      toast({
+        title: `${errorCount} archivo(s) con errores`,
+        description: errors.join('. '),
+        variant: "destructive"
+      });
+    }
+  }, [opcionalesFiles, fileValidations, validateFile, toast, obligatoriosFiles, isProcessing]);
   const detectYearsFromFiles = async (obligFiles: {
     [key: string]: File;
   }, opcFiles: {
@@ -333,9 +470,18 @@ export const AdminCargaPlantillasPage: React.FC = () => {
   };
   const isStep2Ready = companyInfo && Object.keys(CANONICAL_FILES.obligatorios).every(fileName => obligatoriosFiles[fileName] && fileValidations[fileName]?.isValid) && selectedYears.length > 0;
   const handleProcessFinancialFiles = async () => {
-    if (!isStep2Ready || !user || !companyInfo) return;
+    if (!isStep2Ready || !user || !companyInfo) {
+      toast({
+        title: "Error",
+        description: "Faltan archivos obligatorios o información de empresa",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsProcessing(true);
     setProcessingError(null);
+    
     try {
       const formData = new FormData();
 
@@ -353,72 +499,184 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       Object.entries(opcionalesFiles).forEach(([fileName, file]) => {
         formData.append(fileName, file);
       });
+      
       const {
         data: {
           session
         }
       } = await supabase.auth.getSession();
-      if (!session) throw new Error('No hay sesión activa');
-      const response = await fetch(`https://hlwchpmogvwmpuvwmvwv.supabase.co/functions/v1/admin-pack-upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: formData
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error en el procesamiento');
+      
+      if (!session) {
+        throw new Error('No hay sesión activa. Por favor, inicia sesión de nuevo.');
       }
-      const result = await response.json();
-      console.log('Upload iniciado:', result);
-      startStatusPolling(result.job_id);
+
+      // Add retry logic with exponential backoff
+      let retryCount = 0;
+      const maxRetries = 3;
+      let lastError: Error | null = null;
+
+      while (retryCount <= maxRetries) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+          
+          const response = await fetch(`https://hlwchpmogvwmpuvwmvwv.supabase.co/functions/v1/admin-pack-upload`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: formData,
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || `Error HTTP ${response.status}`);
+          }
+          
+          const result = await response.json();
+          console.log('Upload iniciado:', result);
+          
+          if (!result.job_id) {
+            throw new Error('No se recibió ID de trabajo del servidor');
+          }
+          
+          startStatusPolling(result.job_id);
+          return; // Success, exit retry loop
+        } catch (error) {
+          lastError = error as Error;
+          retryCount++;
+          
+          if (error instanceof Error && error.name === 'AbortError') {
+            throw new Error('La carga tardó demasiado tiempo. Intenta con archivos más pequeños.');
+          }
+          
+          if (retryCount <= maxRetries) {
+            const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff
+            console.log(`Retry ${retryCount}/${maxRetries} in ${delay}ms`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+          }
+        }
+      }
+      
+      // If we get here, all retries failed
+      throw lastError || new Error('Error desconocido en el procesamiento');
+      
     } catch (error) {
       console.error('Error uploading files:', error);
-      setProcessingError(error instanceof Error ? error.message : 'Error desconocido');
+      let errorMessage = 'Error desconocido';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('fetch') || error.message.includes('network')) {
+          errorMessage = 'Error de conexión. Verifica tu internet e intenta de nuevo.';
+        } else if (error.message.includes('timeout') || error.message.includes('abort')) {
+          errorMessage = 'La carga tardó demasiado. Intenta con archivos más pequeños.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setProcessingError(errorMessage);
       setIsProcessing(false);
+      
+      toast({
+        title: "Error en el procesamiento",
+        description: errorMessage,
+        variant: "destructive"
+      });
     }
   };
   const startStatusPolling = (jobId: string) => {
+    let pollCount = 0;
+    const maxPolls = 150; // 5 minutes at 2-second intervals
+    
     const pollInterval = setInterval(async () => {
+      pollCount++;
+      
       try {
-        const {
-          data,
-          error
-        } = await supabase.from('processing_jobs').select('status, stats_json').eq('id', jobId).single();
-        if (error) throw error;
+        // Check network connectivity
+        if (!navigator.onLine) {
+          console.log('Network offline, pausing polling');
+          return;
+        }
+        
+        const { data, error } = await supabase
+          .from('processing_jobs')
+          .select('status, stats_json')
+          .eq('id', jobId)
+          .single();
+          
+        if (error) {
+          console.error('Error polling status:', error);
+          
+          // Don't stop polling immediately for database errors
+          if (pollCount > 10) { // Give it some time before failing
+            throw error;
+          }
+          return;
+        }
+        
         const statsJson = data.stats_json as any;
         const status: ProcessingStatus = {
           job_id: jobId,
           status: data.status as ProcessingStatus['status'],
           progress_pct: statsJson?.progress_pct || 0,
-          message: statsJson?.message || '',
+          message: statsJson?.message || 'Procesando...',
           eta_seconds: statsJson?.eta_seconds,
           detected_years: statsJson?.detected_years,
           selected_years: statsJson?.selected_years,
           per_year: statsJson?.per_year
         };
+        
         setProcessingStatus(status);
+        
         if (status.status === 'DONE') {
           clearInterval(pollInterval);
           setIsProcessing(false);
           toast({
-            title: "Carga completada",
-            description: dryRun ? "Validación completada exitosamente" : "Los datos se han cargado exitosamente"
+            title: "Carga completada exitosamente",
+            description: dryRun ? "Validación completada sin errores" : "Los datos se han cargado correctamente"
           });
         } else if (status.status === 'FAILED') {
           clearInterval(pollInterval);
           setIsProcessing(false);
-          setProcessingError(status.message);
+          setProcessingError(status.message || 'Error en el procesamiento');
+          toast({
+            title: "Error en el procesamiento",
+            description: status.message || 'El procesamiento falló',
+            variant: "destructive"
+          });
         }
+        
+        // Reset poll count on successful communication
+        pollCount = 0;
+        
       } catch (error) {
         console.error('Error polling status:', error);
-        clearInterval(pollInterval);
-        setIsProcessing(false);
-        setProcessingError('Error obteniendo estado del procesamiento');
+        
+        if (pollCount >= maxPolls) {
+          clearInterval(pollInterval);
+          setIsProcessing(false);
+          setProcessingError('Timeout esperando respuesta del servidor');
+          toast({
+            title: "Error de timeout",
+            description: "El procesamiento está tardando más de lo esperado",
+            variant: "destructive"
+          });
+        }
       }
     }, 2000);
-    setTimeout(() => clearInterval(pollInterval), 5 * 60 * 1000);
+    
+    // Safety timeout
+    setTimeout(() => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        setIsProcessing(false);
+        setProcessingError('Timeout del procesamiento');
+      }
+    }, 10 * 60 * 1000); // 10 minutes maximum
   };
   const handleGoToDashboard = () => {
     if (companyInfo && selectedYears.length > 0) {
@@ -426,13 +684,72 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       navigate(`/admin/dashboard?companyId=${companyInfo.companyId}&period=${lastYear}`);
     }
   };
-  const downloadTemplates = () => {
-    // Download the unified empresa_cualitativa.csv template
-    const templateUrl = '/templates/empresa_cualitativa.csv';
-    const a = document.createElement('a');
-    a.href = templateUrl;
-    a.download = 'empresa_cualitativa.csv';
-    a.click();
+  const downloadTemplates = async () => {
+    try {
+      const allTemplateFiles = [
+        'empresa_cualitativa.csv',
+        'cuenta-pyg.csv',
+        'balance-situacion.csv',
+        'pool-deuda.csv',
+        'pool-deuda-vencimientos.csv',
+        'estado-flujos.csv',
+        'datos-operativos.csv',
+        'supuestos-financieros.csv'
+      ];
+
+      let downloadedCount = 0;
+      const failedDownloads: string[] = [];
+
+      for (const fileName of allTemplateFiles) {
+        try {
+          const templateUrl = `/templates/${fileName}`;
+          
+          // Check if file exists before downloading
+          const response = await fetch(templateUrl, { method: 'HEAD' });
+          if (!response.ok) {
+            failedDownloads.push(fileName);
+            continue;
+          }
+
+          const a = document.createElement('a');
+          a.href = templateUrl;
+          a.download = fileName;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          downloadedCount++;
+          
+          // Small delay between downloads to avoid overwhelming the browser
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error(`Error downloading ${fileName}:`, error);
+          failedDownloads.push(fileName);
+        }
+      }
+
+      if (downloadedCount > 0) {
+        toast({
+          title: "Plantillas descargadas",
+          description: `${downloadedCount} plantillas descargadas exitosamente`,
+        });
+      }
+
+      if (failedDownloads.length > 0) {
+        toast({
+          title: "Algunas plantillas no se pudieron descargar",
+          description: `Archivos no encontrados: ${failedDownloads.join(', ')}`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error en descarga de plantillas:', error);
+      toast({
+        title: "Error al descargar plantillas",
+        description: "No se pudieron descargar las plantillas. Verifica tu conexión.",
+        variant: "destructive"
+      });
+    }
   };
   return <RoleBasedAccess allowedRoles={['admin']}>
       <div className="min-h-screen bg-background">
@@ -455,7 +772,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
               </div>
 
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="gap-2" onClick={downloadTemplates}>
+                <Button variant="outline" size="sm" className="gap-2" onClick={downloadTemplates} disabled={isUploadingInfo || isProcessing}>
                   <Download className="h-4 w-4" />
                   Descargar Plantillas
                 </Button>
@@ -557,8 +874,8 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                         </div>
                       </div>
 
-                      {empresaFile && <Button onClick={handleEmpresaUpload} disabled={isUploadingInfo} className="w-full">
-                          {isUploadingInfo ? 'Procesando...' : 'Procesar y Continuar'}
+                      {empresaFile && <Button onClick={handleEmpresaUpload} disabled={isUploadingInfo || isProcessing} className="w-full">
+                          {isUploadingInfo ? 'Procesando archivo...' : 'Procesar y Continuar'}
                         </Button>}
                     </div>
 
@@ -578,7 +895,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                         </SelectContent>
                       </Select>
 
-                      {selectedCompanyId && <Button onClick={handleSkipToStep2} variant="outline" className="w-full">
+                      {selectedCompanyId && <Button onClick={handleSkipToStep2} variant="outline" className="w-full" disabled={isUploadingInfo || isProcessing}>
                           Continuar con empresa seleccionada
                         </Button>}
                     </div>
@@ -621,7 +938,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                           <Label htmlFor="use_template_data">Usar datos de la plantilla</Label>
                         </div>}
 
-                      <Button onClick={() => setCurrentStep('financial')} className="w-full gap-2">
+                      <Button onClick={() => setCurrentStep('financial')} className="w-full gap-2" disabled={isUploadingInfo || isProcessing}>
                         <ArrowRight className="h-4 w-4" />
                         Continuar con carga financiera
                       </Button>
