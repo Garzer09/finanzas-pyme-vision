@@ -1,21 +1,20 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { canAccessProtectedRoute, isAuthLoading } from '@/types/auth';
 
 export const RequireAuth = () => {
-  const { authStatus, roleStatus, initialized } = useAuth();
+  const { authState } = useAuth();
   const location = useLocation();
 
-  // Instrumentación - logs de guards
-  console.log('🔐 [INSTRUMENTATION] RequireAuth:', { 
-    authStatus, 
-    roleStatus, 
-    initialized, 
+  // Debug logging
+  console.log('🔐 [REQUIRE-AUTH]:', { 
+    authState: authState.status, 
     path: location.pathname 
   });
 
-  // Show loading spinner while authentication is being initialized
-  if (!initialized) {
-    console.log('🔐 [INSTRUMENTATION] RequireAuth: Waiting for initialization');
+  // Show loading spinner while authentication is being processed
+  if (isAuthLoading(authState)) {
+    console.log('🔐 [REQUIRE-AUTH]: Waiting for authentication...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -24,12 +23,12 @@ export const RequireAuth = () => {
   }
 
   // Redirect to auth if not authenticated
-  if (authStatus !== 'authenticated') {
-    console.log('🔐 [INSTRUMENTATION] RequireAuth: Redirecting unauthenticated user to /auth');
+  if (!canAccessProtectedRoute(authState)) {
+    console.log('🔐 [REQUIRE-AUTH]: Redirecting unauthenticated user to /auth');
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  console.log('🔐 [INSTRUMENTATION] RequireAuth: Allowing access');
+  console.log('🔐 [REQUIRE-AUTH]: Allowing access');
   // Render protected content
   return <Outlet />;
 };
