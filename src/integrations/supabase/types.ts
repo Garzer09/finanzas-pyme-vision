@@ -1148,6 +1148,39 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_field_mappings: {
+        Row: {
+          confidence_threshold: number | null
+          created_at: string
+          created_by: string | null
+          field_mappings: Json
+          id: string
+          org_id: string
+          profile_name: string
+          updated_at: string
+        }
+        Insert: {
+          confidence_threshold?: number | null
+          created_at?: string
+          created_by?: string | null
+          field_mappings?: Json
+          id?: string
+          org_id: string
+          profile_name: string
+          updated_at?: string
+        }
+        Update: {
+          confidence_threshold?: number | null
+          created_at?: string
+          created_by?: string | null
+          field_mappings?: Json
+          id?: string
+          org_id?: string
+          profile_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       processing_jobs: {
         Row: {
           company_id: string
