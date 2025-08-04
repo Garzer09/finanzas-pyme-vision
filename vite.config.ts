@@ -25,7 +25,14 @@ export default defineConfig(({ mode }) => ({
         manualChunks: {
           // Vendor chunks for better caching
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['@radix-ui/react-accordion', '@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-popover'],
+          ui: [
+            '@radix-ui/react-accordion', 
+            '@radix-ui/react-alert-dialog', 
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-dialog', 
+            '@radix-ui/react-dropdown-menu', 
+            '@radix-ui/react-popover'
+          ],
           charts: ['recharts'],
           forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
           supabase: ['@supabase/supabase-js'],
@@ -35,13 +42,13 @@ export default defineConfig(({ mode }) => ({
         }
       }
     },
-    // Increase chunk size warning limit for vendor chunks
-    chunkSizeWarningLimit: 600,
-    // Enable minification and tree shaking with default minifier
-    minify: mode === 'production',
+    // Increase chunk size warning limit for financial modules
+    chunkSizeWarningLimit: 1000,
+    // Enable minification with esbuild for better performance
+    minify: mode === 'production' ? 'esbuild' : false,
     // Optimize CSS
     cssCodeSplit: true,
-    // Source maps for production debugging
+    // Source maps configuration
     sourcemap: mode === 'production' ? 'hidden' : true
   },
   test: {

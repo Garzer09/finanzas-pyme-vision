@@ -23,6 +23,7 @@ import NotFound from "./pages/NotFound";
 import ExcelUploadPage from "./pages/ExcelUploadPage";
 import FilesDashboardPage from "./pages/FilesDashboardPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
+import { FileUploadDemoPage } from "./pages/FileUploadDemoPage";
 // Core Financial Analysis Pages
 import { CuentaPyGPage } from "./pages/CuentaPyGPage";
 import { BalanceSituacionPage } from "./pages/BalanceSituacionPage";
@@ -91,7 +92,10 @@ const App = () => {
   const location = useLocation();
   
   React.useEffect(() => {
-    console.debug('[ROUTE]', location.pathname);
+    // Only log routes in development or when debug is enabled
+    if (process.env.NODE_ENV === 'development' || localStorage.getItem('debug_mode') === 'true') {
+      console.debug('[ROUTE]', location.pathname);
+    }
   }, [location.pathname]);
 
   return (
@@ -114,6 +118,7 @@ const App = () => {
               <Route path="/subir-excel" element={<ExcelUploadPage />} />
               <Route path="/archivos" element={<FilesDashboardPage />} />
               <Route path="/suscripcion" element={<SubscriptionPage />} />
+              <Route path="/file-upload-demo" element={<FileUploadDemoPage />} />
               <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
               
               {/* Viewer Routes */}

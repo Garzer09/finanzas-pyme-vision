@@ -41,7 +41,7 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
     );
   }
 
-  // 3️⃣ Not authenticated: redirect to login preserving location
+  // 3️⃣ Not authenticated: redirect to auth preserving location
   if (authState.status === 'unauthenticated') {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
