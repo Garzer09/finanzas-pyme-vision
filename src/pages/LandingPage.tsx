@@ -19,14 +19,18 @@ const LandingPage = () => {
   useEffect(() => {
     if (!initialized) return;
 
-    console.log('LandingPage redirect logic:', { authStatus, role });
+    console.log('🏠 LandingPage redirect logic:', { authStatus, role, initialized, timestamp: new Date().toISOString() });
     
-    if (authStatus === 'authenticated' && role === 'admin') {
-      console.log('Redirecting admin to /admin/empresas');
-      navigate('/admin/empresas', { replace: true });
-    } else if (authStatus === 'authenticated' && role !== 'admin') {
-      console.log('Redirecting user to /app/mis-empresas');
-      navigate('/app/mis-empresas', { replace: true });
+    if (authStatus === 'authenticated') {
+      if (role === 'admin') {
+        console.log('👑 Redirecting admin to /admin/empresas');
+        navigate('/admin/empresas', { replace: true });
+      } else if (role === 'viewer') {
+        console.log('👤 Redirecting user to /app/mis-empresas');
+        navigate('/app/mis-empresas', { replace: true });
+      } else {
+        console.log('⚠️ Unknown role, staying on landing page');
+      }
     }
     // Si no está autenticado, se queda en /
   }, [initialized, authStatus, role, navigate]);

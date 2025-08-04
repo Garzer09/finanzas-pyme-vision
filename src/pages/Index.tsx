@@ -10,8 +10,8 @@ const Index = () => {
   useEffect(() => {
     if (initialized) {
       if (user) {
-        // Si el usuario está autenticado, redirigir a /redirect para manejo de roles
-        navigate('/redirect');
+        // Si el usuario está autenticado, la LandingPage se encargará de la redirección
+        navigate('/');
       }
       // Si no está autenticado, permanecer en la landing page
     }

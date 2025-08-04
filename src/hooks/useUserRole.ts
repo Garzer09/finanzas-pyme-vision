@@ -1,7 +1,10 @@
 import { useAuth } from '@/contexts/AuthContext';
 
+// Simplified useUserRole that just reads from AuthContext
 export const useUserRole = () => {
   const { role, initialized } = useAuth();
+  
+  console.log('🎭 useUserRole (simplified):', { role, initialized });
   
   return {
     userRole: role === 'admin' ? 'admin' : (role === 'viewer' ? 'user' : null),
