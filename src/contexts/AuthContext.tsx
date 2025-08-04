@@ -5,7 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  authStatus: 'unknown' | 'authenticated' | 'unauthenticated';
+  authStatus: 'idle' | 'authenticating' | 'authenticated' | 'unauthenticated';
   role: 'admin' | 'viewer' | 'none';
   roleStatus: 'idle' | 'resolving' | 'ready' | 'error';
   initialized: boolean;
@@ -14,6 +14,7 @@ interface AuthContextType {
   signOut: (redirectTo?: string) => Promise<void>;
   updatePassword: (password: string) => Promise<{ error: any }>;
   refreshRole: () => Promise<void>;
+  hasJustLoggedIn: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,7 +30,8 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [authStatus, setAuthStatus] = useState<'unknown' | 'authenticated' | 'unauthenticated'>('unknown');
+  const [authStatus, setAuthStatus] = useState<'idle' | 'authenticating' | 'authenticated' | 'unauthenticated'>('idle');
+  const [hasJustLoggedIn, setHasJustLoggedIn] = useState(false);
   const [role, setRole] = useState<'admin' | 'viewer' | 'none'>('none');
   const [roleStatus, setRoleStatus] = useState<'idle' | 'resolving' | 'ready' | 'error'>('idle');
   const [initialized, setInitialized] = useState(false);
@@ -145,36 +147,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
-        console.log('📋 [INSTRUMENTATION] Session check result:', { hasSession: !!session, user: session?.user?.email });
+        console.log('📋 [AUTH-CTX] Session check result:', { hasSession: !!session, user: session?.user?.email });
         
         if (!mounted) return;
         
         setSession(session);
         setUser(session?.user ?? null);
-        setAuthStatus(session ? 'authenticated' : 'unauthenticated');
+        // ✅ ROLLBACK: No cambiar a 'authenticated' automáticamente en sesión existente
+        setAuthStatus(session ? 'idle' : 'unauthenticated');
+        setHasJustLoggedIn(false); // Sesión existente no es login reciente
         
+        // ✅ ROLLBACK: No resolver rol automáticamente en sesión existente
         if (session?.user?.id) {
-          console.log('👤 [INSTRUMENTATION] Existing user found, fetching role...');
-          setRoleStatus('resolving');
-          const reqId = ++roleReqIdRef.current;
-          try {
-            const userRole = await fetchUserRole(session.user.id, reqId);
-            if (mounted && reqId === roleReqIdRef.current) {
-              setRole(userRole);
-              lastKnownRoleRef.current = userRole;
-              setRoleStatus('ready');
-            }
-          } catch (error) {
-            console.error('❌ [INSTRUMENTATION] Error fetching role during init:', error);
-            if (mounted && reqId === roleReqIdRef.current) {
-              setRole(lastKnownRoleRef.current || 'viewer');
-              setRoleStatus('error');
-            }
-          }
+          console.log('👤 [AUTH-CTX] Existing user found, but not resolving role automatically');
+          setRole('none'); // Mantener role como 'none' hasta login explícito
+          setRoleStatus('idle');
         } else {
-          console.log('❌ [INSTRUMENTATION] No existing user');
+          console.log('❌ [AUTH-CTX] No existing user');
           setRole('none');
-          setRoleStatus('ready');
+          setRoleStatus('idle');
         }
         
       } catch (error) {
@@ -213,57 +204,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
         
-        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          console.log(`🔐 [INSTRUMENTATION] ${event} event`);
+        // ✅ ROLLBACK: Solo resolver rol en SIGNED_IN (login explícito)
+        if (event === 'SIGNED_IN') {
+          console.log(`🔐 [AUTH-CTX] ${event} event - explicit login`);
           
           setSession(session);
           setUser(session?.user ?? null);
           setAuthStatus(session ? 'authenticated' : 'unauthenticated');
+          setHasJustLoggedIn(true); // Marcar que acaba de loguearse
           
           if (session?.user?.id) {
-            // Increment request ID for race condition protection
             const reqId = ++roleReqIdRef.current;
-            
-            // For TOKEN_REFRESHED, keep admin role sticky during revalidation
-            if (event === 'TOKEN_REFRESHED' && lastKnownRoleRef.current === 'admin') {
-              console.log('🔄 [INSTRUMENTATION] TOKEN_REFRESHED: keeping admin role sticky during revalidation');
-              setRoleStatus('resolving'); // Show we're revalidating but don't change role yet
-            } else {
-              setRoleStatus('resolving');
-            }
+            setRoleStatus('resolving');
             
             try {
               const userRole = await fetchUserRole(session.user.id, reqId);
-              // Only update if this is the most recent request
               if (mounted && reqId === roleReqIdRef.current) {
-                console.log(`✅ [INSTRUMENTATION] Role fetched after ${event}:`, userRole, 'reqId:', reqId);
+                console.log(`✅ [AUTH-CTX] Role fetched after ${event}:`, userRole, 'reqId:', reqId);
                 setRole(userRole);
                 lastKnownRoleRef.current = userRole;
                 setRoleStatus('ready');
-              } else {
-                console.log(`🚫 [INSTRUMENTATION] Ignoring stale role response:`, userRole, 'reqId:', reqId, 'current:', roleReqIdRef.current);
               }
             } catch (error) {
-              console.error(`❌ [INSTRUMENTATION] Error fetching role during ${event}:`, error, 'reqId:', reqId);
+              console.error(`❌ [AUTH-CTX] Error fetching role during ${event}:`, error, 'reqId:', reqId);
               if (mounted && reqId === roleReqIdRef.current) {
-                // Preserve admin role on error if it was previously admin
                 const fallbackRole = lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-                console.log(`🛡️ [INSTRUMENTATION] Using fallback role:`, fallbackRole);
+                console.log(`🛡️ [AUTH-CTX] Using fallback role:`, fallbackRole);
                 setRole(fallbackRole);
                 setRoleStatus('error');
               }
             }
           } else {
-            console.log('❌ [INSTRUMENTATION] No user in session');
+            console.log('❌ [AUTH-CTX] No user in session');
             setRole('none');
             setRoleStatus('ready');
             lastKnownRoleRef.current = 'none';
           }
-          
-          setInitialized(true);
+        } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+          console.log(`🔄 [AUTH-CTX] ${event} event - updating session but not resolving role`);
+          setSession(session);
+          setUser(session?.user ?? null);
+          // No cambiar authStatus ni resolver rol en estos eventos
         }
-        
-        console.log('📊 [INSTRUMENTATION] AUTH STATE AFTER:', { authStatus, role, roleStatus, initialized });
+          
+        setInitialized(true);
+        console.log('📊 [AUTH-CTX] AUTH STATE AFTER:', { authStatus, role, roleStatus, initialized, hasJustLoggedIn });
       }
     );
     
@@ -279,10 +264,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [fetchUserRole]);
 
   const signIn = async (email: string, password: string) => {
+    console.log('🔐 [AUTH-CTX] signIn called');
+    setAuthStatus('authenticating');
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    if (error) {
+      setAuthStatus('unauthenticated');
+    }
     return { error };
   };
 
@@ -359,6 +349,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
     updatePassword,
     refreshRole,
+    hasJustLoggedIn
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

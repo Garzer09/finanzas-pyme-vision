@@ -40,33 +40,34 @@ const AuthPage = () => {
     rememberMe: false
   });
 
-  const { authStatus, role, roleStatus, initialized } = useAuth();
+  const { authStatus, role, roleStatus, initialized, hasJustLoggedIn } = useAuth();
 
-  // ✅ Navegación sincronizada - solo cuando auth y rol están listos
+  // ✅ ROLLBACK: Navegación solo después de login explícito
   useEffect(() => {
-    if (authStatus === 'authenticated' && roleStatus === 'ready' && role && role !== 'none') {
-      console.debug('[NAVIGATE] Synchronized navigation triggered:', { authStatus, roleStatus, role });
+    if (authStatus === 'authenticated' && roleStatus === 'ready' && role && role !== 'none' && hasJustLoggedIn) {
+      console.debug('[AUTH-PAGE] Navigation triggered after explicit login:', { authStatus, roleStatus, role, hasJustLoggedIn });
       const targetPath = role === 'admin' ? '/admin/empresas' : '/app/mis-empresas';
-      console.debug('[NAVIGATE] Navigating to:', targetPath);
+      console.debug('[AUTH-PAGE] Navigating to:', targetPath);
       navigate(targetPath, { replace: true });
     }
-  }, [authStatus, roleStatus, role, navigate]);
+  }, [authStatus, roleStatus, role, hasJustLoggedIn, navigate]);
 
   useEffect(() => {
-    // Instrumentación
-    console.debug('[AUTH] State debug:', { 
+    // Debug temporal
+    console.debug('[AUTH-PAGE] State debug:', { 
       path: '/auth', 
       user: !!user, 
       authStatus,
       role,
       roleStatus,
       initialized,
+      hasJustLoggedIn,
       isRecoveryMode,
       state: isPasswordReset ? 'password-reset' : isPasswordRecovery ? 'recovery' : isSignUp ? 'signup' : 'login'
     });
     
     setTokenLoading(false);
-  }, [user, authStatus, role, roleStatus, initialized, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
+  }, [user, authStatus, role, roleStatus, initialized, hasJustLoggedIn, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
@@ -160,28 +161,24 @@ const AuthPage = () => {
           setIsLogin(true);
         }
       } else if (isLogin) {
-        console.debug('[LOGIN] Submit started', { email: formData.email });
+        console.debug('[AUTH-PAGE] Login submit started', { email: formData.email });
         
-        const { error } = await supabase.auth.signInWithPassword({
-          email: formData.email,
-          password: formData.password
-        });
+        const { error } = await signIn(formData.email, formData.password);
         
         if (error) {
-          console.debug('[LOGIN] Auth error:', error);
+          console.debug('[AUTH-PAGE] Login error:', error);
           toast({
             title: "Error al iniciar sesión",
             description: error.message,
             variant: "destructive"
           });
         } else {
-          console.debug('[LOGIN] Auth successful, AuthContext will handle role resolution');
+          console.debug('[AUTH-PAGE] Login successful, AuthContext will handle role resolution and navigation');
           toast({
             title: "¡Bienvenido!",
             description: "Has iniciado sesión correctamente"
           });
-          // ✅ ELIMINADO: No más RPC manual aquí
-          // La navegación se maneja en el useEffect sincronizado
+          // ✅ ROLLBACK: AuthContext maneja todo automáticamente
         }
       }
     } finally {
@@ -331,8 +328,8 @@ const AuthPage = () => {
               )}
 
 
-              <Button type="submit" className="w-full" disabled={loading || (authStatus === 'authenticated' && roleStatus === 'resolving')}>
-                {(loading || (authStatus === 'authenticated' && roleStatus === 'resolving')) ? (
+              <Button type="submit" className="w-full" disabled={loading || authStatus === 'authenticating' || (authStatus === 'authenticated' && roleStatus === 'resolving')}>
+                {(loading || authStatus === 'authenticating' || (authStatus === 'authenticated' && roleStatus === 'resolving')) ? (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                     {roleStatus === 'resolving' 
