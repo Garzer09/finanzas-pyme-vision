@@ -1,230 +1,209 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef
+} from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { 
-  AuthState, 
-  AuthContextType, 
-  Role, 
+import {
+  AuthState,
+  AuthContextType,
+  Role,
   DEFAULT_RETRY_CONFIG,
-  type RetryConfig 
+  type RetryConfig
 } from '@/types/auth';
-import { useInactivityDetection, createRetryWithBackoff } from '@/hooks/useInactivityDetection';
+import {
+  useInactivityDetection,
+  createRetryWithBackoff
+} from '@/hooks/useInactivityDetection';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+export const useAuth = (): AuthContextType => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // ✅ Unified state machine replaces multiple states
-  const [authState, setAuthState] = useState<AuthState>({ status: 'initializing' });
-  
-  // ✅ Inactivity detection
-  const [inactivityWarning, setInactivityWarning] = useState(false);
-  
-  // ✅ Simple refs for internal state management
-  const retryConfigRef = useRef<RetryConfig>(DEFAULT_RETRY_CONFIG);
-  const lastKnownRoleRef = useRef<Role>('none');
-  const roleReqIdRef = useRef(0);
-  const inFlightRef = useRef<Promise<Role> | null>(null);
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children
+}) => {
+  // Unified auth state machine
+  const [authState, setAuthState] = useState<AuthState>({
+    status: 'initializing'
+  });
 
-  // ✅ Inactivity detection setup
-  const { isWarning, timeRemaining, resetTimer: resetInactivityTimer } = useInactivityDetection(
+  // Inactivity detection
+  const [inactivityWarning, setInactivityWarning] = useState(false);
+  const {
+    isWarning,
+    timeRemaining,
+    resetTimer: resetInactivityTimer
+  } = useInactivityDetection(
     () => {
-      console.log('🕐 [AUTH] Inactivity warning triggered');
+      console.log('🕐 [AUTH] Inactivity warning');
       setInactivityWarning(true);
     },
     () => {
-      console.log('🕐 [AUTH] Inactivity timeout - signing out');
+      console.log('🕐 [AUTH] Inactivity timeout — signing out');
       handleSignOut();
     }
   );
-
-  // Update inactivity warning state
   useEffect(() => {
     setInactivityWarning(isWarning);
   }, [isWarning]);
 
-  // ✅ Retry utility with exponential backoff
-  const retryOperation = useCallback(createRetryWithBackoff(
-    retryConfigRef.current.maxAttempts,
-    retryConfigRef.current.baseDelayMs,
-    retryConfigRef.current.maxDelayMs
-  ), []);
+  // Retry/backoff config
+  const retryConfigRef = useRef<RetryConfig>(DEFAULT_RETRY_CONFIG);
+  const retryOperation = useCallback(
+    createRetryWithBackoff(
+      retryConfigRef.current.maxAttempts,
+      retryConfigRef.current.baseDelayMs,
+      retryConfigRef.current.maxDelayMs
+    ),
+    []
+  );
 
-  // ✅ Simplified role fetching with retry logic
-  const fetchUserRole = useCallback(async (userId: string, reqId: number): Promise<Role> => {
-    if (!userId) {
-      console.log('❌ fetchUserRole: No userId provided');
-      return 'viewer';
-    }
-    
-    // Check if we already have a request in flight - reuse it
-    if (inFlightRef.current) {
-      console.log('🔄 [AUTH] Reusing in-flight request for userId:', userId, 'reqId:', reqId);
+  // Concurrency guards for role fetch
+  const lastKnownRoleRef = useRef<Role>('none');
+  const roleReqIdRef = useRef(0);
+  const inFlightRef = useRef<Promise<Role> | null>(null);
+
+  // Fetch user role with retry & timeout
+  const fetchUserRole = useCallback(
+    async (userId: string, reqId: number): Promise<Role> => {
+      if (!userId) return 'viewer';
+
+      // reuse in-flight
+      if (inFlightRef.current) {
+        console.log('🔄 [AUTH] Reusing in-flight role fetch');
+        try {
+          return await inFlightRef.current;
+        } catch {
+          /* fall through to new request */
+        }
+      }
+
+      console.log('🔍 [AUTH] fetchUserRole:', userId, 'reqId=', reqId);
+      const promise = retryOperation(async () => {
+        // stale check
+        if (reqId !== roleReqIdRef.current) {
+          console.log('🚫 [AUTH] Stale role fetch');
+          return lastKnownRoleRef.current;
+        }
+
+        // try RPC
+        const { data: rpcData, error: rpcErr } = await supabase.rpc(
+          'get_user_role'
+        );
+        console.log('🔧 [AUTH] RPC result', { rpcData, rpcErr });
+
+        if (!rpcErr && rpcData === 'admin') return 'admin';
+
+        // fallback to table
+        const { data: tbl, error: tblErr } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle();
+        console.log('📊 [AUTH] Table result', { tbl, tblErr });
+
+        if (!tblErr && tbl?.role === 'admin') return 'admin';
+        return 'viewer';
+      });
+
+      inFlightRef.current = promise;
       try {
-        return await inFlightRef.current;
-      } catch (error) {
-        console.error('❌ [AUTH] In-flight request failed:', error);
+        const role = await promise;
+        return role;
+      } finally {
+        inFlightRef.current = null;
       }
-    }
-    
-    console.log('🔍 [AUTH] fetchUserRole called for userId:', userId, 'reqId:', reqId);
-    
-    // Create new request with retry logic
-    const rolePromise = retryOperation(async (): Promise<Role> => {
-      // Check if this response is still relevant
-      if (reqId !== roleReqIdRef.current) {
-        console.log('🚫 [AUTH] Ignoring stale response, reqId:', reqId, 'current:', roleReqIdRef.current);
-        return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-      }
-      
-      // Try RPC first
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_user_role');
-      
-      console.log('🔧 [AUTH] RPC result:', { rpcData, rpcError, reqId });
-      
-      if (!rpcError && rpcData === 'admin') {
-        console.log('✅ [AUTH] Role from RPC: admin');
-        return 'admin';
-      }
-      
-      // Fallback: check table directly
-      const { data: tableData, error: tableError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
-      
-      console.log('📊 [AUTH] Table query result:', { tableData, tableError, reqId });
-      
-      if (!tableError && tableData?.role === 'admin') {
-        console.log('✅ [AUTH] Role from table: admin');
-        return 'admin';
-      }
-      
-      console.log('ℹ️ [AUTH] No admin role found, defaulting to viewer');
-      return 'viewer';
-    });
-    
-    // Store the promise to prevent concurrent requests
-    inFlightRef.current = rolePromise;
-    
-    try {
-      const result = await rolePromise;
-      return result;
-    } finally {
-      // Clear the in-flight reference when done
-      inFlightRef.current = null;
-    }
-  }, [retryOperation]);
+    },
+    [retryOperation]
+  );
 
-  // ✅ Unified state transition function
-  const transitionState = useCallback((newState: AuthState) => {
-    console.log('🔄 [AUTH] State transition:', authState.status, '->', newState.status);
-    setAuthState(newState);
-    
-    // Reset inactivity timer on successful authentication
-    if (newState.status === 'authenticated') {
-      resetInactivityTimer();
-    }
-  }, [authState.status, resetInactivityTimer]);
+  // Centralized state transitions
+  const transitionState = useCallback(
+    (newState: AuthState) => {
+      console.log('🔄 [AUTH] ', authState.status, '→', newState.status);
+      setAuthState(newState);
+      if (newState.status === 'authenticated') {
+        resetInactivityTimer();
+      }
+    },
+    [authState.status, resetInactivityTimer]
+  );
 
-  // ✅ Simplified authentication handlers
-  const handleSignIn = useCallback(async (email: string, password: string) => {
-    console.log('🔐 [AUTH] signIn called');
-    transitionState({ status: 'authenticating' });
-    
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      
+  // === Auth actions ===
+
+  const handleSignIn = useCallback(
+    async (email: string, password: string) => {
+      console.log('🔐 [AUTH] signIn');
+      transitionState({ status: 'authenticating' });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
       if (error) {
-        transitionState({ 
-          status: 'error', 
-          error: error.message, 
+        transitionState({
+          status: 'error',
+          error: error.message,
           retry: () => handleSignIn(email, password)
         });
         return { error };
       }
-      
-      // State will be updated by auth state change listener
       return { error: null };
-    } catch (error: any) {
-      const errorMsg = error.message || 'Unknown error during sign in';
-      transitionState({ 
-        status: 'error', 
-        error: errorMsg, 
-        retry: () => handleSignIn(email, password)
-      });
-      return { error: { message: errorMsg } };
-    }
-  }, [transitionState]);
+    },
+    [transitionState]
+  );
 
-  const handleSignUp = useCallback(async (email: string, password: string, userData?: any) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    try {
+  const handleSignUp = useCallback(
+    async (email: string, password: string, userData?: any) => {
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: window.location.origin + '/',
           data: userData
         }
       });
       return { error };
-    } catch (error: any) {
-      return { error: { message: error.message || 'Unknown error during sign up' } };
-    }
-  }, []);
+    },
+    []
+  );
 
-  const handleSignOut = useCallback(async (redirectTo: string = '/') => {
-    console.log('🚪 [AUTH] Signing out...');
-    
-    try {
+  const handleSignOut = useCallback(
+    async (redirectTo: string = '/') => {
+      console.log('🚪 [AUTH] signOut');
       await supabase.auth.signOut();
       transitionState({ status: 'unauthenticated' });
       lastKnownRoleRef.current = 'none';
-      
-      // Redirect to specified path
-      if (typeof window !== 'undefined') {
-        window.location.href = redirectTo;
-      }
-    } catch (error) {
-      console.error('❌ [AUTH] Error during sign out:', error);
-      // Force logout on error
-      transitionState({ status: 'unauthenticated' });
-      if (typeof window !== 'undefined') {
-        window.location.href = redirectTo;
-      }
-    }
-  }, [transitionState]);
+      window.location.href = redirectTo;
+    },
+    [transitionState]
+  );
 
-  const handleUpdatePassword = useCallback(async (password: string) => {
-    try {
+  const handleUpdatePassword = useCallback(
+    async (password: string) => {
       const { error } = await supabase.auth.updateUser({ password });
       return { error };
-    } catch (error: any) {
-      return { error: { message: error.message || 'Unknown error updating password' } };
-    }
-  }, []);
+    },
+    []
+  );
 
   const handleRefreshRole = useCallback(async () => {
-    if (authState.status !== 'authenticated') {
-      console.log('❌ refreshRole: Not authenticated');
-      return;
-    }
-
-    console.log('🔄 [AUTH] Manual role refresh triggered');
+    if (authState.status !== 'authenticated') return;
+    console.log('🔄 [AUTH] manual role refresh');
     const reqId = ++roleReqIdRef.current;
-    
     try {
-      const userRole = await fetchUserRole(authState.user.id, reqId);
+      const userRole = await fetchUserRole(
+        authState.user.id,
+        reqId
+      );
       if (reqId === roleReqIdRef.current) {
         lastKnownRoleRef.current = userRole;
         transitionState({
@@ -233,111 +212,95 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           session: authState.session,
           role: userRole
         });
-        console.log('✅ [AUTH] Role refreshed successfully:', userRole);
       }
-    } catch (error) {
-      console.error('❌ [AUTH] Error during manual role refresh:', error);
-      // Keep current state but could add error handling here if needed
+    } catch {
+      /* swallow */
     }
   }, [authState, fetchUserRole, transitionState]);
 
-  // ✅ Initialize authentication and handle state changes
+  // === Initialization & listener ===
+
   useEffect(() => {
     let mounted = true;
-    let authSubscription: any = null;
+    let sub: any;
 
-    const initAuth = async () => {
-      try {
-        console.log('🚀 [AUTH] Initializing Auth...');
-        
-        // Check for existing session first
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('❌ [AUTH] Session check error:', error);
-          if (mounted) {
-            transitionState({ status: 'unauthenticated' });
+    const init = async () => {
+      console.log('🚀 [AUTH] initializing');
+      const {
+        data: { session },
+        error
+      } = await supabase.auth.getSession();
+      if (!mounted) return;
+
+      if (error) {
+        console.error('❌ [AUTH] getSession error', error);
+        transitionState({ status: 'unauthenticated' });
+        return;
+      }
+
+      if (session?.user?.id) {
+        // existing session
+        transitionState({
+          status: 'resolving-role',
+          user: session.user,
+          session,
+          role: 'none'
+        });
+        const reqId = ++roleReqIdRef.current;
+        try {
+          const userRole = await fetchUserRole(
+            session.user.id,
+            reqId
+          );
+          if (mounted && reqId === roleReqIdRef.current) {
+            lastKnownRoleRef.current = userRole;
+            transitionState({
+              status: 'authenticated',
+              user: session.user,
+              session,
+              role: userRole
+            });
           }
-          return;
+        } catch {
+          if (mounted && reqId === roleReqIdRef.current) {
+            transitionState({
+              status: 'unauthenticated'
+            });
+          }
         }
-        
-        console.log('📋 [AUTH] Session check result:', { hasSession: !!session, user: session?.user?.email });
-        
-        if (!mounted) return;
-// Después de obtener `session` del proveedor (p.ej. NextAuth)
-setSession(session);
-setUser(session?.user ?? null);
-
-// ✅ Estatus de autenticación
-setAuthStatus(session ? 'authenticated' : 'unauthenticated');
-
-// ✅ Esto NO cuenta como un login fresco
-setHasJustLoggedIn(false);
-
-if (session?.user?.id) {
-  console.log('👤 [AUTH-CTX] Existing user found, resolving role...');
-  const reqId = ++roleReqIdRef.current;
-  setRoleStatus('resolving');
-
-  try {
-    const userRole = await fetchUserRole(session.user.id, reqId);
-    // Solo aplicamos si seguimos montados y es la última petición
-    if (!mounted || reqId !== roleReqIdRef.current) return;
-
-    console.log('✅ [AUTH-CTX] Role resolved:', userRole, 'reqId:', reqId);
-    setRole(userRole);
-    lastKnownRoleRef.current = userRole;
-    setRoleStatus('ready');
-  } catch (error) {
-    console.error('❌ [AUTH-CTX] Error resolving role:', error, 'reqId:', reqId);
-    if (!mounted || reqId !== roleReqIdRef.current) return;
-
-    // Fallback a viewer (o admin si era admin antes)
-    const fallback = lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-    setRole(fallback);
-    lastKnownRoleRef.current = fallback;
-    setRoleStatus('ready');
-  }
-} else {
-  console.log('❌ [AUTH-CTX] No existing user');
-  setRole('none');
-  setRoleStatus('ready');
-}
-
-        }
-        
-      } catch (error) {
-        console.error('❌ [AUTH] Auth initialization error:', error);
-        if (mounted) {
-          transitionState({ status: 'unauthenticated' });
-        }
+      } else {
+        transitionState({ status: 'unauthenticated' });
       }
     };
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    sub = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 [AUTH] Auth state change:', { event, user: session?.user?.email, path: window.location.pathname });
-        
         if (!mounted) return;
-        
+        console.log('🔄 [AUTH] onAuthStateChange', event);
+
         if (event === 'SIGNED_OUT') {
-          console.log('🚪 [AUTH] SIGNED_OUT event');
           transitionState({ status: 'unauthenticated' });
           lastKnownRoleRef.current = 'none';
-          return;
         }
-        
+
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-          console.log(`🔐 [AUTH] ${event} event`);
-          
           if (session?.user?.id) {
+            transitionState({
+              status: 'resolving-role',
+              user: session.user,
+              session,
+              role: 'none'
+            });
             const reqId = ++roleReqIdRef.current;
-            
             try {
-              const userRole = await fetchUserRole(session.user.id, reqId);
-              if (mounted && reqId === roleReqIdRef.current) {
-                console.log(`✅ [AUTH] Role fetched after ${event}:`, userRole, 'reqId:', reqId);
+              const userRole = await fetchUserRole(
+                session.user.id,
+                reqId
+              );
+              if (
+                mounted &&
+                reqId === roleReqIdRef.current
+              ) {
                 lastKnownRoleRef.current = userRole;
                 transitionState({
                   status: 'authenticated',
@@ -346,86 +309,101 @@ if (session?.user?.id) {
                   role: userRole
                 });
               }
-            } catch (error) {
-              console.error(`❌ [AUTH] Error fetching role during ${event}:`, error, 'reqId:', reqId);
-              if (mounted && reqId === roleReqIdRef.current) {
-                const fallbackRole = lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-                console.log(`🛡️ [AUTH] Using fallback role:`, fallbackRole);
+            } catch {
+              if (
+                mounted &&
+                reqId === roleReqIdRef.current
+              ) {
                 transitionState({
                   status: 'authenticated',
                   user: session.user,
                   session,
-                  role: fallbackRole
+                  role: lastKnownRoleRef.current
                 });
               }
             }
           } else {
-            console.log('❌ [AUTH] No user in session');
             transitionState({ status: 'unauthenticated' });
           }
         }
       }
     );
-    
-    authSubscription = subscription;
-    initAuth();
 
+    init();
     return () => {
       mounted = false;
-      if (authSubscription) {
-        authSubscription.unsubscribe();
-      }
+      sub?.subscription?.unsubscribe?.();
     };
   }, [fetchUserRole, transitionState]);
 
-  // ✅ Backward compatibility getters
-  const user = authState.status === 'authenticated' ? authState.user : null;
-  const session = authState.status === 'authenticated' ? authState.session : null;
-  const role = authState.status === 'authenticated' ? authState.role : 'none';
-  
+  // === Backward-compatible getters ===
+
+  const user =
+    authState.status === 'authenticated'
+      ? authState.user
+      : null;
+  const session =
+    authState.status === 'authenticated'
+      ? authState.session
+      : null;
+  const role =
+    authState.status === 'authenticated'
+      ? authState.role
+      : 'none';
+
   const authStatus: 'idle' | 'authenticating' | 'authenticated' | 'unauthenticated' = (() => {
     switch (authState.status) {
-      case 'initializing': return 'idle';
-      case 'authenticating': return 'authenticating';
-      case 'authenticated': return 'authenticated';
-      case 'unauthenticated': return 'unauthenticated';
-      case 'error': return 'unauthenticated';
+      case 'initializing':
+        return 'idle';
+      case 'authenticating':
+        return 'authenticating';
+      case 'authenticated':
+        return 'authenticated';
+      case 'unauthenticated':
+      case 'error':
+        return 'unauthenticated';
     }
   })();
-  
+
   const roleStatus: 'idle' | 'resolving' | 'ready' | 'error' = (() => {
     if (authState.status === 'authenticated') return 'ready';
-    if (authState.status === 'authenticating') return 'resolving';
+    if (authState.status === 'resolving-role') return 'resolving';
     if (authState.status === 'error') return 'error';
     return 'idle';
   })();
-  
+
   const initialized = authState.status !== 'initializing';
 
+  // === Context value ===
+
   const value: AuthContextType = {
-    // New unified state
+    // Unified
     authState,
-    
-    // Backward compatibility
+
+    // Legacy
     user,
     session,
     authStatus,
     role,
     roleStatus,
     initialized,
-    
+
     // Actions
     signIn: handleSignIn,
     signUp: handleSignUp,
     signOut: handleSignOut,
     updatePassword: handleUpdatePassword,
     refreshRole: handleRefreshRole,
-    
-    // Inactivity management
+
+    // Inactivity
     inactivityWarning,
     timeUntilLogout: timeRemaining,
     resetInactivityTimer
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
