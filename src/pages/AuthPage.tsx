@@ -38,7 +38,40 @@ const AuthPage = () => {
     rememberMe: false
   });
 
-  // ✅ Simplified navigation logic using unified state
+const { authStatus, role, roleStatus, initialized, hasJustLoggedIn } = useAuth();
+
+// 🔄 Lógica unificada de redirección
+useEffect(() => {
+  // 1️⃣ Esperamos a que se cargue el estado de la autenticación
+  if (!initialized || roleStatus !== 'ready') return;
+
+  // 2️⃣ Si no está autenticado o no hay rol válido, salimos
+  if (authStatus !== 'authenticated' || !role || role === 'none') return;
+
+  // 3️⃣ Calculamos la ruta según el rol
+  const targetPath = role === 'admin'
+    ? '/admin/empresas'
+    : '/app/mis-empresas';
+
+  // 4️⃣ Navegamos:
+  //   - replace = false en login fresco (mantener "atrás")
+  //   - replace = true en sesión ya existente (no volver al login)
+  console.debug(
+    `[AUTH-PAGE] ${
+      hasJustLoggedIn ? 'Post-login' : 'Existing session'
+    } navigation to:`,
+    targetPath
+  );
+  navigate(targetPath, { replace: !hasJustLoggedIn });
+}, [
+  initialized,
+  authStatus,
+  roleStatus,
+  role,
+  hasJustLoggedIn,
+  navigate,
+]);
+
   useEffect(() => {
     const targetPath = shouldNavigateAfterAuth(authState, window.location.pathname);
     if (targetPath) {

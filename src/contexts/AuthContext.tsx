@@ -264,38 +264,46 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log('📋 [AUTH] Session check result:', { hasSession: !!session, user: session?.user?.email });
         
         if (!mounted) return;
+// Después de obtener `session` del proveedor (p.ej. NextAuth)
+setSession(session);
+setUser(session?.user ?? null);
 
-        if (session?.user?.id) {
-          // ✅ Resolve role for existing session (removes inconsistency)
-          console.log('👤 [AUTH] Existing user found, resolving role...');
-          const reqId = ++roleReqIdRef.current;
-          
-          try {
-            const userRole = await fetchUserRole(session.user.id, reqId);
-            if (mounted && reqId === roleReqIdRef.current) {
-              lastKnownRoleRef.current = userRole;
-              transitionState({
-                status: 'authenticated',
-                user: session.user,
-                session,
-                role: userRole
-              });
-            }
-          } catch (error) {
-            console.error('❌ [AUTH] Error resolving existing session role:', error);
-            if (mounted) {
-              const fallbackRole = lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-              transitionState({
-                status: 'authenticated',
-                user: session.user,
-                session,
-                role: fallbackRole
-              });
-            }
-          }
-        } else {
-          console.log('❌ [AUTH] No existing user');
-          transitionState({ status: 'unauthenticated' });
+// ✅ Estatus de autenticación
+setAuthStatus(session ? 'authenticated' : 'unauthenticated');
+
+// ✅ Esto NO cuenta como un login fresco
+setHasJustLoggedIn(false);
+
+if (session?.user?.id) {
+  console.log('👤 [AUTH-CTX] Existing user found, resolving role...');
+  const reqId = ++roleReqIdRef.current;
+  setRoleStatus('resolving');
+
+  try {
+    const userRole = await fetchUserRole(session.user.id, reqId);
+    // Solo aplicamos si seguimos montados y es la última petición
+    if (!mounted || reqId !== roleReqIdRef.current) return;
+
+    console.log('✅ [AUTH-CTX] Role resolved:', userRole, 'reqId:', reqId);
+    setRole(userRole);
+    lastKnownRoleRef.current = userRole;
+    setRoleStatus('ready');
+  } catch (error) {
+    console.error('❌ [AUTH-CTX] Error resolving role:', error, 'reqId:', reqId);
+    if (!mounted || reqId !== roleReqIdRef.current) return;
+
+    // Fallback a viewer (o admin si era admin antes)
+    const fallback = lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
+    setRole(fallback);
+    lastKnownRoleRef.current = fallback;
+    setRoleStatus('ready');
+  }
+} else {
+  console.log('❌ [AUTH-CTX] No existing user');
+  setRole('none');
+  setRoleStatus('ready');
+}
+
         }
         
       } catch (error) {
