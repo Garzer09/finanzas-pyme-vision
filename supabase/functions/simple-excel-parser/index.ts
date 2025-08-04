@@ -21,6 +21,13 @@ interface ParsedExcelData {
   processingTime?: number;
 }
 
+interface ProcessingMetrics {
+  processingTimeMs: number;
+  fileSize: number;
+  sheetCount: number;
+  fieldCount: number;
+}
+
 interface FileProcessingOptions {
   maxFileSize: number;
   maxRows: number;
@@ -28,375 +35,283 @@ interface FileProcessingOptions {
   sampleSize: number;
 }
 
-// Enhanced file type detection
+// --------------------------------------------------
+// Detección de tipo financiero y campos relevantes
+// --------------------------------------------------
 function detectFinancialType(fileName: string, sheetNames: string[]): string {
-  const fileNameLower = fileName.toLowerCase();
-  const combinedText = (fileNameLower + ' ' + sheetNames.join(' ')).toLowerCase();
-  
-  if (combinedText.includes('balance') || combinedText.includes('situacion')) {
-    return 'balance';
-  }
-  if (combinedText.includes('pyg') || combinedText.includes('perdidas') || combinedText.includes('ganancias')) {
-    return 'pyg';
-  }
-  if (combinedText.includes('flujo') || combinedText.includes('cash') || combinedText.includes('efectivo')) {
-    return 'cash_flow';
-  }
+  const text = (fileName + ' ' + sheetNames.join(' ')).toLowerCase();
+  if (text.includes('balance') || text.includes('situacion')) return 'balance';
+  if (text.includes('pyg') || text.includes('perdidas') || text.includes('ganancias')) return 'pyg';
+  if (text.includes('flujo') || text.includes('cash') || text.includes('efectivo')) return 'cash_flow';
   return 'generic';
 }
 
-// Enhanced field detection for financial data
-function detectFinancialFields(data: any[], financialType: string): string[] {
-  if (!data || data.length === 0) return [];
-  
-  const firstRow = data[0];
-  const headers = Object.keys(firstRow);
-  
-  // Enhanced field detection based on content and financial type
-  const financialKeywords = {
-    balance: [
-      'activo', 'pasivo', 'patrimonio', 'inmovilizado', 'existencias', 
-      'deudores', 'efectivo', 'capital', 'reservas', 'deudas'
-    ],
-    pyg: [
-      'ingresos', 'gastos', 'ventas', 'aprovisionamientos', 'personal',
-      'amortizacion', 'resultado', 'beneficio', 'ebitda', 'ebit'
-    ],
-    cash_flow: [
-      'flujo', 'cash', 'efectivo', 'explotacion', 'inversion', 
-      'financiacion', 'dividendos', 'variacion'
-    ]
-  };
-  
-  const relevantKeywords = financialKeywords[financialType as keyof typeof financialKeywords] || [];
-  
-  return headers.filter(header => {
-    const headerLower = header.toLowerCase();
-    return relevantKeywords.some(keyword => headerLower.includes(keyword)) ||
-           headerLower.includes('concepto') ||
-           headerLower.includes('importe') ||
-           /^\d{4}$/.test(header); // Year columns
-  });
+// --------------------------------------------------
+// Errores con contexto y sugerencias
+// --------------------------------------------------
+class ProcessingError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public suggestion?: string,
+    public recoverable: boolean = true
+  ) {
+    super(message);
+    this.name = 'ProcessingError';
+  }
 }
 
-// Process data with streaming for large files
-function processLargeDataset(rawData: any[], maxRows: number, sampleSize: number) {
-  const totalRows = rawData.length;
-  const useStreaming = totalRows > 10000;
-  
-  if (useStreaming) {
-    console.log(`Streaming mode activated for ${totalRows} rows`);
-    // Process in chunks to avoid memory issues
-    const processedData = [];
-    const chunkSize = 1000;
-    
-    for (let i = 0; i < Math.min(totalRows, maxRows); i += chunkSize) {
-      const chunk = rawData.slice(i, i + chunkSize);
-      processedData.push(...chunk);
-      
-      // Process sample data for preview
-      if (processedData.length >= sampleSize) {
-        break;
-      }
-    }
-    
+// --------------------------------------------------
+// Mock data optimizada según tipo y tamaño
+// --------------------------------------------------
+function generateOptimizedMockDataByType(fileName: string, fileSize: number): ParsedExcelData {
+  const lower = fileName.toLowerCase();
+  const maxSample = fileSize > 10 * 1024 * 1024 ? 3 : 5;
+  const makeSheet = (name: string, concepts: string[]) => {
+    return [{
+      name,
+      fields: ['concepto', '2023', '2022'],
+      sampleData: concepts.slice(0, maxSample).map(concept => ({
+        concepto,
+        '2023': Math.round(Math.random() * 100000 + 50000),
+        '2022': Math.round(Math.random() * 90000 + 45000)
+      }))
+    }];
+  };
+
+  if (lower.includes('balance') || lower.includes('situacion')) {
     return {
-      processedData: processedData.slice(0, sampleSize),
-      totalRows: Math.min(totalRows, maxRows),
-      isStreamed: true
+      detectedSheets: ['Balance de Situación'],
+      detectedFields: {
+        'Balance de Situación': [
+          'Activo no corriente', 'Activo corriente', 'Existencias',
+          'Deudores comerciales', 'Efectivo', 'Patrimonio neto',
+          'Pasivo no corriente', 'Pasivo corriente'
+        ]
+      },
+      sheetsData: makeSheet('Balance de Situación', [
+        'Activo no corriente', 'Activo corriente', 'Existencias',
+        'Deudores comerciales', 'Efectivo', 'Patrimonio neto',
+        'Pasivo no corriente', 'Pasivo corriente'
+      ])
     };
   }
-  
+
+  if (lower.includes('pyg') || lower.includes('perdidas') || lower.includes('ganancias')) {
+    return {
+      detectedSheets: ['Cuenta PyG'],
+      detectedFields: {
+        'Cuenta PyG': [
+          'Ingresos de explotación', 'Gastos de explotación', 'Resultado de explotación',
+          'Resultado financiero', 'Resultado del ejercicio'
+        ]
+      },
+      sheetsData: makeSheet('Cuenta PyG', [
+        'Ingresos de explotación', 'Gastos de explotación', 'Resultado de explotación',
+        'Resultado financiero', 'Resultado antes de impuestos'
+      ])
+    };
+  }
+
+  if (lower.includes('flujo') || lower.includes('cash') || lower.includes('efectivo')) {
+    return {
+      detectedSheets: ['Flujo de Caja'],
+      detectedFields: {
+        'Flujo de Caja': [
+          'Flujos de explotación', 'Flujos de inversión', 'Flujos de financiación',
+          'Variación neta de efectivo'
+        ]
+      },
+      sheetsData: makeSheet('Flujo de Caja', [
+        'Flujos de explotación', 'Flujos de inversión', 'Flujos de financiación',
+        'Variación neta de efectivo'
+      ])
+    };
+  }
+
+  // Genérico
   return {
-    processedData: rawData.slice(0, Math.min(sampleSize, rawData.length)),
-    totalRows: Math.min(totalRows, maxRows),
-    isStreamed: false
+    detectedSheets: ['Hoja1'],
+    detectedFields: {
+      'Hoja1': ['concepto', 'valor', 'periodo']
+    },
+    sheetsData: makeSheet('Hoja1', ['Dato 1', 'Dato 2', 'Dato 3'])
   };
 }
 
+// --------------------------------------------------
+// Procesamiento eficiente con tracking de métricas
+// --------------------------------------------------
+function processFileEfficiently(file: string, fileName: string): {
+  data: ParsedExcelData;
+  metrics: ProcessingMetrics;
+} {
+  const startTime = performance.now();
+  let fileSize = 0;
+
+  try {
+    // Cálculo de tamaño en bytes
+    fileSize = new TextEncoder().encode(file).length;
+    if (fileSize > 50 * 1024 * 1024) {
+      throw new ProcessingError(
+        'El archivo es demasiado grande para procesar',
+        'FILE_TOO_LARGE',
+        'Intenta dividir el archivo en partes más pequeñas o comprímelo',
+        false
+      );
+    }
+    if (fileSize > 25 * 1024 * 1024) {
+      console.warn(`Archivo grande: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
+    }
+
+    // Generar mock data según tipo
+    const parsedData = generateOptimizedMockDataByType(fileName, fileSize);
+    const processingTimeMs = performance.now() - startTime;
+
+    const metrics: ProcessingMetrics = {
+      processingTimeMs,
+      fileSize,
+      sheetCount: parsedData.detectedSheets.length,
+      fieldCount: Object.values(parsedData.detectedFields).flat().length
+    };
+
+    // Forzar limpieza de memoria si es posible
+    if (typeof globalThis !== 'undefined' && (globalThis as any).gc) {
+      (globalThis as any).gc();
+    }
+
+    return { data: parsedData, metrics };
+  } catch (err) {
+    const processingTimeMs = performance.now() - startTime;
+    if (err instanceof ProcessingError) {
+      throw err;
+    }
+    const msg = err instanceof Error ? err.message : 'Unknown error';
+    throw new ProcessingError(
+      'Error interno al procesar el archivo',
+      'PROCESSING_FAILED',
+      `Verifica que el archivo no esté corrupto. Detalles: ${msg}`,
+      true
+    );
+  }
+}
+
+// --------------------------------------------------
+// Formateo de métricas para el log
+// --------------------------------------------------
+function formatMetrics(metrics: ProcessingMetrics): string {
+  const timeSec = (metrics.processingTimeMs / 1000).toFixed(2);
+  const sizeMB = (metrics.fileSize / (1024 * 1024)).toFixed(2);
+  return `${timeSec}s, ${sizeMB}MB, ${metrics.sheetCount} hojas, ${metrics.fieldCount} campos`;
+}
+
+// --------------------------------------------------
+// Servidor HTTP Deno
+// --------------------------------------------------
 serve(async (req) => {
-  // Handle CORS preflight requests
+  const requestStart = performance.now();
+
+  // Preflight CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  const startTime = performance.now();
-
   try {
-    const { file, fileName } = await req.json();
-    
-    if (!file || !fileName) {
-      throw new Error('File and fileName are required');
-    }
-
-    console.log('Processing file:', fileName);
-
-    // File size validation (50MB limit)
-    const fileBuffer = Uint8Array.from(atob(file), c => c.charCodeAt(0));
-    const fileSize = fileBuffer.length;
-    const maxFileSize = 50 * 1024 * 1024; // 50MB
-
-    if (fileSize > maxFileSize) {
-      throw new Error(`File too large: ${Math.round(fileSize / (1024 * 1024))}MB. Maximum allowed: 50MB`);
-    }
-
-    console.log(`File size: ${Math.round(fileSize / (1024 * 1024))}MB`);
-
-    // Enhanced processing options for optimal performance
-    const processingOptions: FileProcessingOptions = {
-      maxFileSize: maxFileSize,
-      maxRows: 50000, // 50K rows limit
-      streamingMode: fileSize > 10 * 1024 * 1024, // Use streaming for files > 10MB
-      sampleSize: 10 // Sample rows for preview
-    };
-
-    // Enhanced processing with real data analysis
-    console.log('Enhanced processing mode - optimized for 50MB/50K rows');
-
-    const mockParsedData: ParsedExcelData = {
-      detectedSheets: [],
-      detectedFields: {},
-      sheetsData: [],
-      fileSize: fileSize,
-      processingTime: 0
-    };
-
-    // Enhanced file type detection and processing
-    const fileNameLower = fileName.toLowerCase();
-    const isExcel = fileNameLower.endsWith('.xlsx') || fileNameLower.endsWith('.xls');
-    const isCsv = fileNameLower.endsWith('.csv');
-    
-    // Simulate processing time based on file size for realistic feedback
-    const processingDelay = Math.min(1000 + (fileSize / (1024 * 1024)) * 200, 5000);
-    await new Promise(resolve => setTimeout(resolve, processingDelay));
-
-    // Enhanced data generation based on file analysis and financial type detection
-    const financialType = detectFinancialType(fileName, []);
-    
-    // Generate realistic data based on file size and type
-    const estimatedRows = Math.min(Math.floor(fileSize / 150), processingOptions.maxRows);
-    const sampleDataCount = Math.min(10, estimatedRows);
-
-    if (financialType === 'balance') {
-      mockParsedData.detectedSheets = ['Balance de Situación', 'Hoja1'];
-      const fields = [
-        'Concepto',
-        'Activo no corriente',
-        'Inmovilizado material',
-        'Activo corriente',
-        'Existencias', 
-        'Deudores comerciales',
-        'Efectivo',
-        'Patrimonio neto',
-        'Capital',
-        'Reservas',
-        'Pasivo no corriente',
-        'Deudas a largo plazo',
-        'Pasivo corriente',
-        'Acreedores comerciales',
-        '2023',
-        '2022',
-        '2021'
-      ];
-      
-      mockParsedData.detectedFields = {
-        'Balance de Situación': fields
-      };
-      
-      // Generate realistic sample data
-      const sampleData = [];
-      const concepts = [
-        'Activo no corriente', 'Inmovilizado material', 'Activo corriente',
-        'Existencias', 'Deudores comerciales', 'Efectivo', 'Patrimonio neto',
-        'Capital', 'Reservas', 'Pasivo no corriente'
-      ];
-      
-      for (let i = 0; i < sampleDataCount; i++) {
-        const concept = concepts[i % concepts.length];
-        sampleData.push({
-          concepto: concept,
-          '2023': Math.round(Math.random() * 500000 + 50000),
-          '2022': Math.round(Math.random() * 450000 + 45000),
-          '2021': Math.round(Math.random() * 400000 + 40000)
-        });
-      }
-      
-      mockParsedData.sheetsData = [{
-        name: 'Balance de Situación',
-        fields: fields,
-        sampleData: sampleData,
-        rowCount: estimatedRows,
-        hasHeaders: true
-      }];
-    } else if (financialType === 'pyg') {
-      mockParsedData.detectedSheets = ['Cuenta PyG', 'Hoja1'];
-      const fields = [
-        'Concepto',
-        'Ingresos de explotación',
-        'Cifra de negocios',
-        'Gastos de explotación',
-        'Aprovisionamientos',
-        'Gastos de personal',
-        'Amortizaciones',
-        'Resultado de explotación',
-        'Resultado financiero',
-        'Resultado antes de impuestos',
-        'Impuesto sobre beneficios',
-        'Resultado del ejercicio',
-        '2023',
-        '2022',
-        '2021'
-      ];
-      
-      mockParsedData.detectedFields = {
-        'Cuenta PyG': fields
-      };
-      
-      const sampleData = [];
-      const concepts = [
-        'Ingresos de explotación', 'Gastos de explotación', 'Aprovisionamientos',
-        'Gastos de personal', 'Amortizaciones', 'Resultado de explotación',
-        'Resultado financiero', 'Resultado antes de impuestos'
-      ];
-      
-      for (let i = 0; i < sampleDataCount; i++) {
-        const concept = concepts[i % concepts.length];
-        sampleData.push({
-          concepto: concept,
-          '2023': Math.round(Math.random() * 200000 + 10000),
-          '2022': Math.round(Math.random() * 180000 + 9000),
-          '2021': Math.round(Math.random() * 160000 + 8000)
-        });
-      }
-      
-      mockParsedData.sheetsData = [{
-        name: 'Cuenta PyG',
-        fields: fields,
-        sampleData: sampleData,
-        rowCount: estimatedRows,
-        hasHeaders: true
-      }];
-    } else if (financialType === 'cash_flow') {
-      mockParsedData.detectedSheets = ['Flujo de Caja', 'Hoja1'];
-      const fields = [
-        'Concepto',
-        'Flujos de actividades de explotación',
-        'Resultado del ejercicio',
-        'Amortizaciones',
-        'Variación del circulante',
-        'Flujos de actividades de inversión',
-        'Inversiones en inmovilizado',
-        'Flujos de actividades de financiación',
-        'Variación de deudas',
-        'Dividendos pagados',
-        '2023',
-        '2022',
-        '2021'
-      ];
-      
-      mockParsedData.detectedFields = {
-        'Flujo de Caja': fields
-      };
-      
-      const sampleData = [];
-      const concepts = [
-        'Flujos de explotación', 'Resultado del ejercicio', 'Amortizaciones',
-        'Flujos de inversión', 'Inversiones en inmovilizado', 'Flujos de financiación',
-        'Variación de deudas', 'Dividendos pagados'
-      ];
-      
-      for (let i = 0; i < sampleDataCount; i++) {
-        const concept = concepts[i % concepts.length];
-        sampleData.push({
-          concepto: concept,
-          '2023': Math.round((Math.random() - 0.3) * 100000),
-          '2022': Math.round((Math.random() - 0.3) * 90000),
-          '2021': Math.round((Math.random() - 0.3) * 80000)
-        });
-      }
-      
-      mockParsedData.sheetsData = [{
-        name: 'Flujo de Caja',
-        fields: fields,
-        sampleData: sampleData,
-        rowCount: estimatedRows,
-        hasHeaders: true
-      }];
-    } else {
-      // Generic file processing with enhanced capabilities
-      mockParsedData.detectedSheets = ['Hoja1', 'Datos'];
-      const fields = ['Concepto', 'Columna A', 'Columna B', 'Fecha', 'Importe', 'Valor', 'Período'];
-      
-      mockParsedData.detectedFields = {
-        'Hoja1': fields,
-        'Datos': ['Concepto', 'Valor', 'Período']
-      };
-      
-      const sampleData = [];
-      for (let i = 0; i < sampleDataCount; i++) {
-        sampleData.push({
-          concepto: `Dato ${i + 1}`,
-          valor: Math.round(Math.random() * 10000),
-          periodo: '2023',
-          fecha: new Date().toISOString().split('T')[0]
-        });
-      }
-      
-      mockParsedData.sheetsData = [{
-        name: 'Hoja1',
-        fields: fields,
-        sampleData: sampleData,
-        rowCount: estimatedRows,
-        hasHeaders: true
-      }];
-    }
-
-    const endTime = performance.now();
-    mockParsedData.processingTime = Math.round(endTime - startTime);
-
-    console.log('Enhanced parsing completed:', {
-      sheets: mockParsedData.detectedSheets.length,
-      totalFields: Object.values(mockParsedData.detectedFields).flat().length,
-      processingTime: mockParsedData.processingTime,
-      fileSize: Math.round(fileSize / (1024 * 1024)) + 'MB',
-      financialType: financialType,
-      estimatedRows: estimatedRows,
-      streamingMode: processingOptions.streamingMode
+    // Timeout de 30s
+    const timeout = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new ProcessingError(
+        'Tiempo de procesamiento excedido',
+        'REQUEST_TIMEOUT',
+        'Intenta con un archivo más pequeño.',
+        true
+      )), 30000);
     });
 
+    const bodyPromise = req.json().catch(() => {
+      throw new ProcessingError(
+        'Formato de solicitud inválido',
+        'INVALID_REQUEST',
+        'Asegúrate de enviar JSON con { file, fileName }',
+        true
+      );
+    });
+
+    const { file, fileName } = await Promise.race([bodyPromise, timeout]);
+
+    if (!file || typeof fileName !== 'string') {
+      throw new ProcessingError(
+        'Faltan datos requeridos',
+        'MISSING_DATA',
+        'Envía tanto el archivo como su nombre.',
+        true
+      );
+    }
+
+    console.log('Procesando:', fileName);
+
+    const { data: parsedData, metrics } = await Promise.race([
+      Promise.resolve(processFileEfficiently(file, fileName)),
+      timeout
+    ]);
+
+    const totalTime = (performance.now() - requestStart).toFixed(2);
+    console.log(`Listo – ${formatMetrics(metrics)} (total ${totalTime}ms)`);
+
+    const isDev = true;
     return new Response(
       JSON.stringify({
         success: true,
-        detectedSheets: mockParsedData.detectedSheets,
-        detectedFields: mockParsedData.detectedFields,
-        sheetsData: mockParsedData.sheetsData,
-        fileName: fileName,
-        fileSize: fileSize,
-        processingTime: mockParsedData.processingTime,
-        message: `Archivo analizado con capacidades optimizadas (${Math.round(fileSize / (1024 * 1024))}MB procesados)`,
-        developmentMode: false,
+        detectedSheets: parsedData.detectedSheets,
+        detectedFields: parsedData.detectedFields,
+        sheetsData: parsedData.sheetsData,
+        message: isDev
+          ? `Archivo analizado en modo DESARROLLO – ${formatMetrics(metrics)}`
+          : `Archivo analizado correctamente – ${formatMetrics(metrics)}`,
+        developmentMode: isDev,
         performance: {
-          fileSize: Math.round(fileSize / (1024 * 1024)) + 'MB',
-          processingTime: mockParsedData.processingTime + 'ms',
-          estimatedRows: mockParsedData.sheetsData[0]?.rowCount || 0,
-          streamingMode: processingOptions.streamingMode,
-          financialType: financialType
+          processingTimeMs: metrics.processingTimeMs,
+          totalRequestTimeMs: parseFloat(totalTime),
+          fileSize: metrics.fileSize,
+          sheetCount: metrics.sheetCount,
+          fieldCount: metrics.fieldCount,
+          efficiency: metrics.fileSize > 0
+            ? `${(metrics.fileSize / metrics.processingTimeMs).toFixed(2)} bytes/ms`
+            : 'N/A'
         }
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    console.error('Error in enhanced simple-excel-parser:', error);
+    const elapsed = (performance.now() - requestStart).toFixed(2);
+    console.error('Error en el parser:', error);
+
+    if (error instanceof ProcessingError) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: error.code,
+          message: error.message,
+          suggestion: error.suggestion,
+          recoverable: error.recoverable,
+          userFriendly: true,
+          performance: { failedAfterMs: parseFloat(elapsed), errorType: error.code }
+        }),
+        {
+          status: error.recoverable ? 400 : 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({
         success: false,
-        error: error.message,
-        details: 'Enhanced Excel parser error - optimized for 50MB/50K rows',
-        timestamp: new Date().toISOString(),
-        retryable: !error.message.includes('too large')
+        error: 'UNEXPECTED_ERROR',
+        message: 'Error inesperado al procesar el archivo',
+        suggestion: 'Intenta de nuevo o contacta con soporte.',
+        recoverable: true,
+        performance: { failedAfterMs: parseFloat(elapsed), errorType: 'UNEXPECTED' }
       }),
       {
         status: 500,
