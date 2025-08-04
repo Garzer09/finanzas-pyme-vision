@@ -42,25 +42,31 @@ const AuthPage = () => {
 
   const { authStatus, role, roleStatus, initialized } = useAuth();
 
+  // ✅ Navegación sincronizada - solo cuando auth y rol están listos
   useEffect(() => {
-    // Fase 1: Instrumentación
-    console.debug('[AUTH]', { 
+    if (authStatus === 'authenticated' && roleStatus === 'ready' && role && role !== 'none') {
+      console.debug('[NAVIGATE] Synchronized navigation triggered:', { authStatus, roleStatus, role });
+      const targetPath = role === 'admin' ? '/admin/empresas' : '/app/mis-empresas';
+      console.debug('[NAVIGATE] Navigating to:', targetPath);
+      navigate(targetPath, { replace: true });
+    }
+  }, [authStatus, roleStatus, role, navigate]);
+
+  useEffect(() => {
+    // Instrumentación
+    console.debug('[AUTH] State debug:', { 
       path: '/auth', 
       user: !!user, 
       authStatus,
       role,
+      roleStatus,
       initialized,
       isRecoveryMode,
       state: isPasswordReset ? 'password-reset' : isPasswordRecovery ? 'recovery' : isSignUp ? 'signup' : 'login'
     });
     
     setTokenLoading(false);
-  }, [user, authStatus, role, initialized, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
-
-  // REMOVED: No auto-redirect useEffect - only navigate from handleSubmit
-  
-  // Fase 2: Eliminar redirección automática que causa rebote
-  // Solo redirigir después de login exitoso, NO en montaje
+  }, [user, authStatus, role, roleStatus, initialized, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
@@ -169,47 +175,13 @@ const AuthPage = () => {
             variant: "destructive"
           });
         } else {
-          console.debug('[LOGIN] Auth successful, resolving role...');
-          
-          // Get user role with timeout to prevent hanging
-          const rolePromise = supabase.rpc('get_user_role');
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Timeout: No se pudo obtener el rol del usuario')), 10000)
-          );
-          
-          try {
-            const { data: roleData, error: roleErr } = await Promise.race([rolePromise, timeoutPromise]) as any;
-            
-            if (roleErr) {
-              console.debug('[LOGIN] Role error:', roleErr);
-              toast({
-                title: "Error al obtener rol",
-                description: roleErr.message,
-                variant: "destructive"
-              });
-              return;
-            }
-
-            const role = roleData === 'admin' ? 'admin' : 'viewer';
-            console.debug('[LOGIN] Role resolved:', role);
-            
-            toast({
-              title: "¡Bienvenido!",
-              description: "Has iniciado sesión correctamente"
-            });
-            
-            // Navigate based on role
-            console.debug('[NAVIGATE] Single navigation from login', { from: '/auth', to: role === 'admin' ? '/admin/empresas' : '/app/mis-empresas', role });
-            navigate(role === 'admin' ? '/admin/empresas' : '/app/mis-empresas', { replace: true });
-          } catch (timeoutError: any) {
-            console.error('[LOGIN] Role fetch timeout:', timeoutError);
-            toast({
-              title: "Error de conexión",
-              description: timeoutError.message || 'Error de timeout al obtener el rol del usuario',
-              variant: "destructive"
-            });
-            return;
-          }
+          console.debug('[LOGIN] Auth successful, AuthContext will handle role resolution');
+          toast({
+            title: "¡Bienvenido!",
+            description: "Has iniciado sesión correctamente"
+          });
+          // ✅ ELIMINADO: No más RPC manual aquí
+          // La navegación se maneja en el useEffect sincronizado
         }
       }
     } finally {
@@ -359,17 +331,19 @@ const AuthPage = () => {
               )}
 
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? (
+              <Button type="submit" className="w-full" disabled={loading || (authStatus === 'authenticated' && roleStatus === 'resolving')}>
+                {(loading || (authStatus === 'authenticated' && roleStatus === 'resolving')) ? (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    {isPasswordReset 
-                      ? 'Actualizando contraseña...' 
-                      : isPasswordRecovery 
-                        ? 'Enviando email...'
-                        : isSignUp
-                          ? 'Creando cuenta...'
-                          : 'Iniciando sesión...'
+                    {roleStatus === 'resolving' 
+                      ? 'Resolviendo acceso...'
+                      : isPasswordReset 
+                        ? 'Actualizando contraseña...' 
+                        : isPasswordRecovery 
+                          ? 'Enviando email...'
+                          : isSignUp
+                            ? 'Creando cuenta...'
+                            : 'Iniciando sesión...'
                     }
                   </div>
                 ) : (
@@ -382,6 +356,21 @@ const AuthPage = () => {
                         : 'Iniciar Sesión'
                 )}
               </Button>
+
+              {/* ✅ UI para errores de rol */}
+              {roleStatus === 'error' && (
+                <div className="text-center space-y-2">
+                  <p className="text-sm text-destructive">Error al resolver permisos</p>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => window.location.reload()}
+                  >
+                    Reintentar
+                  </Button>
+                </div>
+              )}
 
 
               <div className="text-center space-y-2">

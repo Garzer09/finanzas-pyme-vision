@@ -7,12 +7,13 @@ interface AuthContextType {
   session: Session | null;
   authStatus: 'unknown' | 'authenticated' | 'unauthenticated';
   role: 'admin' | 'viewer' | 'none';
-  roleStatus: 'idle' | 'loading' | 'ready';
+  roleStatus: 'idle' | 'resolving' | 'ready' | 'error';
   initialized: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, data?: any) => Promise<{ error: any }>;
   signOut: (redirectTo?: string) => Promise<void>;
   updatePassword: (password: string) => Promise<{ error: any }>;
+  refreshRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,12 +31,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [authStatus, setAuthStatus] = useState<'unknown' | 'authenticated' | 'unauthenticated'>('unknown');
   const [role, setRole] = useState<'admin' | 'viewer' | 'none'>('none');
-  const [roleStatus, setRoleStatus] = useState<'idle' | 'loading' | 'ready'>('idle');
+  const [roleStatus, setRoleStatus] = useState<'idle' | 'resolving' | 'ready' | 'error'>('idle');
   const [initialized, setInitialized] = useState(false);
   
-  // Sticky role ref to prevent admin downgrade during refresh
+  // ✅ Locking and concurrency control
   const lastKnownRoleRef = useRef<'admin' | 'viewer' | 'none'>('none');
   const roleReqIdRef = useRef(0); // Serial ID to ignore stale responses
+  const inFlightRef = useRef<Promise<'admin' | 'viewer'> | null>(null); // Prevent concurrent calls
 
   const fetchUserRole = useCallback(async (userId: string, reqId: number): Promise<'admin' | 'viewer'> => {
     if (!userId) {
@@ -43,52 +45,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return 'viewer';
     }
     
+    // ✅ Check if we already have a request in flight - reuse it
+    if (inFlightRef.current) {
+      console.log('🔄 [INSTRUMENTATION] Reusing in-flight request for userId:', userId, 'reqId:', reqId);
+      try {
+        return await inFlightRef.current;
+      } catch (error) {
+        console.error('❌ [INSTRUMENTATION] In-flight request failed:', error);
+        // Continue with new request
+      }
+    }
+    
     console.log('🔍 [INSTRUMENTATION] fetchUserRole called for userId:', userId, 'reqId:', reqId);
     
+    // ✅ Create new request with timeout
+    const rolePromise = (async (): Promise<'admin' | 'viewer'> => {
+      try {
+        // ✅ 10 second timeout
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Role fetch timeout after 10s')), 10000)
+        );
+        
+        const rpcPromise = supabase.rpc('get_user_role');
+        
+        const { data: rpcData, error: rpcError } = await Promise.race([rpcPromise, timeoutPromise]);
+        
+        // Check if this response is still relevant
+        if (reqId !== roleReqIdRef.current) {
+          console.log('🚫 [INSTRUMENTATION] Ignoring stale response, reqId:', reqId, 'current:', roleReqIdRef.current);
+          return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
+        }
+        
+        console.log('🔧 [INSTRUMENTATION] RPC result:', { rpcData, rpcError, reqId });
+        
+        if (!rpcError && rpcData === 'admin') {
+          console.log('✅ [INSTRUMENTATION] Role from RPC: admin');
+          return 'admin';
+        }
+        
+        // Fallback: check table directly
+        const { data: tableData, error: tableError } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle();
+        
+        // Check again if response is still relevant
+        if (reqId !== roleReqIdRef.current) {
+          console.log('🚫 [INSTRUMENTATION] Ignoring stale fallback response, reqId:', reqId);
+          return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
+        }
+        
+        console.log('📊 [INSTRUMENTATION] Table query result:', { tableData, tableError, reqId });
+        
+        if (!tableError && tableData?.role === 'admin') {
+          console.log('✅ [INSTRUMENTATION] Role from table: admin');
+          return 'admin';
+        }
+        
+        console.log('ℹ️ [INSTRUMENTATION] No admin role found, defaulting to viewer');
+        return 'viewer';
+        
+      } catch (error) {
+        console.error('❌ [INSTRUMENTATION] Error in fetchUserRole:', error, 'reqId:', reqId);
+        // Preserve admin role on error if it was previously admin
+        return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
+      }
+    })();
+    
+    // ✅ Store the promise to prevent concurrent requests
+    inFlightRef.current = rolePromise;
+    
     try {
-      // Use RPC without parameters for SECURITY DEFINER
-      const { data: rpcData, error: rpcError } = await supabase.rpc('get_user_role');
-      
-      // Check if this response is still relevant
-      if (reqId !== roleReqIdRef.current) {
-        console.log('🚫 [INSTRUMENTATION] Ignoring stale response, reqId:', reqId, 'current:', roleReqIdRef.current);
-        return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-      }
-      
-      console.log('🔧 [INSTRUMENTATION] RPC result:', { rpcData, rpcError, reqId });
-      
-      if (!rpcError && rpcData === 'admin') {
-        console.log('✅ [INSTRUMENTATION] Role from RPC: admin');
-        return 'admin';
-      }
-      
-      // Fallback: check table directly
-      const { data: tableData, error: tableError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
-      
-      // Check again if response is still relevant
-      if (reqId !== roleReqIdRef.current) {
-        console.log('🚫 [INSTRUMENTATION] Ignoring stale fallback response, reqId:', reqId);
-        return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-      }
-      
-      console.log('📊 [INSTRUMENTATION] Table query result:', { tableData, tableError, reqId });
-      
-      if (!tableError && tableData?.role === 'admin') {
-        console.log('✅ [INSTRUMENTATION] Role from table: admin');
-        return 'admin';
-      }
-      
-      console.log('ℹ️ [INSTRUMENTATION] No admin role found, defaulting to viewer');
-      return 'viewer';
-      
-    } catch (error) {
-      console.error('❌ [INSTRUMENTATION] Error in fetchUserRole:', error, 'reqId:', reqId);
-      // Preserve admin role on error if it was previously admin
-      return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
+      const result = await rolePromise;
+      return result;
+    } finally {
+      // ✅ Clear the in-flight reference when done
+      inFlightRef.current = null;
     }
   }, []);
 
@@ -122,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (session?.user?.id) {
           console.log('👤 [INSTRUMENTATION] Existing user found, fetching role...');
-          setRoleStatus('loading');
+          setRoleStatus('resolving');
           const reqId = ++roleReqIdRef.current;
           try {
             const userRole = await fetchUserRole(session.user.id, reqId);
@@ -135,7 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             console.error('❌ [INSTRUMENTATION] Error fetching role during init:', error);
             if (mounted && reqId === roleReqIdRef.current) {
               setRole(lastKnownRoleRef.current || 'viewer');
-              setRoleStatus('ready');
+              setRoleStatus('error');
             }
           }
         } else {
@@ -194,9 +227,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // For TOKEN_REFRESHED, keep admin role sticky during revalidation
             if (event === 'TOKEN_REFRESHED' && lastKnownRoleRef.current === 'admin') {
               console.log('🔄 [INSTRUMENTATION] TOKEN_REFRESHED: keeping admin role sticky during revalidation');
-              setRoleStatus('loading'); // Show we're revalidating but don't change role yet
+              setRoleStatus('resolving'); // Show we're revalidating but don't change role yet
             } else {
-              setRoleStatus('loading');
+              setRoleStatus('resolving');
             }
             
             try {
@@ -217,7 +250,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const fallbackRole = lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
                 console.log(`🛡️ [INSTRUMENTATION] Using fallback role:`, fallbackRole);
                 setRole(fallbackRole);
-                setRoleStatus('ready');
+                setRoleStatus('error');
               }
             }
           } else {
@@ -287,6 +320,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
+  // ✅ Expose refreshRole function for manual retries
+  const refreshRole = useCallback(async () => {
+    if (!user?.id) {
+      console.log('❌ refreshRole: No user to refresh role for');
+      return;
+    }
+
+    console.log('🔄 [INSTRUMENTATION] Manual role refresh triggered');
+    setRoleStatus('resolving');
+    const reqId = ++roleReqIdRef.current;
+    
+    try {
+      const userRole = await fetchUserRole(user.id, reqId);
+      if (reqId === roleReqIdRef.current) {
+        setRole(userRole);
+        lastKnownRoleRef.current = userRole;
+        setRoleStatus('ready');
+        console.log('✅ [INSTRUMENTATION] Role refreshed successfully:', userRole);
+      }
+    } catch (error) {
+      console.error('❌ [INSTRUMENTATION] Error during manual role refresh:', error);
+      if (reqId === roleReqIdRef.current) {
+        setRoleStatus('error');
+      }
+    }
+  }, [user?.id, fetchUserRole]);
 
   const value: AuthContextType = {
     user,
@@ -299,6 +358,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     updatePassword,
+    refreshRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
