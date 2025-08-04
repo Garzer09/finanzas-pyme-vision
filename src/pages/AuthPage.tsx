@@ -57,17 +57,7 @@ const AuthPage = () => {
     setTokenLoading(false);
   }, [user, authStatus, role, initialized, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
 
-  // Separate useEffect for navigation - only after successful authentication
-  useEffect(() => {
-    if (initialized && authStatus === 'authenticated' && roleStatus === 'ready') {
-      console.debug('[NAVIGATE] Auth successful, redirecting by role', { from: '/auth', role });
-      if (role === 'admin') {
-        navigate('/admin/empresas', { replace: true });
-      } else {
-        navigate('/app/mis-empresas', { replace: true });
-      }
-    }
-  }, [initialized, authStatus, role, roleStatus, navigate]);
+  // REMOVED: No auto-redirect useEffect - only navigate from handleSubmit
   
   // Fase 2: Eliminar redirección automática que causa rebote
   // Solo redirigir después de login exitoso, NO en montaje
@@ -164,22 +154,46 @@ const AuthPage = () => {
           setIsLogin(true);
         }
       } else if (isLogin) {
-        const {
-          error
-        } = await signIn(formData.email, formData.password);
+        console.debug('[LOGIN] Submit started', { email: formData.email });
+        
+        const { error } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password
+        });
+        
         if (error) {
+          console.debug('[LOGIN] Auth error:', error);
           toast({
             title: "Error al iniciar sesión",
             description: error.message,
             variant: "destructive"
           });
         } else {
+          console.debug('[LOGIN] Auth successful, resolving role...');
+          
+          // 🔒 Resolver rol AQUÍ para evitar carreras
+          const { data: roleData, error: roleErr } = await supabase.rpc('get_user_role');
+          if (roleErr) {
+            console.debug('[LOGIN] Role error:', roleErr);
+            toast({
+              title: "Error al obtener rol",
+              description: roleErr.message,
+              variant: "destructive"
+            });
+            return;
+          }
+
+          const role = roleData === 'admin' ? 'admin' : 'viewer';
+          console.debug('[LOGIN] Role resolved:', role);
+          
           toast({
             title: "¡Bienvenido!",
             description: "Has iniciado sesión correctamente"
           });
-          // No redirigir aquí, se maneja en useEffect cuando authStatus cambie
-          console.debug('[AUTH] Login successful, waiting for auth state change');
+          
+          // 🎯 Una navegación directa según rol
+          console.debug('[NAVIGATE] Single navigation from login', { from: '/auth', to: role === 'admin' ? '/admin/empresas' : '/app/mis-empresas', role });
+          navigate(role === 'admin' ? '/admin/empresas' : '/app/mis-empresas', { replace: true });
         }
       }
     } finally {
