@@ -27,6 +27,10 @@ CAMPOS DE LA EMPRESA:
 - hq_country: País de la sede principal
 - website: URL del sitio web corporativo
 - business_description: Descripción detallada del negocio
+- currency_code: Código ISO de moneda (EUR, USD, etc.)
+- accounting_standard: Estándar contable (PGC, IFRS, OTHER)
+- consolidation: Tipo de consolidación (INDIVIDUAL, CONSOLIDATED)
+- cif: Código de identificación fiscal
 
 CAMPOS DE ESTRUCTURA ACCIONARIAL:
 =================================
@@ -52,11 +56,16 @@ NOTAS IMPORTANTES:
 - Si no hay sección de estructura accionarial, esa parte quedará vacía
 - La estructura accionarial puede editarse manualmente después de la importación
 - Los datos importados no se duplican en futuras cargas (se actualizan)
+- Si se incluyen currency_code, accounting_standard o cif, se creará/actualizará también la tabla companies
+- Este template funciona tanto en el wizard de creación como en la carga manual de admin
 
 INSTRUCCIONES DE USO:
 ====================
 
 1. Completa la información de la empresa en la primera sección
-2. Agrega los accionistas en la segunda sección (opcional)
-3. Guarda el archivo con codificación UTF-8
-4. Sube el archivo en el paso 3.5 del wizard de creación de usuario
+2. Agrega los campos técnicos (currency_code, accounting_standard, etc.) si los conoces
+3. Agrega los accionistas en la segunda sección (opcional)
+4. Guarda el archivo con codificación UTF-8
+5. Sube el archivo en:
+   - Wizard de creación de usuario (paso 4)
+   - AdminCargaPlantillasPage (paso 1)

@@ -83,7 +83,7 @@ const CSV_SCHEMAS = {
   'estado-flujos.csv': ['Concepto', 'Categoria', '2022', '2023', '2024'],
   'datos-operativos.csv': ['Concepto', 'Unidad', '2022', '2023', '2024'],
   'supuestos-financieros.csv': ['Categoria', 'Concepto', 'Valor', 'Unidad', 'Notas'],
-  'info-empresa.csv': ['Campo', 'Valor', 'Descripción']
+  'empresa_cualitativa.csv': ['company_name', 'sector', 'industry', 'founded_year', 'employees_range', 'annual_revenue_range', 'hq_city', 'hq_country', 'website', 'business_description', 'currency_code', 'accounting_standard', 'consolidation', 'cif']
 };
 export const AdminCargaPlantillasPage: React.FC = () => {
   const navigate = useNavigate();
@@ -101,7 +101,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
   // Step 1 - Qualitative data
   const [companies, setCompanies] = useState<Company[]>([]);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string>('');
-  const [infoEmpresaFile, setInfoEmpresaFile] = useState<File | null>(null);
+  const [empresaFile, setEmpresaFile] = useState<File | null>(null);
   const [isUploadingInfo, setIsUploadingInfo] = useState(false);
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo | null>(null);
   const [useTemplateData, setUseTemplateData] = useState(true);
@@ -179,37 +179,30 @@ export const AdminCargaPlantillasPage: React.FC = () => {
   }, []);
 
   // Step 1 handlers
-  const handleInfoEmpresaUpload = async () => {
-    if (!infoEmpresaFile || !user) return;
+  const handleEmpresaUpload = async () => {
+    if (!empresaFile || !user) return;
     setIsUploadingInfo(true);
     try {
       const formData = new FormData();
-      formData.append('info-empresa.csv', infoEmpresaFile);
-      const {
-        data: {
-          session
-        }
-      } = await supabase.auth.getSession();
-      if (!session) throw new Error('No hay sesión activa');
-      const response = await fetch(`https://hlwchpmogvwmpuvwmvwv.supabase.co/functions/v1/admin-company-info-upload`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        },
+      formData.append('file', empresaFile);
+      formData.append('targetUserId', user.id);
+      
+      const response = await supabase.functions.invoke('empresa-cualitativa-processor', {
         body: formData
       });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Error procesando archivo');
+      
+      if (response.error) {
+        throw new Error(response.error.message || 'Error procesando archivo');
       }
-      const result = await response.json();
+      
+      const result = response.data;
       setCompanyInfo(result);
       toast({
         title: "Empresa detectada",
         description: `${result.company_name} configurada correctamente`
       });
     } catch (error) {
-      console.error('Error uploading info empresa:', error);
+      console.error('Error uploading empresa file:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : 'Error desconocido',
@@ -434,17 +427,12 @@ export const AdminCargaPlantillasPage: React.FC = () => {
     }
   };
   const downloadTemplates = () => {
-    // Create a simple CSV download for info-empresa.csv
-    const csvContent = ['Campo,Valor,Descripción', 'Nombre,,Razón social completa', 'CIF,,Identificación fiscal', 'Sector,,Sector principal', 'Industria,,Industria específica', 'Año fundación,,YYYY', 'Empleados,,Número total', 'Sede,,Ciudad/País', 'Web,,URL', 'Descripción,,Actividad de la empresa', 'currency_code,EUR,"Código ISO de moneda (p.ej., EUR)"', 'accounting_standard,PGC,PGC/IFRS/OTHER'].join('\n');
-    const blob = new Blob([csvContent], {
-      type: 'text/csv'
-    });
-    const url = window.URL.createObjectURL(blob);
+    // Download the unified empresa_cualitativa.csv template
+    const templateUrl = '/templates/empresa_cualitativa.csv';
     const a = document.createElement('a');
-    a.href = url;
-    a.download = 'info-empresa.csv';
+    a.href = templateUrl;
+    a.download = 'empresa_cualitativa.csv';
     a.click();
-    window.URL.revokeObjectURL(url);
   };
   return <RoleBasedAccess allowedRoles={['admin']}>
       <div className="min-h-screen bg-background">
@@ -525,30 +513,30 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                     <Alert>
                       <Info className="h-4 w-4" />
                       <AlertDescription>
-                        Sube el archivo <strong>info-empresa.csv</strong>. Detectaremos la empresa y fijaremos moneda y estándar automáticamente.
+                        Sube el archivo <strong>empresa_cualitativa.csv</strong>. Detectaremos la empresa y fijaremos moneda y estándar automáticamente.
                       </AlertDescription>
                     </Alert>
 
                     {/* Option 1: Upload info-empresa.csv */}
                     <div className="space-y-4">
-                      <h3 className="font-medium">Opción 1: Subir archivo info-empresa.csv</h3>
-                      <div className={cn("border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer", infoEmpresaFile ? "border-green-300 bg-green-50" : "border-border hover:border-border/80")} onDrop={e => {
+                      <h3 className="font-medium">Opción 1: Subir archivo empresa_cualitativa.csv</h3>
+                      <div className={cn("border-2 border-dashed rounded-lg p-6 transition-colors cursor-pointer", empresaFile ? "border-green-300 bg-green-50" : "border-border hover:border-border/80")} onDrop={e => {
                     e.preventDefault();
                     const files = Array.from(e.dataTransfer.files);
-                    const file = files.find(f => f.name.toLowerCase() === 'info-empresa.csv');
-                    if (file) setInfoEmpresaFile(file);
+                    const file = files.find(f => f.name.toLowerCase() === 'empresa_cualitativa.csv');
+                    if (file) setEmpresaFile(file);
                   }} onDragOver={e => e.preventDefault()} onClick={() => {
                     const input = document.createElement('input');
                     input.type = 'file';
                     input.accept = '.csv';
                     input.onchange = e => {
                       const file = (e.target as HTMLInputElement).files?.[0];
-                      if (file && file.name.toLowerCase() === 'info-empresa.csv') {
-                        setInfoEmpresaFile(file);
+                      if (file && file.name.toLowerCase() === 'empresa_cualitativa.csv') {
+                        setEmpresaFile(file);
                       } else {
                         toast({
                           title: "Archivo incorrecto",
-                          description: "Se esperaba el archivo info-empresa.csv",
+                          description: "Se esperaba el archivo empresa_cualitativa.csv",
                           variant: "destructive"
                         });
                       }
@@ -556,20 +544,20 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                     input.click();
                   }}>
                         <div className="text-center space-y-2">
-                          {infoEmpresaFile ? <div className="flex items-center justify-center gap-2">
+                          {empresaFile ? <div className="flex items-center justify-center gap-2">
                               <CheckCircle className="h-6 w-6 text-green-600" />
-                              <span className="font-medium text-green-700">{infoEmpresaFile.name}</span>
+                              <span className="font-medium text-green-700">{empresaFile.name}</span>
                             </div> : <>
                               <Upload className="h-8 w-8 text-muted-foreground mx-auto" />
                               <div>
-                                <p className="text-sm font-medium">Arrastra info-empresa.csv aquí</p>
+                                <p className="text-sm font-medium">Arrastra empresa_cualitativa.csv aquí</p>
                                 <p className="text-xs text-muted-foreground">o haz clic para seleccionar</p>
                               </div>
                             </>}
                         </div>
                       </div>
 
-                      {infoEmpresaFile && <Button onClick={handleInfoEmpresaUpload} disabled={isUploadingInfo} className="w-full">
+                      {empresaFile && <Button onClick={handleEmpresaUpload} disabled={isUploadingInfo} className="w-full">
                           {isUploadingInfo ? 'Procesando...' : 'Procesar y Continuar'}
                         </Button>}
                     </div>

@@ -17,6 +17,10 @@ interface CompanyData {
   headquarters?: string;
   website?: string;
   description?: string;
+  currency_code?: string;
+  accounting_standard?: string;
+  consolidation?: string;
+  cif?: string;
 }
 
 interface ShareholderData {
@@ -68,7 +72,11 @@ function parseCSVContent(csvContent: string): { companyData: CompanyData | null;
         hq_city,
         hq_country,
         website,
-        business_description
+        business_description,
+        currency_code,
+        accounting_standard,
+        consolidation,
+        cif
       ] = values;
       
       companyData = {
@@ -80,7 +88,11 @@ function parseCSVContent(csvContent: string): { companyData: CompanyData | null;
         revenue: annual_revenue_range || undefined,
         headquarters: (hq_city && hq_country) ? `${hq_city}, ${hq_country}` : (hq_city || hq_country || undefined),
         website: website || undefined,
-        description: business_description || undefined
+        description: business_description || undefined,
+        currency_code: currency_code || undefined,
+        accounting_standard: accounting_standard || undefined,
+        consolidation: consolidation || undefined,
+        cif: cif || undefined
       };
     } else if (currentSection === 'accionarial' && values.length >= 4) {
       const [
@@ -135,6 +147,102 @@ serve(async (req) => {
 
     console.log('Parsed company data:', companyData);
     console.log('Parsed shareholder data:', shareholderData);
+
+    // Check for existing company by CIF or name
+    let company = null;
+    if (companyData.cif) {
+      // Try to find by CIF first
+      const { data: existingByCif } = await supabase
+        .from('company_info_normalized')
+        .select('company_id, companies(name, currency_code, accounting_standard)')
+        .ilike('company_name', `%${companyData.cif}%`)
+        .maybeSingle();
+      
+      if (existingByCif?.companies) {
+        company = {
+          id: existingByCif.company_id,
+          name: existingByCif.companies.name,
+          currency_code: existingByCif.companies.currency_code,
+          accounting_standard: existingByCif.companies.accounting_standard
+        };
+      }
+    }
+
+    if (!company) {
+      // Try to find by normalized name
+      const { data: existingByName } = await supabase
+        .from('companies')
+        .select('id, name, currency_code, accounting_standard')
+        .ilike('name', companyData.company_name)
+        .maybeSingle();
+      
+      if (existingByName) {
+        company = existingByName;
+      }
+    }
+
+    let companyId: string;
+
+    if (company) {
+      // Update existing company info
+      companyId = company.id;
+      console.log(`Updating existing company: ${company.name} (${companyId})`);
+      
+      // Update company basic info if needed
+      if (companyData.currency_code || companyData.accounting_standard || companyData.sector) {
+        const updateData: any = {};
+        if (companyData.currency_code) updateData.currency_code = companyData.currency_code;
+        if (companyData.accounting_standard) updateData.accounting_standard = companyData.accounting_standard;
+        if (companyData.sector) updateData.sector = companyData.sector;
+        
+        await supabase
+          .from('companies')
+          .update(updateData)
+          .eq('id', companyId);
+      }
+    } else {
+      // Create new company
+      const { data: newCompany, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          name: companyData.company_name,
+          currency_code: companyData.currency_code || 'EUR',
+          accounting_standard: companyData.accounting_standard || 'PGC',
+          sector: companyData.sector,
+          created_by: targetUserId
+        })
+        .select('id, name, currency_code, accounting_standard')
+        .single();
+
+      if (companyError) {
+        console.error('Error creating company:', companyError);
+        throw new Error('Failed to create company');
+      }
+
+      companyId = newCompany.id;
+      company = newCompany;
+      console.log(`Created new company: ${newCompany.name} (${companyId})`);
+    }
+
+    // Upsert company info normalized data
+    await supabase
+      .from('company_info_normalized')
+      .upsert({
+        company_id: companyId,
+        company_name: companyData.company_name,
+        sector: companyData.sector,
+        industry: companyData.industry,
+        employees_count: companyData.employees ? parseInt(companyData.employees) : null,
+        founded_year: companyData.founded_year,
+        headquarters: companyData.headquarters,
+        website: companyData.website,
+        description: companyData.description,
+        products: [],
+        competitors: [],
+        uploaded_by: targetUserId
+      }, {
+        onConflict: 'company_id'
+      });
 
     // Save company description
     const { error: companyError } = await supabase
@@ -226,6 +334,20 @@ serve(async (req) => {
     const response = {
       success: true,
       message: `Información cargada exitosamente: ${companyData.company_name}${shareholderData.length > 0 ? ` con ${shareholderData.length} accionista(s)` : ''}`,
+      companyId,
+      company_name: company?.name || companyData.company_name,
+      currency_code: company?.currency_code || companyData.currency_code || 'EUR',
+      accounting_standard: company?.accounting_standard || companyData.accounting_standard || 'PGC',
+      meta: {
+        sector: companyData.sector,
+        industry: companyData.industry,
+        employees: companyData.employees,
+        founded_year: companyData.founded_year?.toString(),
+        headquarters: companyData.headquarters,
+        website: companyData.website,
+        description: companyData.description,
+        from_template: !!(companyData.currency_code || companyData.accounting_standard)
+      },
       companyData,
       shareholderData: shareholderResult
     };

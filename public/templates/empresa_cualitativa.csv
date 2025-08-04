@@ -1,6 +1,6 @@
 # SECCION: EMPRESA
-company_name,sector,industry,founded_year,employees_range,annual_revenue_range,hq_city,hq_country,website,business_description
-Ejemplo Tecnológico S.L.,Tecnología,Software,2010,50-100,€5M-€10M,Madrid,España,https://ejemplo.com,"Empresa especializada en desarrollo de software empresarial y soluciones de transformación digital. Ofrece servicios de consultoría tecnológica y desarrollo de aplicaciones web y móviles para empresas del sector financiero y retail."
+company_name,sector,industry,founded_year,employees_range,annual_revenue_range,hq_city,hq_country,website,business_description,currency_code,accounting_standard,consolidation,cif
+Ejemplo Tecnológico S.L.,Tecnología,Software,2010,50-100,€5M-€10M,Madrid,España,https://ejemplo.com,"Empresa especializada en desarrollo de software empresarial y soluciones de transformación digital. Ofrece servicios de consultoría tecnológica y desarrollo de aplicaciones web y móviles para empresas del sector financiero y retail.",EUR,PGC,INDIVIDUAL,B12345678
 
 # SECCION: ESTRUCTURA_ACCIONARIAL
 shareholder_name,shareholder_type,country,ownership_pct,notes
