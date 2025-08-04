@@ -34,41 +34,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const fetchUserRole = useCallback(async (userId: string) => {
     if (!mounted.current || !userId) return;
     
+    console.log('fetchUserRole called for userId:', userId);
+    
     // Check cache first
     if (roleCache.current[userId]) {
+      console.log('Role found in cache:', roleCache.current[userId]);
       setUserRole(roleCache.current[userId]);
       return;
     }
 
     try {
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 10000)
-      );
+      console.log('Fetching role from database for user:', userId);
       
-      const queryPromise = supabase
+      // Try the database function first
+      const { data: functionData, error: functionError } = await supabase
+        .rpc('get_user_role', { user_uuid: userId });
+      
+      console.log('Function call result:', { functionData, functionError });
+      
+      if (!functionError && functionData) {
+        const role = functionData as 'admin' | 'user';
+        console.log('Role from function:', role);
+        roleCache.current[userId] = role;
+        setUserRole(role);
+        return;
+      }
+      
+      // Fallback to direct table query
+      console.log('Trying direct table query...');
+      const { data: tableData, error: tableError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .single();
-
-      const { data, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      
+      console.log('Table query result:', { tableData, tableError });
       
       if (!mounted.current) return;
       
-      if (error) {
-        console.error('Error fetching user role:', error);
+      if (tableError) {
+        console.error('Error fetching user role from table:', tableError);
+        console.error('Error details:', JSON.stringify(tableError, null, 2));
         setUserRole(null);
         return;
       }
       
-      const role = data?.role || null;
+      const role = tableData?.role || null;
+      console.log('Extracted role from table:', role);
+      
       if (role) {
         roleCache.current[userId] = role;
+        console.log('Role cached:', role);
       }
       setUserRole(role);
+      console.log('User role set to:', role);
     } catch (error) {
       if (!mounted.current) return;
-      console.error('Error fetching user role:', error);
+      console.error('Catch block - Error fetching user role:', error);
       setUserRole(null);
     }
   }, []);
