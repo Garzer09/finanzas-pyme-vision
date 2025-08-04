@@ -1,410 +1,409 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef
+} from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-
-// Unified auth state to prevent race conditions
-type AuthState = 
-  | { status: 'initializing'; user: null; role: 'none' }
-  | { status: 'unauthenticated'; user: null; role: 'none' }
-  | { status: 'authenticating'; user: User | null; role: 'none' }
-  | { status: 'resolving-role'; user: User; role: 'none' }
-  | { status: 'authenticated'; user: User; role: 'admin' | 'viewer' }
-  | { status: 'error'; user: User | null; role: 'admin' | 'viewer' | 'none'; error: string };
-
-interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  authState: AuthState;
-  // Legacy compatibility - derived from authState
-  authStatus: 'idle' | 'authenticating' | 'authenticated' | 'unauthenticated';
-  role: 'admin' | 'viewer' | 'none';
-  roleStatus: 'idle' | 'resolving' | 'ready' | 'error';
-  initialized: boolean;
-  signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, data?: any) => Promise<{ error: any }>;
-  signOut: (redirectTo?: string) => Promise<void>;
-  updatePassword: (password: string) => Promise<{ error: any }>;
-  refreshRole: () => Promise<void>;
-  // Remove problematic hasJustLoggedIn state
-}
+import {
+  AuthState,
+  AuthContextType,
+  Role,
+  DEFAULT_RETRY_CONFIG,
+  type RetryConfig
+} from '@/types/auth';
+import {
+  useInactivityDetection,
+  createRetryWithBackoff
+} from '@/hooks/useInactivityDetection';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+export const useAuth = (): AuthContextType => {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 };
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [authState, setAuthState] = useState<AuthState>({ status: 'initializing', user: null, role: 'none' });
-  
-  // Derived states for backward compatibility
-  const authStatus = authState.status === 'initializing' ? 'idle' :
-                    authState.status === 'unauthenticated' ? 'unauthenticated' :
-                    authState.status === 'authenticating' ? 'authenticating' :
-                    authState.status === 'resolving-role' ? 'authenticated' :
-                    authState.status === 'authenticated' ? 'authenticated' :
-                    'unauthenticated';
-  
-  const role = authState.role;
-  const roleStatus = authState.status === 'resolving-role' ? 'resolving' :
-                    authState.status === 'error' ? 'error' :
-                    authState.status === 'authenticated' ? 'ready' :
-                    'idle';
-  
-  const initialized = authState.status !== 'initializing';
-  
-  // ✅ Locking and concurrency control
-  const lastKnownRoleRef = useRef<'admin' | 'viewer' | 'none'>('none');
-  const roleReqIdRef = useRef(0); // Serial ID to ignore stale responses
-  const inFlightRef = useRef<Promise<'admin' | 'viewer'> | null>(null); // Prevent concurrent calls
-  
-  // Session recovery state for timeout scenarios
-  const sessionRecoveryRef = useRef<{ email?: string; lastActivity?: number }>({});
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
+  children
+}) => {
+  // Unified auth state machine
+  const [authState, setAuthState] = useState<AuthState>({
+    status: 'initializing'
+  });
 
-  const fetchUserRole = useCallback(async (userId: string, reqId: number): Promise<'admin' | 'viewer'> => {
-    if (!userId) {
-      console.log('❌ fetchUserRole: No userId provided');
-      return 'viewer';
+  // Inactivity detection
+  const [inactivityWarning, setInactivityWarning] = useState(false);
+  const {
+    isWarning,
+    timeRemaining,
+    resetTimer: resetInactivityTimer
+  } = useInactivityDetection(
+    () => {
+      console.log('🕐 [AUTH] Inactivity warning');
+      setInactivityWarning(true);
+    },
+    () => {
+      console.log('🕐 [AUTH] Inactivity timeout — signing out');
+      handleSignOut();
     }
-    
-    // ✅ Check if we already have a request in flight - reuse it
-    if (inFlightRef.current) {
-      console.log('🔄 [AUTH-CTX] Reusing in-flight request for userId:', userId, 'reqId:', reqId);
-      try {
-        return await inFlightRef.current;
-      } catch (error) {
-        console.error('❌ [AUTH-CTX] In-flight request failed:', error);
-        // Continue with new request
-      }
-    }
-    
-    console.log('🔍 [AUTH-CTX] fetchUserRole called for userId:', userId, 'reqId:', reqId);
-    
-    // ✅ Create new request with timeout and retry logic
-    const rolePromise = (async (): Promise<'admin' | 'viewer'> => {
-      const maxRetries = 3;
-      let lastError;
-      
-      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+  );
+  useEffect(() => {
+    setInactivityWarning(isWarning);
+  }, [isWarning]);
+
+  // Retry/backoff config
+  const retryConfigRef = useRef<RetryConfig>(DEFAULT_RETRY_CONFIG);
+  const retryOperation = useCallback(
+    createRetryWithBackoff(
+      retryConfigRef.current.maxAttempts,
+      retryConfigRef.current.baseDelayMs,
+      retryConfigRef.current.maxDelayMs
+    ),
+    []
+  );
+
+  // Concurrency guards for role fetch
+  const lastKnownRoleRef = useRef<Role>('none');
+  const roleReqIdRef = useRef(0);
+  const inFlightRef = useRef<Promise<Role> | null>(null);
+
+  // Fetch user role with retry & timeout
+  const fetchUserRole = useCallback(
+    async (userId: string, reqId: number): Promise<Role> => {
+      if (!userId) return 'viewer';
+
+      // reuse in-flight
+      if (inFlightRef.current) {
+        console.log('🔄 [AUTH] Reusing in-flight role fetch');
         try {
-          console.log(`🔄 [AUTH-CTX] Role fetch attempt ${attempt}/${maxRetries}`);
-          
-          // Check if this response is still relevant before each attempt
-          if (reqId !== roleReqIdRef.current) {
-            console.log('🚫 [AUTH-CTX] Request cancelled, reqId:', reqId, 'current:', roleReqIdRef.current);
-            return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-          }
-          
-          // ✅ 10 second timeout per attempt
-          const timeoutPromise = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`Role fetch timeout on attempt ${attempt}`)), 10000)
-          );
-          
-          const rpcPromise = supabase.rpc('get_user_role');
-          
-          const { data: rpcData, error: rpcError } = await Promise.race([rpcPromise, timeoutPromise]);
-          
-          console.log(`🔧 [AUTH-CTX] RPC result attempt ${attempt}:`, { rpcData, rpcError, reqId });
-          
-          if (!rpcError && rpcData === 'admin') {
-            console.log('✅ [AUTH-CTX] Role from RPC: admin');
-            return 'admin';
-          }
-          
-          // Fallback: check table directly
-          const { data: tableData, error: tableError } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', userId)
-            .maybeSingle();
-          
-          console.log(`📊 [AUTH-CTX] Table query result attempt ${attempt}:`, { tableData, tableError, reqId });
-          
-          if (!tableError && tableData?.role === 'admin') {
-            console.log('✅ [AUTH-CTX] Role from table: admin');
-            return 'admin';
-          }
-          
-          if (tableError) {
-            throw tableError;
-          }
-          
-          console.log('ℹ️ [AUTH-CTX] No admin role found, defaulting to viewer');
-          return 'viewer';
-          
-        } catch (error) {
-          lastError = error;
-          console.error(`❌ [AUTH-CTX] Error in fetchUserRole attempt ${attempt}:`, error, 'reqId:', reqId);
-          
-          // If it's the last attempt, use fallback
-          if (attempt === maxRetries) {
-            console.log('🛡️ [AUTH-CTX] All attempts failed, using fallback role');
-            return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-          }
-          
-          // Wait before retry (exponential backoff)
-          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-          console.log(`⏳ [AUTH-CTX] Waiting ${delay}ms before retry...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          return await inFlightRef.current;
+        } catch {
+          /* fall through to new request */
         }
       }
-      
-      // This should never be reached, but just in case
-      return lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-    })();
-    
-    // ✅ Store the promise to prevent concurrent requests
-    inFlightRef.current = rolePromise;
-    
+
+      console.log('🔍 [AUTH] fetchUserRole:', userId, 'reqId=', reqId);
+      const promise = retryOperation(async () => {
+        // stale check
+        if (reqId !== roleReqIdRef.current) {
+          console.log('🚫 [AUTH] Stale role fetch');
+          return lastKnownRoleRef.current;
+        }
+
+        // try RPC
+        const { data: rpcData, error: rpcErr } = await supabase.rpc(
+          'get_user_role'
+        );
+        console.log('🔧 [AUTH] RPC result', { rpcData, rpcErr });
+
+        if (!rpcErr && rpcData === 'admin') return 'admin';
+
+        // fallback to table
+        const { data: tbl, error: tblErr } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle();
+        console.log('📊 [AUTH] Table result', { tbl, tblErr });
+
+        if (!tblErr && tbl?.role === 'admin') return 'admin';
+        return 'viewer';
+      });
+
+      inFlightRef.current = promise;
+      try {
+        const role = await promise;
+        return role;
+      } finally {
+        inFlightRef.current = null;
+      }
+    },
+    [retryOperation]
+  );
+
+  // Centralized state transitions
+  const transitionState = useCallback(
+    (newState: AuthState) => {
+      console.log('🔄 [AUTH] ', authState.status, '→', newState.status);
+      setAuthState(newState);
+      if (newState.status === 'authenticated') {
+        resetInactivityTimer();
+      }
+    },
+    [authState.status, resetInactivityTimer]
+  );
+
+  // === Auth actions ===
+
+  const handleSignIn = useCallback(
+    async (email: string, password: string) => {
+      console.log('🔐 [AUTH] signIn');
+      transitionState({ status: 'authenticating' });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      if (error) {
+        transitionState({
+          status: 'error',
+          error: error.message,
+          retry: () => handleSignIn(email, password)
+        });
+        return { error };
+      }
+      return { error: null };
+    },
+    [transitionState]
+  );
+
+  const handleSignUp = useCallback(
+    async (email: string, password: string, userData?: any) => {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin + '/',
+          data: userData
+        }
+      });
+      return { error };
+    },
+    []
+  );
+
+  const handleSignOut = useCallback(
+    async (redirectTo: string = '/') => {
+      console.log('🚪 [AUTH] signOut');
+      await supabase.auth.signOut();
+      transitionState({ status: 'unauthenticated' });
+      lastKnownRoleRef.current = 'none';
+      window.location.href = redirectTo;
+    },
+    [transitionState]
+  );
+
+  const handleUpdatePassword = useCallback(
+    async (password: string) => {
+      const { error } = await supabase.auth.updateUser({ password });
+      return { error };
+    },
+    []
+  );
+
+  const handleRefreshRole = useCallback(async () => {
+    if (authState.status !== 'authenticated') return;
+    console.log('🔄 [AUTH] manual role refresh');
+    const reqId = ++roleReqIdRef.current;
     try {
-      const result = await rolePromise;
-      return result;
-    } finally {
-      // ✅ Clear the in-flight reference when done
-      inFlightRef.current = null;
+      const userRole = await fetchUserRole(
+        authState.user.id,
+        reqId
+      );
+      if (reqId === roleReqIdRef.current) {
+        lastKnownRoleRef.current = userRole;
+        transitionState({
+          status: 'authenticated',
+          user: authState.user,
+          session: authState.session,
+          role: userRole
+        });
+      }
+    } catch {
+      /* swallow */
     }
-  }, []);
+  }, [authState, fetchUserRole, transitionState]);
+
+  // === Initialization & listener ===
 
   useEffect(() => {
     let mounted = true;
-    let authSubscription: any = null;
+    let sub: any;
 
-    const initAuth = async () => {
-      try {
-        console.log('🚀 [AUTH-CTX] Initializing Auth...');
-        
-        // Check for existing session first
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('❌ [AUTH-CTX] Session check error:', error);
-          if (!mounted) return;
-          setAuthState({ status: 'unauthenticated', user: null, role: 'none' });
-          return;
-        }
-        
-        console.log('📋 [AUTH-CTX] Session check result:', { hasSession: !!session, user: session?.user?.email });
-        
-        if (!mounted) return;
-        
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user?.id) {
-          // Store session recovery info for timeout scenarios
-          sessionRecoveryRef.current = {
-            email: session.user.email,
-            lastActivity: Date.now()
-          };
-          
-          // For existing sessions, go directly to resolving role
-          console.log('👤 [AUTH-CTX] Existing session found, resolving role');
-          setAuthState({ status: 'resolving-role', user: session.user, role: 'none' });
-          
-          const reqId = ++roleReqIdRef.current;
-          try {
-            const userRole = await fetchUserRole(session.user.id, reqId);
-            if (mounted && reqId === roleReqIdRef.current) {
-              console.log('✅ [AUTH-CTX] Role resolved for existing session:', userRole);
-              setAuthState({ status: 'authenticated', user: session.user, role: userRole });
-              lastKnownRoleRef.current = userRole;
-            }
-          } catch (error) {
-            console.error('❌ [AUTH-CTX] Error resolving role for existing session:', error);
-            if (mounted && reqId === roleReqIdRef.current) {
-              const fallbackRole = lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-              setAuthState({ status: 'error', user: session.user, role: fallbackRole, error: 'Failed to resolve role' });
-            }
+    const init = async () => {
+      console.log('🚀 [AUTH] initializing');
+      const {
+        data: { session },
+        error
+      } = await supabase.auth.getSession();
+      if (!mounted) return;
+
+      if (error) {
+        console.error('❌ [AUTH] getSession error', error);
+        transitionState({ status: 'unauthenticated' });
+        return;
+      }
+
+      if (session?.user?.id) {
+        // existing session
+        transitionState({
+          status: 'resolving-role',
+          user: session.user,
+          session,
+          role: 'none'
+        });
+        const reqId = ++roleReqIdRef.current;
+        try {
+          const userRole = await fetchUserRole(
+            session.user.id,
+            reqId
+          );
+          if (mounted && reqId === roleReqIdRef.current) {
+            lastKnownRoleRef.current = userRole;
+            transitionState({
+              status: 'authenticated',
+              user: session.user,
+              session,
+              role: userRole
+            });
           }
-        } else {
-          console.log('❌ [AUTH-CTX] No existing session');
-          setAuthState({ status: 'unauthenticated', user: null, role: 'none' });
+        } catch {
+          if (mounted && reqId === roleReqIdRef.current) {
+            transitionState({
+              status: 'unauthenticated'
+            });
+          }
         }
-        
-      } catch (error) {
-        console.error('❌ [AUTH-CTX] Auth initialization error:', error);
-        if (mounted) {
-          setAuthState({ status: 'unauthenticated', user: null, role: 'none' });
-        }
+      } else {
+        transitionState({ status: 'unauthenticated' });
       }
     };
 
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    sub = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('🔄 [AUTH-CTX] Auth state change:', { event, user: session?.user?.email, path: window.location.pathname });
-        console.log('📊 [AUTH-CTX] Current state before:', authState);
-        
         if (!mounted) return;
-        
-        // Handle different auth events
+        console.log('🔄 [AUTH] onAuthStateChange', event);
+
         if (event === 'SIGNED_OUT') {
-          console.log('🚪 [AUTH-CTX] SIGNED_OUT event');
-          setSession(null);
-          setUser(null);
-          setAuthState({ status: 'unauthenticated', user: null, role: 'none' });
+          transitionState({ status: 'unauthenticated' });
           lastKnownRoleRef.current = 'none';
-          sessionRecoveryRef.current = {};
-          return;
         }
-        
-        if (event === 'SIGNED_IN') {
-          console.log('🔐 [AUTH-CTX] SIGNED_IN event - explicit login');
-          
-          setSession(session);
-          setUser(session?.user ?? null);
-          
+
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (session?.user?.id) {
-            // Store session recovery info
-            sessionRecoveryRef.current = {
-              email: session.user.email,
-              lastActivity: Date.now()
-            };
-            
-            setAuthState({ status: 'resolving-role', user: session.user, role: 'none' });
-            
+            transitionState({
+              status: 'resolving-role',
+              user: session.user,
+              session,
+              role: 'none'
+            });
             const reqId = ++roleReqIdRef.current;
             try {
-              const userRole = await fetchUserRole(session.user.id, reqId);
-              if (mounted && reqId === roleReqIdRef.current) {
-                console.log('✅ [AUTH-CTX] Role resolved for new login:', userRole);
-                setAuthState({ status: 'authenticated', user: session.user, role: userRole });
+              const userRole = await fetchUserRole(
+                session.user.id,
+                reqId
+              );
+              if (
+                mounted &&
+                reqId === roleReqIdRef.current
+              ) {
                 lastKnownRoleRef.current = userRole;
+                transitionState({
+                  status: 'authenticated',
+                  user: session.user,
+                  session,
+                  role: userRole
+                });
               }
-            } catch (error) {
-              console.error('❌ [AUTH-CTX] Error resolving role for new login:', error);
-              if (mounted && reqId === roleReqIdRef.current) {
-                const fallbackRole = lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-                setAuthState({ status: 'error', user: session.user, role: fallbackRole, error: 'Failed to resolve role' });
+            } catch {
+              if (
+                mounted &&
+                reqId === roleReqIdRef.current
+              ) {
+                transitionState({
+                  status: 'authenticated',
+                  user: session.user,
+                  session,
+                  role: lastKnownRoleRef.current
+                });
               }
             }
           } else {
-            console.log('❌ [AUTH-CTX] No user in session');
-            setAuthState({ status: 'unauthenticated', user: null, role: 'none' });
-            lastKnownRoleRef.current = 'none';
-          }
-        } else if (event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-          console.log(`🔄 [AUTH-CTX] ${event} event - updating session only`);
-          setSession(session);
-          setUser(session?.user ?? null);
-          // Update session recovery info if still valid
-          if (session?.user?.email && sessionRecoveryRef.current.email === session.user.email) {
-            sessionRecoveryRef.current.lastActivity = Date.now();
+            transitionState({ status: 'unauthenticated' });
           }
         }
-        
-        console.log('📊 [AUTH-CTX] State after change:', authState);
       }
     );
-    
-    authSubscription = subscription;
-    initAuth();
 
+    init();
     return () => {
       mounted = false;
-      if (authSubscription) {
-        authSubscription.unsubscribe();
-      }
+      sub?.subscription?.unsubscribe?.();
     };
-  }, [fetchUserRole]);
+  }, [fetchUserRole, transitionState]);
 
-  const signIn = async (email: string, password: string) => {
-    console.log('🔐 [AUTH-CTX] signIn called');
-    setAuthState({ status: 'authenticating', user: null, role: 'none' });
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) {
-      setAuthState({ status: 'unauthenticated', user: null, role: 'none' });
+  // === Backward-compatible getters ===
+
+  const user =
+    authState.status === 'authenticated'
+      ? authState.user
+      : null;
+  const session =
+    authState.status === 'authenticated'
+      ? authState.session
+      : null;
+  const role =
+    authState.status === 'authenticated'
+      ? authState.role
+      : 'none';
+
+  const authStatus: 'idle' | 'authenticating' | 'authenticated' | 'unauthenticated' = (() => {
+    switch (authState.status) {
+      case 'initializing':
+        return 'idle';
+      case 'authenticating':
+        return 'authenticating';
+      case 'authenticated':
+        return 'authenticated';
+      case 'unauthenticated':
+      case 'error':
+        return 'unauthenticated';
     }
-    // Success case handled by auth state change listener
-    return { error };
-  };
+  })();
 
-  const signUp = async (email: string, password: string, userData?: any) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: redirectUrl,
-        data: userData
-      }
-    });
-    return { error };
-  };
+  const roleStatus: 'idle' | 'resolving' | 'ready' | 'error' = (() => {
+    if (authState.status === 'authenticated') return 'ready';
+    if (authState.status === 'resolving-role') return 'resolving';
+    if (authState.status === 'error') return 'error';
+    return 'idle';
+  })();
 
-  const signOut = async (redirectTo: string = '/') => {
-    console.log('🚪 [AUTH-CTX] Signing out...');
-    await supabase.auth.signOut();
-    setAuthState({ status: 'unauthenticated', user: null, role: 'none' });
-    sessionRecoveryRef.current = {};
-    
-    // Redirect to specified path
-    if (typeof window !== 'undefined') {
-      window.location.href = redirectTo;
-    }
-  };
+  const initialized = authState.status !== 'initializing';
 
-  const updatePassword = async (password: string) => {
-    const { error } = await supabase.auth.updateUser({
-      password: password
-    });
-    return { error };
-  };
-
-  // ✅ Expose refreshRole function for manual retries
-  const refreshRole = useCallback(async () => {
-    if (!user?.id) {
-      console.log('❌ [AUTH-CTX] refreshRole: No user to refresh role for');
-      return;
-    }
-
-    console.log('🔄 [AUTH-CTX] Manual role refresh triggered');
-    setAuthState(prev => prev.status === 'authenticated' ? 
-      { status: 'resolving-role', user: prev.user, role: 'none' } : prev);
-    
-    const reqId = ++roleReqIdRef.current;
-    
-    try {
-      const userRole = await fetchUserRole(user.id, reqId);
-      if (reqId === roleReqIdRef.current) {
-        setAuthState({ status: 'authenticated', user, role: userRole });
-        lastKnownRoleRef.current = userRole;
-        console.log('✅ [AUTH-CTX] Role refreshed successfully:', userRole);
-      }
-    } catch (error) {
-      console.error('❌ [AUTH-CTX] Error during manual role refresh:', error);
-      if (reqId === roleReqIdRef.current) {
-        const fallbackRole = lastKnownRoleRef.current === 'admin' ? 'admin' : 'viewer';
-        setAuthState({ status: 'error', user, role: fallbackRole, error: 'Failed to refresh role' });
-      }
-    }
-  }, [user?.id, fetchUserRole]);
+  // === Context value ===
 
   const value: AuthContextType = {
+    // Unified
+    authState,
+
+    // Legacy
     user,
     session,
-    authState,
-    // Legacy compatibility - derived from authState
     authStatus,
     role,
     roleStatus,
     initialized,
-    signIn,
-    signUp,
-    signOut,
-    updatePassword,
-    refreshRole
+
+    // Actions
+    signIn: handleSignIn,
+    signUp: handleSignUp,
+    signOut: handleSignOut,
+    updatePassword: handleUpdatePassword,
+    refreshRole: handleRefreshRole,
+
+    // Inactivity
+    inactivityWarning,
+    timeUntilLogout: timeRemaining,
+    resetInactivityTimer
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

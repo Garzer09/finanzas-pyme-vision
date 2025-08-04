@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DebugToolbar } from "@/components/DebugToolbar";
+import { InactivityWarning } from "@/components/InactivityWarning";
 
 import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -59,6 +60,7 @@ import { AdminCargaPlantillasPage } from "./pages/AdminCargaPlantillasPage";
 import AdminEmpresasPage from "./pages/AdminEmpresasPage";
 import AdminCargasPage from "./pages/AdminCargasPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import { RootRedirect } from "./components/RootRedirect";
 
 const App = () => {
   // Fase 1: Instrumentación - logs de navegación
@@ -78,8 +80,8 @@ const App = () => {
             <Toaster />
             <Sonner />
           <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Navigate to="/auth" replace />} />
+            {/* Smart Root Route - Redirects based on auth status and role */}
+            <Route path="/" element={<RootRedirect />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
 
@@ -150,6 +152,7 @@ const App = () => {
             
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <InactivityWarning />
           <DebugToolbar />
                 </TooltipProvider>
               </PeriodProvider>
