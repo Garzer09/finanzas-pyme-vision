@@ -32,9 +32,9 @@ serve(async (req) => {
 
     console.log('Processing file:', fileName);
 
-    // Development mode - using mock data for testing
+    // Development mode - check environment variable for production deployments
     // TODO: Replace with actual Excel parsing library (like xlsx) for production
-    const isDevelopmentMode = true; // Set to false when real Excel parsing is implemented
+    const isDevelopmentMode = Deno.env.get('DENO_ENV') === 'development';
     
     console.log('Development mode enabled - using mock data for Excel parsing');
 
