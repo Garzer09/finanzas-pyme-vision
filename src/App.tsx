@@ -5,6 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DebugToolbar } from "@/components/DebugToolbar";
+import { InactivityWarning } from "@/components/InactivityWarning";
 
 import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -150,6 +151,7 @@ const App = () => {
             
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
+          <InactivityWarning />
           <DebugToolbar />
               </TooltipProvider>
             </PeriodProvider>
