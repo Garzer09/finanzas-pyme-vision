@@ -47,6 +47,9 @@ import { SalesSegmentsModule } from "./components/modules/SalesSegmentsModule";
 import ConclusionsPage from "./pages/ConclusionsPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import ViewerMisEmpresasPage from "./pages/ViewerMisEmpresasPage";
+import ViewerDashboardPage from "./pages/ViewerDashboardPage";
+import { Navigate } from "react-router-dom";
 
 import { AdminCargaPlantillasPage } from "./pages/AdminCargaPlantillasPage";
 import AdminEmpresasPage from "./pages/AdminEmpresasPage";
@@ -70,12 +73,17 @@ const App = () => (
          <Route path="/archivos" element={<FilesDashboardPage />} />
          <Route path="/suscripcion" element={<SubscriptionPage />} />
          <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
-            <Route path="/admin/settings" element={<AdminSettingsPage />} />
+          {/* Admin Routes */}
+            <Route path="/admin/settings" element={<Navigate to="/admin/users" replace />} />
             <Route path="/admin/users" element={<AdminUsersPage />} />
             <Route path="/admin/empresas" element={<AdminEmpresasPage />} />
             <Route path="/admin/carga-plantillas" element={<AdminCargaPlantillasPage />} />
             <Route path="/admin/cargas" element={<AdminCargasPage />} />
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            
+            {/* Viewer Routes */}
+            <Route path="/app/mis-empresas" element={<ViewerMisEmpresasPage />} />
+            <Route path="/app/dashboard" element={<ViewerDashboardPage />} />
             
         
         {/* Core Financial Analysis */}

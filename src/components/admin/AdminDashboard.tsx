@@ -21,6 +21,7 @@ import { AdminUserDashboard } from './AdminUserDashboard';
 import { AdminDataManager } from './AdminDataManager';
 import { AdminImpersonationProvider, useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
 import { GeneralLedgerUploadModal } from '@/components/GeneralLedgerUploadModal';
+import { UserMembershipManager } from './UserMembershipManager';
 
 interface AdminUserProfile {
   id: string;
@@ -40,6 +41,8 @@ export const AdminDashboard = () => {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadUserId, setUploadUserId] = useState<string | null>(null);
+  const [showMembershipModal, setShowMembershipModal] = useState(false);
+  const [membershipUserId, setMembershipUserId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
@@ -108,6 +111,11 @@ export const AdminDashboard = () => {
   const handleUploadLedger = (userId: string) => {
     setUploadUserId(userId);
     setShowUploadModal(true);
+  };
+
+  const handleManageMemberships = (userId: string) => {
+    setMembershipUserId(userId);
+    setShowMembershipModal(true);
   };
 
   const handleUploadSuccess = () => {
@@ -195,9 +203,13 @@ export const AdminDashboard = () => {
         handleBackToList={handleBackToList}
         handleManageData={handleManageData}
         handleUploadLedger={handleUploadLedger}
+        handleManageMemberships={handleManageMemberships}
         showUploadModal={showUploadModal}
         setShowUploadModal={setShowUploadModal}
         uploadUserId={uploadUserId}
+        showMembershipModal={showMembershipModal}
+        setShowMembershipModal={setShowMembershipModal}
+        membershipUserId={membershipUserId}
         handleUploadSuccess={handleUploadSuccess}
       />
     </AdminImpersonationProvider>
@@ -217,9 +229,13 @@ interface AdminDashboardContentProps {
   handleBackToList: () => void;
   handleManageData: () => void;
   handleUploadLedger: (userId: string) => void;
+  handleManageMemberships: (userId: string) => void;
   showUploadModal: boolean;
   setShowUploadModal: (show: boolean) => void;
   uploadUserId: string | null;
+  showMembershipModal: boolean;
+  setShowMembershipModal: (show: boolean) => void;
+  membershipUserId: string | null;
   handleUploadSuccess: () => void;
 }
 
@@ -236,9 +252,13 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
   handleBackToList,
   handleManageData,
   handleUploadLedger,
+  handleManageMemberships,
   showUploadModal,
   setShowUploadModal,
   uploadUserId,
+  showMembershipModal,
+  setShowMembershipModal,
+  membershipUserId,
   handleUploadSuccess
 }) => {
   const { setImpersonation } = useAdminImpersonation();
@@ -364,6 +384,7 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
                 hasData={usersWithData[user.id] || false}
                 onClick={() => handleUserClick(user)}
                 onUploadLedger={() => handleUploadLedger(user.id)}
+                onManageMemberships={() => handleManageMemberships(user.id)}
               />
             ))}
           </div>
@@ -378,6 +399,17 @@ const AdminDashboardContent: React.FC<AdminDashboardContentProps> = ({
           userId={uploadUserId}
           isAdminImpersonating={true}
           onSuccess={handleUploadSuccess}
+        />
+      )}
+
+      {/* Modal de gestión de membresías */}
+      {membershipUserId && (
+        <UserMembershipManager
+          isOpen={showMembershipModal}
+          onClose={() => setShowMembershipModal(false)}
+          userId={membershipUserId}
+          userEmail={users.find(u => u.id === membershipUserId)?.email || ''}
+          userName={users.find(u => u.id === membershipUserId)?.email || ''}
         />
       )}
     </div>

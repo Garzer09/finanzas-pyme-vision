@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Building2, Upload, History } from 'lucide-react';
+import { Building2, Upload, History, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const AdminTopNavigation: React.FC = () => {
@@ -22,6 +22,12 @@ export const AdminTopNavigation: React.FC = () => {
       label: 'Histórico de Cargas',
       icon: History,
       description: 'Ver histórico'
+    },
+    {
+      path: '/admin/users',
+      label: 'Usuarios',
+      icon: Users,
+      description: 'Gestionar usuarios'
     }
   ];
 

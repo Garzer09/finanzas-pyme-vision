@@ -11,7 +11,8 @@ import {
   CheckCircle,
   AlertCircle,
   Upload,
-  BarChart3
+  BarChart3,
+  Users
 } from 'lucide-react';
 
 interface UserCardProps {
@@ -28,6 +29,7 @@ interface UserCardProps {
   dataQuality?: number;
   onClick: () => void;
   onUploadLedger: () => void;
+  onManageMemberships: () => void;
 }
 
 export const UserCard: React.FC<UserCardProps> = ({ 
@@ -36,7 +38,8 @@ export const UserCard: React.FC<UserCardProps> = ({
   lastDataUpdate,
   dataQuality,
   onClick,
-  onUploadLedger 
+  onUploadLedger,
+  onManageMemberships
 }) => {
   
   const getDataStatus = () => {
@@ -118,32 +121,46 @@ export const UserCard: React.FC<UserCardProps> = ({
 
       {/* Botones de acción */}
       <div className="px-6 pb-4 pt-2 border-t bg-muted/20">
-        <div className="flex gap-2">
-          <Button 
-            variant={hasData ? "outline" : "default"} 
-            size="sm" 
-            onClick={(e) => {
-              e.stopPropagation();
-              onUploadLedger();
-            }}
-            className="flex-1"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            {hasData ? 'Actualizar' : 'Subir'} Libro Diario
-          </Button>
-          {hasData && (
+        <div className="space-y-2">
+          <div className="flex gap-2">
             <Button 
-              variant="outline" 
+              variant={hasData ? "outline" : "default"} 
               size="sm" 
               onClick={(e) => {
                 e.stopPropagation();
-                onClick();
+                onUploadLedger();
               }}
+              className="flex-1"
             >
-              <BarChart3 className="h-4 w-4 mr-2" />
-              Ver Dashboard
+              <Upload className="h-4 w-4 mr-2" />
+              {hasData ? 'Actualizar' : 'Subir'} Libro Diario
             </Button>
-          )}
+            {hasData && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick();
+                }}
+              >
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Ver Dashboard
+              </Button>
+            )}
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={(e) => {
+              e.stopPropagation();
+              onManageMemberships();
+            }}
+            className="w-full"
+          >
+            <Users className="h-4 w-4 mr-2" />
+            Asignar Empresas
+          </Button>
         </div>
       </div>
     </Card>

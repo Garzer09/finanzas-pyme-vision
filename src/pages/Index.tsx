@@ -14,9 +14,9 @@ const Index = () => {
       if (user) {
         // Detectar rol y redirigir apropiadamente
         if (userRole === 'admin') {
-          navigate('/admin/users');
+          navigate('/admin/empresas');
         } else {
-          navigate('/home');
+          navigate('/app/mis-empresas');
         }
       } else {
         navigate('/auth');
