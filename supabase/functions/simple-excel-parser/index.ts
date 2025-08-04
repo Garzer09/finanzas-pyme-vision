@@ -241,7 +241,6 @@ serve(async (req) => {
     const totalTime = (performance.now() - requestStart).toFixed(2);
     console.log(`Listo – ${formatMetrics(metrics)} (total ${totalTime}ms)`);
 
-    // Detección de modo desarrollo vía variable de entorno
     const isDev = Deno.env.get('DENO_ENV') === 'development';
     if (isDev) {
       console.log('Modo DESARROLLO activo – usando datos mock');
