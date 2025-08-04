@@ -171,29 +171,45 @@ const AuthPage = () => {
         } else {
           console.debug('[LOGIN] Auth successful, resolving role...');
           
-          // 🔒 Resolver rol AQUÍ para evitar carreras
-          const { data: roleData, error: roleErr } = await supabase.rpc('get_user_role');
-          if (roleErr) {
-            console.debug('[LOGIN] Role error:', roleErr);
+          // Get user role with timeout to prevent hanging
+          const rolePromise = supabase.rpc('get_user_role');
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout: No se pudo obtener el rol del usuario')), 10000)
+          );
+          
+          try {
+            const { data: roleData, error: roleErr } = await Promise.race([rolePromise, timeoutPromise]) as any;
+            
+            if (roleErr) {
+              console.debug('[LOGIN] Role error:', roleErr);
+              toast({
+                title: "Error al obtener rol",
+                description: roleErr.message,
+                variant: "destructive"
+              });
+              return;
+            }
+
+            const role = roleData === 'admin' ? 'admin' : 'viewer';
+            console.debug('[LOGIN] Role resolved:', role);
+            
             toast({
-              title: "Error al obtener rol",
-              description: roleErr.message,
+              title: "¡Bienvenido!",
+              description: "Has iniciado sesión correctamente"
+            });
+            
+            // Navigate based on role
+            console.debug('[NAVIGATE] Single navigation from login', { from: '/auth', to: role === 'admin' ? '/admin/empresas' : '/app/mis-empresas', role });
+            navigate(role === 'admin' ? '/admin/empresas' : '/app/mis-empresas', { replace: true });
+          } catch (timeoutError: any) {
+            console.error('[LOGIN] Role fetch timeout:', timeoutError);
+            toast({
+              title: "Error de conexión",
+              description: timeoutError.message || 'Error de timeout al obtener el rol del usuario',
               variant: "destructive"
             });
             return;
           }
-
-          const role = roleData === 'admin' ? 'admin' : 'viewer';
-          console.debug('[LOGIN] Role resolved:', role);
-          
-          toast({
-            title: "¡Bienvenido!",
-            description: "Has iniciado sesión correctamente"
-          });
-          
-          // 🎯 Una navegación directa según rol
-          console.debug('[NAVIGATE] Single navigation from login', { from: '/auth', to: role === 'admin' ? '/admin/empresas' : '/app/mis-empresas', role });
-          navigate(role === 'admin' ? '/admin/empresas' : '/app/mis-empresas', { replace: true });
         }
       }
     } finally {
