@@ -37,10 +37,6 @@ const LandingPage = () => {
     }
   };
 
-  const handleChangeUser = async () => {
-    console.log('handleChangeUser clicked');
-    await signOut('/auth'); // Redirect to auth after logout
-  };
 
   return (
     <div className="min-h-screen bg-primary flex items-center justify-center">
@@ -56,24 +52,8 @@ const LandingPage = () => {
             className="text-lg px-12 py-6 bg-muted text-muted-foreground hover:bg-muted/80 transition-all duration-300"
             disabled={roleLoading}
           >
-            {user ? (roleLoading ? 'Cargando...' : 'Ir al Dashboard') : 'Comenzar'}
+            Comenzar
           </Button>
-          
-          {user && (
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-white/80 text-sm">
-                Ya tienes una sesión activa
-              </p>
-              <Button 
-                variant="outline"
-                size="sm"
-                onClick={handleChangeUser}
-                className="text-primary border-white/20 hover:bg-white/10 hover:text-white"
-              >
-                Cambiar Usuario
-              </Button>
-            </div>
-          )}
         </div>
       </div>
     </div>
