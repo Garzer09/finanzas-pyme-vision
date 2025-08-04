@@ -7,21 +7,39 @@ import { useUserRole } from "@/hooks/useUserRole";
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { userRole, loading: roleLoading } = useUserRole();
 
+  console.log('LandingPage state:', { 
+    hasUser: !!user, 
+    userRole, 
+    roleLoading,
+    userId: user?.id 
+  });
+
   const handleGetStarted = () => {
+    console.log('handleGetStarted clicked:', { user: !!user, userRole, roleLoading });
+    
     if (user && !roleLoading) {
       // Usuario ya logueado, redirigir según rol
+      console.log('User logged in, redirecting based on role:', userRole);
       if (userRole === 'admin') {
+        console.log('Redirecting admin to /admin/empresas');
         navigate('/admin/empresas');
       } else {
+        console.log('Redirecting user to /app/mis-empresas');
         navigate('/app/mis-empresas');
       }
     } else {
       // Usuario no logueado, ir a auth
+      console.log('No user or still loading, going to auth');
       navigate('/auth');
     }
+  };
+
+  const handleChangeUser = async () => {
+    console.log('handleChangeUser clicked');
+    await signOut('/auth'); // Redirect to auth after logout
   };
 
   return (
@@ -49,7 +67,7 @@ const LandingPage = () => {
               <Button 
                 variant="outline"
                 size="sm"
-                onClick={() => navigate('/auth')}
+                onClick={handleChangeUser}
                 className="text-primary border-white/20 hover:bg-white/10 hover:text-white"
               >
                 Cambiar Usuario
