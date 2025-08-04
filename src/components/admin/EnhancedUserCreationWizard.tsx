@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePerplexityCompanySearch } from '@/hooks/usePerplexityCompanySearch';
 import { CompanyLogoUpload } from '@/components/CompanyLogoUpload';
 import { ExcelUpload } from '@/components/ExcelUpload';
+import { QualitativeTemplateUpload } from '@/components/QualitativeTemplateUpload';
 
 interface EnhancedUserCreationWizardProps {
   onComplete?: () => void;
@@ -106,9 +107,11 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
       case 2:
         return !!(formData.companyName && formData.industrySector);
       case 3:
-      case 4:
-      case 5:
-        return true; // Optional steps
+        return !!(formData.companyName && formData.industrySector);
+      case 4: // Qualitative template step - optional
+      case 5: // Logo step - optional  
+      case 6: // Financial files step - optional
+        return true;
       default:
         return false;
     }
@@ -218,7 +221,7 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
           description: `Se ha creado el usuario para ${formData.companyName}`,
         });
 
-        // Move to step 4 for logo upload
+        // Move to step 4 for qualitative template upload
         setCurrentStep(4);
       }
     } catch (error: any) {
@@ -233,7 +236,7 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
   };
 
   const handleFileUploadComplete = () => {
-    setCurrentStep(5); // Move to final confirmation
+    setCurrentStep(7); // Move to final confirmation
   };
 
   const handleFinalComplete = () => {
@@ -392,6 +395,35 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
         return (
           <div className="space-y-6">
             <div>
+              <h3 className="text-lg font-semibold mb-4">Información Cualitativa de la Empresa</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Sube la plantilla CSV con la información básica y estructura accionarial de {formData.companyName}.
+                Este paso es opcional pero recomendado para completar el perfil de la empresa.
+              </p>
+              <QualitativeTemplateUpload 
+                targetUserId={createdUserId || ''}
+                onUploadComplete={(companyData, shareholderData) => {
+                  toast({
+                    title: "Información cualitativa cargada",
+                    description: `Se cargó la información de ${companyData?.company_name}`,
+                  });
+                }}
+                showContinueButton={true}
+                onContinue={handleNext}
+              />
+            </div>
+            <div className="text-center pt-4">
+              <Button variant="outline" onClick={handleNext}>
+                Continuar sin plantilla
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="space-y-6">
+            <div>
               <h3 className="text-lg font-semibold mb-4">Subir logo de la empresa</h3>
               <p className="text-sm text-muted-foreground mb-4">
                 Sube el logo de {formData.companyName} para personalizar la interfaz.
@@ -411,7 +443,7 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
           </div>
         );
 
-      case 5:
+      case 6:
         return (
           <div className="space-y-6">
             <div>
@@ -427,19 +459,19 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
                     title: "Análisis completado",
                     description: "Claude ha procesado los datos financieros correctamente",
                   });
-                  setCurrentStep(6); // Move to confirmation
+                  setCurrentStep(7); // Move to confirmation
                 }}
               />
             </div>
             <div className="text-center pt-4">
-              <Button variant="outline" onClick={() => setCurrentStep(6)}>
+              <Button variant="outline" onClick={() => setCurrentStep(7)}>
                 Finalizar sin archivos
               </Button>
             </div>
           </div>
         );
 
-      case 6:
+      case 7:
         return (
           <div className="space-y-4">
             <div className="bg-muted/50 p-6 rounded-lg text-center">
@@ -473,9 +505,10 @@ export const EnhancedUserCreationWizard: React.FC<EnhancedUserCreationWizardProp
       { number: 1, title: "Usuario", icon: User },
       { number: 2, title: "Empresa", icon: Building2 },
       { number: 3, title: "Configuración", icon: Settings },
-      { number: 4, title: "Logo", icon: Upload },
-      { number: 5, title: "Archivos", icon: Upload },
-      { number: 6, title: "Finalizado", icon: CheckCircle }
+      { number: 4, title: "Plantilla", icon: Upload },
+      { number: 5, title: "Logo", icon: Upload },
+      { number: 6, title: "Archivos", icon: Upload },
+      { number: 7, title: "Finalizado", icon: CheckCircle }
     ];
 
     return (

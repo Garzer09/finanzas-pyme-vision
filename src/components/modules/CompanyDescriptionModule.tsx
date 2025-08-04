@@ -43,13 +43,13 @@ export const CompanyDescriptionModule = () => {
                   Descripción de la Empresa
                 </h1>
                 <p className="text-slate-700 text-lg font-medium">
-                  Busca información automáticamente con IA o completa los datos manualmente
+                  Información cualitativa de la empresa y estructura accionarial
                 </p>
               </div>
             </div>
           </section>
 
-          {/* Company Description Form with Perplexity Integration */}
+          {/* Company Description Form */}
           <section>
             <CompanyDescriptionForm />
           </section>
@@ -105,24 +105,30 @@ export const CompanyDescriptionModule = () => {
                   <div className="text-center py-12">
                     <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
                     <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                      No hay información disponible
+                      No hay estructura accionarial disponible
                     </h3>
                     <p className="text-muted-foreground mb-4">
-                      {companyName 
-                        ? `No se ha encontrado información sobre la estructura accionaria de ${companyName}.`
-                        : 'Primero busca o ingresa información de la empresa para ver su estructura accionaria.'
-                      }
+                      La estructura accionarial se carga desde la plantilla cualitativa durante la creación del usuario,
+                      o puede ser editada manualmente por los administradores.
                     </p>
-                    {companyName && (
-                      <RoleBasedAccess allowedRoles={['admin']}>
+                    <RoleBasedAccess allowedRoles={['admin']}>
+                      <div className="space-y-2">
                         <ShareholderSearchDialog 
-                          companyName={companyName}
+                          companyName={companyName || 'Empresa'}
                           onSearchComplete={() => {
                             // Data will be automatically refreshed by the hook
                           }}
                         />
-                      </RoleBasedAccess>
-                    )}
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setIsEditing(true)}
+                        >
+                          <Users className="h-4 w-4 mr-2" />
+                          Agregar Accionistas Manualmente
+                        </Button>
+                      </div>
+                    </RoleBasedAccess>
                   </div>
                 )}
               </CardContent>

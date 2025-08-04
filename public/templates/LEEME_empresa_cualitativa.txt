@@ -1,0 +1,62 @@
+PLANTILLA DE INFORMACIÓN CUALITATIVA DE EMPRESA
+==================================================
+
+Esta plantilla CSV permite cargar información cualitativa de una empresa en el sistema.
+
+ESTRUCTURA DEL ARCHIVO:
+======================
+
+El archivo contiene DOS secciones separadas por comentarios:
+
+1. SECCION: EMPRESA (OBLIGATORIA)
+   - Una sola fila con los datos básicos de la empresa
+   
+2. SECCION: ESTRUCTURA_ACCIONARIAL (OPCIONAL)
+   - Cero o más filas con información de accionistas
+
+CAMPOS DE LA EMPRESA:
+====================
+
+- company_name: Nombre completo de la empresa
+- sector: Sector principal (Tecnología, Manufactura, Servicios, etc.)
+- industry: Industria específica (Software, Automotriz, Consultoría, etc.)
+- founded_year: Año de fundación (número)
+- employees_range: Rango de empleados (ej: "1-10", "50-100", "250+")
+- annual_revenue_range: Rango de ingresos anuales (ej: "€1M-€5M", "$10M-$50M")
+- hq_city: Ciudad de la sede principal
+- hq_country: País de la sede principal
+- website: URL del sitio web corporativo
+- business_description: Descripción detallada del negocio
+
+CAMPOS DE ESTRUCTURA ACCIONARIAL:
+=================================
+
+- shareholder_name: Nombre completo del accionista
+- shareholder_type: Tipo ("persona" o "empresa")
+- country: País de residencia/sede
+- ownership_pct: Porcentaje de participación (número decimal, ej: 25.5)
+- notes: Notas adicionales (cargo, relación, etc.)
+
+EJEMPLOS DE FORMATOS:
+====================
+
+Empleados: "1-10", "11-50", "51-250", "250+", "Aprox. 150"
+Ingresos: "€1M-€5M", "$10M-$50M", "£500K-£2M", "No disponible"
+Participación: 25.0, 33.33, 100.0 (sin símbolo %)
+
+NOTAS IMPORTANTES:
+==================
+
+- Todos los campos son opcionales excepto company_name
+- Las líneas que comienzan con # son comentarios y se ignoran
+- Si no hay sección de estructura accionarial, esa parte quedará vacía
+- La estructura accionarial puede editarse manualmente después de la importación
+- Los datos importados no se duplican en futuras cargas (se actualizan)
+
+INSTRUCCIONES DE USO:
+====================
+
+1. Completa la información de la empresa en la primera sección
+2. Agrega los accionistas en la segunda sección (opcional)
+3. Guarda el archivo con codificación UTF-8
+4. Sube el archivo en el paso 3.5 del wizard de creación de usuario

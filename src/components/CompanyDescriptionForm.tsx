@@ -7,12 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
-import { usePerplexityCompanySearch } from '@/hooks/usePerplexityCompanySearch';
 import { useCompanyDescription } from '@/hooks/useCompanyDescription';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
-import { Search, Edit3, Save, X, CheckCircle, AlertTriangle, Building, Globe, Users, MapPin, Calendar, DollarSign } from 'lucide-react';
+import { Edit3, Save, X, CheckCircle, AlertTriangle, Building, Globe, Users, MapPin, Calendar, DollarSign } from 'lucide-react';
 
 interface CompanyData {
   name: string;
@@ -27,7 +26,6 @@ interface CompanyData {
 }
 
 export const CompanyDescriptionForm = () => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [companyData, setCompanyData] = useState<CompanyData>({
     name: '',
@@ -44,8 +42,7 @@ export const CompanyDescriptionForm = () => {
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
   const { impersonatedUserInfo } = useAdminImpersonation();
-  const { searchCompany, isSearching, searchResult, error, clearSearch, dataFound } = usePerplexityCompanySearch();
-  const { companyDescription, loading: descriptionLoading, saveCompanyDescription, createFromPerplexityResult } = useCompanyDescription();
+  const { companyDescription, loading: descriptionLoading, saveCompanyDescription } = useCompanyDescription();
 
   // Get company name from profile or impersonated user
   const getCompanyName = () => {
@@ -74,41 +71,6 @@ export const CompanyDescriptionForm = () => {
       });
     }
   }, [companyDescription]);
-
-  // Auto-search for normal users on component mount
-  useEffect(() => {
-    if (!isAdmin && companyName && !companyDescription && !descriptionLoading) {
-      setSearchQuery(companyName);
-      searchCompany(companyName);
-    }
-  }, [companyName, isAdmin, companyDescription, descriptionLoading]);
-
-  useEffect(() => {
-    if (searchResult?.companyInfo && dataFound) {
-      const info = searchResult.companyInfo;
-      setCompanyData({
-        name: info.name,
-        description: info.description,
-        sector: info.sector || '',
-        industry: info.industry || '',
-        foundedYear: info.foundedYear,
-        employees: info.employees || '',
-        revenue: info.revenue || '',
-        headquarters: info.headquarters || '',
-        website: info.website || ''
-      });
-      
-      // Auto-save for normal users
-      if (!isAdmin) {
-        createFromPerplexityResult(searchResult);
-      }
-    }
-  }, [searchResult, dataFound, isAdmin]);
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
-    await searchCompany(searchQuery);
-  };
 
   const handleSave = async () => {
     const success = await saveCompanyDescription({
@@ -140,8 +102,6 @@ export const CompanyDescriptionForm = () => {
       headquarters: '',
       website: ''
     });
-    setSearchQuery('');
-    clearSearch();
     setIsEditing(false);
   };
 
@@ -154,13 +114,13 @@ export const CompanyDescriptionForm = () => {
 
   return (
     <div className="space-y-6">
-      {/* Información de empresa para usuarios normales o búsqueda para admins */}
-      {!isAdmin && companyName ? (
+      {/* Status information */}
+      {companyName && (
         <Card className="modern-card">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Building className="h-5 w-5 text-primary" />
-              Tu Empresa: {companyName}
+              {companyName}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -176,21 +136,14 @@ export const CompanyDescriptionForm = () => {
                   <Alert>
                     <CheckCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Información de tu empresa cargada automáticamente desde nuestra base de datos.
-                    </AlertDescription>
-                  </Alert>
-                ) : isSearching ? (
-                  <Alert>
-                    <Search className="h-4 w-4 animate-spin" />
-                    <AlertDescription>
-                      Buscando información sobre {companyName} con IA...
+                      Información de la empresa cargada desde la base de datos.
                     </AlertDescription>
                   </Alert>
                 ) : (
                   <Alert>
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                      No se encontró información sobre tu empresa. Puedes completar los datos manualmente.
+                      No hay información disponible. Puedes completar los datos manualmente.
                     </AlertDescription>
                   </Alert>
                 )}
@@ -198,79 +151,7 @@ export const CompanyDescriptionForm = () => {
             )}
           </CardContent>
         </Card>
-      ) : isAdmin ? (
-        /* Búsqueda manual para administradores */
-        <Card className="modern-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="h-5 w-5 text-primary" />
-              Búsqueda Inteligente de Empresa (Admin)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-3">
-              <Input
-                placeholder="Nombre de la empresa a buscar..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                disabled={isSearching}
-                className="flex-1"
-              />
-              <Button 
-                onClick={handleSearch} 
-                disabled={isSearching || !searchQuery.trim()}
-                className="min-w-[100px]"
-              >
-                {isSearching ? (
-                  <>
-                    <Search className="h-4 w-4 mr-2 animate-spin" />
-                    Buscando...
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4 mr-2" />
-                    Buscar
-                  </>
-                )}
-              </Button>
-            </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {isSearching && (
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            )}
-
-            {searchResult && !dataFound && (
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  No se encontró información específica sobre "{searchQuery}". Puedes completar los datos manualmente.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {searchResult && dataFound && (
-              <Alert>
-                <CheckCircle className="h-4 w-4" />
-                <AlertDescription>
-                  ¡Información encontrada! Los datos se han cargado automáticamente. Puedes editarlos si es necesario.
-                </AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
-      ) : null}
+      )}
 
       {/* Información de la Empresa */}
       <Card className="modern-card">
@@ -279,9 +160,9 @@ export const CompanyDescriptionForm = () => {
             <CardTitle className="flex items-center gap-2">
               <Building className="h-5 w-5 text-primary" />
               Información de la Empresa
-              {searchResult?.companyInfo.source && (
+              {companyDescription?.data_source && (
                 <Badge variant="secondary" className="ml-2">
-                  {searchResult.companyInfo.source}
+                  {companyDescription.data_source}
                 </Badge>
               )}
             </CardTitle>
@@ -456,15 +337,15 @@ export const CompanyDescriptionForm = () => {
             />
           </div>
 
-          {/* Resultado de búsqueda raw (solo si hay datos) */}
-          {searchResult?.rawSearchResult && dataFound && (
+          {/* Raw search result (only if available) */}
+          {companyDescription?.raw_search_result && (
             <Card className="bg-gray-50 border-dashed">
               <CardHeader>
-                <CardTitle className="text-sm">Información Original de Perplexity</CardTitle>
+                <CardTitle className="text-sm">Información Original de Búsqueda</CardTitle>
               </CardHeader>
               <CardContent>
                 <pre className="text-xs text-gray-600 whitespace-pre-wrap max-h-40 overflow-y-auto">
-                  {searchResult.rawSearchResult}
+                  {companyDescription.raw_search_result}
                 </pre>
               </CardContent>
             </Card>
