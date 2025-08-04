@@ -37,17 +37,17 @@ const AuthPage = () => {
     rememberMe: false
   });
 
-  const { authStatus, role, roleStatus, initialized, hasJustLoggedIn } = useAuth();
+  const { authStatus, role, roleStatus, initialized } = useAuth();
 
-  // ✅ ROLLBACK: Navegación solo después de login explícito
+  // ✅ Simplified navigation - only navigate when fully authenticated with role
   useEffect(() => {
-    if (authStatus === 'authenticated' && roleStatus === 'ready' && role && role !== 'none' && hasJustLoggedIn) {
-      console.debug('[AUTH-PAGE] Navigation triggered after explicit login:', { authStatus, roleStatus, role, hasJustLoggedIn });
+    if (authStatus === 'authenticated' && roleStatus === 'ready' && role && role !== 'none') {
+      console.debug('[AUTH-PAGE] Navigation triggered:', { authStatus, roleStatus, role });
       const targetPath = role === 'admin' ? '/admin/empresas' : '/app/mis-empresas';
       console.debug('[AUTH-PAGE] Navigating to:', targetPath);
       navigate(targetPath, { replace: true });
     }
-  }, [authStatus, roleStatus, role, hasJustLoggedIn, navigate]);
+  }, [authStatus, roleStatus, role, navigate]);
 
   useEffect(() => {
     // Debug temporal
@@ -58,13 +58,12 @@ const AuthPage = () => {
       role,
       roleStatus,
       initialized,
-      hasJustLoggedIn,
       isRecoveryMode,
       state: isPasswordReset ? 'password-reset' : isPasswordRecovery ? 'recovery' : isSignUp ? 'signup' : 'login'
     });
     
     setTokenLoading(false);
-  }, [user, authStatus, role, roleStatus, initialized, hasJustLoggedIn, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
+  }, [user, authStatus, role, roleStatus, initialized, isRecoveryMode, isPasswordReset, isPasswordRecovery, isSignUp]);
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({
       ...prev,
@@ -175,7 +174,7 @@ const AuthPage = () => {
             title: "¡Bienvenido!",
             description: "Has iniciado sesión correctamente"
           });
-          // ✅ ROLLBACK: AuthContext maneja todo automáticamente
+          // ✅ AuthContext handles everything automatically now
         }
       }
     } finally {

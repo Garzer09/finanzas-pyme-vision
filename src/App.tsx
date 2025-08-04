@@ -6,7 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DebugToolbar } from "@/components/DebugToolbar";
 
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PeriodProvider } from "./contexts/PeriodContext";
 import { AdminImpersonationProvider } from "./contexts/AdminImpersonationContext";
@@ -53,7 +53,7 @@ import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import ViewerMisEmpresasPage from "./pages/ViewerMisEmpresasPage";
 import ViewerDashboardPage from "./pages/ViewerDashboardPage";
-import { Navigate } from "react-router-dom";
+import { SessionRecovery } from "@/components/SessionRecovery";
 
 import { AdminCargaPlantillasPage } from "./pages/AdminCargaPlantillasPage";
 import AdminEmpresasPage from "./pages/AdminEmpresasPage";
@@ -71,11 +71,12 @@ const App = () => {
   return (
   <ErrorBoundary>
       <AuthProvider>
-        <AdminImpersonationProvider>
-          <PeriodProvider>
-            <TooltipProvider>
-          <Toaster />
-          <Sonner />
+        <SessionRecovery>
+          <AdminImpersonationProvider>
+            <PeriodProvider>
+              <TooltipProvider>
+            <Toaster />
+            <Sonner />
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Navigate to="/auth" replace />} />
@@ -150,9 +151,10 @@ const App = () => {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           <DebugToolbar />
-              </TooltipProvider>
-            </PeriodProvider>
-        </AdminImpersonationProvider>
+                </TooltipProvider>
+              </PeriodProvider>
+          </AdminImpersonationProvider>
+        </SessionRecovery>
       </AuthProvider>
   </ErrorBoundary>
   );
