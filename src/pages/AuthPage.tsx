@@ -10,12 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { TrendingUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { useCompanyLogo } from '@/hooks/useCompanyLogo';
-import { CompanyLogo } from '@/components/CompanyLogo';
 import { supabase } from '@/integrations/supabase/client';
 const AuthPage = () => {
   const { user, signIn, signUp, updatePassword } = useAuth();
-  const { logoUrl } = useCompanyLogo();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
@@ -205,17 +202,10 @@ const AuthPage = () => {
       <div className="w-full max-w-md">
         {/* Logo Section */}
         <div className="mb-8 flex justify-center">
-          <CompanyLogo 
-            logoUrl={logoUrl}
-            size="lg"
-            className="h-16 w-auto max-w-48"
-            fallback={
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-8 w-8 text-white" />
-                <span className="text-4xl font-bold text-white">FinSight</span>
-              </div>
-            }
-          />
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-8 w-8 text-white" />
+            <span className="text-4xl font-bold text-white">FinSight</span>
+          </div>
         </div>
 
         <Card className="w-full">
