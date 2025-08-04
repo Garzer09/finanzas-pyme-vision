@@ -27,14 +27,14 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
   if (authState.status === 'error') {
     const secureRetry = createSecureRetry(
       retry,
-      () => safeNavigate('/login', navigate, { state: { from: location } })
+      () => safeNavigate('/auth', navigate, { state: { from: location } })
     );
 
     return (
       <AuthErrorScreen
         message={formatAuthError(authState.error)}
         onRetry={secureRetry}
-        onBack={() => safeNavigate('/login', navigate)}
+        onBack={() => safeNavigate('/auth', navigate)}
         retryLabel="Reintentar"
         backLabel="Ir a Login"
       />
@@ -43,7 +43,7 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
 
   // 3️⃣ Not authenticated: redirect to login preserving location
   if (authState.status === 'unauthenticated') {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   // 4️⃣ Enhanced permission check for authenticated users
