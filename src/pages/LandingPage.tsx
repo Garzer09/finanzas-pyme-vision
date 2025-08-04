@@ -33,10 +33,10 @@ const LandingPage = () => {
       }
     }
     // Si no está autenticado, se queda en /
-  }, [initialized, authStatus, role, navigate]);
+  }, [initialized, authStatus, role]);
 
   const handleGetStarted = () => {
-    console.log('handleGetStarted clicked - always go to /auth');
+    console.log('🔘 CTA clicked - navigating to /auth');
     navigate('/auth');
   };
 
