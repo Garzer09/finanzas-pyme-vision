@@ -47,12 +47,18 @@ export const useSessionTimeout = ({
     timeoutRef.current = setTimeout(async () => {
       toast({
         title: "Sesión expirada",
-        description: "Tu sesión ha expirado por inactividad.",
+        description: "Tu sesión ha expirado por inactividad. Redirigiendo...",
         variant: "destructive",
+        duration: 5000,
       });
       
-      await signOut();
-      navigate('/');
+      try {
+        await signOut('/auth');
+      } catch (error) {
+        console.error('Error during timeout signout:', error);
+        // Force navigation even if signOut fails
+        window.location.href = '/auth';
+      }
     }, effectiveTimeoutMinutes * 60 * 1000);
   }, [user, role, signOut, navigate, effectiveTimeoutMinutes, warningMinutes]);
 
