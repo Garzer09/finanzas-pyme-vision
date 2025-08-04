@@ -39,7 +39,17 @@ const AuthPage = () => {
 
   const { authStatus, role, roleStatus, initialized, hasJustLoggedIn } = useAuth();
 
-  // ✅ ROLLBACK: Navegación solo después de login explícito
+  // ✅ Redirect authenticated users away from auth page
+  useEffect(() => {
+    if (authStatus === 'authenticated' && roleStatus === 'ready' && role && role !== 'none' && !hasJustLoggedIn) {
+      console.debug('[AUTH-PAGE] Already authenticated user found, redirecting to dashboard:', { authStatus, roleStatus, role });
+      const targetPath = role === 'admin' ? '/admin/empresas' : '/app/mis-empresas';
+      console.debug('[AUTH-PAGE] Redirecting existing session to:', targetPath);
+      navigate(targetPath, { replace: true });
+    }
+  }, [authStatus, roleStatus, role, hasJustLoggedIn, navigate]);
+
+  // ✅ Navigation after fresh login
   useEffect(() => {
     if (authStatus === 'authenticated' && roleStatus === 'ready' && role && role !== 'none' && hasJustLoggedIn) {
       console.debug('[AUTH-PAGE] Navigation triggered after explicit login:', { authStatus, roleStatus, role, hasJustLoggedIn });

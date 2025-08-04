@@ -153,19 +153,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         setSession(session);
         setUser(session?.user ?? null);
-        // ✅ ROLLBACK: No cambiar a 'authenticated' automáticamente en sesión existente
-        setAuthStatus(session ? 'idle' : 'unauthenticated');
-        setHasJustLoggedIn(false); // Sesión existente no es login reciente
+        // ✅ FIX: Set proper auth status for existing sessions but don't trigger navigation
+        setAuthStatus(session ? 'authenticated' : 'unauthenticated');
+        setHasJustLoggedIn(false); // Existing session is not a fresh login
         
-        // ✅ ROLLBACK: No resolver rol automáticamente en sesión existente
+        // ✅ FIX: Resolve role for existing sessions to prevent access issues
         if (session?.user?.id) {
-          console.log('👤 [AUTH-CTX] Existing user found, but not resolving role automatically');
-          setRole('none'); // Mantener role como 'none' hasta login explícito
-          setRoleStatus('idle');
+          console.log('👤 [AUTH-CTX] Existing user found, resolving role without navigation trigger');
+          const reqId = ++roleReqIdRef.current;
+          setRoleStatus('resolving');
+          
+          try {
+            const userRole = await fetchUserRole(session.user.id, reqId);
+            if (mounted && reqId === roleReqIdRef.current) {
+              console.log('✅ [AUTH-CTX] Role resolved for existing session:', userRole, 'reqId:', reqId);
+              setRole(userRole);
+              lastKnownRoleRef.current = userRole;
+              setRoleStatus('ready');
+            }
+          } catch (error) {
+            console.error('❌ [AUTH-CTX] Error resolving role for existing session:', error, 'reqId:', reqId);
+            if (mounted && reqId === roleReqIdRef.current) {
+              // Default to viewer for unknown roles to allow basic access
+              setRole('viewer');
+              lastKnownRoleRef.current = 'viewer';
+              setRoleStatus('ready');
+            }
+          }
         } else {
           console.log('❌ [AUTH-CTX] No existing user');
           setRole('none');
-          setRoleStatus('idle');
+          setRoleStatus('ready'); // Mark as ready even for no user
         }
         
       } catch (error) {
