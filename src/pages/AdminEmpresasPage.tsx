@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Upload, History, BarChart3, Plus, Calendar, Briefcase } from 'lucide-react';
+import { Building2, Upload, History, BarChart3, Plus, Calendar, Briefcase, MoreVertical, Edit, Users, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AdminTopNavigation } from '@/components/AdminTopNavigation';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +41,9 @@ export const AdminEmpresasPage: React.FC = () => {
   const [coverageData, setCoverageData] = useState<{ [key: string]: DataCoverage }>({});
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [newCompany, setNewCompany] = useState({
     name: '',
     currency_code: 'EUR',
@@ -153,6 +158,116 @@ export const AdminEmpresasPage: React.FC = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleEditCompany = (company: Company) => {
+    setSelectedCompany(company);
+    setNewCompany({
+      name: company.name,
+      currency_code: company.currency_code,
+      accounting_standard: company.accounting_standard,
+      sector: company.sector || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateCompany = async () => {
+    if (!selectedCompany || !newCompany.name) {
+      toast({
+        title: "Error",
+        description: "El nombre de la empresa es obligatorio",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('companies')
+        .update({
+          name: newCompany.name,
+          currency_code: newCompany.currency_code,
+          accounting_standard: newCompany.accounting_standard,
+          sector: newCompany.sector
+        })
+        .eq('id', selectedCompany.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Empresa actualizada",
+        description: `${newCompany.name} se ha actualizado exitosamente`
+      });
+
+      setShowEditModal(false);
+      setSelectedCompany(null);
+      setNewCompany({
+        name: '',
+        currency_code: 'EUR',
+        accounting_standard: 'PGC',
+        sector: ''
+      });
+      loadCompanies();
+    } catch (error) {
+      console.error('Error updating company:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar la empresa",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteCompany = async () => {
+    if (!selectedCompany) return;
+
+    try {
+      // First check if company has data
+      const { data: hasData } = await supabase
+        .from('fs_pyg_lines')
+        .select('id')
+        .eq('company_id', selectedCompany.id)
+        .limit(1);
+
+      if (hasData && hasData.length > 0) {
+        toast({
+          title: "No se puede eliminar",
+          description: "Esta empresa tiene datos asociados. Elimina primero todos los datos financieros.",
+          variant: "destructive"
+        });
+        setShowDeleteDialog(false);
+        setSelectedCompany(null);
+        return;
+      }
+
+      const { error } = await supabase
+        .from('companies')
+        .delete()
+        .eq('id', selectedCompany.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Empresa eliminada",
+        description: `${selectedCompany.name} se ha eliminado exitosamente`
+      });
+
+      setShowDeleteDialog(false);
+      setSelectedCompany(null);
+      loadCompanies();
+    } catch (error) {
+      console.error('Error deleting company:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo eliminar la empresa",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleAssignUsers = (company: Company) => {
+    // Navigate to user management with company filter
+    navigate(`/admin/usuarios?companyId=${company.id}`);
   };
 
   const formatDataCoverage = (coverage: DataCoverage) => {
@@ -312,35 +427,65 @@ export const AdminEmpresasPage: React.FC = () => {
                   {companies.map((company) => {
                     const coverage = coverageData[company.id];
                     return (
-                      <Card key={company.id} className="hover:shadow-lg transition-shadow">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center gap-3">
-                              {company.logo_url ? (
-                                <img 
-                                  src={company.logo_url} 
-                                  alt={`${company.name} logo`}
-                                  className="h-10 w-10 rounded-lg object-cover"
-                                />
-                              ) : (
-                                <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                                  <Building2 className="h-5 w-5 text-primary" />
-                                </div>
-                              )}
-                              <div>
-                                <CardTitle className="text-lg">{company.name}</CardTitle>
-                                <div className="flex gap-2 mt-1">
-                                  <Badge variant="outline" className="text-xs">
-                                    {company.currency_code}
-                                  </Badge>
-                                  <Badge variant="outline" className="text-xs">
-                                    {company.accounting_standard}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </CardHeader>
+                       <Card key={company.id} className="hover:shadow-lg transition-shadow">
+                         <CardHeader className="pb-3">
+                           <div className="flex items-start justify-between">
+                             <div className="flex items-center gap-3">
+                               {company.logo_url ? (
+                                 <img 
+                                   src={company.logo_url} 
+                                   alt={`${company.name} logo`}
+                                   className="h-10 w-10 rounded-lg object-cover"
+                                 />
+                               ) : (
+                                 <div className="h-10 w-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                   <Building2 className="h-5 w-5 text-primary" />
+                                 </div>
+                               )}
+                               <div>
+                                 <CardTitle className="text-lg">{company.name}</CardTitle>
+                                 <div className="flex gap-2 mt-1">
+                                   <Badge variant="outline" className="text-xs">
+                                     {company.currency_code}
+                                   </Badge>
+                                   <Badge variant="outline" className="text-xs">
+                                     {company.accounting_standard}
+                                   </Badge>
+                                 </div>
+                               </div>
+                             </div>
+                             
+                             {/* Company Actions Menu */}
+                             <DropdownMenu>
+                               <DropdownMenuTrigger asChild>
+                                 <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                   <MoreVertical className="h-4 w-4" />
+                                 </Button>
+                               </DropdownMenuTrigger>
+                               <DropdownMenuContent align="end" className="w-48 bg-background border border-border shadow-lg">
+                                 <DropdownMenuItem onClick={() => handleEditCompany(company)} className="gap-2">
+                                   <Edit className="h-4 w-4" />
+                                   Actualizar datos
+                                 </DropdownMenuItem>
+                                 <DropdownMenuItem onClick={() => handleAssignUsers(company)} className="gap-2">
+                                   <Users className="h-4 w-4" />
+                                   Asignar usuarios
+                                 </DropdownMenuItem>
+                                 <DropdownMenuSeparator />
+                                 <DropdownMenuItem 
+                                   onClick={() => {
+                                     setSelectedCompany(company);
+                                     setShowDeleteDialog(true);
+                                   }}
+                                   className="gap-2 text-destructive focus:text-destructive"
+                                 >
+                                   <Trash2 className="h-4 w-4" />
+                                   Eliminar empresa
+                                 </DropdownMenuItem>
+                               </DropdownMenuContent>
+                             </DropdownMenu>
+                           </div>
+                         </CardHeader>
                         
                         <CardContent className="space-y-4">
                           {/* Data Coverage */}
@@ -420,6 +565,104 @@ export const AdminEmpresasPage: React.FC = () => {
                 </div>
               )}
           </div>
+          
+          {/* Edit Company Modal */}
+          <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Actualizar Empresa</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Nombre de la Empresa *</Label>
+                  <Input
+                    id="edit-name"
+                    value={newCompany.name}
+                    onChange={(e) => setNewCompany(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Ingresa el nombre de la empresa"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-currency">Moneda por Defecto</Label>
+                    <Select 
+                      value={newCompany.currency_code}
+                      onValueChange={(value) => setNewCompany(prev => ({ ...prev, currency_code: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="EUR">EUR - Euro</SelectItem>
+                        <SelectItem value="USD">USD - Dólar</SelectItem>
+                        <SelectItem value="GBP">GBP - Libra</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-standard">Estándar Contable</Label>
+                    <Select 
+                      value={newCompany.accounting_standard}
+                      onValueChange={(value) => setNewCompany(prev => ({ ...prev, accounting_standard: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PGC">PGC - Plan General Contable</SelectItem>
+                        <SelectItem value="IFRS">IFRS - Normas Internacionales</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-sector">Sector</Label>
+                  <Input
+                    id="edit-sector"
+                    value={newCompany.sector}
+                    onChange={(e) => setNewCompany(prev => ({ ...prev, sector: e.target.value }))}
+                    placeholder="Ej: Tecnología, Manufactura, Servicios"
+                  />
+                </div>
+                
+                <div className="flex gap-2 pt-4">
+                  <Button onClick={handleUpdateCompany} className="flex-1">
+                    Actualizar Empresa
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowEditModal(false)}>
+                    Cancelar
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+          
+          {/* Delete Company Alert Dialog */}
+          <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>¿Eliminar empresa?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta acción eliminará permanentemente la empresa "{selectedCompany?.name}" del sistema.
+                  Asegúrate de que no tenga datos financieros asociados antes de proceder.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setSelectedCompany(null)}>
+                  Cancelar
+                </AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleDeleteCompany}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Eliminar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </main>
       </div>
     </RoleBasedAccess>
