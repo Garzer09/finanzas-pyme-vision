@@ -4,6 +4,25 @@
 
 **URL**: https://lovable.dev/projects/fc9a50c5-6c20-4e01-84b9-97b89b1ecfa8
 
+## Environment Configuration
+
+### Supabase Edge Functions
+
+The project includes Supabase Edge Functions that require environment configuration:
+
+- **DENO_ENV**: Set to `development` for development mode, or any other value for production mode
+  - In development mode (`DENO_ENV=development`), edge functions use mock data for testing
+  - In production mode, edge functions should use real data processing
+
+To configure environment variables for Supabase Edge Functions:
+```sh
+# For local development
+supabase secrets set DENO_ENV=development
+
+# For production deployment  
+supabase secrets set DENO_ENV=production
+```
+
 ## How can I edit this code?
 
 There are several ways of editing your application.
