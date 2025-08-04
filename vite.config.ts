@@ -20,24 +20,36 @@ export default defineConfig(({ mode }) => ({
     },
   },
   build: {
-    // Optimize bundle for production
-    minify: mode === 'production' ? 'esbuild' : false,
-    sourcemap: mode === 'development',
-    // Code splitting for better caching
     rollupOptions: {
       output: {
         manualChunks: {
-          // Separate vendor chunks for better caching
+          // Vendor chunks for better caching
           vendor: ['react', 'react-dom', 'react-router-dom'],
-          ui: ['@radix-ui/react-accordion', '@radix-ui/react-alert-dialog', '@radix-ui/react-avatar'],
-          supabase: ['@supabase/supabase-js'],
+          ui: [
+            '@radix-ui/react-accordion', 
+            '@radix-ui/react-alert-dialog', 
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-dialog', 
+            '@radix-ui/react-dropdown-menu', 
+            '@radix-ui/react-popover'
+          ],
           charts: ['recharts'],
-          utils: ['lodash', 'date-fns', 'zod'],
-        },
-      },
+          forms: ['react-hook-form', '@hookform/resolvers', 'zod'],
+          supabase: ['@supabase/supabase-js'],
+          query: ['@tanstack/react-query'],
+          excel: ['xlsx'],
+          utils: ['lodash', 'date-fns', 'clsx']
+        }
+      }
     },
-    // Increase chunk size warning limit since we have large financial modules
+    // Increase chunk size warning limit for financial modules
     chunkSizeWarningLimit: 1000,
+    // Enable minification with esbuild for better performance
+    minify: mode === 'production' ? 'esbuild' : false,
+    // Optimize CSS
+    cssCodeSplit: true,
+    // Source maps configuration
+    sourcemap: mode === 'production' ? 'hidden' : true
   },
   test: {
     globals: true,
