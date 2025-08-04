@@ -9,12 +9,16 @@ interface SheetData {
   name: string;
   fields: string[];
   sampleData: Record<string, any>[];
+  rowCount?: number;
+  hasHeaders?: boolean;
 }
 
 interface ParsedExcelData {
   detectedSheets: string[];
   detectedFields: Record<string, string[]>;
   sheetsData: SheetData[];
+  fileSize?: number;
+  processingTime?: number;
 }
 
 interface ProcessingMetrics {
@@ -24,7 +28,27 @@ interface ProcessingMetrics {
   fieldCount: number;
 }
 
-// Memory-efficient error handling
+interface FileProcessingOptions {
+  maxFileSize: number;
+  maxRows: number;
+  streamingMode: boolean;
+  sampleSize: number;
+}
+
+// --------------------------------------------------
+// Detección de tipo financiero y campos relevantes
+// --------------------------------------------------
+function detectFinancialType(fileName: string, sheetNames: string[]): string {
+  const text = (fileName + ' ' + sheetNames.join(' ')).toLowerCase();
+  if (text.includes('balance') || text.includes('situacion')) return 'balance';
+  if (text.includes('pyg') || text.includes('perdidas') || text.includes('ganancias')) return 'pyg';
+  if (text.includes('flujo') || text.includes('cash') || text.includes('efectivo')) return 'cash_flow';
+  return 'generic';
+}
+
+// --------------------------------------------------
+// Errores con contexto y sugerencias
+// --------------------------------------------------
 class ProcessingError extends Error {
   constructor(
     message: string,
@@ -37,20 +61,98 @@ class ProcessingError extends Error {
   }
 }
 
-// Optimized file processing with enhanced memory management
+// --------------------------------------------------
+// Mock data optimizada según tipo y tamaño
+// --------------------------------------------------
+function generateOptimizedMockDataByType(fileName: string, fileSize: number): ParsedExcelData {
+  const lower = fileName.toLowerCase();
+  const maxSample = fileSize > 10 * 1024 * 1024 ? 3 : 5;
+  const makeSheet = (name: string, concepts: string[]) => {
+    return [{
+      name,
+      fields: ['concepto', '2023', '2022'],
+      sampleData: concepts.slice(0, maxSample).map(concept => ({
+        concepto,
+        '2023': Math.round(Math.random() * 100000 + 50000),
+        '2022': Math.round(Math.random() * 90000 + 45000)
+      }))
+    }];
+  };
+
+  if (lower.includes('balance') || lower.includes('situacion')) {
+    return {
+      detectedSheets: ['Balance de Situación'],
+      detectedFields: {
+        'Balance de Situación': [
+          'Activo no corriente', 'Activo corriente', 'Existencias',
+          'Deudores comerciales', 'Efectivo', 'Patrimonio neto',
+          'Pasivo no corriente', 'Pasivo corriente'
+        ]
+      },
+      sheetsData: makeSheet('Balance de Situación', [
+        'Activo no corriente', 'Activo corriente', 'Existencias',
+        'Deudores comerciales', 'Efectivo', 'Patrimonio neto',
+        'Pasivo no corriente', 'Pasivo corriente'
+      ])
+    };
+  }
+
+  if (lower.includes('pyg') || lower.includes('perdidas') || lower.includes('ganancias')) {
+    return {
+      detectedSheets: ['Cuenta PyG'],
+      detectedFields: {
+        'Cuenta PyG': [
+          'Ingresos de explotación', 'Gastos de explotación', 'Resultado de explotación',
+          'Resultado financiero', 'Resultado del ejercicio'
+        ]
+      },
+      sheetsData: makeSheet('Cuenta PyG', [
+        'Ingresos de explotación', 'Gastos de explotación', 'Resultado de explotación',
+        'Resultado financiero', 'Resultado antes de impuestos'
+      ])
+    };
+  }
+
+  if (lower.includes('flujo') || lower.includes('cash') || lower.includes('efectivo')) {
+    return {
+      detectedSheets: ['Flujo de Caja'],
+      detectedFields: {
+        'Flujo de Caja': [
+          'Flujos de explotación', 'Flujos de inversión', 'Flujos de financiación',
+          'Variación neta de efectivo'
+        ]
+      },
+      sheetsData: makeSheet('Flujo de Caja', [
+        'Flujos de explotación', 'Flujos de inversión', 'Flujos de financiación',
+        'Variación neta de efectivo'
+      ])
+    };
+  }
+
+  // Genérico
+  return {
+    detectedSheets: ['Hoja1'],
+    detectedFields: {
+      'Hoja1': ['concepto', 'valor', 'periodo']
+    },
+    sheetsData: makeSheet('Hoja1', ['Dato 1', 'Dato 2', 'Dato 3'])
+  };
+}
+
+// --------------------------------------------------
+// Procesamiento eficiente con tracking de métricas
+// --------------------------------------------------
 function processFileEfficiently(file: string, fileName: string): {
   data: ParsedExcelData;
   metrics: ProcessingMetrics;
 } {
   const startTime = performance.now();
   let fileSize = 0;
-  
+
   try {
-    // Memory-efficient file size calculation
+    // Cálculo de tamaño en bytes
     fileSize = new TextEncoder().encode(file).length;
-    
-    // Progressive validation for different file sizes
-    if (fileSize > 50 * 1024 * 1024) { // 50MB limit
+    if (fileSize > 50 * 1024 * 1024) {
       throw new ProcessingError(
         'El archivo es demasiado grande para procesar',
         'FILE_TOO_LARGE',
@@ -58,16 +160,14 @@ function processFileEfficiently(file: string, fileName: string): {
         false
       );
     }
-    
-    // Memory usage warning for large files
-    if (fileSize > 25 * 1024 * 1024) { // 25MB warning
-      console.warn(`Processing large file: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
+    if (fileSize > 25 * 1024 * 1024) {
+      console.warn(`Archivo grande: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
     }
 
-    // Process file with memory-efficient approach
+    // Generar mock data según tipo
     const parsedData = generateOptimizedMockDataByType(fileName, fileSize);
     const processingTimeMs = performance.now() - startTime;
-    
+
     const metrics: ProcessingMetrics = {
       processingTimeMs,
       fileSize,
@@ -75,257 +175,117 @@ function processFileEfficiently(file: string, fileName: string): {
       fieldCount: Object.values(parsedData.detectedFields).flat().length
     };
 
-    // Memory cleanup hint
-    if (typeof globalThis !== 'undefined' && globalThis.gc) {
-      globalThis.gc();
+    // Forzar limpieza de memoria si es posible
+    if (typeof globalThis !== 'undefined' && (globalThis as any).gc) {
+      (globalThis as any).gc();
     }
 
     return { data: parsedData, metrics };
-    
-  } catch (error) {
+  } catch (err) {
     const processingTimeMs = performance.now() - startTime;
-    
-    if (error instanceof ProcessingError) {
-      throw error;
+    if (err instanceof ProcessingError) {
+      throw err;
     }
-    
-    // Enhanced error context
-    const errorDetails = error instanceof Error ? error.message : 'Unknown error';
+    const msg = err instanceof Error ? err.message : 'Unknown error';
     throw new ProcessingError(
       'Error interno al procesar el archivo',
       'PROCESSING_FAILED',
-      `Verifica que el archivo no esté corrupto y vuelve a intentarlo. Detalles: ${errorDetails}`,
+      `Verifica que el archivo no esté corrupto. Detalles: ${msg}`,
       true
     );
   }
 }
 
-// Enhanced mock data generation with memory optimization
-function generateOptimizedMockDataByType(fileName: string, fileSize: number): ParsedExcelData {
-  const fileNameLower = fileName.toLowerCase();
-  
-  // Optimize data generation based on file size
-  const maxSampleRows = fileSize > 10 * 1024 * 1024 ? 3 : 5; // Fewer samples for large files
-  
-  // Balance sheet documents
-  if (fileNameLower.includes('balance') || fileNameLower.includes('situacion')) {
-    return {
-      detectedSheets: ['Balance de Situación', 'Hoja1'],
-      detectedFields: {
-        'Balance de Situación': [
-          'Activo no corriente',
-          'Inmovilizado material',
-          'Activo corriente',
-          'Existencias', 
-          'Deudores comerciales',
-          'Efectivo',
-          'Patrimonio neto',
-          'Capital',
-          'Reservas',
-          'Pasivo no corriente',
-          'Deudas a largo plazo',
-          'Pasivo corriente',
-          'Acreedores comerciales'
-        ]
-      },
-      sheetsData: [{
-        name: 'Balance de Situación',
-        fields: ['concepto', '2023', '2022'],
-        sampleData: [
-          { concepto: 'Activo no corriente', '2023': 150000, '2022': 140000 },
-          { concepto: 'Activo corriente', '2023': 80000, '2022': 75000 },
-          { concepto: 'Patrimonio neto', '2023': 180000, '2022': 165000 },
-          { concepto: 'Pasivo no corriente', '2023': 30000, '2022': 35000 },
-          { concepto: 'Pasivo corriente', '2023': 20000, '2022': 15000 }
-        ].slice(0, maxSampleRows)
-      }]
-    };
-  }
-  
-  // P&L documents
-  if (fileNameLower.includes('pyg') || fileNameLower.includes('perdidas') || fileNameLower.includes('ganancias')) {
-    return {
-      detectedSheets: ['Cuenta PyG', 'Hoja1'],
-      detectedFields: {
-        'Cuenta PyG': [
-          'Ingresos de explotación',
-          'Cifra de negocios',
-          'Gastos de explotación',
-          'Aprovisionamientos',
-          'Gastos de personal',
-          'Amortizaciones',
-          'Resultado de explotación',
-          'Resultado financiero',
-          'Resultado antes de impuestos',
-          'Impuesto sobre beneficios',
-          'Resultado del ejercicio'
-        ]
-      },
-      sheetsData: [{
-        name: 'Cuenta PyG',
-        fields: ['concepto', '2023', '2022'],
-        sampleData: [
-          { concepto: 'Ingresos de explotación', '2023': 500000, '2022': 450000 },
-          { concepto: 'Gastos de explotación', '2023': 400000, '2022': 360000 },
-          { concepto: 'Resultado de explotación', '2023': 100000, '2022': 90000 },
-          { concepto: 'Resultado financiero', '2023': -5000, '2022': -4000 },
-          { concepto: 'Resultado del ejercicio', '2023': 75000, '2022': 68000 }
-        ].slice(0, maxSampleRows)
-      }]
-    };
-  }
-  
-  // Cash flow documents
-  if (fileNameLower.includes('flujo') || fileNameLower.includes('cash')) {
-    return {
-      detectedSheets: ['Flujo de Caja', 'Hoja1'],
-      detectedFields: {
-        'Flujo de Caja': [
-          'Flujos de actividades de explotación',
-          'Resultado del ejercicio',
-          'Amortizaciones',
-          'Variación del circulante',
-          'Flujos de actividades de inversión',
-          'Inversiones en inmovilizado',
-          'Flujos de actividades de financiación',
-          'Variación de deudas',
-          'Dividendos pagados'
-        ]
-      },
-      sheetsData: [{
-        name: 'Flujo de Caja',
-        fields: ['concepto', '2023', '2022'],
-        sampleData: [
-          { concepto: 'Flujos de explotación', '2023': 120000, '2022': 100000 },
-          { concepto: 'Flujos de inversión', '2023': -50000, '2022': -30000 },
-          { concepto: 'Flujos de financiación', '2023': -20000, '2022': -15000 },
-          { concepto: 'Variación neta de efectivo', '2023': 50000, '2022': 55000 }
-        ].slice(0, maxSampleRows)
-      }]
-    };
-  }
-  
-  // Generic document with size-optimized response
-  return {
-    detectedSheets: ['Hoja1', 'Datos'],
-    detectedFields: {
-      'Hoja1': ['Columna A', 'Columna B', 'Columna C', 'Fecha', 'Importe'],
-      'Datos': ['Concepto', 'Valor', 'Período']
-    },
-    sheetsData: [{
-      name: 'Hoja1',
-      fields: ['concepto', 'valor', 'periodo'],
-      sampleData: [
-        { concepto: 'Dato 1', valor: 1000, periodo: '2023' },
-        { concepto: 'Dato 2', valor: 2000, periodo: '2023' },
-        { concepto: 'Dato 3', valor: 1500, periodo: '2022' }
-      ].slice(0, maxSampleRows)
-    }]
-  };
-}
-
-// Format processing metrics for user display
+// --------------------------------------------------
+// Formateo de métricas para el log
+// --------------------------------------------------
 function formatMetrics(metrics: ProcessingMetrics): string {
-  const timeSeconds = (metrics.processingTimeMs / 1000).toFixed(2);
-  const fileSizeMB = (metrics.fileSize / (1024 * 1024)).toFixed(2);
-  
-  return `Procesado en ${timeSeconds}s (${fileSizeMB}MB, ${metrics.sheetCount} hojas, ${metrics.fieldCount} campos)`;
+  const timeSec = (metrics.processingTimeMs / 1000).toFixed(2);
+  const sizeMB = (metrics.fileSize / (1024 * 1024)).toFixed(2);
+  return `${timeSec}s, ${sizeMB}MB, ${metrics.sheetCount} hojas, ${metrics.fieldCount} campos`;
 }
 
+// --------------------------------------------------
+// Servidor HTTP Deno
+// --------------------------------------------------
 serve(async (req) => {
-  const requestStartTime = performance.now();
-  
-  // Handle CORS preflight requests
+  const requestStart = performance.now();
+
+  // Preflight CORS
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Enhanced request timeout handling
-    const requestTimeoutMs = 30000; // 30 second timeout
-    const timeoutPromise = new Promise((_, reject) => {
+    // Timeout de 30s
+    const timeout = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new ProcessingError(
-        'El procesamiento del archivo ha excedido el tiempo límite',
+        'Tiempo de procesamiento excedido',
         'REQUEST_TIMEOUT',
-        'El archivo puede ser demasiado grande o complejo. Intenta con un archivo más pequeño.',
+        'Intenta con un archivo más pequeño.',
         true
-      )), requestTimeoutMs);
+      )), 30000);
     });
 
-    // Input validation with enhanced error messages
-    const requestBodyPromise = req.json().catch(() => {
+    const bodyPromise = req.json().catch(() => {
       throw new ProcessingError(
         'Formato de solicitud inválido',
         'INVALID_REQUEST',
-        'Asegúrate de que el archivo se esté enviando correctamente',
+        'Asegúrate de enviar JSON con { file, fileName }',
         true
       );
     });
 
-    const requestBody = await Promise.race([requestBodyPromise, timeoutPromise]);
-    const { file, fileName } = requestBody;
-    
-    if (!file || !fileName) {
+    const { file, fileName } = await Promise.race([bodyPromise, timeout]);
+
+    if (!file || typeof fileName !== 'string') {
       throw new ProcessingError(
-        'Faltan datos requeridos del archivo',
+        'Faltan datos requeridos',
         'MISSING_DATA',
-        'Selecciona un archivo válido e inténtalo de nuevo',
+        'Envía tanto el archivo como su nombre.',
         true
       );
     }
 
-    if (typeof fileName !== 'string' || fileName.trim().length === 0) {
-      throw new ProcessingError(
-        'Nombre de archivo no válido',
-        'INVALID_FILENAME',
-        'El archivo debe tener un nombre válido',
-        true
-      );
-    }
+    console.log('Procesando:', fileName);
 
-    console.log('Processing file:', fileName);
+    const { data: parsedData, metrics } = await Promise.race([
+      Promise.resolve(processFileEfficiently(file, fileName)),
+      timeout
+    ]);
 
-    // Process file with timeout protection
-    const processingPromise = processFileEfficiently(file, fileName);
-    const { data: parsedData, metrics } = await Promise.race([processingPromise, timeoutPromise]);
-    
-    // Development mode indicator
-    const isDevelopmentMode = true; // Set to false when real Excel parsing is implemented
-    
-    const totalRequestTime = performance.now() - requestStartTime;
-    console.log('Processing completed:', formatMetrics(metrics), `Total request: ${totalRequestTime.toFixed(2)}ms`);
+    const totalTime = (performance.now() - requestStart).toFixed(2);
+    console.log(`Listo – ${formatMetrics(metrics)} (total ${totalTime}ms)`);
 
-    // Optimized response with enhanced performance metrics
+    const isDev = true;
     return new Response(
       JSON.stringify({
         success: true,
         detectedSheets: parsedData.detectedSheets,
         detectedFields: parsedData.detectedFields,
         sheetsData: parsedData.sheetsData,
-        fileName: fileName,
-        message: isDevelopmentMode 
-          ? `Archivo analizado correctamente (DESARROLLO) - ${formatMetrics(metrics)}`
-          : `Archivo analizado correctamente - ${formatMetrics(metrics)}`,
-        developmentMode: isDevelopmentMode,
+        message: isDev
+          ? `Archivo analizado en modo DESARROLLO – ${formatMetrics(metrics)}`
+          : `Archivo analizado correctamente – ${formatMetrics(metrics)}`,
+        developmentMode: isDev,
         performance: {
           processingTimeMs: metrics.processingTimeMs,
-          totalRequestTimeMs: totalRequestTime,
+          totalRequestTimeMs: parseFloat(totalTime),
           fileSize: metrics.fileSize,
           sheetCount: metrics.sheetCount,
           fieldCount: metrics.fieldCount,
-          efficiency: metrics.fileSize > 0 ? (metrics.fileSize / metrics.processingTimeMs).toFixed(2) + ' bytes/ms' : 'N/A'
+          efficiency: metrics.fileSize > 0
+            ? `${(metrics.fileSize / metrics.processingTimeMs).toFixed(2)} bytes/ms`
+            : 'N/A'
         }
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error) {
-    const totalRequestTime = performance.now() - requestStartTime;
-    console.error('Error in simple-excel-parser:', error);
-    
-    // Enhanced error handling with user-friendly messages
+    const elapsed = (performance.now() - requestStart).toFixed(2);
+    console.error('Error en el parser:', error);
+
     if (error instanceof ProcessingError) {
       return new Response(
         JSON.stringify({
@@ -335,10 +295,7 @@ serve(async (req) => {
           suggestion: error.suggestion,
           recoverable: error.recoverable,
           userFriendly: true,
-          performance: {
-            failedAfterMs: totalRequestTime,
-            errorType: error.code
-          }
+          performance: { failedAfterMs: parseFloat(elapsed), errorType: error.code }
         }),
         {
           status: error.recoverable ? 400 : 500,
@@ -346,21 +303,15 @@ serve(async (req) => {
         }
       );
     }
-    
-    // Fallback for unexpected errors
+
     return new Response(
       JSON.stringify({
         success: false,
         error: 'UNEXPECTED_ERROR',
         message: 'Error inesperado al procesar el archivo',
-        suggestion: 'Intenta nuevamente en unos momentos. Si el problema persiste, contacta con soporte.',
+        suggestion: 'Intenta de nuevo o contacta con soporte.',
         recoverable: true,
-        userFriendly: true,
-        details: error.message || 'Unknown error',
-        performance: {
-          failedAfterMs: totalRequestTime,
-          errorType: 'UNEXPECTED'
-        }
+        performance: { failedAfterMs: parseFloat(elapsed), errorType: 'UNEXPECTED' }
       }),
       {
         status: 500,

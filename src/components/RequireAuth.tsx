@@ -1,8 +1,9 @@
 import React from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { canAccessProtectedRoute, isAuthLoading } from '@/types/auth';
+import { createSecureRetry, checkRoutePermissions, safeNavigate, formatAuthError } from '@/utils/authHelpers';
+import { AuthLoadingScreen, AuthErrorScreen, AuthUnauthorizedScreen } from '@/components/LoadingStates';
 
 interface RequireAuthProps {
   children: React.ReactNode;
@@ -13,63 +14,61 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Debug logging
-  console.debug('🔐 [REQUIRE-AUTH]:', {
-    status: authState.status,
-    path: location.pathname,
-  });
-
-  // 1️⃣ Esperamos a que se inicialice la autenticación
+  // 1️⃣ Wait for authentication initialization
   if (!initialized || isAuthLoading(authState)) {
-    console.debug('🔐 [REQUIRE-AUTH]: Waiting for initialization or loading');
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center space-y-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-          <p className="text-sm text-muted-foreground">Cargando...</p>
-        </div>
-      </div>
+      <AuthLoadingScreen 
+        message="Verificando autenticación..." 
+      />
     );
   }
 
-  // 2️⃣ Error de autenticación: mostramos opción de reintentar
+  // 2️⃣ Authentication error: show enhanced retry option
   if (authState.status === 'error') {
-    console.error('🔐 [REQUIRE-AUTH] Auth error:', authState.error);
+    const secureRetry = createSecureRetry(
+      retry,
+      () => safeNavigate('/login', navigate, { state: { from: location } })
+    );
+
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6">
-        <p className="mb-4 text-center text-red-600">
-          Ha ocurrido un error al verificar la autenticación.
-        </p>
-        <Button onClick={() => retry?.() ?? window.location.reload()}>
-          Reintentar
-        </Button>
-      </div>
+      <AuthErrorScreen
+        message={formatAuthError(authState.error)}
+        onRetry={secureRetry}
+        onBack={() => safeNavigate('/login', navigate)}
+        retryLabel="Reintentar"
+        backLabel="Ir a Login"
+      />
     );
   }
 
-  // 3️⃣ No autenticado: redirigimos a login preservando la ubicación
+  // 3️⃣ Not authenticated: redirect to login preserving location
   if (authState.status === 'unauthenticated') {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // 4️⃣ Autenticado pero sin permisos: mensaje de "no autorizado"
-  if (authState.status === 'authenticated' && !canAccessProtectedRoute(authState)) {
-    console.warn(
-      '🔐 [REQUIRE-AUTH] Usuario sin permisos intentando acceder a:',
-      location.pathname
-    );
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6">
-        <p className="mb-4 text-center text-yellow-600">
-          No tienes permiso para ver esta página.
-        </p>
-        <Button onClick={() => navigate('/', { replace: true })}>
-          Volver al inicio
-        </Button>
-      </div>
-    );
+  // 4️⃣ Enhanced permission check for authenticated users
+  if (authState.status === 'authenticated') {
+    const permissionCheck = checkRoutePermissions(authState, location.pathname);
+    
+    if (!permissionCheck.canAccess) {
+      return (
+        <AuthUnauthorizedScreen
+          message={
+            permissionCheck.reason === 'Admin role required for admin routes'
+              ? 'Esta página está reservada para administradores'
+              : 'No tienes permiso para ver esta página'
+          }
+          onNavigateHome={() => safeNavigate('/', navigate, { replace: true })}
+          onSignOut={() => {
+            // Optional: could sign out if access is severely restricted
+            // For now, just navigate home
+            safeNavigate('/', navigate, { replace: true });
+          }}
+        />
+      );
+    }
   }
 
-  // 5️⃣ Todo OK: renderizamos rutas hijas
+  // 5️⃣ All checks passed: render children
   return <>{children}</>;
 };
