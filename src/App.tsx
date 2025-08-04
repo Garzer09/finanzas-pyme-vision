@@ -12,7 +12,7 @@ import { AdminImpersonationProvider } from "./contexts/AdminImpersonationContext
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
-import HomePage from "./pages/HomePage";
+
 import Index from "./pages/Index";
 import LandingPage from "./pages/LandingPage";
 import RedirectPage from "./pages/RedirectPage";
@@ -71,7 +71,7 @@ const App = () => (
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/" element={<LandingPage />} />
           <Route path="/redirect" element={<ProtectedRoute><RedirectPage /></ProtectedRoute>} />
-          <Route path="/home" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
+          
          <Route path="/subir-excel" element={<ProtectedRoute><ExcelUploadPage /></ProtectedRoute>} />
          <Route path="/archivos" element={<ProtectedRoute><FilesDashboardPage /></ProtectedRoute>} />
          <Route path="/suscripcion" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
