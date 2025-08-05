@@ -631,13 +631,12 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
         toast.warning(`${skippedCount} archivo(s) omitido(s) por errores`);
       }
       
-      // Smart navigation based on context
-      if (isCompanyPreloaded && currentCompanyId) {
-        // Navigate to company description if we came from an existing company
-        window.location.href = `/descripcion-empresa?companyId=${currentCompanyId}`;
-      } else {
-        // Call completion callback for new companies
+      // Always use the completion callback with the correct company ID
+      if (currentCompanyId) {
         onComplete?.(currentCompanyId);
+      } else {
+        console.error('No company ID available for navigation');
+        toast.error('Error: No se pudo obtener el ID de la empresa');
       }
       
     } catch (error: any) {
