@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { shouldNavigateAfterAuth } from '@/types/auth';
 import type { AuthState } from '@/types/auth';
 

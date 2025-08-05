@@ -332,43 +332,27 @@ Deno.serve(async (req) => {
   }
   
   try {
-    // Parse request body
-    const { importId, storagePath } = await req.json();
+    // Parse FormData instead of JSON
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+    const targetUserId = formData.get('targetUserId') as string;
     
-    console.log(`[${reqId}] Processing import`, { importId, storagePath });
+    console.log(`[${reqId}] Processing FormData`, { fileName: file?.name, targetUserId });
     
-    if (!storagePath) {
+    if (!file || !targetUserId) {
       return new Response(JSON.stringify({
         success: false,
         reqId,
-        code: 'MISSING_STORAGE_PATH',
-        message: 'Storage path is required'
+        code: 'MISSING_FILE_OR_USER',
+        message: 'File and target user ID are required'
       }), { 
         status: 400, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
     }
     
-    // Download file from storage
-    const { data: fileData, error: downloadError } = await supabase.storage
-      .from('gl-uploads')
-      .download(storagePath);
-    
-    if (downloadError || !fileData) {
-      console.error(`[${reqId}] Storage download error:`, downloadError);
-      return new Response(JSON.stringify({
-        success: false,
-        reqId,
-        code: 'FILE_NOT_FOUND',
-        message: 'Could not download file from storage'
-      }), { 
-        status: 404, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-    
     // Check file size (10MB limit)
-    if (fileData.size > 10 * 1024 * 1024) {
+    if (file.size > 10 * 1024 * 1024) {
       return new Response(JSON.stringify({
         success: false,
         reqId,
@@ -380,8 +364,8 @@ Deno.serve(async (req) => {
       });
     }
     
-    // Convert blob to text
-    const csvContent = await fileData.text();
+    // Convert file to text directly
+    const csvContent = await file.text();
     console.log(`[${reqId}] File content length:`, csvContent.length);
     
     // Parse CSV

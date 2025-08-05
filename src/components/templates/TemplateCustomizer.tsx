@@ -493,7 +493,7 @@ const ColumnEditor: React.FC<{
 
       <div className="space-y-2">
         <Label htmlFor="column-type">Tipo</Label>
-        <Select value={type} onValueChange={setType}>
+        <Select value={type} onValueChange={(value) => setType(value as typeof type)}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -560,7 +560,7 @@ const ValidationEditor: React.FC<{
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="validation-type">Tipo de Validación</Label>
-        <Select value={type} onValueChange={setType}>
+        <Select value={type} onValueChange={(value) => setType(value as typeof type)}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -576,7 +576,7 @@ const ValidationEditor: React.FC<{
 
       <div className="space-y-2">
         <Label htmlFor="validation-severity">Severidad</Label>
-        <Select value={severity} onValueChange={setSeverity}>
+        <Select value={severity} onValueChange={(value) => setSeverity(value as typeof severity)}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>

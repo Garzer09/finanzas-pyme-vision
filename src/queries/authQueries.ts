@@ -87,7 +87,7 @@ export const useUserRole = (userId: string | null, enabled = true) => {
     queryFn: () => fetchUserRole(userId!),
     enabled: enabled && !!userId,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (renamed from cacheTime)
     retry: (failureCount, error) => {
       // Retry up to 3 times, but not for certain errors
       if (failureCount >= 3) return false;
@@ -110,12 +110,6 @@ export const useUserRole = (userId: string | null, enabled = true) => {
     },
     refetchOnWindowFocus: false,
     refetchOnMount: false,
-    onSuccess: (role) => {
-      console.debug('[AUTH-QUERY] Role query successful:', role);
-    },
-    onError: (error) => {
-      console.error('[AUTH-QUERY] Role query failed after retries:', error);
-    },
   });
 };
 
@@ -125,9 +119,9 @@ export const useInvalidateUserRole = () => {
   
   return (userId?: string) => {
     if (userId) {
-      queryClient.invalidateQueries([USER_ROLE_QUERY_KEY, userId]);
+      queryClient.invalidateQueries({ queryKey: [USER_ROLE_QUERY_KEY, userId] });
     } else {
-      queryClient.invalidateQueries([USER_ROLE_QUERY_KEY]);
+      queryClient.invalidateQueries({ queryKey: [USER_ROLE_QUERY_KEY] });
     }
   };
 };
