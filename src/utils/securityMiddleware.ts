@@ -290,8 +290,8 @@ export class InputSanitizer {
 export class SecurityMiddleware {
   private csrfProtection: CSRFProtection;
 
-  constructor(csrfConfig?: Partial<CSRFConfig>) {
-    this.csrfProtection = new CSRFProtection(csrfConfig);
+  constructor(csrfConfig?: Partial<CSRFConfig>, csrfInstance?: CSRFProtection) {
+    this.csrfProtection = csrfInstance || new CSRFProtection(csrfConfig);
   }
 
   /**
@@ -327,7 +327,7 @@ export class SecurityMiddleware {
 // Create singleton instances
 export const csrfProtection = new CSRFProtection();
 export const inputSanitizer = InputSanitizer;
-export const securityMiddleware = new SecurityMiddleware();
+export const securityMiddleware = new SecurityMiddleware(undefined, csrfProtection);
 
 // Export utilities
 export default {

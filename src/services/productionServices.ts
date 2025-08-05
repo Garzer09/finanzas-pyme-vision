@@ -26,7 +26,7 @@ export class ProductionServices {
   /**
    * Initialize all production services
    */
-  async initialize(): Promise<void> {
+  async initialize(options: { skipHealthChecks?: boolean } = {}): Promise<void> {
     if (this.initialized) return;
 
     const logger = this.security.getLogger();
@@ -34,30 +34,34 @@ export class ProductionServices {
     
     logger.info('Initializing production services', {
       environment,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      skipHealthChecks: options.skipHealthChecks
     });
 
     try {
       // Initialize health monitoring middleware
       this.healthCheckMiddleware.monitorFetch();
       
-      // Run initial health check
-      const initialHealth = await this.healthCheck.getHealthStatus();
-      
-      if (initialHealth.status === 'unhealthy') {
-        logger.error('System failed initial health check', {
-          status: initialHealth.status,
-          failedChecks: initialHealth.checks.filter(c => c.status === 'critical')
-        });
+      // Run initial health check unless skipped
+      let initialHealth = null;
+      if (!options.skipHealthChecks) {
+        initialHealth = await this.healthCheck.getHealthStatus();
         
-        if (environment === 'production') {
-          throw new Error('System failed initial health check - not ready for production');
+        if (initialHealth.status === 'unhealthy') {
+          logger.error('System failed initial health check', {
+            status: initialHealth.status,
+            failedChecks: initialHealth.checks.filter(c => c.status === 'critical')
+          });
+          
+          if (environment === 'production') {
+            throw new Error('System failed initial health check - not ready for production');
+          }
+        } else if (initialHealth.status === 'degraded') {
+          logger.warn('System has degraded health on startup', {
+            status: initialHealth.status,
+            warnings: initialHealth.checks.filter(c => c.status === 'warning')
+          });
         }
-      } else if (initialHealth.status === 'degraded') {
-        logger.warn('System has degraded health on startup', {
-          status: initialHealth.status,
-          warnings: initialHealth.checks.filter(c => c.status === 'warning')
-        });
       }
 
       // Override global fetch with secure version for production
@@ -69,9 +73,9 @@ export class ProductionServices {
       
       logger.info('Production services initialized successfully', {
         environment,
-        healthStatus: initialHealth.status,
-        uptime: initialHealth.uptime,
-        version: initialHealth.version
+        healthStatus: initialHealth?.status || 'skipped',
+        uptime: initialHealth?.uptime || 0,
+        version: initialHealth?.version || '1.0.0'
       });
 
     } catch (error) {

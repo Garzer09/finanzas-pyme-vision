@@ -33,6 +33,10 @@ build/
 coverage/
 *.tsbuildinfo
 
+# Test artifacts
+test-results/
+playwright-report/
+
 # Temporary files
 tmp/
 temp/

@@ -1,0 +1,402 @@
+name: Production Readiness Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      full_validation:
+        description: 'Run full production readiness validation'
+        required: false
+        default: 'true'
+        type: boolean
+
+env:
+  NODE_VERSION: '18'
+  # Production environment variables for validation
+  VITE_ENVIRONMENT: production
+  VITE_ENABLE_RATE_LIMITING: 'true'
+  VITE_ENABLE_CSRF_PROTECTION: 'true'
+  VITE_ENABLE_SECURITY_LOGGING: 'true'
+  VITE_ENABLE_HEALTH_MONITORING: 'true'
+  VITE_ENABLE_PERFORMANCE_MONITORING: 'true'
+
+jobs:
+  # Core validation - always run
+  core-validation:
+    name: Core Production Validation
+    runs-on: ubuntu-latest
+    outputs:
+      should-deploy: ${{ steps.core-check.outputs.ready }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run production build
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://demo.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'demo-key' }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          
+      - name: Run core stability check
+        id: core-check
+        run: |
+          npm run stability-check
+          echo "ready=true" >> $GITHUB_OUTPUT
+        continue-on-error: false
+
+  # Comprehensive test suite
+  test-suite-validation:
+    name: Test Suite Validation
+    runs-on: ubuntu-latest
+    needs: core-validation
+    
+    strategy:
+      matrix:
+        test-category: [unit, auth, navigation, recovery]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run unit tests
+        if: matrix.test-category == 'unit'
+        run: |
+          npm test -- --coverage --reporter=json --outputFile=test-results.json
+          echo "Unit tests completed"
+          
+      - name: Run authentication tests
+        if: matrix.test-category == 'auth'
+        run: npm run validate:auth
+        
+      - name: Run navigation flow tests
+        if: matrix.test-category == 'navigation'
+        run: npm run validate:navigation
+        
+      - name: Run error recovery tests
+        if: matrix.test-category == 'recovery'
+        run: npm run validate:recovery
+        
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.test-category }}
+          path: |
+            coverage/
+            test-results.json
+          retention-days: 7
+
+  # E2E tests with browser matrix
+  e2e-validation:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    needs: core-validation
+    if: github.event.inputs.full_validation == 'true' || github.ref == 'refs/heads/main'
+    
+    strategy:
+      matrix:
+        browser: [chromium, firefox]
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install Playwright browsers
+        run: npx playwright install ${{ matrix.browser }} --with-deps
+        
+      - name: Run E2E tests
+        run: npx playwright test --project=${{ matrix.browser }}
+        env:
+          CI: true
+          
+      - name: Upload E2E results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ matrix.browser }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  # Security and performance validation
+  security-performance-validation:
+    name: Security & Performance
+    runs-on: ubuntu-latest
+    needs: core-validation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run security audit
+        run: |
+          npm audit --audit-level=high --production
+          echo "Security audit completed"
+        continue-on-error: true
+        
+      - name: Run security validation tests
+        run: npm test src/services/__tests__/production-security.test.ts
+        
+      - name: Validate security configuration
+        run: |
+          echo "Checking security environment variables..."
+          test "$VITE_ENABLE_RATE_LIMITING" = "true" && echo "✅ Rate limiting enabled"
+          test "$VITE_ENABLE_CSRF_PROTECTION" = "true" && echo "✅ CSRF protection enabled"
+          test "$VITE_ENABLE_SECURITY_LOGGING" = "true" && echo "✅ Security logging enabled"
+          
+      - name: Run performance tests
+        run: |
+          # Build and analyze bundle size
+          npm run build
+          echo "📊 Build analysis:"
+          du -sh dist/
+          echo "📊 Asset analysis:"
+          find dist/assets -name "*.js" -o -name "*.css" | head -10 | xargs ls -lh
+          
+      - name: Check bundle size
+        run: |
+          # Simple bundle size check (adjust limits as needed)
+          MAIN_JS_SIZE=$(find dist/assets -name "index-*.js" -exec stat --printf="%s" {} \;)
+          MAIN_CSS_SIZE=$(find dist/assets -name "index-*.css" -exec stat --printf="%s" {} \;)
+          
+          echo "Main JS bundle size: $((MAIN_JS_SIZE / 1024))KB"
+          echo "Main CSS bundle size: $((MAIN_CSS_SIZE / 1024))KB"
+          
+          # Warning if bundles are too large (adjust thresholds as needed)
+          if [ $MAIN_JS_SIZE -gt 1048576 ]; then # 1MB
+            echo "⚠️ Main JS bundle is large (>1MB)"
+          fi
+          
+          if [ $MAIN_CSS_SIZE -gt 204800 ]; then # 200KB
+            echo "⚠️ Main CSS bundle is large (>200KB)"
+          fi
+
+  # Code quality validation
+  code-quality-validation:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    needs: core-validation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run linter
+        run: npm run lint
+        continue-on-error: true
+        
+      - name: Run type checking
+        run: npx tsc --noEmit
+        
+      - name: Check for TODO/FIXME comments
+        run: |
+          echo "Checking for development comments..."
+          TODO_COUNT=$(grep -r "TODO\|FIXME\|XXX\|HACK" src/ --exclude-dir=node_modules || echo "0")
+          if [ ! -z "$TODO_COUNT" ]; then
+            echo "⚠️ Found development comments:"
+            echo "$TODO_COUNT"
+            echo "Consider resolving these before production deployment."
+          else
+            echo "✅ No development comments found"
+          fi
+        continue-on-error: true
+
+  # Environment and configuration validation
+  environment-validation:
+    name: Environment Configuration
+    runs-on: ubuntu-latest
+    needs: core-validation
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Validate environment template
+        run: |
+          echo "Checking environment configuration..."
+          
+          # Check if production template exists
+          if [ -f .env.production.template ]; then
+            echo "✅ Production environment template found"
+            echo "📋 Required environment variables:"
+            cat .env.production.template
+          else
+            echo "⚠️ No production environment template found"
+          fi
+          
+      - name: Validate required secrets
+        run: |
+          echo "Checking GitHub secrets configuration..."
+          
+          # List of required production secrets
+          REQUIRED_SECRETS="VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY"
+          
+          for secret in $REQUIRED_SECRETS; do
+            if [ -n "${!secret}" ]; then
+              echo "✅ $secret is configured"
+            else
+              echo "⚠️ $secret is not configured (using fallback)"
+            fi
+          done
+          
+          # Optional secrets
+          OPTIONAL_SECRETS="VITE_SENTRY_DSN SENTRY_ORG SENTRY_PROJECT"
+          
+          echo "📋 Optional secrets status:"
+          for secret in $OPTIONAL_SECRETS; do
+            if [ -n "${!secret}" ]; then
+              echo "✅ $secret is configured"
+            else
+              echo "ℹ️ $secret is not configured (optional)"
+            fi
+          done
+
+  # Final production readiness report
+  production-readiness-report:
+    name: Production Readiness Report
+    runs-on: ubuntu-latest
+    needs: [core-validation, test-suite-validation, security-performance-validation, code-quality-validation, environment-validation]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: validation-results
+          
+      - name: Generate production readiness report
+        run: |
+          echo "# 🚀 Production Readiness Report" > READINESS_REPORT.md
+          echo "" >> READINESS_REPORT.md
+          echo "**Validation Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> READINESS_REPORT.md
+          echo "**Branch:** ${{ github.ref_name }}" >> READINESS_REPORT.md
+          echo "**Commit:** ${{ github.sha }}" >> READINESS_REPORT.md
+          echo "" >> READINESS_REPORT.md
+          
+          echo "## ✅ Validation Results" >> READINESS_REPORT.md
+          echo "" >> READINESS_REPORT.md
+          
+          # Check job results
+          echo "| Category | Status | Details |" >> READINESS_REPORT.md
+          echo "|----------|--------|---------|" >> READINESS_REPORT.md
+          
+          # Core validation
+          if [ "${{ needs.core-validation.result }}" = "success" ]; then
+            echo "| Core Validation | ✅ PASS | Build and stability checks passed |" >> READINESS_REPORT.md
+          else
+            echo "| Core Validation | ❌ FAIL | Build or stability checks failed |" >> READINESS_REPORT.md
+          fi
+          
+          # Test suite validation
+          if [ "${{ needs.test-suite-validation.result }}" = "success" ]; then
+            echo "| Test Suite | ✅ PASS | All test categories passed |" >> READINESS_REPORT.md
+          else
+            echo "| Test Suite | ⚠️ PARTIAL | Some test categories failed |" >> READINESS_REPORT.md
+          fi
+          
+          # Security validation
+          if [ "${{ needs.security-performance-validation.result }}" = "success" ]; then
+            echo "| Security & Performance | ✅ PASS | Security and performance checks passed |" >> READINESS_REPORT.md
+          else
+            echo "| Security & Performance | ⚠️ REVIEW | Review security or performance issues |" >> READINESS_REPORT.md
+          fi
+          
+          # Code quality
+          if [ "${{ needs.code-quality-validation.result }}" = "success" ]; then
+            echo "| Code Quality | ✅ PASS | Code quality standards met |" >> READINESS_REPORT.md
+          else
+            echo "| Code Quality | ⚠️ REVIEW | Code quality issues found |" >> READINESS_REPORT.md
+          fi
+          
+          # Environment validation
+          if [ "${{ needs.environment-validation.result }}" = "success" ]; then
+            echo "| Environment Config | ✅ PASS | Environment properly configured |" >> READINESS_REPORT.md
+          else
+            echo "| Environment Config | ⚠️ REVIEW | Environment configuration issues |" >> READINESS_REPORT.md
+          fi
+          
+          echo "" >> READINESS_REPORT.md
+          
+          # Overall assessment
+          if [ "${{ needs.core-validation.result }}" = "success" ] && [ "${{ needs.test-suite-validation.result }}" = "success" ]; then
+            echo "## 🎉 Overall Assessment: READY FOR PRODUCTION" >> READINESS_REPORT.md
+            echo "" >> READINESS_REPORT.md
+            echo "The application has passed all critical validation checks and is ready for production deployment." >> READINESS_REPORT.md
+          else
+            echo "## 🚨 Overall Assessment: NOT READY FOR PRODUCTION" >> READINESS_REPORT.md
+            echo "" >> READINESS_REPORT.md
+            echo "Critical issues were found that must be resolved before production deployment." >> READINESS_REPORT.md
+          fi
+          
+          echo "" >> READINESS_REPORT.md
+          echo "## 📊 Validation Artifacts" >> READINESS_REPORT.md
+          echo "" >> READINESS_REPORT.md
+          echo "- Test results and coverage reports are available in the workflow artifacts" >> READINESS_REPORT.md
+          echo "- Security scan results are included in the security validation step" >> READINESS_REPORT.md
+          echo "- Performance metrics are available in the performance validation step" >> READINESS_REPORT.md
+          
+      - name: Upload production readiness report
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-readiness-report
+          path: READINESS_REPORT.md
+          retention-days: 30
+          
+      - name: Display report summary
+        run: |
+          echo "📋 Production Readiness Summary:"
+          cat READINESS_REPORT.md

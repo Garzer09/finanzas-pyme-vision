@@ -15,7 +15,11 @@
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "stability-check": "node scripts/stability-check.js",
-    "pre-deploy": "npm run stability-check && npm run build"
+    "pre-deploy": "npm run stability-check && npm run build",
+    "validate:auth": "node scripts/validate-auth-tests.js",
+    "validate:navigation": "node scripts/validate-navigation-tests.js",
+    "validate:recovery": "node scripts/validate-error-recovery-tests.js",
+    "validate:all": "npm run validate:auth && npm run validate:navigation && npm run validate:recovery"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.6",
