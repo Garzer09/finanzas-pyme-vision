@@ -9,6 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, FileText, CheckCircle, ArrowRight, Download, X, XCircle, Building, Users } from 'lucide-react';
+import { useDataYearDetection } from '@/hooks/useDataYearDetection';
+import { DataManagementPanel } from './DataManagementPanel';
+import { ProcessingStatusPanel } from './ProcessingStatusPanel';
 
 // Types
 interface CompanyInfo {
@@ -77,6 +80,9 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingCompany, setIsLoadingCompany] = useState(false);
   const [isCompanyPreloaded, setIsCompanyPreloaded] = useState(false);
+  const [detectedYears, setDetectedYears] = useState<number[]>([]);
+  const [showDataManagement, setShowDataManagement] = useState(false);
+  const { detectYearsFromFiles } = useDataYearDetection();
 
   // Auto-load company data if companyId is provided
   React.useEffect(() => {
@@ -323,7 +329,17 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
           };
         }
         
-        setUploadedFiles(prev => [...prev, fileData]);
+        setUploadedFiles(prev => {
+          const newFiles = [...prev, fileData];
+          // Auto-detect years from uploaded files
+          const yearDetection = detectYearsFromFiles(newFiles.map(f => ({
+            name: f.name,
+            content: f.content,
+            headers: f.headers
+          })));
+          setDetectedYears(yearDetection.detectedYears);
+          return newFiles;
+        });
         toast.success(`Archivo ${file.name} cargado exitosamente${fileData.optionalTemplate ? ' (plantilla opcional)' : ''}`);
       } catch (error) {
         console.error('Error processing file:', error);
