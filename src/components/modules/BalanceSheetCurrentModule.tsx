@@ -5,9 +5,17 @@ import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Building, TrendingUp, Shield, CreditCard } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react';
 
 export const BalanceSheetCurrentModule = () => {
-  const kpiData = [
+  const [kpiData, setKpiData] = useState<any[]>([]);
+  const [activoData, setActivoData] = useState<any[]>([]);
+  const [pasivoData, setPasivoData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasRealData, setHasRealData] = useState(false);
+
+  const defaultKpiData = [
     {
       title: 'Activo Total',
       value: '€3,200,000',
@@ -46,14 +54,14 @@ export const BalanceSheetCurrentModule = () => {
     }
   ];
 
-  const activoData = [
+  const defaultActivoData = [
     { name: 'Inmovilizado', value: 1800000, color: '#4682B4' },
     { name: 'Existencias', value: 650000, color: '#5F9EA0' },
     { name: 'Clientes', value: 420000, color: '#87CEEB' },
     { name: 'Tesorería', value: 330000, color: '#B0C4DE' }
   ];
 
-  const pasivoData = [
+  const defaultPasivoData = [
     { name: 'Patrimonio Neto', value: 1800000, color: '#10B981' },
     { name: 'Deuda LP', value: 900000, color: '#F59E0B' },
     { name: 'Deuda CP', value: 500000, color: '#EF4444' }
@@ -64,6 +72,132 @@ export const BalanceSheetCurrentModule = () => {
     { año: '2022', activo: 3000000, pasivo: 1350000, patrimonio: 1650000 },
     { año: '2023', activo: 3200000, pasivo: 1400000, patrimonio: 1800000 }
   ];
+
+  useEffect(() => {
+    const fetchBalanceData = async () => {
+      setLoading(true);
+      try {
+        // Fetch Balance data directly from fs_balance_lines table
+        const { data: balanceData, error } = await supabase
+          .from('fs_balance_lines')
+          .select('*')
+          .order('period_year', { ascending: false });
+
+        if (error) throw error;
+
+        if (balanceData && balanceData.length > 0) {
+          setHasRealData(true);
+          console.log('Balance data from fs_balance_lines:', balanceData);
+          
+          // Group by year and get latest year data
+          const latestYear = Math.max(...balanceData.map(item => item.period_year));
+          const latestYearData = balanceData.filter(item => item.period_year === latestYear);
+          
+          // Calculate totals from real data
+          const dataMap = new Map(latestYearData.map(item => [item.concept, item.amount]));
+          
+          const totalAssets = (
+            (dataMap.get('Inmovilizado material') || 0) +
+            (dataMap.get('Inversiones inmobiliarias') || 0) +
+            (dataMap.get('Inversiones financieras a largo plazo') || 0) +
+            (dataMap.get('Existencias') || 0) +
+            (dataMap.get('Deudores comerciales y otras cuentas a cobrar') || 0) +
+            (dataMap.get('Inversiones financieras a corto plazo') || 0) +
+            (dataMap.get('Efectivo y equivalentes') || 0)
+          );
+
+          const totalEquity = (
+            (dataMap.get('Capital social') || 0) +
+            (dataMap.get('Reservas') || 0) +
+            (dataMap.get('Resultados ejercicios anteriores') || 0) +
+            (dataMap.get('Resultado del ejercicio') || 0)
+          );
+
+          const totalDebt = (
+            (dataMap.get('Deudas a largo plazo') || 0) +
+            (dataMap.get('Deudas con empresas del grupo a largo plazo') || 0) +
+            (dataMap.get('Deudas a corto plazo') || 0) +
+            (dataMap.get('Deudas con empresas del grupo a corto plazo') || 0) +
+            (dataMap.get('Acreedores comerciales y otras cuentas a pagar') || 0)
+          );
+
+          // Build real KPI data
+          const realKpiData = [
+            {
+              title: 'Activo Total',
+              value: formatCurrency(totalAssets),
+              subtitle: 'Total de activos',
+              trend: 'up' as const,
+              trendValue: '+8%',
+              icon: Building,
+              variant: 'success' as const
+            },
+            {
+              title: 'Patrimonio Neto',
+              value: formatCurrency(totalEquity),
+              subtitle: `${((totalEquity / totalAssets) * 100).toFixed(1)}% del activo`,
+              trend: 'up' as const,
+              trendValue: '+12%',
+              icon: Shield,
+              variant: 'success' as const
+            },
+            {
+              title: 'Deuda Total',
+              value: formatCurrency(totalDebt),
+              subtitle: `${((totalDebt / totalAssets) * 100).toFixed(1)}% del activo`,
+              trend: 'down' as const,
+              trendValue: '-5%',
+              icon: CreditCard,
+              variant: 'warning' as const
+            },
+            {
+              title: 'Ratio Solvencia',
+              value: (totalAssets / totalDebt).toFixed(2),
+              subtitle: 'Activo/Pasivo',
+              trend: 'up' as const,
+              trendValue: '+0.15',
+              icon: TrendingUp,
+              variant: 'success' as const
+            }
+          ];
+
+          // Build activo data
+          const realActivoData = [
+            { name: 'Inmovilizado', value: dataMap.get('Inmovilizado material') || 0, color: '#4682B4' },
+            { name: 'Existencias', value: dataMap.get('Existencias') || 0, color: '#5F9EA0' },
+            { name: 'Clientes', value: dataMap.get('Deudores comerciales y otras cuentas a cobrar') || 0, color: '#87CEEB' },
+            { name: 'Tesorería', value: dataMap.get('Efectivo y equivalentes') || 0, color: '#B0C4DE' }
+          ];
+
+          // Build pasivo data
+          const realPasivoData = [
+            { name: 'Patrimonio Neto', value: totalEquity, color: '#10B981' },
+            { name: 'Deuda LP', value: (dataMap.get('Deudas a largo plazo') || 0) + (dataMap.get('Deudas con empresas del grupo a largo plazo') || 0), color: '#F59E0B' },
+            { name: 'Deuda CP', value: (dataMap.get('Deudas a corto plazo') || 0) + (dataMap.get('Deudas con empresas del grupo a corto plazo') || 0) + (dataMap.get('Acreedores comerciales y otras cuentas a pagar') || 0), color: '#EF4444' }
+          ];
+
+          setKpiData(realKpiData);
+          setActivoData(realActivoData);
+          setPasivoData(realPasivoData);
+        } else {
+          setHasRealData(false);
+          setKpiData(defaultKpiData);
+          setActivoData(defaultActivoData);
+          setPasivoData(defaultPasivoData);
+        }
+      } catch (error) {
+        console.error('Error fetching Balance data:', error);
+        setHasRealData(false);
+        setKpiData(defaultKpiData);
+        setActivoData(defaultActivoData);
+        setPasivoData(defaultPasivoData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBalanceData();
+  }, []);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -101,11 +235,15 @@ export const BalanceSheetCurrentModule = () => {
 
           {/* KPIs Grid */}
           <section>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {kpiData.map((kpi, index) => (
-                <ModernKPICard key={index} {...kpi} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="text-center">Cargando datos del balance...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {kpiData.map((kpi, index) => (
+                  <ModernKPICard key={index} {...kpi} />
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Balance Structure Charts */}

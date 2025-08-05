@@ -10,6 +10,8 @@ import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import { FinancialKPISection } from '@/components/dashboard/FinancialKPISection';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useDataValidation } from '@/hooks/useDataValidation';
+import { AlertTriangle, CheckCircle, Info, FileText } from 'lucide-react';
 
 interface Company {
   id: string;
@@ -48,6 +50,7 @@ export const AdminDashboardPage: React.FC = () => {
   const [financialData, setFinancialData] = useState<FinancialData | null>(null);
   const [kpis, setKpis] = useState<KPI[]>([]);
   const [loading, setLoading] = useState(true);
+  const { validation, healthStatus, recommendations } = useDataValidation();
 
   useEffect(() => {
     if (companyId) {
@@ -348,9 +351,28 @@ export const AdminDashboardPage: React.FC = () => {
                       <h1 className="text-3xl font-bold text-foreground">
                         Dashboard Financiero
                       </h1>
-                      {financialData && (
+                      {healthStatus === 'healthy' && (
                         <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <CheckCircle className="w-3 h-3 mr-1" />
                           Datos Reales
+                        </span>
+                      )}
+                      {healthStatus === 'partial' && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                          <Info className="w-3 h-3 mr-1" />
+                          Datos Parciales
+                        </span>
+                      )}
+                      {healthStatus === 'warning' && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          Datos Incompletos
+                        </span>
+                      )}
+                      {healthStatus === 'critical' && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          <AlertTriangle className="w-3 h-3 mr-1" />
+                          Sin Datos
                         </span>
                       )}
                     </div>
@@ -395,6 +417,49 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               </div>
 
+              {/* Data Status Panel */}
+              {validation.totalRecords > 0 && (
+                <Card className="p-6 mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                  <div className="flex items-start justify-between">
+                    <div className="space-y-2">
+                      <h3 className="text-lg font-semibold text-blue-900">
+                        Estado de los Datos
+                      </h3>
+                      <p className="text-blue-700">
+                        {validation.totalRecords} registros cargados • Años disponibles: {validation.availableYears.join(', ')}
+                      </p>
+                      {validation.missingTables.length > 0 && (
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium text-orange-800">Datos faltantes:</p>
+                          <ul className="text-sm text-orange-700">
+                            {validation.missingTables.map((table, index) => (
+                              <li key={index}>• {table}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {recommendations.length > 0 && (
+                        <div className="space-y-1 mt-3">
+                          <p className="text-sm font-medium text-blue-800">Recomendaciones:</p>
+                          <ul className="text-sm text-blue-700">
+                            {recommendations.map((rec, index) => (
+                              <li key={index}>• {rec}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="space-y-1">
+                        <div className="text-sm text-blue-600">Calidad P&G: {validation.dataQuality.pyg.toFixed(0)}%</div>
+                        <div className="text-sm text-blue-600">Calidad Balance: {validation.dataQuality.balance.toFixed(0)}%</div>
+                        <div className="text-sm text-blue-600">Calidad Flujos: {validation.dataQuality.cashflow.toFixed(0)}%</div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              )}
+
               {/* KPI Cards with Modern Design */}
               {financialData ? (
                 <FinancialKPISection 
@@ -403,20 +468,37 @@ export const AdminDashboardPage: React.FC = () => {
                   period={selectedPeriod}
                 />
               ) : (
-                <div className="text-center py-12 bg-muted/50 rounded-lg border-2 border-dashed border-muted-foreground/25">
-                  <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-medium text-foreground mb-2">No hay datos financieros disponibles</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Carga los archivos financieros para ver los KPIs de la empresa
-                  </p>
-                  <Button 
-                    onClick={() => navigate(`/admin/carga-plantillas?companyId=${companyId}`)}
-                    className="gap-2"
-                  >
-                    <Upload className="h-4 w-4" />
-                    Cargar Datos
-                  </Button>
-                </div>
+                <Card className="p-12 text-center border-dashed border-2 border-steel-200">
+                  <div className="space-y-4">
+                    <div className="p-4 bg-steel-50 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+                      <Upload className="h-8 w-8 text-steel-500" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-steel-900 mb-2">
+                        No hay datos financieros cargados
+                      </h3>
+                      <p className="text-steel-600 mb-6">
+                        Para visualizar el dashboard, necesitas cargar los datos financieros de la empresa.
+                      </p>
+                      <div className="flex gap-4 justify-center">
+                        <Button 
+                          onClick={() => navigate('/admin/cargas')}
+                          className="bg-steel-600 hover:bg-steel-700"
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          Cargar Datos CSV
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => navigate('/admin/empresas')}
+                          className="border-steel-300 text-steel-700 hover:bg-steel-50"
+                        >
+                          Gestionar Empresas
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
               )}
 
               {/* Financial Summary */}

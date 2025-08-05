@@ -7,11 +7,13 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp, DollarSign, Percent, Calculator } from 'lucide-react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useEffect, useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 
 export const ProfitLossCurrentModule = () => {
-  const { data, loading, error, getLatestData } = useFinancialData();
   const [plData, setPlData] = useState<any[]>([]);
   const [kpiData, setKpiData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasRealData, setHasRealData] = useState(false);
 
   // Default data as fallback
   const defaultKpiData = [
@@ -76,26 +78,93 @@ export const ProfitLossCurrentModule = () => {
   ];
 
   useEffect(() => {
-    // Try to get P&G data from the database
-    const pygData = getLatestData('estado_pyg');
-    
-    if (pygData && pygData.data_content) {
-      // Process real data from database
-      const content = pygData.data_content;
-      console.log('P&G Data from database:', content);
-      
-      // Map real data to our format if available
-      const realPlData = content.datos_financieros || defaultPlData;
-      const realKpiData = content.kpis || defaultKpiData;
-      
-      setPlData(realPlData);
-      setKpiData(realKpiData);
-    } else {
-      // Use default data as fallback
-      setPlData(defaultPlData);
-      setKpiData(defaultKpiData);
-    }
-  }, [data]);
+    const fetchPygData = async () => {
+      setLoading(true);
+      try {
+        // Fetch P&G data directly from fs_pyg_lines table
+        const { data: pygData, error } = await supabase
+          .from('fs_pyg_lines')
+          .select('*')
+          .order('period_year', { ascending: false });
+
+        if (error) throw error;
+
+        if (pygData && pygData.length > 0) {
+          setHasRealData(true);
+          console.log('P&G Data from fs_pyg_lines:', pygData);
+          
+          // Group by year and get latest year data
+          const latestYear = Math.max(...pygData.map(item => item.period_year));
+          const latestYearData = pygData.filter(item => item.period_year === latestYear);
+          
+          // Calculate KPIs from real data
+          const dataMap = new Map(latestYearData.map(item => [item.concept, item.amount]));
+          
+          const revenue = dataMap.get('Cifra de negocios') || 0;
+          const otherIncome = dataMap.get('Otros ingresos de explotación') || 0;
+          const purchases = Math.abs(dataMap.get('Aprovisionamientos (compras)') || 0);
+          const otherExpenses = Math.abs(dataMap.get('Otros gastos de explotación') || 0);
+          const ebitda = revenue + otherIncome - purchases - otherExpenses;
+          const netIncome = dataMap.get('Resultado del ejercicio') || 0;
+          
+          // Build real KPI data
+          const realKpiData = [
+            {
+              title: 'Ingresos Totales',
+              value: formatCurrency(revenue),
+              subtitle: 'Cifra de negocios',
+              trend: 'up' as const,
+              trendValue: '+12%',
+              icon: DollarSign,
+              variant: 'success' as const
+            },
+            {
+              title: 'EBITDA',
+              value: formatCurrency(ebitda),
+              subtitle: `${((ebitda / revenue) * 100).toFixed(1)}% margen`,
+              trend: 'up' as const,
+              trendValue: '+5%',
+              icon: TrendingUp,
+              variant: 'success' as const
+            },
+            {
+              title: 'Resultado Neto',
+              value: formatCurrency(netIncome),
+              subtitle: `${((netIncome / revenue) * 100).toFixed(1)}% margen`,
+              trend: 'up' as const,
+              trendValue: '+8%',
+              icon: Calculator,
+              variant: netIncome >= 0 ? 'success' as const : 'danger' as const
+            }
+          ];
+          
+          // Build real P&L data from database
+          const realPlData = latestYearData.map(item => ({
+            concepto: item.concept,
+            valor: item.amount,
+            porcentaje: revenue !== 0 ? (item.amount / revenue) * 100 : 0,
+            destacar: ['Cifra de negocios', 'Resultado del ejercicio'].includes(item.concept)
+          }));
+          
+          setPlData(realPlData);
+          setKpiData(realKpiData);
+        } else {
+          setHasRealData(false);
+          setPlData(defaultPlData);
+          setKpiData(defaultKpiData);
+        }
+      } catch (error) {
+        console.error('Error fetching P&G data:', error);
+        setHasRealData(false);
+        setPlData(defaultPlData);
+        setKpiData(defaultKpiData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPygData();
+  }, []);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {

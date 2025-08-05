@@ -41,24 +41,58 @@ export const useFinancialData = (dataType?: string) => {
     const endTimer = debugManager.startTimer('financial_data_fetch');
     
     try {
-      debugManager.logInfo(`Fetching financial data: ${dataType || 'all'}`, undefined, 'useFinancialData');
+      debugManager.logInfo(`Fetching financial data from specific tables: ${dataType || 'all'}`, undefined, 'useFinancialData');
       setLoading(true);
       
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Timeout')), 15000)
       );
       
-      let query = supabase
-        .from('financial_data')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let result: any[] = [];
+      let error = null;
 
-      if (dataType) {
-        query = query.eq('data_type', dataType);
+      // Fetch from specific financial tables based on dataType
+      if (dataType === 'estado_pyg' || !dataType) {
+        const pygQuery = supabase
+          .from('fs_pyg_lines')
+          .select('*')
+          .order('period_year', { ascending: false });
+        
+        const { data: pygData, error: pygError } = await Promise.race([pygQuery, timeoutPromise]) as any;
+        if (pygError) error = pygError;
+        if (pygData && pygData.length > 0) {
+          const grouped = groupFinancialData(pygData, 'estado_pyg');
+          result.push(...grouped);
+        }
       }
 
-      const queryPromise = query;
-      const { data: result, error } = await Promise.race([queryPromise, timeoutPromise]) as any;
+      if (dataType === 'balance_situacion' || !dataType) {
+        const balanceQuery = supabase
+          .from('fs_balance_lines')
+          .select('*')
+          .order('period_year', { ascending: false });
+        
+        const { data: balanceData, error: balanceError } = await Promise.race([balanceQuery, timeoutPromise]) as any;
+        if (balanceError) error = balanceError;
+        if (balanceData && balanceData.length > 0) {
+          const grouped = groupFinancialData(balanceData, 'balance_situacion');
+          result.push(...grouped);
+        }
+      }
+
+      if (dataType === 'estado_flujos' || !dataType) {
+        const cashflowQuery = supabase
+          .from('fs_cashflow_lines')
+          .select('*')
+          .order('period_year', { ascending: false });
+        
+        const { data: cashflowData, error: cashflowError } = await Promise.race([cashflowQuery, timeoutPromise]) as any;
+        if (cashflowError) error = cashflowError;
+        if (cashflowData && cashflowData.length > 0) {
+          const grouped = groupFinancialData(cashflowData, 'estado_flujos');
+          result.push(...grouped);
+        }
+      }
 
       // Check if this is still the latest fetch
       if (lastFetchRef.current !== fetchKey || !mounted.current) return;
@@ -105,6 +139,32 @@ export const useFinancialData = (dataType?: string) => {
       }
     }
   }, [dataType]);
+
+  // Group financial data by year and data type
+  const groupFinancialData = (data: any[], type: string): FinancialDataPoint[] => {
+    if (!data || data.length === 0) return [];
+    
+    const grouped = data.reduce((acc, item) => {
+      const year = item.period_year;
+      const key = `${type}_${year}`;
+      
+      if (!acc[key]) {
+        acc[key] = {
+          id: key,
+          data_type: type,
+          period_date: `${year}-12-31`,
+          period_type: 'annual',
+          data_content: {},
+          created_at: item.created_at || new Date().toISOString()
+        };
+      }
+      
+      acc[key].data_content[item.concept] = item.amount;
+      return acc;
+    }, {} as Record<string, FinancialDataPoint>);
+    
+    return Object.values(grouped);
+  };
 
   useEffect(() => {
     mounted.current = true;

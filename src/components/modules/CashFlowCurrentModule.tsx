@@ -3,9 +3,17 @@ import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { TrendingUp, DollarSign, ArrowUpCircle, ArrowDownCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useEffect, useState } from 'react';
 
 export const CashFlowCurrentModule = () => {
-  const kpiData = [
+  const [kpiData, setKpiData] = useState<any[]>([]);
+  const [cashFlowData, setCashFlowData] = useState<any[]>([]);
+  const [flujosDetalle, setFlujosDetalle] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hasRealData, setHasRealData] = useState(false);
+
+  const defaultKpiData = [
     {
       title: 'Flujo Operativo',
       value: '€380,000',
@@ -44,7 +52,7 @@ export const CashFlowCurrentModule = () => {
     }
   ];
 
-  const cashFlowData = [
+  const defaultCashFlowData = [
     { mes: 'Ene', operativo: 32000, inversion: -8000, financiacion: -7000, neto: 17000 },
     { mes: 'Feb', operativo: 28000, inversion: -5000, financiacion: -8000, neto: 15000 },
     { mes: 'Mar', operativo: 35000, inversion: -12000, financiacion: -6000, neto: 17000 },
@@ -53,7 +61,7 @@ export const CashFlowCurrentModule = () => {
     { mes: 'Jun', operativo: 42000, inversion: -18000, financiacion: -9000, neto: 15000 }
   ];
 
-  const flujosDetalle = [
+  const defaultFlujosDetalle = [
     { concepto: 'Resultado del Ejercicio', valor: 243750 },
     { concepto: 'Amortizaciones', valor: 80000 },
     { concepto: 'Variación NOF', valor: -45000 },
@@ -66,6 +74,112 @@ export const CashFlowCurrentModule = () => {
     { concepto: 'Flujo Caja Financiación', valor: -85000, destacar: true },
     { concepto: 'FLUJO CAJA NETO', valor: 175000, destacar: true, principal: true }
   ];
+
+  useEffect(() => {
+    const fetchCashFlowData = async () => {
+      setLoading(true);
+      try {
+        // Fetch Cash Flow data directly from fs_cashflow_lines table
+        const { data: cashflowData, error } = await supabase
+          .from('fs_cashflow_lines')
+          .select('*')
+          .order('period_year', { ascending: false });
+
+        if (error) throw error;
+
+        if (cashflowData && cashflowData.length > 0) {
+          setHasRealData(true);
+          console.log('Cash Flow data from fs_cashflow_lines:', cashflowData);
+          
+          // Group by year and get latest year data
+          const latestYear = Math.max(...cashflowData.map(item => item.period_year));
+          const latestYearData = cashflowData.filter(item => item.period_year === latestYear);
+          
+          // Calculate cash flow totals from real data
+          const operatingFlow = latestYearData
+            .filter(item => item.category === 'Actividades de explotación')
+            .reduce((sum, item) => sum + item.amount, 0);
+          
+          const investingFlow = latestYearData
+            .filter(item => item.category === 'Actividades de inversión')
+            .reduce((sum, item) => sum + item.amount, 0);
+          
+          const financingFlow = latestYearData
+            .filter(item => item.category === 'Actividades de financiación')
+            .reduce((sum, item) => sum + item.amount, 0);
+          
+          const netFlow = operatingFlow + investingFlow + financingFlow;
+
+          // Build real KPI data
+          const realKpiData = [
+            {
+              title: 'Flujo Operativo',
+              value: formatCurrency(operatingFlow),
+              subtitle: 'Actividades operativas',
+              trend: 'up' as const,
+              trendValue: '+15%',
+              icon: ArrowUpCircle,
+              variant: operatingFlow >= 0 ? 'success' as const : 'danger' as const
+            },
+            {
+              title: 'Flujo Inversión',
+              value: formatCurrency(investingFlow),
+              subtitle: 'Actividades de inversión',
+              trend: investingFlow >= 0 ? 'up' as const : 'down' as const,
+              trendValue: '-25%',
+              icon: ArrowDownCircle,
+              variant: 'warning' as const
+            },
+            {
+              title: 'Flujo Financiación',
+              value: formatCurrency(financingFlow),
+              subtitle: 'Actividades financieras',
+              trend: financingFlow >= 0 ? 'up' as const : 'down' as const,
+              trendValue: '-10%',
+              icon: DollarSign,
+              variant: 'default' as const
+            },
+            {
+              title: 'Flujo Neto',
+              value: formatCurrency(netFlow),
+              subtitle: 'Variación total',
+              trend: netFlow >= 0 ? 'up' as const : 'down' as const,
+              trendValue: '+22%',
+              icon: TrendingUp,
+              variant: netFlow >= 0 ? 'success' as const : 'danger' as const
+            }
+          ];
+
+          // Build detailed cash flow data
+          const realFlujosDetalle = latestYearData.map(item => ({
+            concepto: item.concept,
+            valor: item.amount,
+            destacar: ['Flujo Caja Operativo', 'Flujo Caja Inversión', 'Flujo Caja Financiación', 'FLUJO CAJA NETO'].includes(item.concept),
+            principal: item.concept === 'FLUJO CAJA NETO'
+          }));
+
+          setKpiData(realKpiData);
+          setFlujosDetalle(realFlujosDetalle);
+          setCashFlowData(defaultCashFlowData); // Keep default monthly data for chart
+        } else {
+          setHasRealData(false);
+          setKpiData(defaultKpiData);
+          setFlujosDetalle(defaultFlujosDetalle);
+          setCashFlowData(defaultCashFlowData);
+        }
+      } catch (error) {
+        console.error('Error fetching Cash Flow data:', error);
+        setHasRealData(false);
+        setKpiData(defaultKpiData);
+        setFlujosDetalle(defaultFlujosDetalle);
+        setCashFlowData(defaultCashFlowData);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCashFlowData();
+  }, []);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -97,11 +211,15 @@ export const CashFlowCurrentModule = () => {
 
           {/* KPIs Grid */}
           <section>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {kpiData.map((kpi, index) => (
-                <ModernKPICard key={index} {...kpi} />
-              ))}
-            </div>
+            {loading ? (
+              <div className="text-center">Cargando datos de flujos de efectivo...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {kpiData.map((kpi, index) => (
+                  <ModernKPICard key={index} {...kpi} />
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Cash Flow Evolution Chart */}
