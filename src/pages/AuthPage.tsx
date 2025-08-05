@@ -467,6 +467,8 @@ const AuthPage: React.FC = () => {
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
                     {authState.status === 'authenticating'
                       ? 'Iniciando sesión...'
+                      : authState.status === 'resolving-role'
+                      ? 'Cargando perfil...'
                       : isPasswordReset
                       ? 'Actualizando contraseña...'
                       : isPasswordRecovery

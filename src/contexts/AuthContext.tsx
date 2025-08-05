@@ -207,6 +207,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [authState, fetchUserRole, transitionState]);
 
+  // === Role resolution timeout handler ===
+  useEffect(() => {
+    if (authState.status === 'resolving-role') {
+      console.debug('[AUTH] Starting role resolution timeout (15s)');
+      const timeout = setTimeout(() => {
+        console.warn('[AUTH] Role resolution timeout, defaulting to viewer');
+        transitionState({
+          status: 'authenticated',
+          user: authState.user,
+          session: authState.session,
+          role: 'viewer'
+        });
+      }, 15000); // 15 seconds timeout
+
+      return () => clearTimeout(timeout);
+    }
+  }, [authState.status, authState, transitionState]);
+
   // === Initialization & listener ===
 
   useEffect(() => {

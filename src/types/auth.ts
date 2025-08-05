@@ -9,6 +9,7 @@ export type AuthState =
   | { status: 'initializing' }
   | { status: 'unauthenticated' }
   | { status: 'authenticating' }
+  | { status: 'resolving-role', user: User, session: Session, role: Role }
   | { status: 'authenticated', user: User, session: Session, role: Role }
   | { status: 'error', error: string, retry: () => void };
 
@@ -137,7 +138,9 @@ export function canAccessProtectedRoute(authState: AuthState): boolean {
  * Helper function to determine if auth state is in a loading state
  */
 export function isAuthLoading(authState: AuthState): boolean {
-  return authState.status === 'initializing' || authState.status === 'authenticating';
+  return authState.status === 'initializing' || 
+         authState.status === 'authenticating' || 
+         authState.status === 'resolving-role';
 }
 
 /**
