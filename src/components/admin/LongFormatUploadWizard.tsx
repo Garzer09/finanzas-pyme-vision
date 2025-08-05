@@ -74,21 +74,136 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
   });
   const [uploadedFiles, setUploadedFiles] = useState<FileData[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoadingCompany, setIsLoadingCompany] = useState(false);
+  const [isCompanyPreloaded, setIsCompanyPreloaded] = useState(false);
 
-  const handleDownloadTemplate = (templateType: string) => {
-    const templates = {
-      'cuenta-pyg': '/templates/cuenta-pyg-long.csv',
-      'balance-situacion': '/templates/balance-situacion-long.csv',
-      'estado-flujos': '/templates/estado-flujos-long.csv',
-      'empresa-cualitativa': '/templates/empresa_cualitativa.csv',
+  // Auto-load company data if companyId is provided
+  React.useEffect(() => {
+    const loadCompanyData = async () => {
+      if (!companyId) return;
+
+      setIsLoadingCompany(true);
+      try {
+        const { data: company, error } = await supabase
+          .from('companies')
+          .select('name, currency_code, accounting_standard, sector')
+          .eq('id', companyId)
+          .single();
+
+        if (error) {
+          console.error('Error loading company:', error);
+          toast.error('Error cargando datos de la empresa');
+          return;
+        }
+
+        if (company) {
+          setCompanyInfo({
+            name: company.name || '',
+            currency: company.currency_code || 'EUR',
+            accounting_standard: company.accounting_standard || 'PGC',
+            sector: company.sector || ''
+          });
+          setIsCompanyPreloaded(true);
+          toast.success(`Datos cargados para: ${company.name}`);
+        }
+      } catch (error) {
+        console.error('Error loading company data:', error);
+        toast.error('Error cargando datos de la empresa');
+      } finally {
+        setIsLoadingCompany(false);
+      }
     };
-    
-    const templatePath = templates[templateType as keyof typeof templates];
-    if (templatePath) {
+
+    loadCompanyData();
+  }, [companyId]);
+
+  const handleDownloadAllTemplates = async () => {
+    setLoading(true);
+    try {
+      const years = [2022, 2023, 2024];
+      const templateTypes = ['pyg', 'balance', 'cashflow'];
+      const allFiles: { filename: string; content: string }[] = [];
+
+      // Generate long format templates dynamically
+      for (const templateType of templateTypes) {
+        const { data, error } = await supabase.functions.invoke('long-template-generator', {
+          body: {
+            templateType,
+            years,
+            companyId,
+            periods: years.map(year => ({
+              year,
+              period: `${year}-12-31`,
+              periodType: 'annual'
+            }))
+          }
+        });
+
+        if (!error && data) {
+          allFiles.push({
+            filename: data.filename,
+            content: data.content
+          });
+        }
+      }
+
+      // Add qualitative template (static)
+      try {
+        const qualitativeResponse = await fetch('/templates/empresa_cualitativa.csv');
+        if (qualitativeResponse.ok) {
+          const qualitativeContent = await qualitativeResponse.text();
+          allFiles.push({
+            filename: 'empresa_cualitativa.csv',
+            content: qualitativeContent
+          });
+        }
+      } catch (error) {
+        console.warn('Could not load qualitative template:', error);
+      }
+
+      // Add other available templates
+      const otherTemplates = [
+        'pool-deuda.csv',
+        'pool-deuda-vencimientos.csv', 
+        'datos-operativos.csv',
+        'supuestos-financieros.csv'
+      ];
+
+      for (const template of otherTemplates) {
+        try {
+          const response = await fetch(`/templates/${template}`);
+          if (response.ok) {
+            const content = await response.text();
+            allFiles.push({
+              filename: template,
+              content: content
+            });
+          }
+        } catch (error) {
+          console.warn(`Could not load template ${template}:`, error);
+        }
+      }
+
+      // Create and download ZIP
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      allFiles.forEach(file => {
+        zip.file(file.filename, file.content);
+      });
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
       const link = document.createElement('a');
-      link.href = templatePath;
-      link.download = `${templateType}-template.csv`;
+      link.href = URL.createObjectURL(zipBlob);
+      link.download = `plantillas-completas-${companyInfo.name || 'empresa'}-${new Date().toISOString().slice(0, 10)}.zip`;
       link.click();
+
+      toast.success(`Descargadas ${allFiles.length} plantillas en ZIP`);
+    } catch (error) {
+      console.error('Error downloading templates:', error);
+      toast.error('Error al descargar plantillas');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -296,7 +411,15 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
       }
       
       toast.success('Datos procesados exitosamente');
-      onComplete?.(currentCompanyId);
+      
+      // Smart navigation based on context
+      if (isCompanyPreloaded && currentCompanyId) {
+        // Navigate to company description if we came from an existing company
+        window.location.href = `/descripcion-empresa?companyId=${currentCompanyId}`;
+      } else {
+        // Call completion callback for new companies
+        onComplete?.(currentCompanyId);
+      }
       
     } catch (error: any) {
       console.error('Error processing data:', error);
@@ -340,14 +463,26 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
           <CardContent className="space-y-6">
             {/* Company Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
+            <div className="space-y-2">
                 <Label htmlFor="company-name">Nombre de la empresa *</Label>
-                <Input
-                  id="company-name"
-                  value={companyInfo.name}
-                  onChange={(e) => setCompanyInfo(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Ingrese el nombre de la empresa"
-                />
+                <div className="relative">
+                  <Input
+                    id="company-name"
+                    value={companyInfo.name}
+                    onChange={(e) => !isCompanyPreloaded && setCompanyInfo(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="Ingrese el nombre de la empresa"
+                    disabled={isCompanyPreloaded || isLoadingCompany}
+                    className={isCompanyPreloaded ? "bg-blue-50 border-blue-200" : ""}
+                  />
+                  {isCompanyPreloaded && (
+                    <Badge variant="secondary" className="absolute right-2 top-2 bg-blue-100 text-blue-700">
+                      Pre-cargado
+                    </Badge>
+                  )}
+                </div>
+                {isLoadingCompany && (
+                  <p className="text-sm text-muted-foreground">Cargando datos de empresa...</p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -355,8 +490,10 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
                 <Input
                   id="sector"
                   value={companyInfo.sector}
-                  onChange={(e) => setCompanyInfo(prev => ({ ...prev, sector: e.target.value }))}
+                  onChange={(e) => !isCompanyPreloaded && setCompanyInfo(prev => ({ ...prev, sector: e.target.value }))}
                   placeholder="Ej: Tecnología, Retail, etc."
+                  disabled={isCompanyPreloaded || isLoadingCompany}
+                  className={isCompanyPreloaded ? "bg-blue-50 border-blue-200" : ""}
                 />
               </div>
 
@@ -390,63 +527,25 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
 
             <Separator />
 
-            {/* Template Downloads */}
+            {/* Unified Template Download */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold mb-4">Plantillas Disponibles</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <h4 className="text-md font-medium text-muted-foreground">Datos Financieros</h4>
-                  <div className="grid grid-cols-1 gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={() => handleDownloadTemplate('cuenta-pyg')}
-                      className="flex items-center gap-2 h-auto p-3"
-                    >
-                      <Download className="h-4 w-4" />
-                      <div className="text-left">
-                        <div className="font-medium">Cuenta P&G</div>
-                        <div className="text-sm text-muted-foreground">Formato largo</div>
-                      </div>
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={() => handleDownloadTemplate('balance-situacion')}
-                      className="flex items-center gap-2 h-auto p-3"
-                    >
-                      <Download className="h-4 w-4" />
-                      <div className="text-left">
-                        <div className="font-medium">Balance Situación</div>
-                        <div className="text-sm text-muted-foreground">Formato largo</div>
-                      </div>
-                    </Button>
-                    
-                    <Button
-                      variant="outline"
-                      onClick={() => handleDownloadTemplate('estado-flujos')}
-                      className="flex items-center gap-2 h-auto p-3"
-                    >
-                      <Download className="h-4 w-4" />
-                      <div className="text-left">
-                        <div className="font-medium">Estado Flujos</div>
-                        <div className="text-sm text-muted-foreground">Formato largo</div>
-                      </div>
-                    </Button>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-blue-900">Paquete Completo de Plantillas</h4>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Incluye todas las plantillas disponibles: P&G, Balance, Flujos, Pool Deuda, Supuestos, Datos Operativos y Empresa Cualitativa
+                      {isCompanyPreloaded && ` - Pre-configurado para ${companyInfo.name}`}
+                    </p>
                   </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <h4 className="text-md font-medium text-muted-foreground">Datos Cualitativos</h4>
                   <Button
-                    variant="outline"
-                    onClick={() => handleDownloadTemplate('empresa-cualitativa')}
-                    className="flex items-center gap-2 h-auto p-3 w-full"
+                    onClick={handleDownloadAllTemplates}
+                    disabled={loading || isLoadingCompany}
+                    className="ml-4 flex items-center gap-2"
                   >
                     <Download className="h-4 w-4" />
-                    <div className="text-left">
-                      <div className="font-medium">Empresa Cualitativa</div>
-                      <div className="text-sm text-muted-foreground">Información y accionistas</div>
-                    </div>
+                    {loading ? 'Generando...' : 'Descargar Todas'}
                   </Button>
                 </div>
               </div>
