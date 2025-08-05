@@ -17,6 +17,7 @@ interface AnalyticalPLItem {
   previousPeriod: number;
   marginPercent: number;
   variationPercent: number;
+  sparklineData: number[];
   category: 'revenue' | 'variable_costs' | 'fixed_costs' | 'margin';
   level: number;
 }
@@ -136,6 +137,12 @@ export const useAnalyticalPLData = (companyId?: string): UseAnalyticalPLDataResu
       return (amount / sales) * 100;
     };
 
+    // Helper function to generate sparkline data based on trend
+    const generateSparkline = (current: number, previous: number) => {
+      const trend = (current - previous) / 8; // 8 data points
+      return Array.from({ length: 8 }, (_, i) => previous + (trend * i));
+    };
+
     const items: AnalyticalPLItem[] = [
       {
         concept: 'Ventas Netas',
@@ -143,6 +150,7 @@ export const useAnalyticalPLData = (companyId?: string): UseAnalyticalPLDataResu
         previousPeriod: previousVentas,
         marginPercent: 100.0,
         variationPercent: calcVariation(currentVentas, previousVentas),
+        sparklineData: generateSparkline(currentVentas, previousVentas),
         category: 'revenue',
         level: 1
       },
@@ -152,6 +160,7 @@ export const useAnalyticalPLData = (companyId?: string): UseAnalyticalPLDataResu
         previousPeriod: previousCostesVariables,
         marginPercent: calcMargin(currentCostesVariables, currentVentas),
         variationPercent: calcVariation(Math.abs(currentCostesVariables), Math.abs(previousCostesVariables)),
+        sparklineData: generateSparkline(currentCostesVariables, previousCostesVariables),
         category: 'variable_costs',
         level: 1
       },
@@ -161,6 +170,7 @@ export const useAnalyticalPLData = (companyId?: string): UseAnalyticalPLDataResu
         previousPeriod: previousMargenContribucion,
         marginPercent: calcMargin(currentMargenContribucion, currentVentas),
         variationPercent: calcVariation(currentMargenContribucion, previousMargenContribucion),
+        sparklineData: generateSparkline(currentMargenContribucion, previousMargenContribucion),
         category: 'margin',
         level: 1
       },
@@ -170,6 +180,7 @@ export const useAnalyticalPLData = (companyId?: string): UseAnalyticalPLDataResu
         previousPeriod: previousCostesFijos,
         marginPercent: calcMargin(currentCostesFijos, currentVentas),
         variationPercent: calcVariation(Math.abs(currentCostesFijos), Math.abs(previousCostesFijos)),
+        sparklineData: generateSparkline(currentCostesFijos, previousCostesFijos),
         category: 'fixed_costs',
         level: 1
       },
@@ -179,6 +190,7 @@ export const useAnalyticalPLData = (companyId?: string): UseAnalyticalPLDataResu
         previousPeriod: previousEBIT,
         marginPercent: calcMargin(currentEBIT, currentVentas),
         variationPercent: calcVariation(currentEBIT, previousEBIT),
+        sparklineData: generateSparkline(currentEBIT, previousEBIT),
         category: 'margin',
         level: 1
       }
