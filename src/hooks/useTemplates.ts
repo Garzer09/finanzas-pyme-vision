@@ -1,162 +1,88 @@
-// React hooks for template management
-import { useState, useEffect, useCallback } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { TemplateService } from '@/services/templateService';
-import type {
-  TemplateSchema,
-  CompanyTemplateCustomization,
-  TemplateServiceResponse,
-  GenerateTemplateRequest,
-  GenerateTemplateResponse
-} from '@/types/templates';
+import { useState, useEffect } from 'react';
+import { templateService } from '@/services/templateService';
 
-export function useTemplates(category?: string) {
-  const [templates, setTemplates] = useState<TemplateSchema[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+export const useTemplates = () => {
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const loadTemplates = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    
+  const fetchTemplates = async () => {
     try {
-      const result = await TemplateService.getTemplateSchemas(category);
-      
-      if (result.success && result.data) {
-        setTemplates(result.data);
-      } else {
-        setError(result.error || 'Failed to load templates');
-        toast({
-          title: "Error",
-          description: result.error || 'Failed to load templates',
-          variant: "destructive"
-        });
-      }
+      setLoading(true);
+      const data = await templateService.getTemplates();
+      setTemplates(data);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      setError(err);
     } finally {
       setLoading(false);
     }
-  }, [category, toast]);
+  };
 
-  useEffect(() => {
-    loadTemplates();
-  }, [loadTemplates]);
+  const loadTemplates = fetchTemplates; // Alias for compatibility
 
-  const getTemplate = useCallback(async (name: string): Promise<TemplateSchema | null> => {
+  const getRequiredTemplates = async () => {
     try {
-      const result = await TemplateService.getTemplateSchema(name);
-      return result.success ? result.data : null;
-    } catch {
-      return null;
-    }
-  }, []);
-
-  const getRequiredTemplates = useCallback(async (): Promise<TemplateSchema[]> => {
-    try {
-      const result = await TemplateService.getRequiredTemplates();
-      return result.success ? result.data || [] : [];
-    } catch {
+      return await templateService.getRequiredTemplates();
+    } catch (err) {
+      setError(err);
       return [];
     }
-  }, []);
+  };
 
-  const generateTemplate = useCallback(async (request: GenerateTemplateRequest): Promise<GenerateTemplateResponse> => {
-    return await TemplateService.generateTemplate(request);
+  useEffect(() => {
+    fetchTemplates();
   }, []);
 
   return {
     templates,
     loading,
     error,
+    fetchTemplates,
     loadTemplates,
-    getTemplate,
-    getRequiredTemplates,
-    generateTemplate
+    getRequiredTemplates
   };
-}
+};
 
-export function useCompanyTemplateCustomizations(companyId: string) {
-  const [customizations, setCustomizations] = useState<CompanyTemplateCustomization[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+// Export additional hooks for compatibility
+export const useTemplateDetection = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const loadCustomizations = useCallback(async () => {
-    if (!companyId) return;
-    
-    setLoading(true);
-    setError(null);
-    
+  const detectTemplate = async (fileData: any) => {
     try {
-      const result = await TemplateService.getCompanyCustomizations(companyId);
-      
-      if (result.success && result.data) {
-        setCustomizations(result.data);
-      } else {
-        setError(result.error || 'Failed to load customizations');
-      }
+      setLoading(true);
+      return await templateService.detectTemplate(fileData);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
+      setError(err);
+      return null;
     } finally {
       setLoading(false);
     }
-  }, [companyId]);
+  };
+
+  return { detectTemplate, loading, error };
+};
+
+export const useCompanyTemplateCustomizations = (companyId: string) => {
+  const [customizations, setCustomizations] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  const fetchCustomizations = async () => {
+    try {
+      setLoading(true);
+      const data = await templateService.getCompanyCustomizations(companyId);
+      setCustomizations(data);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    loadCustomizations();
-  }, [loadCustomizations]);
-
-  const saveCustomization = useCallback(async (
-    customization: Omit<CompanyTemplateCustomization, 'id' | 'created_at' | 'updated_at'>
-  ): Promise<boolean> => {
-    try {
-      const result = await TemplateService.saveCompanyCustomization(customization);
-      
-      if (result.success) {
-        await loadCustomizations(); // Reload after save
-        toast({
-          title: "Success",
-          description: "Template customization saved successfully"
-        });
-        return true;
-      } else {
-        toast({
-          title: "Error",
-          description: result.error || 'Failed to save customization',
-          variant: "destructive"
-        });
-        return false;
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      return false;
-    }
-  }, [loadCustomizations, toast]);
-
-  const getCustomization = useCallback((templateSchemaId: string): CompanyTemplateCustomization | undefined => {
-    return customizations.find(c => c.template_schema_id === templateSchemaId && c.is_active);
-  }, [customizations]);
-
-  const getEffectiveTemplate = useCallback(async (templateName: string): Promise<TemplateSchema | null> => {
-    try {
-      const result = await TemplateService.getEffectiveTemplateSchema(templateName, companyId);
-      return result.success ? result.data : null;
-    } catch {
-      return null;
+    if (companyId) {
+      fetchCustomizations();
     }
   }, [companyId]);
 
@@ -164,108 +90,25 @@ export function useCompanyTemplateCustomizations(companyId: string) {
     customizations,
     loading,
     error,
-    loadCustomizations,
-    saveCustomization,
-    getCustomization,
-    getEffectiveTemplate
+    fetchCustomizations
   };
-}
+};
 
-export function useTemplateDetection() {
-  const [isDetecting, setIsDetecting] = useState(false);
-  const [detectionError, setDetectionError] = useState<string | null>(null);
+export const useTemplateGeneration = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const detectTemplate = useCallback(async (headers: string[], sampleData?: any[][]): Promise<{
-    template_name: string;
-    confidence: number;
-    matched_columns: string[];
-    missing_columns: string[];
-    extra_columns: string[];
-  }[]> => {
-    setIsDetecting(true);
-    setDetectionError(null);
-    
+  const generateTemplate = async (data: any) => {
     try {
-      const result = await TemplateService.detectTemplate(headers, sampleData);
-      
-      if (result.success && result.data) {
-        return result.data;
-      } else {
-        setDetectionError(result.error || 'Failed to detect template');
-        return [];
-      }
+      setLoading(true);
+      return await templateService.generateTemplate(data);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setDetectionError(errorMessage);
-      return [];
+      setError(err);
+      throw err;
     } finally {
-      setIsDetecting(false);
+      setLoading(false);
     }
-  }, []);
-
-  return {
-    detectTemplate,
-    isDetecting,
-    detectionError
   };
-}
 
-export function useTemplateGeneration() {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [generationError, setGenerationError] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  const generateAndDownload = useCallback(async (request: GenerateTemplateRequest): Promise<boolean> => {
-    setIsGenerating(true);
-    setGenerationError(null);
-    
-    try {
-      const result = await TemplateService.generateTemplate(request);
-      
-      if (result.success && result.template_content) {
-        // Create and trigger download
-        const blob = new Blob([result.template_content], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = result.filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-        
-        toast({
-          title: "Success",
-          description: `Template ${result.filename} downloaded successfully`
-        });
-        
-        return true;
-      } else {
-        setGenerationError(result.error || 'Failed to generate template');
-        toast({
-          title: "Error",
-          description: result.error || 'Failed to generate template',
-          variant: "destructive"
-        });
-        return false;
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setGenerationError(errorMessage);
-      toast({
-        title: "Error",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      return false;
-    } finally {
-      setIsGenerating(false);
-    }
-  }, [toast]);
-
-  return {
-    generateAndDownload,
-    isGenerating,
-    generationError
-  };
-}
+  return { generateTemplate, loading, error };
+};

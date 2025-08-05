@@ -12,9 +12,8 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
-    process.env.VITE_SENTRY_DSN && sentryVitePlugin({
+    mode === 'development' ? componentTagger() : null,
+    process.env.VITE_SENTRY_DSN ? sentryVitePlugin({
       org: process.env.SENTRY_ORG,
       project: process.env.SENTRY_PROJECT,
       authToken: process.env.SENTRY_AUTH_TOKEN,
@@ -24,7 +23,7 @@ export default defineConfig(({ mode }) => ({
       sourcemaps: {
         assets: './dist/**'
       }
-    }),
+    }) : null,
   ].filter(Boolean),
   resolve: {
     alias: {
