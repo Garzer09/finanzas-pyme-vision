@@ -12,6 +12,9 @@ import { Upload, FileText, CheckCircle, ArrowRight, Download, X, XCircle, Buildi
 import { useDataYearDetection } from '@/hooks/useDataYearDetection';
 import { DataManagementPanel } from './DataManagementPanel';
 import { ProcessingStatusPanel } from './ProcessingStatusPanel';
+import { ProcessingDebugPanel } from './ProcessingDebugPanel';
+import { QualitativePreview } from '../QualitativePreview';
+import { EnhancedFileProcessor, ProcessedFileResult } from '@/services/enhancedFileProcessor';
 
 // Types
 interface CompanyInfo {
@@ -82,7 +85,38 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
   const [isCompanyPreloaded, setIsCompanyPreloaded] = useState(false);
   const [detectedYears, setDetectedYears] = useState<number[]>([]);
   const [showDataManagement, setShowDataManagement] = useState(false);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const [lastProcessingResult, setLastProcessingResult] = useState<ProcessedFileResult | null>(null);
+  const [previewData, setPreviewData] = useState<any>(null);
   const { detectYearsFromFiles } = useDataYearDetection();
+  const fileProcessor = new EnhancedFileProcessor();
+
+  // Enhanced file processing with debug capability
+  const handleTestQualitativeProcessing = async (file: FileData) => {
+    if (file.type !== 'qualitative') return;
+    
+    console.log('Testing qualitative file processing:', file.name);
+    setShowDebugPanel(true);
+    
+    try {
+      const result = await fileProcessor.processFile(new File([createQualitativeCSV(file.parsedData)], file.name, { type: 'text/csv' }), {
+        companyId: companyId || 'test',
+        fileType: 'qualitative'
+      });
+      
+      setLastProcessingResult(result);
+      setPreviewData(result.data);
+      
+      if (result.success) {
+        toast.success('Archivo cualitativo procesado exitosamente');
+      } else {
+        toast.error(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Test processing error:', error);
+      toast.error(`Error en el test: ${error}`);
+    }
+  };
 
   // Auto-load company data if companyId is provided
   React.useEffect(() => {
@@ -287,66 +321,120 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
     return errors;
   };
 
-  const handleFileUploaded = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string;
-        const lines = content.split('\n').filter(line => line.trim());
-        
-        // Detect file type
-        const fileName = file.name.toLowerCase();
-        const isQualitative = fileName.includes('cualitativa') || fileName.includes('qualitative');
-        
-        let fileData: FileData;
-        
-        if (isQualitative) {
-          // Process qualitative file
-          const qualitativeData = parseQualitativeFile(content);
-          fileData = {
-            name: file.name,
-            content: [],
-            headers: [],
-            isValid: !!qualitativeData.company.company_name,
-            errors: qualitativeData.company.company_name ? [] : ['No se encontró información de empresa válida'],
-            type: 'qualitative',
-            parsedData: qualitativeData
-          };
-        } else {
-          // Process other files
-          const headers = lines[0]?.split(',').map(h => h.trim()) || [];
-          const fileType = detectFileType(file.name, headers);
-          const errors = validateFileStructure(fileType, headers);
+  const handleFileUploaded = async (file: File) => {
+    try {
+      console.log('Starting file upload:', file.name);
+      
+      // Enhanced file processing with detailed logging
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const content = e.target?.result as string;
+          const lines = content.split('\n').filter(line => line.trim());
           
-          fileData = {
-            name: file.name,
-            content: lines.slice(1).map(line => line.split(',')),
-            headers,
-            isValid: errors.length === 0,
-            errors,
-            type: fileType,
-            optionalTemplate: ['debt_pool', 'debt_maturities', 'operational', 'financial_assumptions'].includes(fileType)
-          };
+          console.log(`Processing file: ${file.name}, lines: ${lines.length}`);
+          
+          // Detect file type
+          const fileName = file.name.toLowerCase();
+          const isQualitative = fileName.includes('cualitativa') || fileName.includes('qualitative');
+          
+          let fileData: FileData;
+          
+          if (isQualitative) {
+            console.log('Detected qualitative file, parsing...');
+            // Process qualitative file with enhanced validation
+            const qualitativeData = parseQualitativeFile(content);
+            
+            console.log('Qualitative data parsed:', {
+              companyName: qualitativeData.company.company_name,
+              shareholderCount: qualitativeData.shareholders.length
+            });
+            
+            fileData = {
+              name: file.name,
+              content: [],
+              headers: [],
+              isValid: !!qualitativeData.company.company_name,
+              errors: qualitativeData.company.company_name ? [] : ['No se encontró información de empresa válida en el archivo'],
+              type: 'qualitative',
+              parsedData: qualitativeData
+            };
+
+            // Additional validation for qualitative files
+            if (!content.includes('# SECCION: EMPRESA')) {
+              fileData.errors.push('Falta la sección "# SECCION: EMPRESA" en el archivo');
+              fileData.isValid = false;
+            }
+            if (!content.includes('# SECCION: ESTRUCTURA_ACCIONARIAL')) {
+              fileData.errors.push('Falta la sección "# SECCION: ESTRUCTURA_ACCIONARIAL" en el archivo');
+            }
+            
+          } else {
+            console.log('Processing standard financial file...');
+            // Process other files
+            const headers = lines[0]?.split(',').map(h => h.trim()) || [];
+            const fileType = detectFileType(file.name, headers);
+            const errors = validateFileStructure(fileType, headers);
+            
+            console.log(`File type detected: ${fileType}, headers: ${headers.length}, errors: ${errors.length}`);
+            
+            fileData = {
+              name: file.name,
+              content: lines.slice(1).map(line => line.split(',')),
+              headers,
+              isValid: errors.length === 0,
+              errors,
+              type: fileType,
+              optionalTemplate: ['debt_pool', 'debt_maturities', 'operational', 'financial_assumptions'].includes(fileType)
+            };
+          }
+          
+          setUploadedFiles(prev => {
+            const newFiles = [...prev, fileData];
+            
+            // Auto-detect years from uploaded files
+            try {
+              const yearDetection = detectYearsFromFiles(newFiles.map(f => ({
+                name: f.name,
+                content: f.content,
+                headers: f.headers
+              })));
+              console.log('Year detection result:', yearDetection);
+              setDetectedYears(yearDetection.detectedYears);
+            } catch (yearError) {
+              console.warn('Year detection failed:', yearError);
+            }
+            
+            return newFiles;
+          });
+          
+          const statusMessage = fileData.isValid 
+            ? `Archivo ${file.name} cargado exitosamente${fileData.optionalTemplate ? ' (plantilla opcional)' : ''}`
+            : `Archivo ${file.name} cargado con errores: ${fileData.errors.join(', ')}`;
+            
+          if (fileData.isValid) {
+            toast.success(statusMessage);
+          } else {
+            toast.error(statusMessage);
+          }
+          
+        } catch (parseError) {
+          console.error('Error parsing file content:', parseError);
+          toast.error(`Error al analizar el contenido del archivo ${file.name}: ${parseError}`);
         }
-        
-        setUploadedFiles(prev => {
-          const newFiles = [...prev, fileData];
-          // Auto-detect years from uploaded files
-          const yearDetection = detectYearsFromFiles(newFiles.map(f => ({
-            name: f.name,
-            content: f.content,
-            headers: f.headers
-          })));
-          setDetectedYears(yearDetection.detectedYears);
-          return newFiles;
-        });
-        toast.success(`Archivo ${file.name} cargado exitosamente${fileData.optionalTemplate ? ' (plantilla opcional)' : ''}`);
-      } catch (error) {
-        console.error('Error processing file:', error);
-        toast.error('Error al procesar el archivo');
-      }
-    };
-    reader.readAsText(file);
+      };
+      
+      reader.onerror = (error) => {
+        console.error('FileReader error:', error);
+        toast.error(`Error al leer el archivo ${file.name}`);
+      };
+      
+      reader.readAsText(file);
+      
+    } catch (error) {
+      console.error('Error in handleFileUploaded:', error);
+      toast.error(`Error al procesar el archivo ${file.name}: ${error}`);
+    }
   };
 
   const parseQualitativeFile = (content: string): QualitativeData => {
@@ -437,21 +525,42 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
         currentCompanyId = newCompany.id;
       }
       
-      // Process qualitative files first
+      // Process qualitative files first with enhanced error handling
       const qualitativeFiles = uploadedFiles.filter(f => f.type === 'qualitative');
       for (const qualitativeFile of qualitativeFiles) {
-        const csvContent = createQualitativeCSV(qualitativeFile.parsedData);
-        const formData = new FormData();
-        formData.append('file', new Blob([csvContent], { type: 'text/csv' }), qualitativeFile.name);
-        formData.append('targetUserId', currentCompanyId);
+        console.log('Processing qualitative file:', qualitativeFile.name);
         
-        const { error: qualError } = await supabase.functions.invoke('empresa-cualitativa-processor', {
-          body: formData
-        });
-        
-        if (qualError) {
-          console.error('Error processing qualitative data:', qualError);
-          toast.error(`Error al procesar datos cualitativos: ${qualError.message}`);
+        try {
+          const csvContent = createQualitativeCSV(qualitativeFile.parsedData);
+          console.log('CSV content created, length:', csvContent.length);
+          
+          const formData = new FormData();
+          formData.append('file', new Blob([csvContent], { type: 'text/csv' }), qualitativeFile.name);
+          formData.append('targetUserId', currentCompanyId);
+          
+          console.log('Calling empresa-cualitativa-processor...');
+          const { data: qualResult, error: qualError } = await supabase.functions.invoke('empresa-cualitativa-processor', {
+            body: formData
+          });
+          
+          if (qualError) {
+            console.error('Edge function error:', qualError);
+            toast.error(`Error al procesar datos cualitativos: ${qualError.message}`);
+            continue;
+          }
+          
+          if (!qualResult?.success) {
+            console.error('Processing failed:', qualResult);
+            toast.error(`Error al procesar ${qualitativeFile.name}: ${qualResult?.error || qualResult?.message || 'Error desconocido'}`);
+            continue;
+          }
+          
+          console.log('Qualitative file processed successfully:', qualResult);
+          toast.success(`Datos cualitativos procesados exitosamente para ${qualitativeFile.name}`);
+          
+        } catch (qualProcessError) {
+          console.error('Error in qualitative processing:', qualProcessError);
+          toast.error(`Error inesperado al procesar ${qualitativeFile.name}: ${qualProcessError}`);
         }
       }
       
@@ -783,6 +892,16 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
                             Error
                           </Badge>
                         )}
+                        {file.type === 'qualitative' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleTestQualitativeProcessing(file)}
+                            className="mr-2"
+                          >
+                            Test
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -794,6 +913,49 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Debug Panel */}
+            <ProcessingDebugPanel 
+              result={lastProcessingResult}
+              isVisible={showDebugPanel}
+              onRetry={() => {
+                const qualitativeFile = uploadedFiles.find(f => f.type === 'qualitative');
+                if (qualitativeFile) {
+                  handleTestQualitativeProcessing(qualitativeFile);
+                }
+              }}
+            />
+
+            {/* Data Management */}
+            {companyId && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-medium">Gestión de Datos</h4>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDataManagement(!showDataManagement)}
+                  >
+                    {showDataManagement ? 'Ocultar' : 'Ver'} Datos Existentes
+                  </Button>
+                </div>
+                
+                {showDataManagement && (
+                  <div className="space-y-4">
+                    <DataManagementPanel companyId={companyId} />
+                    <ProcessingStatusPanel companyId={companyId} />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Qualitative Data Preview */}
+            {previewData && (
+              <div className="space-y-4">
+                <h4 className="font-medium">Vista Previa de Datos Procesados</h4>
+                <QualitativePreview data={previewData} showDetails={true} />
               </div>
             )}
 

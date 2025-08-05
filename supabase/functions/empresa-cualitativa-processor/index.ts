@@ -594,15 +594,30 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error) {
-    console.error(`[${reqId}] Error in empresa-cualitativa-processor:`, error);
+  } catch (error: any) {
+    console.error(`[${reqId}] ❌ Fatal error in empresa-cualitativa-processor:`, error);
+    console.error(`[${reqId}] ❌ Error stack:`, error.stack);
+    console.error(`[${reqId}] ❌ Error details:`, {
+      name: error.name,
+      message: error.message,
+      cause: error.cause
+    });
     
-    return new Response(JSON.stringify({
+    const errorResponse = {
       success: false,
-      reqId,
-      code: 'INTERNAL_ERROR',
-      message: error.message || 'Internal server error'
-    }), {
+      message: 'Error al procesar archivo de empresa cualitativa',
+      error: error.message || 'Error desconocido en el procesamiento',
+      details: {
+        reqId,
+        timestamp: new Date().toISOString(),
+        errorType: error.name || 'UnknownError',
+        stack: error.stack
+      }
+    };
+
+    console.log(`[${reqId}] 📤 Sending error response:`, errorResponse);
+    
+    return new Response(JSON.stringify(errorResponse), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
