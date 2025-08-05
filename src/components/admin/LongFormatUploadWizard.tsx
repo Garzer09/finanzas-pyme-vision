@@ -12,8 +12,8 @@ import { Upload, FileText, CheckCircle, ArrowRight, Download, X, XCircle, Buildi
 import { useDataYearDetection } from '@/hooks/useDataYearDetection';
 import { DataManagementPanel } from './DataManagementPanel';
 import { ProcessingStatusPanel } from './ProcessingStatusPanel';
-import { ProcessingDebugPanel } from './ProcessingDebugPanel';
 import { QualitativePreview } from '../QualitativePreview';
+import { EditableQualitativePreview } from './EditableQualitativePreview';
 import { EnhancedFileProcessor, ProcessedFileResult } from '@/services/enhancedFileProcessor';
 
 // Types
@@ -85,37 +85,40 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
   const [isCompanyPreloaded, setIsCompanyPreloaded] = useState(false);
   const [detectedYears, setDetectedYears] = useState<number[]>([]);
   const [showDataManagement, setShowDataManagement] = useState(false);
-  const [showDebugPanel, setShowDebugPanel] = useState(false);
-  const [lastProcessingResult, setLastProcessingResult] = useState<ProcessedFileResult | null>(null);
-  const [previewData, setPreviewData] = useState<any>(null);
+  const [editedQualitativeData, setEditedQualitativeData] = useState<QualitativeData | null>(null);
+  const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
   const { detectYearsFromFiles } = useDataYearDetection();
   const fileProcessor = new EnhancedFileProcessor();
 
-  // Enhanced file processing with debug capability
-  const handleTestQualitativeProcessing = async (file: FileData) => {
-    if (file.type !== 'qualitative') return;
+  // Update edited qualitative data
+  const updateEditedQualitativeData = (field: string, value: any, section: 'company' | 'shareholders', index?: number) => {
+    setModifiedFields(prev => new Set([...prev, field]));
     
-    console.log('Testing qualitative file processing:', file.name);
-    setShowDebugPanel(true);
-    
-    try {
-      const result = await fileProcessor.processFile(new File([createQualitativeCSV(file.parsedData)], file.name, { type: 'text/csv' }), {
-        companyId: companyId || 'test',
-        fileType: 'qualitative'
-      });
+    setEditedQualitativeData(prev => {
+      if (!prev) return null;
       
-      setLastProcessingResult(result);
-      setPreviewData(result.data);
-      
-      if (result.success) {
-        toast.success('Archivo cualitativo procesado exitosamente');
-      } else {
-        toast.error(`Error: ${result.error}`);
+      if (section === 'company') {
+        return {
+          ...prev,
+          company: {
+            ...prev.company,
+            [field]: value
+          }
+        };
+      } else if (section === 'shareholders' && typeof index === 'number') {
+        const updatedShareholders = [...prev.shareholders];
+        updatedShareholders[index] = {
+          ...updatedShareholders[index],
+          [field]: value
+        };
+        return {
+          ...prev,
+          shareholders: updatedShareholders
+        };
       }
-    } catch (error) {
-      console.error('Test processing error:', error);
-      toast.error(`Error en el test: ${error}`);
-    }
+      
+      return prev;
+    });
   };
 
   // Auto-load company data if companyId is provided
@@ -539,7 +542,9 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
         console.log('Processing qualitative file:', qualitativeFile.name);
         
         try {
-          const csvContent = createQualitativeCSV(qualitativeFile.parsedData);
+          // Use edited data if available, otherwise use original parsed data
+          const dataToProcess = editedQualitativeData || qualitativeFile.parsedData;
+          const csvContent = createQualitativeCSV(dataToProcess);
           console.log('CSV content created, length:', csvContent.length);
           
           const formData = new FormData();
@@ -909,16 +914,6 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
                             Error
                           </Badge>
                         )}
-                        {file.type === 'qualitative' && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleTestQualitativeProcessing(file)}
-                            className="mr-2"
-                          >
-                            Test
-                          </Button>
-                        )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -933,17 +928,6 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
               </div>
             )}
 
-            {/* Debug Panel */}
-            <ProcessingDebugPanel 
-              result={lastProcessingResult}
-              isVisible={showDebugPanel}
-              onRetry={() => {
-                const qualitativeFile = uploadedFiles.find(f => f.type === 'qualitative');
-                if (qualitativeFile) {
-                  handleTestQualitativeProcessing(qualitativeFile);
-                }
-              }}
-            />
 
             {/* Data Management */}
             {companyId && (
@@ -968,13 +952,6 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
               </div>
             )}
 
-            {/* Qualitative Data Preview */}
-            {previewData && (
-              <div className="space-y-4">
-                <h4 className="font-medium">Vista Previa de Datos Procesados</h4>
-                <QualitativePreview data={previewData} showDetails={true} />
-              </div>
-            )}
 
             {/* Action Buttons */}
             <div className="flex justify-between pt-4">
@@ -1103,50 +1080,11 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
                     </CardHeader>
                     <CardContent>
                       {file.type === 'qualitative' ? (
-                        <div className="space-y-4">
-                          {/* Company Info Preview */}
-                          {file.parsedData?.company && (
-                            <div>
-                              <h4 className="font-medium mb-2">Información de la Empresa</h4>
-                              <div className="bg-gray-50 p-4 rounded-lg">
-                                <div className="grid grid-cols-2 gap-4">
-                                  {Object.entries(file.parsedData.company).map(([key, value]) => (
-                                    value && (
-                                      <div key={key}>
-                                        <span className="text-sm font-medium">{key}:</span>
-                                        <span className="text-sm text-muted-foreground ml-2">{String(value)}</span>
-                                      </div>
-                                    )
-                                  ))}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Shareholders Preview */}
-                          {file.parsedData?.shareholders && file.parsedData.shareholders.length > 0 && (
-                            <div>
-                              <h4 className="font-medium mb-2">Estructura Accionarial ({file.parsedData.shareholders.length} accionistas)</h4>
-                              <div className="bg-gray-50 p-4 rounded-lg">
-                                <div className="space-y-2">
-                                  {file.parsedData.shareholders.slice(0, 5).map((shareholder: any, i: number) => (
-                                    <div key={i} className="border-b border-gray-200 pb-2 last:border-b-0">
-                                      <div className="font-medium">{shareholder.shareholder_name || shareholder.accionista}</div>
-                                      <div className="text-sm text-muted-foreground">
-                                        {shareholder.ownership_pct || shareholder.participacion}% - {shareholder.shareholder_type || shareholder.tipo_accionista || 'N/A'}
-                                      </div>
-                                    </div>
-                                  ))}
-                                  {file.parsedData.shareholders.length > 5 && (
-                                    <div className="text-sm text-muted-foreground">
-                                      ... y {file.parsedData.shareholders.length - 5} más
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                        <EditableQualitativePreview 
+                          data={editedQualitativeData || file.parsedData}
+                          onChange={(updatedData) => setEditedQualitativeData(updatedData)}
+                          modifiedFields={modifiedFields}
+                        />
                       ) : (
                         <div className="overflow-x-auto">
                           <table className="w-full border-collapse border border-gray-200">
