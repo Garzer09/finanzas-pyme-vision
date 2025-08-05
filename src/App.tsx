@@ -7,7 +7,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { DebugToolbar } from "@/components/DebugToolbar";
 import { InactivityWarning } from "@/components/InactivityWarning";
 
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PeriodProvider } from "./contexts/PeriodContext";
 import { AdminImpersonationProvider } from "./contexts/AdminImpersonationContext";
@@ -114,7 +114,7 @@ const App = () => {
             <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Protected Routes - Require Authentication */}
-            <Route element={<RequireAuth />}>
+            <Route element={<RequireAuth><Outlet /></RequireAuth>}>
               <Route path="/subir-excel" element={<ExcelUploadPage />} />
               <Route path="/archivos" element={<FilesDashboardPage />} />
               <Route path="/suscripcion" element={<SubscriptionPage />} />

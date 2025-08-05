@@ -1,88 +1,60 @@
 import React from 'react';
-import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { canAccessProtectedRoute, isAuthLoading } from '@/types/auth';
-import { createSecureRetry, checkRoutePermissions, safeNavigate, formatAuthError } from '@/utils/authHelpers';
-import { AuthLoadingScreen, AuthErrorScreen, AuthUnauthorizedScreen } from '@/components/LoadingStates';
+import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { AuthLoadingScreen, AuthErrorScreen, AuthUnauthorizedScreen } from '@/components/auth/AuthScreens';
 
 interface RequireAuthProps {
   children: React.ReactNode;
+  adminOnly?: boolean;
 }
 
-export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
-  const { authState, initialized, retry } = useAuth();
+export const RequireAuth: React.FC<RequireAuthProps> = ({ children, adminOnly = false }) => {
+  const { isAuthenticated, isLoading, error, retry, role, user } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
 
   console.debug('[REQUIRE-AUTH] Component render:', {
-    authStatus: authState.status,
-    initialized,
+    isAuthenticated,
+    isLoading,
+    error,
+    role,
+    adminOnly,
     pathname: location.pathname
   });
 
-  // 1️⃣ Wait for authentication initialization
-  if (!initialized || isAuthLoading(authState)) {
-    return (
-      <AuthLoadingScreen 
-        message={
-          authState.status === 'initializing' 
-            ? "Inicializando autenticación..." 
-            : authState.status === 'authenticating'
-            ? "Iniciando sesión..."
-            : authState.status === 'resolving-role'
-            ? "Verificando permisos..."
-            : "Verificando autenticación..."
-        } 
-      />
-    );
+  // Loading state
+  if (isLoading) {
+    return <AuthLoadingScreen message="Verificando acceso..." />;
   }
 
-  // 2️⃣ Authentication error: show enhanced retry option
-  if (authState.status === 'error') {
-    const secureRetry = createSecureRetry(
-      retry,
-      () => safeNavigate('/auth', navigate, { state: { from: location } })
-    );
-
+  // Error state
+  if (error) {
     return (
       <AuthErrorScreen
-        message={formatAuthError(authState.error)}
-        onRetry={secureRetry}
-        onBack={() => safeNavigate('/auth', navigate)}
+        message={error}
+        onRetry={retry}
+        onBack={() => window.location.href = '/auth'}
         retryLabel="Reintentar"
         backLabel="Ir a Login"
       />
     );
   }
 
-  // 3️⃣ Not authenticated: redirect to auth preserving location
-  if (authState.status === 'unauthenticated') {
+  // Not authenticated
+  if (!isAuthenticated) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // 4️⃣ Enhanced permission check for authenticated users
-  if (authState.status === 'authenticated') {
-    const permissionCheck = checkRoutePermissions(authState, location.pathname);
-    
-    if (!permissionCheck.canAccess) {
-      return (
-        <AuthUnauthorizedScreen
-          message={
-            permissionCheck.reason === 'Admin role required for admin routes'
-              ? 'Esta página está reservada para administradores'
-              : 'No tienes permiso para ver esta página'
-          }
-          onNavigateHome={() => safeNavigate('/', navigate, { replace: true })}
-          onSignOut={() => {
-            // Optional: could sign out if access is severely restricted
-            // For now, just navigate home
-            safeNavigate('/', navigate, { replace: true });
-          }}
-        />
-      );
-    }
+  // Admin-only route check
+  if (adminOnly && role !== 'admin') {
+    return (
+      <AuthUnauthorizedScreen
+        message="Esta página está reservada para administradores"
+        onNavigateHome={() => window.location.href = role === 'viewer' ? '/app/mis-empresas' : '/'}
+        onSignOut={() => window.location.href = '/auth'}
+      />
+    );
   }
 
-  // 5️⃣ All checks passed: render children
+  // All checks passed
   return <>{children}</>;
 };

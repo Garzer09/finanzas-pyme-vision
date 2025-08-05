@@ -7,6 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { DataValidationPreview } from './DataValidationPreview';
 import { saveDataToModules, createModuleNotifications } from '@/utils/moduleMapping';
 import { useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
+import { supabase } from '@/integrations/supabase/client';
 import { UploadInterface } from './FileUpload/UploadInterface';
 import { TemplateManager } from './FileUpload/TemplateManager';
 
