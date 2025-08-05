@@ -97,7 +97,7 @@ const AuthProviderInner: React.FC<AuthProviderProps> = ({ children }) => {
   // Auth navigation hook
   useAuthNavigation({
     isAuthenticated: state.matches('authenticated'),
-    role: state.context.role,
+    role: (state.context.role as Role) || 'none',
     hasJustLoggedIn: state.context.hasJustLoggedIn,
   });
 
@@ -267,7 +267,7 @@ const AuthProviderInner: React.FC<AuthProviderProps> = ({ children }) => {
   const contextValue: AuthContextType = {
     user: state.context.user,
     session: state.context.session,
-    role: currentRole,
+    role: (currentRole as Role),
     isAuthenticated,
     hasJustLoggedIn: state.context.hasJustLoggedIn,
     isLoading,

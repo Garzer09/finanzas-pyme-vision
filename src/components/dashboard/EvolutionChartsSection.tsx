@@ -5,6 +5,7 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 import { WaterfallChart } from '@/components/ui/waterfall-chart';
 import { TrendingUp } from 'lucide-react';
 import { useFinancialData } from '@/hooks/useFinancialData';
+import { getLatestData } from '@/utils/dataHelpers';
 
 export const EvolutionChartsSection: React.FC = () => {
   const { data, loading, hasRealData, getMultiYearData, safeNumber } = useFinancialData();
@@ -92,7 +93,7 @@ export const EvolutionChartsSection: React.FC = () => {
     }
 
     // Real data from database
-    const pygData = getLatestData(data.filter(d => d.table_name === 'estado_pyg'), 'created_at');
+    const pygData = getLatestData(data || [], 'created_at');
     if (!pygData?.data_content) return [];
 
     const content = pygData.data_content;
@@ -145,7 +146,7 @@ export const EvolutionChartsSection: React.FC = () => {
     }
 
     // Real data from database
-    const balanceData = getLatestData(data.filter(d => d.table_name === 'estado_balance'), 'created_at');
+    const balanceData = getLatestData(data || [], 'created_at');
     if (!balanceData?.data_content) return [];
 
     const content = balanceData.data_content;

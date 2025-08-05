@@ -179,8 +179,13 @@ export class EnhancedFileProcessor {
       };
 
       const { data: uploadData, error: uploadError } = await supabase
-        .from('upload_history')
-        .insert(uploadRecord)
+        .from('excel_files')
+        .insert({
+          file_name: file.name,
+          file_path: `/uploads/${file.name}`,
+          user_id: (await supabase.auth.getUser()).data.user?.id || '',
+          processing_status: 'processing'
+        })
         .select()
         .single();
 
