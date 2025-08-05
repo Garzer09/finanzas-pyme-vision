@@ -759,19 +759,51 @@ async function loadNormalizedData(supabase: any, validatedData: { [key: string]:
 }
 
 async function loadPyGData(supabase: any, rows: any[], context: any) {
-  // Delete existing data for this period (REPLACE mode)
+  console.log('Loading P&G data...')
+  
+  // First, detect all years present in the CSV
+  const yearsInCSV = new Set<number>()
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      if (key !== 'Concepto' && key !== 'Notas') {
+        if (/^\d{4}$/.test(key)) {
+          // Specific year like "2022"
+          yearsInCSV.add(parseInt(key))
+        } else if (/^Año(\d+)$/i.test(key)) {
+          // Generic year like "Año1" - convert to actual year
+          const match = key.match(/^Año(\d+)$/i)
+          if (match) {
+            const yearOffset = parseInt(match[1]) - 1
+            const actualYear = context.periodYear + yearOffset
+            yearsInCSV.add(actualYear)
+          }
+        }
+      }
+    }
+  }
+  
+  console.log(`Detected years in P&G CSV: ${Array.from(yearsInCSV).join(', ')}`)
+  
+  // Delete existing data only for the years we're about to update (REPLACE mode)
   if (context.importMode === 'REPLACE') {
-    const deleteQuery = supabase
-      .from('fs_pyg_lines')
-      .delete()
-      .eq('company_id', context.companyId)
-      .eq('period_type', context.periodType)
-      .eq('period_year', context.periodYear)
+    for (const year of yearsInCSV) {
+      const deleteQuery = supabase
+        .from('fs_pyg_lines')
+        .delete()
+        .eq('company_id', context.companyId)
+        .eq('period_type', context.periodType)
+        .eq('period_year', year)
 
-    if (context.periodQuarter) deleteQuery.eq('period_quarter', context.periodQuarter)
-    if (context.periodMonth) deleteQuery.eq('period_month', context.periodMonth)
+      if (context.periodQuarter) deleteQuery.eq('period_quarter', context.periodQuarter)
+      if (context.periodMonth) deleteQuery.eq('period_month', context.periodMonth)
 
-    await deleteQuery
+      const { error: deleteError } = await deleteQuery
+      if (deleteError) {
+        console.error(`Error deleting existing P&G data for year ${year}:`, deleteError)
+        throw new Error(`Error deleting existing P&G data for year ${year}: ${deleteError.message}`)
+      }
+      console.log(`Deleted existing P&G data for year ${year}`)
+    }
   }
 
   // Transform to long format and insert
@@ -786,11 +818,27 @@ async function loadPyGData(supabase: any, rows: any[], context: any) {
       if (key !== 'Concepto' && key !== 'Notas' && value && isYearColumn) {
         const amount = parseFloat(String(value).replace(',', '.').replace(/[^\d.-]/g, ''))
         if (!isNaN(amount)) {
+          // Extract the actual year from the column header
+          let actualYear: number
+          if (/^\d{4}$/.test(key)) {
+            // Specific year like "2022"
+            actualYear = parseInt(key)
+          } else {
+            // Generic year like "Año1" - convert to actual year
+            const match = key.match(/^Año(\d+)$/i)
+            if (match) {
+              const yearOffset = parseInt(match[1]) - 1
+              actualYear = context.periodYear + yearOffset
+            } else {
+              actualYear = context.periodYear // fallback
+            }
+          }
+          
           longData.push({
             company_id: context.companyId,
-            period_date: context.periodDate,
+            period_date: new Date(actualYear, 11, 31), // December 31st of the actual year
             period_type: context.periodType,
-            period_year: context.periodYear,
+            period_year: actualYear, // Use the actual year from the column
             period_quarter: context.periodQuarter,
             period_month: context.periodMonth,
             concept,
@@ -811,19 +859,51 @@ async function loadPyGData(supabase: any, rows: any[], context: any) {
 }
 
 async function loadBalanceData(supabase: any, rows: any[], context: any) {
-  // Delete existing data for this period (REPLACE mode)
+  console.log('Loading Balance data...')
+  
+  // First, detect all years present in the CSV
+  const yearsInCSV = new Set<number>()
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      if (key !== 'Concepto' && key !== 'Notas') {
+        if (/^\d{4}$/.test(key)) {
+          // Specific year like "2022"
+          yearsInCSV.add(parseInt(key))
+        } else if (/^Año(\d+)$/i.test(key)) {
+          // Generic year like "Año1" - convert to actual year
+          const match = key.match(/^Año(\d+)$/i)
+          if (match) {
+            const yearOffset = parseInt(match[1]) - 1
+            const actualYear = context.periodYear + yearOffset
+            yearsInCSV.add(actualYear)
+          }
+        }
+      }
+    }
+  }
+  
+  console.log(`Detected years in Balance CSV: ${Array.from(yearsInCSV).join(', ')}`)
+  
+  // Delete existing data only for the years we're about to update (REPLACE mode)
   if (context.importMode === 'REPLACE') {
-    const deleteQuery = supabase
-      .from('fs_balance_lines')
-      .delete()
-      .eq('company_id', context.companyId)
-      .eq('period_type', context.periodType)
-      .eq('period_year', context.periodYear)
+    for (const year of yearsInCSV) {
+      const deleteQuery = supabase
+        .from('fs_balance_lines')
+        .delete()
+        .eq('company_id', context.companyId)
+        .eq('period_type', context.periodType)
+        .eq('period_year', year)
 
-    if (context.periodQuarter) deleteQuery.eq('period_quarter', context.periodQuarter)
-    if (context.periodMonth) deleteQuery.eq('period_month', context.periodMonth)
+      if (context.periodQuarter) deleteQuery.eq('period_quarter', context.periodQuarter)
+      if (context.periodMonth) deleteQuery.eq('period_month', context.periodMonth)
 
-    await deleteQuery
+      const { error: deleteError } = await deleteQuery
+      if (deleteError) {
+        console.error(`Error deleting existing Balance data for year ${year}:`, deleteError)
+        throw new Error(`Error deleting existing Balance data for year ${year}: ${deleteError.message}`)
+      }
+      console.log(`Deleted existing Balance data for year ${year}`)
+    }
   }
 
   // Transform to long format and insert
@@ -841,14 +921,32 @@ async function loadBalanceData(supabase: any, rows: any[], context: any) {
     }
 
     for (const [key, value] of Object.entries(row)) {
-      if (key !== 'Concepto' && key !== 'Notas' && value && /^\d{4}$/.test(key)) {
-        const amount = parseFloat(String(value).replace(',', '.').replace(/[^\\d.-]/g, ''))
+      // Accept both specific years (2022, 2023) and generic formats (Año1, Año2) for balance data loading
+      const isYearColumn = /^\d{4}$/.test(key) || /^Año\d+$/i.test(key)
+      if (key !== 'Concepto' && key !== 'Notas' && value && isYearColumn) {
+        const amount = parseFloat(String(value).replace(',', '.').replace(/[^\d.-]/g, ''))
         if (!isNaN(amount)) {
+          // Extract the actual year from the column header
+          let actualYear: number
+          if (/^\d{4}$/.test(key)) {
+            // Specific year like "2022"
+            actualYear = parseInt(key)
+          } else {
+            // Generic year like "Año1" - convert to actual year
+            const match = key.match(/^Año(\d+)$/i)
+            if (match) {
+              const yearOffset = parseInt(match[1]) - 1
+              actualYear = context.periodYear + yearOffset
+            } else {
+              actualYear = context.periodYear // fallback
+            }
+          }
+          
           longData.push({
             company_id: context.companyId,
-            period_date: context.periodDate,
+            period_date: new Date(actualYear, 11, 31), // December 31st of the actual year
             period_type: context.periodType,
-            period_year: context.periodYear,
+            period_year: actualYear, // Use the actual year from the column
             period_quarter: context.periodQuarter,
             period_month: context.periodMonth,
             section: currentSection,
