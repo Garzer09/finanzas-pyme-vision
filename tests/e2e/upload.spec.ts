@@ -103,8 +103,8 @@ test.describe('File Upload E2E Tests', () => {
       return;
     }
     
-    // Upload the company data CSV
-    const filePath = path.join(process.cwd(), 'public', 'templates', 'valid_comma.csv');
+    // Upload the test data CSV
+    const filePath = path.join(process.cwd(), 'public', 'templates', 'test-data.csv');
     const fileInput = page.locator('input[type="file"]');
     await fileInput.setInputFiles(filePath);
     
@@ -112,8 +112,8 @@ test.describe('File Upload E2E Tests', () => {
     await page.waitForTimeout(3000);
     
     // Check that key data from the CSV is displayed somewhere on the page
-    // The CSV contains "Tech Solutions SL" so we should see this company name
-    const hasCompanyData = await page.locator('text=Tech Solutions, text=Madrid, text=Tecnología').first().isVisible().catch(() => false);
+    // The CSV contains "TechCorp SA" so we should see this company name
+    const hasCompanyData = await page.locator('text=TechCorp, text=Madrid, text=Tecnología').first().isVisible().catch(() => false);
     const hasProcessingComplete = await page.locator('text=procesado, text=extraídos, text=listos').first().isVisible().catch(() => false);
     
     // Either the data should be visible or there should be confirmation of processing
