@@ -13,9 +13,16 @@ dist-ssr
 *.local
 
 # Environment variables
+.env
 .env.production
 .env.local
 .env.*.local
+
+# Sensitive files
+*.key
+*.pem
+*.p12
+*.pfx
 
 # Editor directories and files
 .vscode/*
