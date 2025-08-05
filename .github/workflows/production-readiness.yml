@@ -22,6 +22,9 @@ env:
   VITE_ENABLE_SECURITY_LOGGING: 'true'
   VITE_ENABLE_HEALTH_MONITORING: 'true'
   VITE_ENABLE_PERFORMANCE_MONITORING: 'true'
+  # CI-safe fallback values for required environment variables
+  VITE_SUPABASE_URL: 'https://demo.supabase.co'
+  VITE_SUPABASE_ANON_KEY: 'demo-key'
 
 jobs:
   # Core validation - always run
@@ -56,6 +59,8 @@ jobs:
         run: |
           npm run stability-check
           echo "ready=true" >> $GITHUB_OUTPUT
+        env:
+          CI: true
         continue-on-error: false
 
   # Comprehensive test suite
@@ -86,18 +91,26 @@ jobs:
         run: |
           npm run test:coverage
           echo "Unit tests completed"
+        env:
+          CI: true
           
       - name: Run authentication tests
         if: matrix.test-category == 'auth'
         run: npm run validate:auth
+        env:
+          CI: true
         
       - name: Run navigation flow tests
         if: matrix.test-category == 'navigation'
         run: npm run validate:navigation
+        env:
+          CI: true
         
       - name: Run error recovery tests
         if: matrix.test-category == 'recovery'
         run: npm run validate:recovery
+        env:
+          CI: true
         
       - name: Upload test results
         if: always()
