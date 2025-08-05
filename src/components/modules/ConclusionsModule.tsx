@@ -36,7 +36,7 @@ export const ConclusionsModule = () => {
                 <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-cadet-600 bg-clip-text text-transparent">
                   Conclusiones del Análisis Financiero
                 </h1>
-                <p className="text-slate-700 text-lg font-medium">Síntesis ejecutiva y recomendaciones estratégicas generadas por Claude</p>
+                <p className="text-slate-700 text-lg font-medium">Síntesis ejecutiva y recomendaciones estratégicas</p>
               </div>
             </div>
           </section>
