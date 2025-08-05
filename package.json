@@ -23,7 +23,8 @@
     "validate:navigation": "node scripts/validate-navigation-tests.js",
     "validate:recovery": "node scripts/validate-error-recovery-tests.js",
     "validate:all": "npm run validate:auth && npm run validate:navigation && npm run validate:recovery",
-    "validate:ci": "node scripts/validate-ci-workflow.cjs"
+    "validate:ci": "node scripts/validate-ci-workflow.cjs",
+    "validate:prod": "node scripts/validateProduction.js"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.6",
