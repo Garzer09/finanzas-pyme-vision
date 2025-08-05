@@ -1,0 +1,8 @@
+Concepto,Valor,Unidad,Aplica_desde,Aplica_hasta,Notas
+Crecimiento ingresos %,15,%,2025,2029,"Crecimiento moderado sector SaaS"
+Costes variables %,20,%,2025,2029,"Licencias y servicios cloud como % ingresos"
+Costes fijos,2100000,€,2025,2029,"Gastos de personal y estructura fijos"
+CAPEX,200000,€,2025,2029,"Inversiones anuales en equipos y software"
+WACC %,8.5,%,2025,2029,"Coste promedio ponderado de capital"
+Crecimiento terminal %,2.5,%,2030,,"Crecimiento a perpetuidad"
+Plan de financiación (nota),,,2025,2029,"Autofinanciación con beneficios retenidos. Posible ronda de inversión Series A en 2026 por €1.5M para acelerar expansión internacional"

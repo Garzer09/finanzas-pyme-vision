@@ -1,0 +1,10 @@
+# SECCION: EMPRESA
+company_name,sector,industry,founded_year,employees_range,annual_revenue_range,hq_city,hq_country,website,business_description,currency_code,accounting_standard,consolidation,cif
+DEMO Tech Solutions SL,Tecnología,Software,2019,40-60,€2M-€5M,Madrid,España,https://demotechsolutions.es,"Empresa especializada en el desarrollo de soluciones de software empresarial y servicios de transformación digital. Ofrece productos SaaS para la gestión empresarial, desarrollo de aplicaciones móviles y consultoría en tecnologías cloud. Fundada en 2019, ha experimentado un crecimiento sostenido sirviendo principalmente a empresas del sector financiero, retail y manufacturero.",EUR,PGC,INDIVIDUAL,B87654321
+
+# SECCION: ESTRUCTURA_ACCIONARIAL
+shareholder_name,shareholder_type,country,ownership_pct,notes
+Carlos Martínez Sánchez,persona,España,45.0,Fundador y CEO - Ingeniero informático con 15 años de experiencia
+Innovation Ventures SL,empresa,España,30.0,Fondo de capital riesgo especializado en startups tecnológicas
+Ana López Rivera,persona,España,15.0,Co-fundadora y CTO - Experta en arquitectura de software
+TechGrow Capital,empresa,Reino Unido,10.0,Inversor estratégico especializado en empresas SaaS europeas
