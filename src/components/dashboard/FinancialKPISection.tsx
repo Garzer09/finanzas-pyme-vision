@@ -24,6 +24,17 @@ export const FinancialKPISection: React.FC<FinancialKPISectionProps> = ({
 }) => {
   if (!financialData) return null;
 
+  // Debug log to verify we're getting real data
+  console.log('FinancialKPISection - Real data:', {
+    revenue: financialData.revenue,
+    ebitda: financialData.ebitda,
+    net_income: financialData.net_income,
+    total_assets: financialData.total_assets,
+    total_equity: financialData.total_equity,
+    total_debt: financialData.total_debt,
+    period
+  });
+
   const formatCurrency = (value: number) => {
     if (Math.abs(value) >= 1000000) {
       return `${(value / 1000000).toFixed(1)}M`;

@@ -167,14 +167,42 @@ export const AdminDashboardPage: React.FC = () => {
       const pygMap = new Map(pygData?.map(item => [item.concept, item.amount]) || []);
       const balanceMap = new Map(balanceData?.map(item => [item.concept, item.amount]) || []);
 
+      // P&L calculations using actual concepts
       const revenue = pygMap.get('Cifra de negocios') || 0;
-      const financialCosts = pygMap.get('Gastos financieros') || 0;
-      const ebitda = revenue - (pygMap.get('Gastos de personal') || 0) - (pygMap.get('Otros gastos de explotación') || 0);
+      const otherIncome = pygMap.get('Otros ingresos de explotación') || 0;
+      const purchases = Math.abs(pygMap.get('Aprovisionamientos (compras)') || 0);
+      const otherExpenses = Math.abs(pygMap.get('Otros gastos de explotación') || 0);
+      const financialCosts = Math.abs(pygMap.get('Gastos financieros') || 0);
       const netIncome = pygMap.get('Resultado del ejercicio') || 0;
       
-      const totalAssets = balanceMap.get('TOTAL ACTIVO') || 0;
-      const totalEquity = balanceMap.get('TOTAL PATRIMONIO NETO') || 0;
-      const totalDebt = balanceMap.get('TOTAL PASIVO') || 0;
+      // EBITDA calculation: Revenue + Other Income - Purchases - Other Operating Expenses
+      const ebitda = revenue + otherIncome - purchases - otherExpenses;
+
+      // Balance calculations - sum individual components to get totals
+      const totalAssets = (
+        (balanceMap.get('Inmovilizado material') || 0) +
+        (balanceMap.get('Inversiones inmobiliarias') || 0) +
+        (balanceMap.get('Inversiones financieras a largo plazo') || 0) +
+        (balanceMap.get('Existencias') || 0) +
+        (balanceMap.get('Deudores comerciales y otras cuentas a cobrar') || 0) +
+        (balanceMap.get('Inversiones financieras a corto plazo') || 0) +
+        (balanceMap.get('Efectivo y equivalentes') || 0)
+      );
+
+      const totalEquity = (
+        (balanceMap.get('Capital social') || 0) +
+        (balanceMap.get('Reservas') || 0) +
+        (balanceMap.get('Resultados ejercicios anteriores') || 0) +
+        (balanceMap.get('Resultado del ejercicio') || 0)
+      );
+
+      const totalDebt = (
+        (balanceMap.get('Deudas a largo plazo') || 0) +
+        (balanceMap.get('Deudas con empresas del grupo a largo plazo') || 0) +
+        (balanceMap.get('Deudas a corto plazo') || 0) +
+        (balanceMap.get('Deudas con empresas del grupo a corto plazo') || 0) +
+        (balanceMap.get('Acreedores comerciales y otras cuentas a pagar') || 0)
+      );
 
       setFinancialData({
         revenue,
@@ -316,11 +344,19 @@ export const AdminDashboardPage: React.FC = () => {
                     Volver
                   </Button>
                   <div>
-                    <h1 className="text-3xl font-bold text-foreground">
-                      Dashboard Financiero
-                    </h1>
+                    <div className="flex items-center gap-3">
+                      <h1 className="text-3xl font-bold text-foreground">
+                        Dashboard Financiero
+                      </h1>
+                      {financialData && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Datos Reales
+                        </span>
+                      )}
+                    </div>
                     <p className="text-muted-foreground">
-                      {company?.name || 'Empresa no encontrada'}
+                      {company?.name || 'Empresa no encontrada'} • {company?.currency_code || 'EUR'}
+                      {selectedPeriod && ` • ${selectedPeriod}`}
                     </p>
                   </div>
                 </div>
