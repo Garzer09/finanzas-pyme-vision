@@ -20,7 +20,7 @@ export type AuthEvent =
   | { type: 'SIGN_OUT' }
   | { type: 'RETRY' };
 
-export const authMachine = createMachine<AuthContext, AuthEvent>({
+export const authMachine = createMachine({
   id: 'auth',
   initial: 'initializing',
   context: {

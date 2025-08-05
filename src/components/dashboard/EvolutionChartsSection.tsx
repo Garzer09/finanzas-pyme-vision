@@ -92,7 +92,7 @@ export const EvolutionChartsSection: React.FC = () => {
     }
 
     // Real data from database
-    const pygData = getLatestData('estado_pyg');
+    const pygData = getLatestData(data.filter(d => d.table_name === 'estado_pyg'), 'created_at');
     if (!pygData?.data_content) return [];
 
     const content = pygData.data_content;
@@ -145,7 +145,7 @@ export const EvolutionChartsSection: React.FC = () => {
     }
 
     // Real data from database
-    const balanceData = getLatestData('estado_balance');
+    const balanceData = getLatestData(data.filter(d => d.table_name === 'estado_balance'), 'created_at');
     if (!balanceData?.data_content) return [];
 
     const content = balanceData.data_content;

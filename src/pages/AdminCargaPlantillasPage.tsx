@@ -236,10 +236,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
       
       const response = await supabase.functions.invoke('empresa-cualitativa-processor', {
-        body: formData,
-        headers: {
-          signal: controller.signal
-        }
+        body: formData
       });
       
       clearTimeout(timeoutId);

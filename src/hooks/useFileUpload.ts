@@ -153,12 +153,6 @@ export const useFileUpload = (options: UseFileUploadOptions = {}) => {
     });
   }, []);
 
-  const retryUpload = useCallback(() => {
-    if (state.file && state.canRetry) {
-      return processFile(state.file, true);
-    }
-  }, [state.file, state.canRetry, processFile]);
-
   const validateFileAndSetState = useCallback((file: File) => {
     const processingOptions = {
       ...DEFAULT_PROCESSING_OPTIONS,
@@ -347,6 +341,12 @@ export const useFileUpload = (options: UseFileUploadOptions = {}) => {
     state.currentStep,
     state.retryCount
   ]);
+
+  const retryUpload = useCallback(() => {
+    if (state.file && state.canRetry) {
+      return processFile(state.file, true);
+    }
+  }, [state.file, state.canRetry, processFile]);
 
   const handleFileSelection = useCallback((file: File) => {
     const validation = validateFileAndSetState(file);
