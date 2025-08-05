@@ -52,6 +52,7 @@ export interface AuthContextType {
   role: Role;
   roleStatus: 'idle' | 'resolving' | 'ready' | 'error';
   initialized: boolean;
+  hasJustLoggedIn: boolean;
   
   // Actions
   signIn: (email: string, password: string) => Promise<{ error: any }>;
