@@ -44,7 +44,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev',
     url: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8080',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true, // Always reuse existing server
     timeout: 120 * 1000, // 2 minutes to start server
     env: {
       VITE_SUPABASE_URL: process.env.VITE_SUPABASE_URL || 'https://demo.supabase.co',
