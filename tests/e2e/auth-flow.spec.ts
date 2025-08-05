@@ -7,7 +7,7 @@ test.describe('Authentication Flow E2E Tests', () => {
 
   test('should display application and have proper page structure', async ({ page }) => {
     // Check if the page loads
-    await expect(page).toHaveTitle(/Finanzas PYME Vision/);
+    await expect(page).toHaveTitle(/FinSight/);
     
     // Check basic structure
     await expect(page.locator('body')).toBeVisible();
@@ -24,8 +24,7 @@ test.describe('Authentication Flow E2E Tests', () => {
     await page.waitForLoadState('networkidle');
     
     // Check that we can interact with the page
-    const pageContent = await page.textContent('body');
-    expect(pageContent).toContain('Finanzas'); // Should contain some version of the app name
+    await expect(page.locator('body')).toContainText('FinSight'); // Should contain the updated app name
   });
 
   test('should load JavaScript and CSS resources', async ({ page }) => {

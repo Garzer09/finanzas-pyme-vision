@@ -13,7 +13,7 @@ test.describe('File Upload E2E Tests', () => {
 
   test('should display the file upload interface or auth page', async ({ page }) => {
     // Check if the page loads properly
-    await expect(page).toHaveTitle(/Finanzas PYME Vision/);
+    await expect(page).toHaveTitle(/FinSight/);
     
     // The page might show login form or upload interface depending on auth state
     const hasLoginForm = await page.locator('input[type="email"]').isVisible().catch(() => false);
