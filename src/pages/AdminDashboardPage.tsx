@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
+import { FinancialKPISection } from '@/components/dashboard/FinancialKPISection';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -95,6 +96,10 @@ export const AdminDashboardPage: React.FC = () => {
       // Load financial data for selected period
       if (selectedPeriod) {
         await loadFinancialData(companyData, selectedPeriod);
+      } else if (periods.length === 0) {
+        // No data available
+        setFinancialData(null);
+        setKpis([]);
       }
 
     } catch (error) {
@@ -354,47 +359,27 @@ export const AdminDashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* KPI Cards */}
-              {kpis.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {kpis.map((kpi, index) => {
-                    const icons = [DollarSign, TrendingUp, Activity, BarChart3, TrendingDown, Activity];
-                    const Icon = icons[index % icons.length];
-                    
-                    return (
-                      <Card key={kpi.name}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                          <CardTitle className="text-sm font-medium">
-                            {kpi.name}
-                          </CardTitle>
-                          <Icon className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                          <div className="text-2xl font-bold">
-                            {kpi.unit === '%' 
-                              ? formatPercentage(kpi.value)
-                              : formatCurrency(kpi.value, company?.currency_code || 'EUR')
-                            }
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Período: {kpi.period}
-                          </p>
-                          {kpi.trend && (
-                            <div className="flex items-center gap-1 mt-1">
-                              {kpi.trend > 0 ? (
-                                <TrendingUp className="h-3 w-3 text-green-600" />
-                              ) : (
-                                <TrendingDown className="h-3 w-3 text-red-600" />
-                              )}
-                              <span className={`text-xs ${kpi.trend > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {Math.abs(kpi.trend).toFixed(1)}%
-                              </span>
-                            </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+              {/* KPI Cards with Modern Design */}
+              {financialData ? (
+                <FinancialKPISection 
+                  financialData={financialData}
+                  currencyCode={company?.currency_code || 'EUR'}
+                  period={selectedPeriod}
+                />
+              ) : (
+                <div className="text-center py-12 bg-muted/50 rounded-lg border-2 border-dashed border-muted-foreground/25">
+                  <Activity className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium text-foreground mb-2">No hay datos financieros disponibles</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Carga los archivos financieros para ver los KPIs de la empresa
+                  </p>
+                  <Button 
+                    onClick={() => navigate(`/admin/carga-plantillas?companyId=${companyId}`)}
+                    className="gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    Cargar Datos
+                  </Button>
                 </div>
               )}
 

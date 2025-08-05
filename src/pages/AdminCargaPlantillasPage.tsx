@@ -747,9 +747,17 @@ export const AdminCargaPlantillasPage: React.FC = () => {
           clearInterval(pollInterval);
           setIsProcessing(false);
           toast({
-            title: "Carga completada exitosamente",
-            description: dryRun ? "Validación completada sin errores" : "Los datos se han cargado correctamente"
+            title: "✅ Procesamiento completado exitosamente",
+            description: dryRun ? "Validación completada sin errores" : `Los datos se han cargado correctamente para ${companyInfo?.company_name}`
           });
+          
+          // Auto-redirect to dashboard if not dry-run
+          if (!dryRun && companyInfo && selectedYears.length > 0) {
+            setTimeout(() => {
+              const lastYear = Math.max(...selectedYears);
+              navigate(`/admin/dashboard?companyId=${companyInfo.companyId}&period=${lastYear}`);
+            }, 2000); // Give user time to see success message
+          }
         } else if (status.status === 'FAILED') {
           clearInterval(pollInterval);
           setIsProcessing(false);
@@ -1290,10 +1298,16 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                     {dryRun ? 'Procesar Directamente' : 'Procesar Directamente'}
                   </Button>
 
-                  {processingStatus?.status === 'DONE' && !dryRun && <Button onClick={handleGoToDashboard} variant="outline" className="gap-2">
-                      <ArrowRight className="h-4 w-4" />
-                      Ir al Dashboard
-                    </Button>}
+                  {processingStatus?.status === 'DONE' && !dryRun && (
+                    <Button 
+                      onClick={handleGoToDashboard} 
+                      className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+                      size="lg"
+                    >
+                      <CheckCircle className="h-5 w-5" />
+                      ✅ Completado - Ir al Dashboard
+                    </Button>
+                  )}
                 </div>
               </div>}
 
