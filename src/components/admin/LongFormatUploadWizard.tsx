@@ -497,11 +497,19 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
   };
 
   const canProceedToStep2 = () => {
-    return companyInfo.name && uploadedFiles.length > 0 && uploadedFiles.every(file => file.isValid);
+    // Allow proceeding if we have company name and at least one uploaded file (even if invalid)
+    return companyInfo.name && uploadedFiles.length > 0;
   };
 
   const handleProcessData = async () => {
-    if (!canProceedToStep2() || !companyInfo.name) return;
+    if (!companyInfo.name) return;
+    
+    // Check if we have at least one valid file
+    const validFiles = uploadedFiles.filter(file => file.isValid);
+    if (validFiles.length === 0) {
+      toast.error("No hay archivos válidos para procesar");
+      return;
+    }
     
     setIsProcessing(true);
     
@@ -525,8 +533,8 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
         currentCompanyId = newCompany.id;
       }
       
-      // Process qualitative files first with enhanced error handling
-      const qualitativeFiles = uploadedFiles.filter(f => f.type === 'qualitative');
+      // Process only valid qualitative files
+      const qualitativeFiles = uploadedFiles.filter(f => f.type === 'qualitative' && f.isValid);
       for (const qualitativeFile of qualitativeFiles) {
         console.log('Processing qualitative file:', qualitativeFile.name);
         
@@ -564,8 +572,8 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
         }
       }
       
-      // Process financial files (standard financial statements)
-      const financialFiles = uploadedFiles.filter(f => f.type && ['financial', 'pyg', 'balance', 'cashflow'].includes(f.type));
+      // Process only valid financial files
+      const financialFiles = uploadedFiles.filter(f => f.type && ['financial', 'pyg', 'balance', 'cashflow'].includes(f.type) && f.isValid);
       if (financialFiles.length > 0) {
         const filesToProcess = financialFiles.map(file => ({
           fileName: file.name,
@@ -596,8 +604,8 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
         if (error) throw error;
       }
 
-      // Process optional template files
-      const optionalFiles = uploadedFiles.filter(f => f.optionalTemplate === true);
+      // Process only valid optional template files
+      const optionalFiles = uploadedFiles.filter(f => f.optionalTemplate === true && f.isValid);
       for (const optionalFile of optionalFiles) {
         try {
           await processOptionalTemplate(currentCompanyId, optionalFile);
@@ -607,7 +615,16 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
         }
       }
       
-      toast.success('Datos procesados exitosamente');
+      // Show processing results
+      const processedCount = qualitativeFiles.length + (financialFiles.length > 0 ? 1 : 0) + optionalFiles.length;
+      const skippedCount = uploadedFiles.length - validFiles.length;
+      
+      if (processedCount > 0) {
+        toast.success(`${processedCount} archivo(s) procesado(s) exitosamente`);
+      }
+      if (skippedCount > 0) {
+        toast.warning(`${skippedCount} archivo(s) omitido(s) por errores`);
+      }
       
       // Smart navigation based on context
       if (isCompanyPreloaded && currentCompanyId) {
@@ -1026,22 +1043,52 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5" />
-                      Archivos Cargados ({uploadedFiles.length})
+                      Estado de Archivos ({uploadedFiles.length})
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {uploadedFiles.map((file, index) => (
                         <div key={index} className="p-3 border rounded-lg">
-                          <div className="font-medium">{file.name}</div>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="font-medium">{file.name}</div>
+                            <Badge variant={file.isValid ? "secondary" : "destructive"} className="text-xs">
+                              {file.isValid ? "✓ Válido" : "✗ Con errores"}
+                            </Badge>
+                          </div>
                           <div className="text-sm text-muted-foreground">
                             {file.type === 'qualitative' ? 'Datos cualitativos' : 'Datos financieros'}
                           </div>
-                          <Badge variant="outline" className="mt-1 text-xs">
-                            {file.type === 'qualitative' ? 'Cualitativo' : 'Financiero'}
-                          </Badge>
+                          
+                          {!file.isValid && file.errors && file.errors.length > 0 && (
+                            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-xs">
+                              <p className="font-medium text-red-800 mb-1">Errores:</p>
+                              <ul className="list-disc list-inside text-red-700">
+                                {file.errors.map((error, errorIndex) => (
+                                  <li key={errorIndex}>{error}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
                         </div>
                       ))}
+                      
+                      {/* Processing Summary */}
+                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        {uploadedFiles.filter(file => file.isValid).length > 0 ? (
+                          <div className="text-blue-800 text-sm">
+                            <p className="font-medium">✓ {uploadedFiles.filter(file => file.isValid).length} archivo(s) listo(s) para procesar</p>
+                            {uploadedFiles.filter(file => !file.isValid).length > 0 && (
+                              <p className="mt-1">⚠ {uploadedFiles.filter(file => !file.isValid).length} archivo(s) será(n) omitido(s)</p>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-red-800 text-sm">
+                            <p className="font-medium">✗ No hay archivos válidos para procesar</p>
+                            <p className="mt-1">Revise los errores y vuelva al paso anterior para corregirlos</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -1144,10 +1191,10 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
               </Button>
               <Button 
                 onClick={handleProcessData} 
-                disabled={isProcessing}
+                disabled={isProcessing || uploadedFiles.filter(file => file.isValid).length === 0}
                 className="flex items-center gap-2"
               >
-                {isProcessing ? 'Procesando...' : 'Procesar Datos'}
+                {isProcessing ? 'Procesando...' : `Procesar ${uploadedFiles.filter(file => file.isValid).length} Archivo(s) Válido(s)`}
                 <CheckCircle className="h-4 w-4" />
               </Button>
             </div>
