@@ -7,7 +7,7 @@ test.describe('Authentication Flow E2E Tests', () => {
 
   test('should display application and have proper page structure', async ({ page }) => {
     // Check if the page loads
-    await expect(page).toHaveTitle(/Finanzas PYME Vision/);
+    await expect(page).toHaveTitle(/finanzas-pyme-vision/i);
     
     // Check basic structure
     await expect(page.locator('body')).toBeVisible();
