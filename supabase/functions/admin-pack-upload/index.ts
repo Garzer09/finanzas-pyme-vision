@@ -93,22 +93,87 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Parse form data
-    const formData = await req.formData()
+    // Detect content type and parse accordingly
+    const contentType = req.headers.get('content-type') || ''
+    let parsedData: any
+    let csvFiles: { [key: string]: File } = {}
     
-    // Extract metadata - support both old and new formats
-    const companyId = formData.get('companyId') || formData.get('company_id') as string
-    const selectedYears = formData.getAll('selected_years[]').map(y => parseInt(y as string)).filter(y => !isNaN(y))
-    const currencyCode = formData.get('currency_code') as string || 'EUR'
-    const accountingStandard = formData.get('accounting_standard') as string || 'PGC'
-    const importMode = formData.get('import_mode') as string || 'REPLACE'
-    const dryRun = formData.get('dry_run') === 'true'
+    if (contentType.includes('application/json')) {
+      // Parse JSON (from wizard)
+      parsedData = await req.json()
+      
+      // Extract metadata from JSON
+      const companyId = parsedData.companyId || parsedData.company_id
+      const selectedYears = parsedData.selectedYears || parsedData.selected_years || []
+      const currencyCode = parsedData.currencyCode || parsedData.currency_code || 'EUR'
+      const accountingStandard = parsedData.accountingStandard || parsedData.accounting_standard || 'PGC'
+      const importMode = parsedData.importMode || parsedData.import_mode || 'REPLACE'
+      const dryRun = parsedData.dryRun || parsedData.dry_run || false
+      
+      // Convert base64 files to File objects
+      if (parsedData.files && Array.isArray(parsedData.files)) {
+        for (const fileData of parsedData.files) {
+          if (fileData.name && fileData.content) {
+            const bytes = Uint8Array.from(atob(fileData.content), c => c.charCodeAt(0))
+            const file = new File([bytes], fileData.name, { type: 'text/csv' })
+            const canonicalName = fileData.name.toLowerCase()
+            if (CANONICAL_CSV_NAMES[canonicalName]) {
+              csvFiles[canonicalName] = file
+            }
+          }
+        }
+      }
+      
+      // Set metadata for further processing
+      parsedData = {
+        companyId,
+        selectedYears,
+        currencyCode,
+        accountingStandard,
+        importMode,
+        dryRun
+      }
+    } else {
+      // Parse FormData (legacy support)
+      const formData = await req.formData()
+      
+      // Extract metadata - support both old and new formats
+      const companyId = formData.get('companyId') || formData.get('company_id') as string
+      const selectedYears = formData.getAll('selected_years[]').map(y => parseInt(y as string)).filter(y => !isNaN(y))
+      const currencyCode = formData.get('currency_code') as string || 'EUR'
+      const accountingStandard = formData.get('accounting_standard') as string || 'PGC'
+      const importMode = formData.get('import_mode') as string || 'REPLACE'
+      const dryRun = formData.get('dry_run') === 'true'
+      
+      // Extract CSV files from FormData
+      for (const [key, value] of formData.entries()) {
+        if (value instanceof File && key.endsWith('.csv')) {
+          const canonicalName = key.toLowerCase()
+          if (CANONICAL_CSV_NAMES[canonicalName]) {
+            csvFiles[canonicalName] = value
+          }
+        }
+      }
+      
+      // Set metadata for further processing
+      parsedData = {
+        companyId,
+        selectedYears,
+        currencyCode,
+        accountingStandard,
+        importMode,
+        dryRun
+      }
+    }
+    
+    // Use parsed metadata
+    const { companyId, selectedYears, currencyCode, accountingStandard, importMode, dryRun } = parsedData
 
     // Legacy support for period-based metadata
-    const periodType = formData.get('period_type') as string || 'annual'
-    const periodYear = parseInt(formData.get('period_year') as string) || (selectedYears.length > 0 ? selectedYears[0] : new Date().getFullYear())
-    const periodQuarter = formData.get('period_quarter') ? parseInt(formData.get('period_quarter') as string) : null
-    const periodMonth = formData.get('period_month') ? parseInt(formData.get('period_month') as string) : null
+    const periodType = 'annual'
+    const periodYear = selectedYears.length > 0 ? selectedYears[0] : new Date().getFullYear()
+    const periodQuarter = null
+    const periodMonth = null
 
     // Validate required metadata
     if (!companyId) {
@@ -144,16 +209,7 @@ Deno.serve(async (req) => {
       })
     }
 
-    // Extract CSV files
-    const csvFiles: { [key: string]: File } = {}
-    for (const [key, value] of formData.entries()) {
-      if (value instanceof File && key.endsWith('.csv')) {
-        const canonicalName = key.toLowerCase()
-        if (CANONICAL_CSV_NAMES[canonicalName]) {
-          csvFiles[canonicalName] = value
-        }
-      }
-    }
+    // csvFiles was already populated above based on content type
 
     // Validate required files
     const missingRequired = REQUIRED_FILES.filter(fileName => !csvFiles[fileName])
