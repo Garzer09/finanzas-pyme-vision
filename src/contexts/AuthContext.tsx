@@ -19,6 +19,7 @@ import {
   useInactivityDetection,
   createRetryWithBackoff
 } from '@/hooks/useInactivityDetection';
+import { securityService } from '@/services/securityService';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -162,9 +163,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const handleSignIn = useCallback(
     async (email: string, password: string) => {
-      console.debug('[AUTH] Starting sign in process for:', email);
+      const logger = securityService.getLogger();
+      const clientIP = 'client-ip'; // In production, this would come from headers/proxy
+      
+      logger.debug('[AUTH] Starting sign in process', { email: email.replace(/(.{2}).*@/, '$1***@') });
+      
+      // Check rate limiting
+      const rateLimitCheck = securityService.checkAuthRateLimit(clientIP);
+      if (!rateLimitCheck.allowed) {
+        const error = `Too many login attempts. Please try again in ${rateLimitCheck.retryAfter} seconds.`;
+        logger.warn('[AUTH] Rate limit exceeded', { 
+          email: email.replace(/(.{2}).*@/, '$1***@'), 
+          retryAfter: rateLimitCheck.retryAfter 
+        });
+        transitionState({
+          status: 'error',
+          error,
+          retry: () => handleSignIn(email, password)
+        });
+        return { error: { message: error } };
+      }
+
       transitionState({ status: 'authenticating' });
       setHasJustLoggedIn(false); // Reset flag
+      
+      // Record the attempt
+      securityService.recordAuthAttempt(clientIP, email);
       
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -172,7 +196,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       });
       
       if (error) {
-        console.debug('[AUTH] Sign in failed:', error.message);
+        logger.warn('[AUTH] Sign in failed', { 
+          email: email.replace(/(.{2}).*@/, '$1***@'),
+          error: error.message 
+        });
+        securityService.recordAuthFailure(clientIP, email, error.message);
         transitionState({
           status: 'error',
           error: error.message,
@@ -181,7 +209,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         return { error };
       }
       
-      console.debug('[AUTH] Sign in successful, waiting for auth state change...');
+      logger.info('[AUTH] Sign in successful', { 
+        email: email.replace(/(.{2}).*@/, '$1***@') 
+      });
       setHasJustLoggedIn(true); // Set flag for proper redirection
       return { error: null };
     },
@@ -343,6 +373,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           console.debug('[AUTH] Processing', event, 'event');
           if (session?.user?.id) {
+            const logger = securityService.getLogger();
+            const userId = session.user.id;
+            const email = session.user.email || 'unknown';
+            
             transitionState({
               status: 'resolving-role',
               user: session.user,
@@ -352,6 +386,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             // Keep hasJustLoggedIn for SIGNED_IN, but reset for TOKEN_REFRESHED
             if (event === 'TOKEN_REFRESHED') {
               setHasJustLoggedIn(false);
+            } else if (event === 'SIGNED_IN') {
+              // Record successful authentication
+              const clientIP = 'client-ip'; // In production, this would come from headers/proxy
+              securityService.recordAuthSuccess(clientIP, email, userId);
             }
             
             const reqId = ++roleReqIdRef.current;
@@ -365,7 +403,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 reqId === roleReqIdRef.current
               ) {
                 lastKnownRoleRef.current = userRole;
-                console.debug('[AUTH] Successfully resolved role after', event, ':', userRole);
+                logger.info('[AUTH] Successfully resolved role after ' + event, { 
+                  userId, 
+                  role: userRole,
+                  email: email.replace(/(.{2}).*@/, '$1***@')
+                });
                 transitionState({
                   status: 'authenticated',
                   user: session.user,
@@ -378,7 +420,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 mounted &&
                 reqId === roleReqIdRef.current
               ) {
-                console.warn('[AUTH] Role resolution failed after', event, ', using last known role:', lastKnownRoleRef.current);
+                logger.warn('[AUTH] Role resolution failed after ' + event + ', using last known role', {
+                  userId,
+                  lastKnownRole: lastKnownRoleRef.current,
+                  email: email.replace(/(.{2}).*@/, '$1***@')
+                });
                 transitionState({
                   status: 'authenticated',
                   user: session.user,
