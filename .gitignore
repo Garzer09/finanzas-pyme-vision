@@ -37,6 +37,10 @@ coverage/
 test-results/
 playwright-report/
 
+# Playwright browser installation markers
+.playwright-install-attempted
+.playwright-install-failed
+
 # Temporary files
 tmp/
 temp/

@@ -14,12 +14,16 @@
     "test:ui": "vitest --ui",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
+    "test:e2e:install": "node scripts/install-browsers.cjs && npm run test:e2e",
+    "test:e2e:ci": "node scripts/install-browsers.cjs && playwright test --reporter=json",
+    "test:e2e:safe": "node scripts/run-e2e-safe.cjs",
     "stability-check": "node scripts/stability-check.js",
     "pre-deploy": "npm run stability-check && npm run build",
     "validate:auth": "node scripts/validate-auth-tests.js",
     "validate:navigation": "node scripts/validate-navigation-tests.js",
     "validate:recovery": "node scripts/validate-error-recovery-tests.js",
-    "validate:all": "npm run validate:auth && npm run validate:navigation && npm run validate:recovery"
+    "validate:all": "npm run validate:auth && npm run validate:navigation && npm run validate:recovery",
+    "validate:ci": "node scripts/validate-ci-workflow.cjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.6",
