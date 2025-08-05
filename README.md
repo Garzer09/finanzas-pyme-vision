@@ -47,6 +47,59 @@ npm run validate:recovery
 
 # Run all validation checks
 npm run validate:all
+
+# Authentication Testing (NEW)
+# Create test users for authentication testing
+npm run create-test-users
+
+# Run comprehensive authentication tests
+npm run test:auth
+```
+
+### 🔐 Authentication Testing System
+
+The project includes a comprehensive authentication testing system with automated test user creation and validation.
+
+#### Quick Start - Authentication Testing
+
+1. **Create Test Users**:
+   ```sh
+   npm run create-test-users
+   ```
+
+2. **Run Authentication Tests**:
+   ```sh
+   npm run test:auth
+   ```
+
+3. **Manual Testing Credentials**:
+   - **Admin User**: `admin@test.finanzas-pyme.com` / `AdminTest123!`
+   - **Viewer User**: `viewer@test.finanzas-pyme.com` / `ViewerTest123!`
+
+#### Authentication Test Coverage
+
+The authentication test suite validates:
+- ✅ **Login/Logout Flows**: Success and failure scenarios
+- ✅ **Role-Based Access Control**: Admin vs viewer permissions
+- ✅ **Session Management**: Token refresh, concurrent sessions
+- ✅ **Security Features**: Rate limiting, input sanitization, CSRF protection
+- ✅ **Password Security**: Validation, reset flows, brute force protection
+- ✅ **Permission Enforcement**: Route protection, data access controls
+
+#### Detailed Testing Documentation
+
+For comprehensive testing instructions, see: **[docs/TESTING.md](docs/TESTING.md)**
+
+#### Environment Requirements for Auth Testing
+
+```env
+# Required in .env file
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Optional: Enable debug mode
+VITE_DEBUG_MODE=true
+VITE_ENABLE_LOGGING=true
 ```
 
 ### Test Structure
