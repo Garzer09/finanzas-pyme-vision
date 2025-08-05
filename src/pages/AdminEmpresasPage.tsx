@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Upload, History, BarChart3, Plus, Calendar, Briefcase, MoreVertical, Edit, Users, Trash2 } from 'lucide-react';
+import { Building2, Upload, History, BarChart3, Plus, Calendar, Briefcase, MoreVertical, Edit, Users, Trash2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,6 +12,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { AdminTopNavigation } from '@/components/AdminTopNavigation';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
+import { ModuleAccessManager } from '@/components/admin/ModuleAccessManager';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -43,6 +44,7 @@ export const AdminEmpresasPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showModuleAccessModal, setShowModuleAccessModal] = useState(false);
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [newCompany, setNewCompany] = useState({
     name: '',
@@ -270,6 +272,11 @@ export const AdminEmpresasPage: React.FC = () => {
     navigate(`/admin/usuarios?companyId=${company.id}`);
   };
 
+  const handleManageModules = (company: Company) => {
+    setSelectedCompany(company);
+    setShowModuleAccessModal(true);
+  };
+
   const formatDataCoverage = (coverage: DataCoverage) => {
     const pygRange = coverage.pyg_years.length > 0 
       ? coverage.pyg_years.length === 1 
@@ -467,21 +474,25 @@ export const AdminEmpresasPage: React.FC = () => {
                                    <Edit className="h-4 w-4" />
                                    Actualizar datos
                                  </DropdownMenuItem>
-                                 <DropdownMenuItem onClick={() => handleAssignUsers(company)} className="gap-2">
-                                   <Users className="h-4 w-4" />
-                                   Asignar usuarios
-                                 </DropdownMenuItem>
-                                 <DropdownMenuSeparator />
-                                 <DropdownMenuItem 
-                                   onClick={() => {
-                                     setSelectedCompany(company);
-                                     setShowDeleteDialog(true);
-                                   }}
-                                   className="gap-2 text-destructive focus:text-destructive"
-                                 >
-                                   <Trash2 className="h-4 w-4" />
-                                   Eliminar empresa
-                                 </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleAssignUsers(company)} className="gap-2">
+                                    <Users className="h-4 w-4" />
+                                    Asignar usuarios
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleManageModules(company)} className="gap-2">
+                                    <Settings className="h-4 w-4" />
+                                    Gestionar módulos
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem 
+                                    onClick={() => {
+                                      setSelectedCompany(company);
+                                      setShowDeleteDialog(true);
+                                    }}
+                                    className="gap-2 text-destructive focus:text-destructive"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                    Eliminar empresa
+                                  </DropdownMenuItem>
                                </DropdownMenuContent>
                              </DropdownMenu>
                            </div>
@@ -639,6 +650,19 @@ export const AdminEmpresasPage: React.FC = () => {
               </div>
             </DialogContent>
           </Dialog>
+          
+          {/* Module Access Manager */}
+          {selectedCompany && (
+            <ModuleAccessManager
+              open={showModuleAccessModal}
+              onClose={() => {
+                setShowModuleAccessModal(false);
+                setSelectedCompany(null);
+              }}
+              companyId={selectedCompany.id}
+              companyName={selectedCompany.name}
+            />
+          )}
           
           {/* Delete Company Alert Dialog */}
           <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useParams } from 'react-router-dom';
 
 interface ModuleAccessControlProps {
   moduleId: string;
@@ -15,10 +16,11 @@ export const ModuleAccessControl: React.FC<ModuleAccessControlProps> = ({
 }) => {
   const [hasAccess, setHasAccess] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { companyId } = useParams();
 
   useEffect(() => {
     checkAccess();
-  }, [moduleId]);
+  }, [moduleId, companyId]);
 
   const checkAccess = async () => {
     try {
@@ -29,9 +31,27 @@ export const ModuleAccessControl: React.FC<ModuleAccessControlProps> = ({
         return;
       }
 
-      // Temporarily allow access to all modules while we fix the database types
-      // This will be updated once the database schema is properly configured
-      setHasAccess(true);
+      // If no companyId, allow access (admin pages)
+      if (!companyId) {
+        setHasAccess(true);
+        setLoading(false);
+        return;
+      }
+
+      // Check module access for the specific company
+      const { data, error } = await supabase
+        .from('company_module_access')
+        .select('enabled')
+        .eq('company_id', companyId)
+        .eq('module_id', moduleId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error checking module access:', error);
+        setHasAccess(true); // Default to allow access on error
+      } else {
+        setHasAccess(data?.enabled ?? true); // Default to true if no record found
+      }
       
     } catch (error) {
       console.error('Error checking module access:', error);
