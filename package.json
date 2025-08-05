@@ -17,6 +17,8 @@
     "test:e2e:install": "node scripts/install-browsers.cjs && npm run test:e2e",
     "test:e2e:ci": "node scripts/install-browsers.cjs && playwright test --reporter=json",
     "test:e2e:safe": "node scripts/run-e2e-safe.cjs",
+    "test:e2e:comprehensive": "node scripts/pre-test-setup.js && playwright test tests/e2e/comprehensive-workflow.spec.ts",
+    "test:e2e:setup": "node scripts/pre-test-setup.js",
     "stability-check": "node scripts/stability-check.js",
     "pre-deploy": "npm run stability-check && npm run build",
     "validate:auth": "node scripts/validate-auth-tests.js",
