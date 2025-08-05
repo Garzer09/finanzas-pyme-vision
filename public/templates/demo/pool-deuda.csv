@@ -1,0 +1,4 @@
+Entidad,Tipo_Financiacion,Principal_Inicial,Saldo_2022,Saldo_2023,Saldo_2024,Tipo_Interes,Vencimiento,Garantias,Observaciones,Moneda
+Instituto de Crédito Oficial,Préstamo ICO,250000,180000,140000,100000,2.50%,2026-12-31,Aval personal fundadores,Préstamo para digitalización empresarial,EUR
+Banco Santander,Línea de crédito,50000,45000,60000,70000,3.75%,2025-06-30,Sin garantías específicas,Línea flexible para capital circulante,EUR
+CaixaBank,Póliza de crédito,30000,0,0,0,4.25%,2024-12-31,Depósito como garantía,No utilizada en los períodos analizados,EUR
