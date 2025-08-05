@@ -80,11 +80,11 @@ const AuthProviderInner: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Update role when query succeeds
   useEffect(() => {
-    if (queriedRole && state.matches('authenticated')) {
+    if (queriedRole && state.matches('authenticated') && state.context.role !== queriedRole) {
       console.debug('[AUTH-CONTEXT] Role query result:', queriedRole);
       send({ type: 'ROLE_UPDATED', role: queriedRole });
     }
-  }, [queriedRole, send, state]);
+  }, [queriedRole, send]);
 
   // Handle role query errors
   useEffect(() => {
@@ -92,7 +92,7 @@ const AuthProviderInner: React.FC<AuthProviderProps> = ({ children }) => {
       console.error('[AUTH-CONTEXT] Role query error:', roleError);
       send({ type: 'ROLE_ERROR', error: (roleError as Error).message });
     }
-  }, [roleError, send, state]);
+  }, [roleError, send]);
 
   // Auth navigation hook
   useAuthNavigation({
