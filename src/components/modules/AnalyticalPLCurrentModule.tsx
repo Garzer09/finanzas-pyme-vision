@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { useAnalyticalPLData } from '@/hooks/useAnalyticalPLData';
+import { MissingFinancialData } from '@/components/ui/missing-financial-data';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,28 +25,29 @@ interface AnalyticalPLItem {
 export const AnalyticalPLCurrentModule = () => {
   const [viewMode, setViewMode] = useState<'table' | 'margins' | 'waterfall'>('table');
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const { analyticalData, hasRealData } = useAnalyticalPLData();
 
-  const analyticalData: AnalyticalPLItem[] = [
-    {
-      concept: 'Ventas Netas',
-      currentPeriod: 2500000,
-      previousPeriod: 2230000,
-      marginPercent: 100.0,
-      variationPercent: 12.1,
-      sparklineData: [2100, 2150, 2200, 2300, 2350, 2400, 2450, 2500],
-      category: 'revenue',
-      level: 1
-    },
-    {
-      concept: 'Costes Variables',
-      currentPeriod: -1380000,
-      previousPeriod: -1250000,
-      marginPercent: -55.2,
-      variationPercent: 10.4,
-      sparklineData: [-1200, -1220, -1250, -1300, -1340, -1360, -1370, -1380],
-      category: 'variable_costs',
-      level: 1
-    },
+  // Show missing data indicator if no real data
+  if (!hasRealData) {
+    return (
+      <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50">
+        <DashboardSidebar />
+        <div className="flex-1 flex flex-col">
+          <DashboardHeader />
+          <main className="flex-1 p-6 flex items-center justify-center">
+            <div className="max-w-lg w-full">
+              <MissingFinancialData 
+                dataType="pyg"
+                onUploadClick={() => console.log('Navigate to upload')}
+              />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  // Use real analytical data from hook
     {
       concept: '  - Materias Primas',
       currentPeriod: -950000,
@@ -145,15 +148,14 @@ export const AnalyticalPLCurrentModule = () => {
       category: 'margin',
       level: 1
     }
-  ];
-
-  const waterfallData = [
-    { name: 'Ventas', value: 2500, cumulative: 2500 },
-    { name: 'Costes Variables', value: -1380, cumulative: 1120 },
-    { name: 'Margen Contribución', value: 1120, cumulative: 1120 },
-    { name: 'Costes Fijos', value: -795, cumulative: 325 },
-    { name: 'EBIT', value: 325, cumulative: 325 }
-  ];
+  // Generate waterfall data from real analytical data
+  const waterfallData = analyticalData.length > 0 ? [
+    { name: 'Ventas', value: Math.round(analyticalData[0]?.currentPeriod / 1000) || 2500, cumulative: Math.round(analyticalData[0]?.currentPeriod / 1000) || 2500 },
+    { name: 'Costes Variables', value: Math.round((analyticalData[1]?.currentPeriod || -1380000) / 1000), cumulative: Math.round(((analyticalData[0]?.currentPeriod || 0) + (analyticalData[1]?.currentPeriod || 0)) / 1000) },
+    { name: 'Margen Contribución', value: Math.round((analyticalData[2]?.currentPeriod || 1120000) / 1000), cumulative: Math.round((analyticalData[2]?.currentPeriod || 1120000) / 1000) },
+    { name: 'Costes Fijos', value: Math.round((analyticalData[3]?.currentPeriod || -795000) / 1000), cumulative: Math.round((analyticalData[4]?.currentPeriod || 325000) / 1000) },
+    { name: 'EBIT', value: Math.round((analyticalData[4]?.currentPeriod || 325000) / 1000), cumulative: Math.round((analyticalData[4]?.currentPeriod || 325000) / 1000) }
+  ] : [];
 
   const formatCurrency = (value: number) => {
     if (Math.abs(value) >= 1000000) {
