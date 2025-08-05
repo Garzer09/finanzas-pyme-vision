@@ -21,6 +21,7 @@ const PGC_CONCEPTS_PYG = [
   'Variación de existencias de productos terminados',
   'Trabajos realizados por la empresa para su activo',
   'Aprovisionamientos',
+  'Aprovisionamientos (compras)', // Support both formats
   'Otros ingresos de explotación',
   'Gastos de personal',
   'Otros gastos de explotación',
@@ -508,9 +509,13 @@ function validatePyGData(rows: any[], metadata: any): { valid: boolean, errors: 
     // Validate amounts are numbers (negative values allowed in P&L)
     for (const [key, value] of Object.entries(row)) {
       if (key !== 'Concepto' && key !== 'Notas' && value) {
-        const amount = parseFloat(String(value).replace(',', '.').replace(/[^\\d.-]/g, ''))
-        if (isNaN(amount)) {
-          errors.push(`Importe inválido en ${concept}, columna ${key}: ${value}`)
+        // Accept both specific years (2022, 2023) and generic formats (Año1, Año2)
+        const isYearColumn = /^\d{4}$/.test(key) || /^Año\d+$/i.test(key)
+        if (isYearColumn) {
+          const amount = parseFloat(String(value).replace(',', '.').replace(/[^\d.-]/g, ''))
+          if (isNaN(amount)) {
+            errors.push(`Importe inválido en ${concept}, columna ${key}: ${value}`)
+          }
         }
       }
     }
@@ -531,9 +536,11 @@ function validateBalanceData(rows: any[], metadata: any): { valid: boolean, erro
     if (!concept) continue
 
     for (const [key, value] of Object.entries(row)) {
-      if (key !== 'Concepto' && key !== 'Notas' && value && /^\d{4}$/.test(key)) {
+      // Accept both specific years (2022, 2023) and generic formats (Año1, Año2) for balance validation
+      const isYearColumn = /^\d{4}$/.test(key) || /^Año\d+$/i.test(key)
+      if (key !== 'Concepto' && key !== 'Notas' && value && isYearColumn) {
         const year = key
-        const amount = parseFloat(String(value).replace(',', '.').replace(/[^\\d.-]/g, ''))
+        const amount = parseFloat(String(value).replace(',', '.').replace(/[^\d.-]/g, ''))
         
         if (!isNaN(amount)) {
           if (!yearlyTotals[year]) {
@@ -774,8 +781,10 @@ async function loadPyGData(supabase: any, rows: any[], context: any) {
     if (!concept) continue
 
     for (const [key, value] of Object.entries(row)) {
-      if (key !== 'Concepto' && key !== 'Notas' && value && /^\d{4}$/.test(key)) {
-        const amount = parseFloat(String(value).replace(',', '.').replace(/[^\\d.-]/g, ''))
+      // Accept both specific years (2022, 2023) and generic formats (Año1, Año2) for data loading
+      const isYearColumn = /^\d{4}$/.test(key) || /^Año\d+$/i.test(key)
+      if (key !== 'Concepto' && key !== 'Notas' && value && isYearColumn) {
+        const amount = parseFloat(String(value).replace(',', '.').replace(/[^\d.-]/g, ''))
         if (!isNaN(amount)) {
           longData.push({
             company_id: context.companyId,
