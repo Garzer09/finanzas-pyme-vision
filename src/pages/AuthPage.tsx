@@ -21,7 +21,8 @@ import { Separator } from '@/components/ui/separator';
 import { TrendingUp } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { shouldNavigateAfterAuth, isAuthLoading } from '@/types/auth';
+import { getPostLoginRedirect } from '@/utils/authHelpers';
+import { isAuthLoading } from '@/types/auth';
 
 const AuthPage: React.FC = () => {
   // Auth hooks & router
@@ -92,40 +93,32 @@ const AuthPage: React.FC = () => {
     }
   }, [searchParams]);
 
-  // Unified post-auth redirection
+  // Centralized post-auth redirection using authHelpers
   useEffect(() => {
-    if (!initialized || roleStatus !== 'ready') return;
-    if (authStatus !== 'authenticated' || !role || role === 'none') return;
+    if (!initialized) return;
 
-    const target =
-      role === 'admin' ? '/admin/empresas' : '/app/mis-empresas';
-
-    console.debug(
-      `[AUTH-PAGE] ${
-        hasJustLoggedIn ? 'Post-login' : 'Existing session'
-      } → ${target}`,
-      { 
-        role, 
-        authStatus, 
-        roleStatus, 
-        initialized,
-        hasJustLoggedIn,
-        currentPath: location.pathname
-      }
+    const redirectInfo = getPostLoginRedirect(
+      authStatus === 'authenticated',
+      role || 'none',
+      hasJustLoggedIn,
+      location.pathname,
+      location.state?.from?.pathname
     );
+
+    console.debug('[AUTH-PAGE] Redirect check:', redirectInfo);
     
-    // Only navigate if we have a valid role and target
-    if (target && role !== 'none') {
-      navigate(target, { replace: !hasJustLoggedIn });
+    if (redirectInfo.shouldRedirect && redirectInfo.targetPath) {
+      console.debug(`[AUTH-PAGE] ${redirectInfo.reason} → ${redirectInfo.targetPath}`);
+      navigate(redirectInfo.targetPath, { replace: !hasJustLoggedIn });
     }
   }, [
     initialized,
     authStatus,
-    roleStatus,
     role,
     hasJustLoggedIn,
     navigate,
-    location.pathname
+    location.pathname,
+    location.state?.from?.pathname
   ]);
 
   // Debug state logger

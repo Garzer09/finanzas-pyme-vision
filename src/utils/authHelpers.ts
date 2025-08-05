@@ -86,6 +86,119 @@ export function checkRoutePermissions(
 }
 
 /**
+ * Centralized function to determine post-login redirect path
+ * This consolidates all redirection logic to avoid conflicts between components
+ */
+export function getPostLoginRedirect(
+  isAuthenticated: boolean,
+  role: Role,
+  hasJustLoggedIn: boolean,
+  currentPath: string,
+  savedLocation?: string
+): { shouldRedirect: boolean; targetPath: string | null; reason: string } {
+  
+  // Debug logging
+  console.debug('[AUTH-HELPERS] getPostLoginRedirect called:', {
+    isAuthenticated,
+    role,
+    hasJustLoggedIn,
+    currentPath,
+    savedLocation
+  });
+
+  // Must be authenticated to redirect
+  if (!isAuthenticated) {
+    return {
+      shouldRedirect: false,
+      targetPath: null,
+      reason: 'User not authenticated'
+    };
+  }
+
+  // Must have a valid role (not 'none')
+  if (role === 'none') {
+    return {
+      shouldRedirect: false,
+      targetPath: null,
+      reason: 'Role not yet resolved'
+    };
+  }
+
+  // If there's a saved location from protected route redirect, use it (unless it's auth/logout)
+  if (savedLocation && 
+      !savedLocation.includes('/auth') && 
+      !savedLocation.includes('/logout') &&
+      !savedLocation.includes('/login')) {
+    
+    // Validate the saved location matches user's role
+    if (role === 'admin' && savedLocation.startsWith('/admin/')) {
+      return {
+        shouldRedirect: true,
+        targetPath: savedLocation,
+        reason: 'Returning to saved admin location'
+      };
+    } else if (role === 'viewer' && savedLocation.startsWith('/app/')) {
+      return {
+        shouldRedirect: true,
+        targetPath: savedLocation,
+        reason: 'Returning to saved viewer location'
+      };
+    }
+  }
+
+  // Don't redirect if already on a valid protected route for their role
+  if (role === 'admin' && currentPath.startsWith('/admin/')) {
+    return {
+      shouldRedirect: false,
+      targetPath: null,
+      reason: 'Already on valid admin route'
+    };
+  }
+  
+  if (role === 'viewer' && currentPath.startsWith('/app/')) {
+    return {
+      shouldRedirect: false,
+      targetPath: null,
+      reason: 'Already on valid viewer route'
+    };
+  }
+
+  // For login page or landing page, redirect to appropriate dashboard
+  if (currentPath === '/auth' || currentPath === '/' || currentPath === '/login') {
+    const targetPath = role === 'admin' ? '/admin/empresas' : '/app/mis-empresas';
+    return {
+      shouldRedirect: true,
+      targetPath,
+      reason: `Redirecting ${role} from ${currentPath} to dashboard`
+    };
+  }
+
+  // If user is on wrong role route, redirect them
+  if (role === 'admin' && currentPath.startsWith('/app/')) {
+    return {
+      shouldRedirect: true,
+      targetPath: '/admin/empresas',
+      reason: 'Admin user on viewer route, redirecting to admin dashboard'
+    };
+  }
+  
+  if (role === 'viewer' && currentPath.startsWith('/admin/')) {
+    return {
+      shouldRedirect: true,
+      targetPath: '/app/mis-empresas',
+      reason: 'Viewer user on admin route, redirecting to viewer dashboard'
+    };
+  }
+
+  // Default case - no redirect needed
+  return {
+    shouldRedirect: false,
+    targetPath: null,
+    reason: 'No redirect needed'
+  };
+}
+
+/**
  * Determines the appropriate redirect path after authentication
  */
 export function getPostAuthRedirect(

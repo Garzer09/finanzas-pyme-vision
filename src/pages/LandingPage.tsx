@@ -4,16 +4,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ArrowRight, BarChart3, TrendingUp, Shield, Clock } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { getPostLoginRedirect } from "@/utils/authHelpers";
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { authStatus, role, initialized } = useAuth();
 
-  // Redirección automática cuando el estado esté inicializado
+  // Simplified auto-redirection using centralized logic
   useEffect(() => {
-    // Fase 1: Instrumentación
-    console.debug('[AUTH]', { 
+    // Debug logging
+    console.debug('[LANDING]', { 
       path: location.pathname,
       initialized, 
       authStatus, 
@@ -21,36 +22,30 @@ const LandingPage = () => {
       fromManualNavigation: location.state?.from === 'manual'
     });
     
-    // Solo redirigir si ya está inicializado
-    if (!initialized) {
-      console.log('Auth not initialized yet, waiting...');
+    // Only redirect if initialized and not from manual navigation
+    if (!initialized || location.state?.from === 'manual') {
       return;
     }
-    
-    // Fase 5: No redirigir si llegó manualmente (ej: click en Comenzar)
-    if (location.state?.from === 'manual') {
-      console.log('Manual navigation detected, not auto-redirecting');
-      return;
+
+    // Use centralized redirection logic
+    const redirectInfo = getPostLoginRedirect(
+      authStatus === 'authenticated',
+      role || 'none',
+      false, // hasJustLoggedIn = false for existing sessions
+      location.pathname
+    );
+
+    console.debug('[LANDING] Redirect check:', redirectInfo);
+
+    if (redirectInfo.shouldRedirect && redirectInfo.targetPath) {
+      console.debug(`[LANDING] ${redirectInfo.reason} → ${redirectInfo.targetPath}`);
+      navigate(redirectInfo.targetPath, { replace: true });
     }
-    
-    console.log('LandingPage auth check:', { authStatus, role, initialized });
-    
-    if (authStatus === 'authenticated') {
-      console.log('User is authenticated, checking role...');
-      if (role === 'admin') {
-        console.log('Admin role detected, redirecting to /admin/empresas');
-        navigate('/admin/empresas', { replace: true });
-      } else {
-        console.log('Viewer role detected, redirecting to /app/mis-empresas');
-        navigate('/app/mis-empresas', { replace: true });
-      }
-    }
-    // Si no está autenticado, se queda en / (no hacer nada)
-  }, [initialized, authStatus, role, location.state]); // Eliminé location.pathname y navigate de dependencias
+  }, [initialized, authStatus, role, location.state, location.pathname, navigate]);
 
   const handleGetStarted = () => {
     console.debug('[NAVIGATE] CTA clicked', { from: '/', to: '/auth', reason: 'user_action' });
-    navigate('/auth', { state: { from: 'manual' } }); // Añadir state para indicar navegación manual
+    navigate('/auth', { state: { from: 'manual' } });
   };
 
 
