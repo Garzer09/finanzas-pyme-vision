@@ -3,13 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { 
   Upload, 
   FileText, 
   CheckCircle, 
   AlertTriangle, 
   X,
-  Download
+  Download,
+  Trash2,
+  RotateCcw,
+  Loader2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -56,6 +61,7 @@ export const CSVFileUploader: React.FC<CSVFileUploaderProps> = ({
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [deletingFiles, setDeletingFiles] = useState<Set<string>>(new Set());
   const { toast } = useToast();
 
   const parseCSVFile = useCallback(async (file: File): Promise<ParsedFileData> => {
@@ -235,15 +241,48 @@ export const CSVFileUploader: React.FC<CSVFileUploaderProps> = ({
     handleFilesDrop(e.dataTransfer.files);
   }, [handleFilesDrop]);
 
-  const removeFile = useCallback((fileName: string) => {
+  const removeFile = useCallback(async (fileName: string) => {
+    setDeletingFiles(prev => new Set([...prev, fileName]));
+    
+    // Simulate a small delay for better UX
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
     const updatedFiles = uploadedFiles.filter(f => f.fileName !== fileName);
     onFilesUploaded(updatedFiles);
     
+    setDeletingFiles(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(fileName);
+      return newSet;
+    });
+    
     toast({
       title: "Archivo eliminado",
-      description: `${fileName} fue eliminado de la lista`
+      description: `${fileName} fue eliminado correctamente`
     });
   }, [uploadedFiles, onFilesUploaded, toast]);
+
+  const removeAllFiles = useCallback(() => {
+    onFilesUploaded([]);
+    toast({
+      title: "Todos los archivos eliminados",
+      description: "Se han eliminado todos los archivos cargados"
+    });
+  }, [onFilesUploaded, toast]);
+
+  const isRequiredFile = useCallback((fileName: string) => {
+    return Object.keys(REQUIRED_FILES).includes(fileName.toLowerCase());
+  }, []);
+
+  const canDeleteFile = useCallback((fileName: string) => {
+    // Don't allow deletion if it's the only required file of its type
+    const canonicalName = fileName.toLowerCase();
+    if (isRequiredFile(canonicalName)) {
+      const sameTypeFiles = uploadedFiles.filter(f => f.canonicalName === canonicalName);
+      return sameTypeFiles.length > 1;
+    }
+    return true;
+  }, [uploadedFiles, isRequiredFile]);
 
   const getFileStatus = (file: ParsedFileData) => {
     if (!file.isValid) return 'error';
@@ -376,47 +415,160 @@ export const CSVFileUploader: React.FC<CSVFileUploaderProps> = ({
       {/* Uploaded Files List */}
       {uploadedFiles.length > 0 && (
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Archivos Cargados ({uploadedFiles.length})</CardTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Eliminar Todos
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>¿Eliminar todos los archivos?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Esta acción eliminará todos los archivos cargados. Tendrás que volver a cargarlos.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                        <AlertDialogAction onClick={removeAllFiles} className="bg-destructive hover:bg-destructive/90">
+                          Eliminar Todos
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Eliminar todos los archivos cargados</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {uploadedFiles.map((file) => (
-                <div key={file.fileName} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{file.fileName}</span>
-                        {getStatusBadge(getFileStatus(file))}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {file.data.length} filas • {file.detectedYears.length > 0 ? 
-                          `Años: ${file.detectedYears.join(', ')}` : 
-                          'Sin años detectados'
-                        }
-                      </div>
-                      {file.errors.length > 0 && (
-                        <div className="text-sm text-red-600">
-                          Errores: {file.errors.join(', ')}
+              {uploadedFiles.map((file) => {
+                const isDeleting = deletingFiles.has(file.fileName);
+                const isRequired = isRequiredFile(file.fileName);
+                const canDelete = canDeleteFile(file.fileName);
+                
+                return (
+                  <div key={file.fileName} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{file.fileName}</span>
+                          {getStatusBadge(getFileStatus(file))}
+                          {isRequired && (
+                            <Badge variant="outline" className="text-xs">
+                              Obligatorio
+                            </Badge>
+                          )}
                         </div>
-                      )}
-                      {file.warnings.length > 0 && (
-                        <div className="text-sm text-yellow-600">
-                          Advertencias: {file.warnings.join(', ')}
+                        <div className="text-sm text-muted-foreground">
+                          {file.data.length} filas • {file.detectedYears.length > 0 ? 
+                            `Años: ${file.detectedYears.join(', ')}` : 
+                            'Sin años detectados'
+                          }
                         </div>
-                      )}
+                        {file.errors.length > 0 && (
+                          <div className="text-sm text-red-600">
+                            Errores: {file.errors.join(', ')}
+                          </div>
+                        )}
+                        {file.warnings.length > 0 && (
+                          <div className="text-sm text-yellow-600">
+                            Advertencias: {file.warnings.join(', ')}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <label htmlFor="file-upload">
+                              <Button variant="ghost" size="sm" asChild>
+                                <span>
+                                  <RotateCcw className="h-4 w-4" />
+                                </span>
+                              </Button>
+                            </label>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Recargar archivo</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            {isRequired && !canDelete ? (
+                              <Button variant="ghost" size="sm" disabled>
+                                <Trash2 className="h-4 w-4 text-muted-foreground" />
+                              </Button>
+                            ) : (
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    disabled={isDeleting}
+                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  >
+                                    {isDeleting ? (
+                                      <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                      <Trash2 className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>¿Eliminar archivo?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      ¿Estás seguro de que quieres eliminar "{file.fileName}"? 
+                                      {isRequired && (
+                                        <span className="block mt-2 text-yellow-600">
+                                          ⚠️ Este es un archivo obligatorio. Tendrás que volver a cargarlo.
+                                        </span>
+                                      )}
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction 
+                                      onClick={() => removeFile(file.fileName)}
+                                      className="bg-destructive hover:bg-destructive/90"
+                                    >
+                                      Eliminar
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            )}
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              {isRequired && !canDelete 
+                                ? "No se puede eliminar (único archivo obligatorio)" 
+                                : "Eliminar archivo"
+                              }
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeFile(file.fileName)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
