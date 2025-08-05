@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer';
 import { AdminTopNavigation } from '@/components/AdminTopNavigation';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
+import { DataPreviewWizard } from '@/components/admin/DataPreviewWizard';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -99,7 +100,8 @@ export const AdminCargaPlantillasPage: React.FC = () => {
   const urlCompanyId = searchParams.get('companyId');
 
   // Wizard state
-  const [currentStep, setCurrentStep] = useState<'qualitative' | 'financial'>('qualitative');
+  const [currentStep, setCurrentStep] = useState<'qualitative' | 'financial' | 'preview'>('qualitative');
+  const [showDataWizard, setShowDataWizard] = useState(false);
 
   // Step 1 - Qualitative data
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -497,6 +499,65 @@ export const AdminCargaPlantillasPage: React.FC = () => {
     return years.sort();
   };
   const isStep2Ready = companyInfo && Object.keys(CANONICAL_FILES.obligatorios).every(fileName => obligatoriosFiles[fileName] && fileValidations[fileName]?.isValid) && selectedYears.length > 0;
+  const handleStartDataWizard = () => {
+    if (!isStep2Ready) {
+      toast({
+        title: "Archivos incompletos",
+        description: "Sube todos los archivos obligatorios antes de continuar",
+        variant: "destructive"
+      });
+      return;
+    }
+    setShowDataWizard(true);
+  };
+
+  const handleWizardComplete = async (processedData: any) => {
+    try {
+      // Call the admin-pack-upload function with the processed data
+      const response = await supabase.functions.invoke('admin-pack-upload', {
+        body: {
+          companyId: companyInfo?.companyId,
+          company_name: companyInfo?.company_name,
+          currency_code: companyInfo?.currency_code,
+          accounting_standard: companyInfo?.accounting_standard,
+          files: processedData.files,
+          selectedYears: processedData.detectedYears,
+          dryRun: false
+        }
+      });
+
+      if (response.error) {
+        throw new Error(response.error.message);
+      }
+
+      toast({
+        title: "✅ Datos procesados exitosamente",
+        description: `${processedData.totalRecords} registros guardados para ${companyInfo?.company_name}`,
+      });
+
+      // Reset wizard state
+      setShowDataWizard(false);
+      setCurrentStep('qualitative');
+      setObligatoriosFiles({});
+      setOpcionalesFiles({});
+      setFileValidations({});
+      setCompanyInfo(null);
+      
+      navigate('/admin/empresas');
+    } catch (error) {
+      console.error('Error processing data:', error);
+      toast({
+        title: "Error al procesar",
+        description: error.message || "Hubo un problema procesando los datos",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleWizardCancel = () => {
+    setShowDataWizard(false);
+  };
+
   const handleProcessFinancialFiles = async () => {
     if (!isStep2Ready || !user || !companyInfo) {
       toast({
@@ -1209,9 +1270,13 @@ export const AdminCargaPlantillasPage: React.FC = () => {
 
                 {/* Action Buttons */}
                 <div className="flex gap-4">
-                  <Button onClick={handleProcessFinancialFiles} disabled={!isStep2Ready || isProcessing} className="flex-1 gap-2">
+                  <Button onClick={handleStartDataWizard} disabled={!isStep2Ready || isProcessing} className="flex-1 gap-2">
+                    <Eye className="h-4 w-4" />
+                    Previsualizar y Editar
+                  </Button>
+                  <Button onClick={handleProcessFinancialFiles} disabled={!isStep2Ready || isProcessing} variant="outline" className="flex-1 gap-2">
                     <Upload className="h-4 w-4" />
-                    {dryRun ? 'Validar Archivos' : 'Procesar y Cargar'}
+                    {dryRun ? 'Procesar Directamente' : 'Procesar Directamente'}
                   </Button>
 
                   {processingStatus?.status === 'DONE' && !dryRun && <Button onClick={handleGoToDashboard} variant="outline" className="gap-2">
@@ -1220,6 +1285,24 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                     </Button>}
                 </div>
               </div>}
+
+              {/* Show Data Preview Wizard if enabled */}
+              {showDataWizard && companyInfo && (
+                <div className="fixed inset-0 bg-background z-50 overflow-auto">
+                  <div className="container mx-auto py-8">
+                    <DataPreviewWizard
+                      companyInfo={{
+                        companyId: companyInfo.companyId,
+                        company_name: companyInfo.company_name,
+                        currency_code: companyInfo.currency_code,
+                        accounting_standard: companyInfo.accounting_standard
+                      }}
+                      onComplete={handleWizardComplete}
+                      onCancel={handleWizardCancel}
+                    />
+                  </div>
+                </div>
+              )}
           </div>
         </main>
       </div>
