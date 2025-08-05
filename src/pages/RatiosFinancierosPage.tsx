@@ -2,21 +2,39 @@
 import React, { useState } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { FileUploader } from '@/components/FileUploader';
 import { Gauge } from '@/components/ui/gauge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ClaudeInsights } from '@/components/ClaudeInsights';
+import { MissingFinancialData } from '@/components/ui/missing-data-indicator';
+import { DataStatusBadge } from '@/components/ui/data-status-badge';
+import { useFinancialRatios } from '@/hooks/useFinancialRatios';
+import { useDataValidation } from '@/hooks/useDataValidation';
 import { Activity } from 'lucide-react';
 
 export const RatiosFinancierosPage = () => {
-  const [hasData, setHasData] = useState(true); // Start with demo data
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState<string>('');
+  // Use real financial ratios data
+  const { ratios, loading, error, hasData, missingData } = useFinancialRatios();
+  const { validation } = useDataValidation();
 
-  // Demo ratios data
-  const ratiosData = [
+  // Transform ratios to gauge format
+  const ratiosData = ratios.map(ratio => ({
+    label: ratio.name,
+    value: ratio.value || 0,
+    unit: ratio.unit,
+    max: ratio.name === 'ROE' ? 25 : ratio.name === 'ROA' ? 20 : ratio.name === 'Ratio Endeudamiento' ? 100 : 5,
+    ranges: ratio.name === 'Liquidez Corriente' ? [
+      { min: 0, max: 1, color: '#EF4444', label: 'Crítico' },
+      { min: 1, max: 1.5, color: '#F59E0B', label: 'Bajo' },
+      { min: 1.5, max: 2.5, color: '#10B981', label: 'Adecuado' },
+      { min: 2.5, max: 3, color: '#F59E0B', label: 'Alto' }
+    ] : [
+      { min: 0, max: 50, color: '#10B981', label: 'Bueno' },
+      { min: 50, max: 75, color: '#F59E0B', label: 'Moderado' },
+      { min: 75, max: 100, color: '#EF4444', label: 'Alto' }
+    ],
+    description: ratio.description
+  })).filter(r => r.value !== null);
     {
       label: 'Liquidez Corriente',
       value: 1.67,

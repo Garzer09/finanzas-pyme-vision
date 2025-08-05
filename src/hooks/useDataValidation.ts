@@ -11,6 +11,8 @@ interface DataValidationResult {
     balance: number;
     cashflow: number;
   };
+  lastUpdated: string | null;
+  completeness: number;
 }
 
 export const useDataValidation = () => {
@@ -19,7 +21,9 @@ export const useDataValidation = () => {
     missingTables: [],
     availableYears: [],
     totalRecords: 0,
-    dataQuality: { pyg: 0, balance: 0, cashflow: 0 }
+    dataQuality: { pyg: 0, balance: 0, cashflow: 0 },
+    lastUpdated: null,
+    completeness: 0
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,19 +38,19 @@ export const useDataValidation = () => {
       // Check P&G data
       const { data: pygData, error: pygError } = await supabase
         .from('fs_pyg_lines')
-        .select('period_year, concept, amount')
+        .select('period_year, concept, amount, created_at')
         .order('period_year', { ascending: false });
 
       // Check Balance data
       const { data: balanceData, error: balanceError } = await supabase
         .from('fs_balance_lines')
-        .select('period_year, concept, amount')
+        .select('period_year, concept, amount, created_at')
         .order('period_year', { ascending: false });
 
       // Check Cash Flow data
       const { data: cashflowData, error: cashflowError } = await supabase
         .from('fs_cashflow_lines')
-        .select('period_year, concept, amount')
+        .select('period_year, concept, amount, created_at')
         .order('period_year', { ascending: false });
 
       if (pygError || balanceError || cashflowError) {
@@ -88,12 +92,23 @@ export const useDataValidation = () => {
         cashflow: cashflowData ? Math.min(100, (cashflowData.length / 10) * 100) : 0 // Expect ~10 Cash Flow concepts
       };
 
+      // Calculate overall completeness
+      const avgQuality = (dataQuality.pyg + dataQuality.balance + dataQuality.cashflow) / 3;
+      
+      // Get last updated timestamp
+      const allData = [...(pygData || []), ...(balanceData || []), ...(cashflowData || [])];
+      const lastUpdated = allData.length > 0 
+        ? allData.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
+        : null;
+
       const validationResult: DataValidationResult = {
         isValid: missingTables.length === 0 && totalRecords > 0,
         missingTables,
         availableYears: Array.from(availableYears).sort((a, b) => b - a),
         totalRecords,
-        dataQuality
+        dataQuality,
+        lastUpdated,
+        completeness: avgQuality
       };
 
       console.log('✅ Data validation completed:', validationResult);
