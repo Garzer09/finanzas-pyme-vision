@@ -26,7 +26,8 @@
     "validate:ci": "node scripts/validate-ci-workflow.cjs",
     "validate:prod": "node scripts/validateProduction.js",
     "create-test-users": "node scripts/create_test_users.js",
-    "test:auth": "vitest tests/auth-comprehensive.test.js"
+    "test:auth": "vitest tests/auth-comprehensive.test.js",
+    "validate-auth-system": "node scripts/validate_auth_system.js"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.6",
