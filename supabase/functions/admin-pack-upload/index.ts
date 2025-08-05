@@ -132,11 +132,32 @@ Deno.serve(async (req) => {
             const csvContent = csvRows.join('\n')
             
             const file = new File([csvContent], fileData.fileName, { type: 'text/csv' })
-            const canonicalName = fileData.canonicalName || fileData.fileName.toLowerCase()
+            
+            // Map filename to canonical name properly
+            let canonicalName = fileData.canonicalName || fileData.fileName.toLowerCase()
+            
+            // Map common file variations to canonical names
+            if (canonicalName.includes('cuenta-pyg') || canonicalName.includes('pyg')) {
+              canonicalName = 'cuenta-pyg.csv'
+            } else if (canonicalName.includes('balance-situacion') || canonicalName.includes('balance')) {
+              canonicalName = 'balance-situacion.csv'
+            } else if (canonicalName.includes('estado-flujos') || canonicalName.includes('flujos')) {
+              canonicalName = 'estado-flujos.csv'
+            } else if (canonicalName.includes('datos-operativos') || canonicalName.includes('operativos')) {
+              canonicalName = 'datos-operativos.csv'
+            } else if (canonicalName.includes('pool-deuda-vencimientos')) {
+              canonicalName = 'pool-deuda-vencimientos.csv'
+            } else if (canonicalName.includes('pool-deuda')) {
+              canonicalName = 'pool-deuda.csv'
+            } else if (canonicalName.includes('supuestos-financieros') || canonicalName.includes('supuestos')) {
+              canonicalName = 'supuestos-financieros.csv'
+            }
             
             console.log(`Processing file: ${fileData.fileName} -> ${canonicalName}`)
             if (CANONICAL_CSV_NAMES[canonicalName]) {
               csvFiles[canonicalName] = file
+            } else {
+              console.warn(`Unknown canonical name: ${canonicalName} for file: ${fileData.fileName}`)
             }
           }
         }
