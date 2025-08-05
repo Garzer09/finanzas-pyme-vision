@@ -16,25 +16,29 @@ import {
   Shield
 } from 'lucide-react';
 import { useState } from 'react';
-import { useDebtData } from '@/hooks/useDebtData';
+import { useRealDebtData } from '@/hooks/useRealDebtData';
+import { MissingDataIndicator } from '@/components/ui/missing-data-indicator';
 import { DebtPoolTable } from './debt-pool/DebtPoolTable';
 import { DebtPoolCharts } from './debt-pool/DebtPoolCharts';
 import { DebtPoolTimeline } from './debt-pool/DebtPoolTimeline';
 
 export const DebtPoolModule = () => {
+  // Get companyId from URL params
+  const urlParams = new URLSearchParams(window.location.search);
+  const companyId = urlParams.get('companyId');
+  
   const {
-    debtItems,
+    debtLoans,
     totalCapitalPendiente,
     tirPromedio,
-    cuotaMensualTotal,
     debtByEntity,
     debtByType,
     vencimientos,
     riskMetrics,
-    addDebtItem,
-    updateDebtItem,
-    deleteDebtItem
-  } = useDebtData();
+    isLoading,
+    error,
+    hasRealData
+  } = useRealDebtData(companyId || undefined);
 
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -108,7 +112,7 @@ export const DebtPoolModule = () => {
                   {formatCurrency(totalCapitalPendiente)}
                 </p>
                 <Badge variant="outline" className="text-xs">
-                  {debtItems.length} instrumentos
+                  {debtLoans.length} instrumentos
                 </Badge>
               </div>
             </CardContent>
@@ -167,7 +171,7 @@ export const DebtPoolModule = () => {
             <CardContent>
               <div className="space-y-2">
                 <p className="text-2xl font-bold text-slate-900">
-                  {formatCurrency(cuotaMensualTotal)}
+                  {formatCurrency(0)} {/* TODO: Calculate from debt service data */}
                 </p>
                 <p className="text-sm text-slate-500">compromisos regulares</p>
               </div>
@@ -201,26 +205,68 @@ export const DebtPoolModule = () => {
           </Button>
         </section>
 
-        {/* Tabla Pool Bancario */}
-        <section>
-          <DebtPoolTable 
-            debtItems={debtItems}
-            onEdit={updateDebtItem}
-            onDelete={deleteDebtItem}
+        {/* Main Content - Show data or missing data indicator */}
+        {isLoading ? (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Cargando datos de deuda...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-8">
+            <p className="text-destructive">Error: {error}</p>
+          </div>
+        ) : !hasRealData() ? (
+          <MissingDataIndicator
+            title="Sin Datos de Pool de Deuda"
+            description="No se han encontrado datos del pool bancario. Suba la plantilla 'pool-deuda.csv' para ver el análisis completo del endeudamiento."
+            onUploadClick={() => window.location.href = `/admin/carga-plantillas?companyId=${companyId}`}
+            size="lg"
+            className="mx-auto max-w-2xl"
           />
-        </section>
+        ) : (
+          <>
+            {/* Tabla Pool Bancario */}
+            <section>
+              <DebtPoolTable 
+                debtItems={debtLoans.map(loan => ({
+                  id: loan.id,
+                  entidad: loan.entity_name,
+                  tipo: loan.loan_type,
+                  capitalInicial: loan.initial_amount,
+                  capitalPendiente: loan.current_balance,
+                  tipoInteres: loan.interest_rate,
+                  plazoRestante: Math.ceil((new Date(loan.maturity_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24 * 30)),
+                  cuota: 0, // TODO: Calculate from debt service
+                  proximoVencimiento: loan.maturity_date,
+                  ultimoVencimiento: loan.maturity_date,
+                  frecuencia: 'Mensual',
+                  garantias: loan.guarantees
+                }))}
+                onEdit={() => {}} // TODO: Implement edit functionality
+                onDelete={() => {}} // TODO: Implement delete functionality
+              />
+            </section>
 
-        {/* Gráficos de Composición */}
-        <section>
-          <DebtPoolCharts
-            debtByType={debtByType}
-          />
-        </section>
+            {/* Gráficos de Composición */}
+            <section>
+              <DebtPoolCharts
+                debtByType={debtByType}
+              />
+            </section>
 
-        {/* Calendario de Vencimientos */}
-        <section>
-          <DebtPoolTimeline vencimientos={vencimientos} />
-        </section>
+            {/* Calendario de Vencimientos */}
+            <section>
+              <DebtPoolTimeline vencimientos={vencimientos.map(v => ({
+                id: v.id,
+                entidad: `Vencimiento ${v.year}`,
+                tipo: 'Vencimiento',
+                importe: v.total,
+                fecha: `${v.year}-12-31`,
+                daysUntil: Math.ceil((new Date(`${v.year}-12-31`).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+                urgency: v.urgency as 'alta' | 'media' | 'baja'
+              }))} />
+            </section>
+          </>
+        )}
 
         {/* Métricas de Riesgo */}
         <section>

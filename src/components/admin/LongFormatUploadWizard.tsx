@@ -24,8 +24,9 @@ interface FileData {
   headers: string[];
   isValid: boolean;
   errors: string[];
-  type?: 'financial' | 'qualitative';
+  type?: 'financial' | 'qualitative' | 'pyg' | 'balance' | 'cashflow' | 'debt_pool' | 'debt_maturities' | 'operational' | 'financial_assumptions';
   parsedData?: any;
+  optionalTemplate?: boolean;
 }
 
 interface QualitativeData {
@@ -207,6 +208,79 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
     }
   };
 
+  const detectFileType = (fileName: string, headers: string[]) => {
+    const lowerFileName = fileName.toLowerCase();
+    
+    // Qualitative files
+    if (lowerFileName.includes('cualitativa') || lowerFileName.includes('qualitative')) {
+      return 'qualitative';
+    }
+    
+    // Financial statement files
+    if (lowerFileName.includes('pyg') || lowerFileName.includes('cuenta')) {
+      return 'pyg';
+    }
+    if (lowerFileName.includes('balance') || lowerFileName.includes('situacion')) {
+      return 'balance';
+    }
+    if (lowerFileName.includes('cashflow') || lowerFileName.includes('flujos')) {
+      return 'cashflow';
+    }
+    
+    // Optional template files
+    if (lowerFileName.includes('pool') && lowerFileName.includes('deuda') && !lowerFileName.includes('vencimiento')) {
+      return 'debt_pool';
+    }
+    if (lowerFileName.includes('vencimiento') || (lowerFileName.includes('pool') && lowerFileName.includes('deuda'))) {
+      return 'debt_maturities';
+    }
+    if (lowerFileName.includes('operativ') || lowerFileName.includes('datos')) {
+      return 'operational';
+    }
+    if (lowerFileName.includes('supuesto') || lowerFileName.includes('financiero')) {
+      return 'financial_assumptions';
+    }
+    
+    // Fallback to content-based detection
+    const headerText = headers.join(',').toLowerCase();
+    if (headerText.includes('entidad') && headerText.includes('principal')) {
+      return 'debt_pool';
+    }
+    if (headerText.includes('concepto') && headerText.includes('valor')) {
+      return 'financial_assumptions';
+    }
+    if (headerText.includes('metrica') || headerText.includes('unidades')) {
+      return 'operational';
+    }
+    
+    return 'financial';
+  };
+
+  const validateFileStructure = (fileType: string, headers: string[]) => {
+    const requiredColumns: Record<string, string[]> = {
+      pyg: ['Concepto', 'Periodo', 'Año', 'Importe'],
+      balance: ['Concepto', 'Seccion', 'Periodo', 'Año', 'Importe'],
+      cashflow: ['Concepto', 'Categoria', 'Periodo', 'Año', 'Importe'],
+      debt_pool: ['Entidad', 'Tipo_Financiacion', 'Principal_Inicial'],
+      debt_maturities: ['Loan_Key', 'Year', 'Due_Principal'],
+      operational: ['Metrica', 'Valor', 'Unidad'],
+      financial_assumptions: ['Concepto', 'Valor', 'Unidad']
+    };
+
+    const required = requiredColumns[fileType] || [];
+    const errors: string[] = [];
+    
+    const missingColumns = required.filter(col => 
+      !headers.some(h => h.toLowerCase().includes(col.toLowerCase().replace('_', '')))
+    );
+    
+    if (missingColumns.length > 0) {
+      errors.push(`Faltan columnas requeridas: ${missingColumns.join(', ')}`);
+    }
+    
+    return errors;
+  };
+
   const handleFileUploaded = (file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -233,24 +307,10 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
             parsedData: qualitativeData
           };
         } else {
-          // Process financial file
+          // Process other files
           const headers = lines[0]?.split(',').map(h => h.trim()) || [];
-          
-          // Validate required columns based on file type
-          const requiredColumns = fileName.includes('pyg') 
-            ? ['Concepto', 'Periodo', 'Año', 'Importe']
-            : fileName.includes('balance')
-            ? ['Concepto', 'Seccion', 'Periodo', 'Año', 'Importe'] 
-            : ['Concepto', 'Categoria', 'Periodo', 'Año', 'Importe'];
-          
-          const errors: string[] = [];
-          const missingColumns = requiredColumns.filter(col => 
-            !headers.some(h => h.toLowerCase().includes(col.toLowerCase()))
-          );
-          
-          if (missingColumns.length > 0) {
-            errors.push(`Faltan columnas requeridas: ${missingColumns.join(', ')}`);
-          }
+          const fileType = detectFileType(file.name, headers);
+          const errors = validateFileStructure(fileType, headers);
           
           fileData = {
             name: file.name,
@@ -258,12 +318,13 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
             headers,
             isValid: errors.length === 0,
             errors,
-            type: 'financial'
+            type: fileType,
+            optionalTemplate: ['debt_pool', 'debt_maturities', 'operational', 'financial_assumptions'].includes(fileType)
           };
         }
         
         setUploadedFiles(prev => [...prev, fileData]);
-        toast.success(`Archivo ${file.name} cargado exitosamente`);
+        toast.success(`Archivo ${file.name} cargado exitosamente${fileData.optionalTemplate ? ' (plantilla opcional)' : ''}`);
       } catch (error) {
         console.error('Error processing file:', error);
         toast.error('Error al procesar el archivo');
@@ -378,8 +439,8 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
         }
       }
       
-      // Process financial files
-      const financialFiles = uploadedFiles.filter(f => f.type === 'financial');
+      // Process financial files (standard financial statements)
+      const financialFiles = uploadedFiles.filter(f => f.type && ['financial', 'pyg', 'balance', 'cashflow'].includes(f.type));
       if (financialFiles.length > 0) {
         const filesToProcess = financialFiles.map(file => ({
           fileName: file.name,
@@ -409,6 +470,17 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
         
         if (error) throw error;
       }
+
+      // Process optional template files
+      const optionalFiles = uploadedFiles.filter(f => f.optionalTemplate === true);
+      for (const optionalFile of optionalFiles) {
+        try {
+          await processOptionalTemplate(currentCompanyId, optionalFile);
+        } catch (error: any) {
+          console.error(`Error processing ${optionalFile.name}:`, error);
+          toast.error(`Error al procesar ${optionalFile.name}: ${error.message}`);
+        }
+      }
       
       toast.success('Datos procesados exitosamente');
       
@@ -427,6 +499,97 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const processOptionalTemplate = async (companyId: string, file: FileData) => {
+    const processedData = file.content.map(row => {
+      const rowObj: any = {};
+      file.headers.forEach((header, index) => {
+        rowObj[header] = row[index] || '';
+      });
+      return rowObj;
+    });
+
+    switch (file.type) {
+      case 'debt_pool':
+        await processDebtPoolTemplate(companyId, processedData);
+        break;
+      case 'debt_maturities':
+        await processDebtMaturitiesTemplate(companyId, processedData);
+        break;
+      case 'operational':
+        await processOperationalTemplate(companyId, processedData);
+        break;
+      case 'financial_assumptions':
+        await processFinancialAssumptionsTemplate(companyId, processedData);
+        break;
+      default:
+        throw new Error(`Tipo de plantilla no reconocido: ${file.type}`);
+    }
+  };
+
+  const processDebtPoolTemplate = async (companyId: string, data: any[]) => {
+    const debtLoans = data.map(row => ({
+      company_id: companyId,
+      loan_key: `${row['Entidad'] || row['entidad']}_${Date.now()}`,
+      entity_name: row['Entidad'] || row['entidad'],
+      loan_type: row['Tipo_Financiacion'] || row['tipo_financiacion'],
+      initial_amount: parseFloat(row['Principal_Inicial'] || row['principal_inicial']) || 0,
+      interest_rate: parseFloat(row['Tipo_Interes'] || row['tipo_interes']) || 0,
+      maturity_date: row['Vencimiento'] || row['vencimiento'] || '2030-12-31',
+      guarantees: row['Garantias'] || row['garantias'],
+      observations: row['Observaciones'] || row['observaciones'],
+      currency_code: row['Moneda'] || row['moneda'] || 'EUR'
+    }));
+
+    const { error } = await supabase.from('debt_loans').insert(debtLoans);
+    if (error) throw error;
+  };
+
+  const processDebtMaturitiesTemplate = async (companyId: string, data: any[]) => {
+    const maturities = data.map(row => ({
+      company_id: companyId,
+      maturity_year: parseInt(row['Year'] || row['year']) || new Date().getFullYear(),
+      principal_amount: parseFloat(row['Due_Principal'] || row['principal']) || 0,
+      interest_amount: parseFloat(row['Due_Interest'] || row['interest']) || 0,
+      total_amount: (parseFloat(row['Due_Principal'] || row['principal']) || 0) + 
+                    (parseFloat(row['Due_Interest'] || row['interest']) || 0)
+    }));
+
+    const { error } = await supabase.from('debt_maturities').insert(maturities);
+    if (error) throw error;
+  };
+
+  const processOperationalTemplate = async (companyId: string, data: any[]) => {
+    const metrics = data.map(row => ({
+      company_id: companyId,
+      metric_name: row['Metrica'] || row['metrica'] || row['Concepto'],
+      value: parseFloat(row['Valor'] || row['valor']) || 0,
+      unit: row['Unidad'] || row['unidad'] || 'units',
+      period_date: row['Fecha'] || row['fecha'] || new Date().toISOString().split('T')[0],
+      period_year: parseInt(row['Año'] || row['year']) || new Date().getFullYear(),
+      period_type: row['Periodo'] || row['periodo'] || 'annual',
+      segment: row['Segmento'] || row['segmento']
+    }));
+
+    const { error } = await supabase.from('operational_metrics').insert(metrics);
+    if (error) throw error;
+  };
+
+  const processFinancialAssumptionsTemplate = async (companyId: string, data: any[]) => {
+    const assumptions = data.map(row => ({
+      company_id: companyId,
+      assumption_category: 'general',
+      assumption_name: (row['Concepto'] || row['concepto'] || '').toLowerCase().replace(/\s+/g, '_'),
+      assumption_value: parseFloat(row['Valor'] || row['valor']) || 0,
+      unit: row['Unidad'] || row['unidad'] || 'percentage',
+      period_year: parseInt(row['Aplica_desde'] || row['year']) || new Date().getFullYear(),
+      period_type: 'annual',
+      notes: row['Notas'] || row['notas']
+    }));
+
+    const { error } = await supabase.from('financial_assumptions_normalized').insert(assumptions);
+    if (error) throw error;
   };
 
   const createQualitativeCSV = (data: QualitativeData): string => {
