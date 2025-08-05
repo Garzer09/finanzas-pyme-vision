@@ -24,7 +24,9 @@
     "validate:recovery": "node scripts/validate-error-recovery-tests.js",
     "validate:all": "npm run validate:auth && npm run validate:navigation && npm run validate:recovery",
     "validate:ci": "node scripts/validate-ci-workflow.cjs",
-    "validate:prod": "node scripts/validateProduction.js"
+    "validate:prod": "node scripts/validateProduction.js",
+    "create-test-users": "node scripts/create_test_users.js",
+    "test:auth": "vitest tests/auth-comprehensive.test.js"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.6",
@@ -66,6 +68,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
+    "dotenv": "^17.2.1",
     "embla-carousel-react": "^8.3.0",
     "input-otp": "^1.2.4",
     "jsdom": "^26.1.0",
