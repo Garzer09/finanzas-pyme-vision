@@ -141,27 +141,53 @@ function detectDelimiter(csvContent: string): string {
   return detectedDelimiter;
 }
 
-// Parse CSV content
+// Parse CSV content with section support
 function parseCSV(content: string): { headers: string[], rows: string[][] } {
   // Remove BOM if present
   const cleanContent = content.replace(/^\uFEFF/, '');
   
   const delimiter = detectDelimiter(cleanContent);
-  const lines = cleanContent.split('\n').filter(line => line.trim());
+  const lines = cleanContent.split('\n')
+    .map(line => line.trim())
+    .filter(line => line && !line.startsWith('#')); // Filter out empty lines and comments
   
   if (lines.length === 0) {
-    throw new Error('CSV file is empty');
+    throw new Error('CSV file is empty or contains only comments');
   }
   
-  // Parse headers
-  const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, ''));
+  // Find company section data
+  let companyHeaders: string[] = [];
+  let companyRows: string[][] = [];
   
-  // Parse rows
-  const rows = lines.slice(1).map(line => 
-    line.split(delimiter).map(cell => cell.trim().replace(/^["']|["']$/g, ''))
-  );
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Skip if it's a comment or empty
+    if (!line || line.startsWith('#')) continue;
+    
+    // Check if this looks like a header line (contains common company fields)
+    const fields = line.split(delimiter).map(h => h.trim().replace(/^["']|["']$/g, ''));
+    const hasCompanyFields = fields.some(field => 
+      ['company_name', 'nombre_empresa', 'empresa', 'sector'].includes(field.toLowerCase())
+    );
+    
+    if (hasCompanyFields && companyHeaders.length === 0) {
+      // This is the company headers line
+      companyHeaders = fields;
+    } else if (companyHeaders.length > 0 && fields.length === companyHeaders.length) {
+      // This is a data row for company section
+      const hasData = fields.some(cell => cell && cell.trim());
+      if (hasData) {
+        companyRows.push(fields);
+      }
+    }
+  }
   
-  return { headers, rows };
+  if (companyHeaders.length === 0) {
+    throw new Error('No valid company headers found in CSV');
+  }
+  
+  return { headers: companyHeaders, rows: companyRows };
 }
 
 // Find best field mapping using synonyms and fuzzy matching
