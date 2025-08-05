@@ -9,7 +9,9 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest"
+    "test": "vitest",
+    "stability-check": "node scripts/stability-check.js",
+    "pre-deploy": "npm run stability-check && npm run build"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.6",
