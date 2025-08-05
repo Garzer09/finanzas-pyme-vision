@@ -513,6 +513,8 @@ export const AdminCargaPlantillasPage: React.FC = () => {
 
   const handleWizardComplete = async (processedData: any) => {
     try {
+      console.log('Sending data to edge function:', processedData);
+      
       // Call the admin-pack-upload function with the processed data
       const response = await supabase.functions.invoke('admin-pack-upload', {
         body: {
@@ -526,24 +528,33 @@ export const AdminCargaPlantillasPage: React.FC = () => {
         }
       });
 
+      console.log('Edge function response:', response);
+
       if (response.error) {
+        console.error('Edge function error:', response.error);
         throw new Error(response.error.message);
       }
 
-      toast({
-        title: "✅ Datos procesados exitosamente",
-        description: `${processedData.totalRecords} registros guardados para ${companyInfo?.company_name}`,
-      });
+      // Start polling for job status if we got a job_id
+      if (response.data?.job_id) {
+        setIsProcessing(true);
+        setProcessingError('');
+        startStatusPolling(response.data.job_id);
+        
+        toast({
+          title: "✅ Procesamiento iniciado",
+          description: "Los datos se están procesando en segundo plano",
+        });
+      } else {
+        toast({
+          title: "✅ Datos procesados exitosamente",
+          description: `${processedData.totalRecords} registros guardados para ${companyInfo?.company_name}`,
+        });
+      }
 
       // Reset wizard state
       setShowDataWizard(false);
-      setCurrentStep('qualitative');
-      setObligatoriosFiles({});
-      setOpcionalesFiles({});
-      setFileValidations({});
-      setCompanyInfo(null);
       
-      navigate('/admin/empresas');
     } catch (error) {
       console.error('Error processing data:', error);
       toast({

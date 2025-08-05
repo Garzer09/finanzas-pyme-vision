@@ -101,6 +101,7 @@ Deno.serve(async (req) => {
     if (contentType.includes('application/json')) {
       // Parse JSON (from wizard)
       parsedData = await req.json()
+      console.log('Received JSON data:', JSON.stringify(parsedData, null, 2))
       
       // Extract metadata from JSON
       const companyId = parsedData.companyId || parsedData.company_id
@@ -110,13 +111,30 @@ Deno.serve(async (req) => {
       const importMode = parsedData.importMode || parsedData.import_mode || 'REPLACE'
       const dryRun = parsedData.dryRun || parsedData.dry_run || false
       
-      // Convert base64 files to File objects
+      // Handle files from wizard - convert parsed data back to CSV strings
       if (parsedData.files && Array.isArray(parsedData.files)) {
         for (const fileData of parsedData.files) {
-          if (fileData.name && fileData.content) {
-            const bytes = Uint8Array.from(atob(fileData.content), c => c.charCodeAt(0))
-            const file = new File([bytes], fileData.name, { type: 'text/csv' })
-            const canonicalName = fileData.name.toLowerCase()
+          if (fileData.fileName && fileData.data && Array.isArray(fileData.data)) {
+            // Convert array data back to CSV string
+            const headers = Object.keys(fileData.data[0] || {})
+            const csvRows = [
+              headers.join(','),
+              ...fileData.data.map(row => 
+                headers.map(header => {
+                  const value = row[header] || ''
+                  // Escape commas and quotes
+                  return typeof value === 'string' && (value.includes(',') || value.includes('"'))
+                    ? `"${value.replace(/"/g, '""')}"` 
+                    : value
+                }).join(',')
+              )
+            ]
+            const csvContent = csvRows.join('\n')
+            
+            const file = new File([csvContent], fileData.fileName, { type: 'text/csv' })
+            const canonicalName = fileData.canonicalName || fileData.fileName.toLowerCase()
+            
+            console.log(`Processing file: ${fileData.fileName} -> ${canonicalName}`)
             if (CANONICAL_CSV_NAMES[canonicalName]) {
               csvFiles[canonicalName] = file
             }
