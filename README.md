@@ -12,23 +12,32 @@ This project includes a comprehensive testing and validation system designed for
 
 #### Core Testing Commands
 ```sh
-# Run all unit and integration tests
-npm test
+# Run all unit tests
+npm run test:unit
 
-# Run tests with coverage report
+# Run component tests  
+npm run test:components
+
+# Run integration tests
+npm run test:integration
+
+# Run all tests with coverage report
 npm run test:coverage
 
-# Run tests in UI mode
-npm run test:ui
+# Run tests with coverage threshold checking
+npm run test:coverage:check
 
 # Run end-to-end tests
 npm run test:e2e
 
 # Run E2E tests in UI mode
 npm run test:e2e:ui
+
+# Run all test suites
+npm run test:all
 ```
 
-#### Validation Scripts
+#### Performance and Analysis
 ```sh
 # Comprehensive stability check for production readiness
 npm run stability-check
@@ -36,6 +45,15 @@ npm run stability-check
 # Pre-deployment validation (includes stability check + build)
 npm run pre-deploy
 
+# Analyze bundle size and composition
+npm run analyze:bundle
+
+# Run performance tests
+npm run test:performance
+```
+
+#### Validation Scripts
+```sh
 # Validate authentication system
 npm run validate:auth
 
@@ -55,6 +73,27 @@ npm run create-test-users
 # Run comprehensive authentication tests
 npm run test:auth
 ```
+
+### 🧪 Comprehensive Test Suite
+
+The project now includes a **comprehensive testing infrastructure** with:
+
+#### Test Categories
+- **Unit Tests** (`tests/unit/`): 24+ tests covering data validation, financial calculations, and utilities
+- **Component Tests** (`tests/components/`): React component behavior with user interactions
+- **Integration Tests** (`tests/integration/`): End-to-end workflow validation
+- **E2E Tests** (`tests/e2e/`): Browser-based user journey testing
+
+#### Test Infrastructure
+- **✅ Vitest Configuration**: Optimized for comprehensive coverage with 70% threshold
+- **✅ Test Fixtures**: Financial data, mock companies, and user profiles
+- **✅ Mock System**: Supabase client, file system, and external service mocks
+- **✅ Global Setup**: Proper test environment with DOM mocking
+
+#### Coverage Requirements
+- **Global Coverage**: 70% minimum (lines, functions, branches, statements)
+- **Critical Modules**: 90% minimum for data validation and financial logic
+- **Services**: 80% minimum for business logic services
 
 ### 🔐 Authentication Testing System
 
@@ -86,11 +125,58 @@ The authentication test suite validates:
 - ✅ **Password Security**: Validation, reset flows, brute force protection
 - ✅ **Permission Enforcement**: Route protection, data access controls
 
+### 🚀 CI/CD Integration
+
+#### GitHub Actions Workflow (`.github/workflows/test.yml`)
+- **Unit Tests**: Multi-Node.js version testing (18.x, 20.x)
+- **Component Tests**: React component validation
+- **Integration Tests**: Full workflow testing with database
+- **E2E Tests**: Browser-based testing across platforms  
+- **Performance Tests**: Bundle analysis and load time validation
+- **Security Tests**: Vulnerability scanning and code analysis
+- **Coverage Reporting**: Automated coverage tracking with Codecov
+
+#### Test Matrix
+| Node Version | Test Types | Coverage |
+|-------------|------------|----------|
+| 18.x, 20.x | All Types | Full |
+| Multiple OS | Unit + Component | Cross-platform |
+
+### 📊 Test Fixtures and Utilities
+
+#### Financial Data Fixtures (`tests/fixtures/financial-data.ts`)
+```typescript
+import { mockFinancialEntry, mockBalanceSheet } from '@tests/fixtures/financial-data';
+
+// Pre-built test data for consistent testing
+const testEntry = createMockFinancialEntry({
+  debit: 1000,
+  account: 'Custom Account'
+});
+```
+
+#### Mock Services (`tests/__mocks__/`)
+- **Supabase Client**: Database operations and authentication
+- **File System**: Upload/download simulation
+- **Template Service**: Configuration and template processing
+
+### 📈 Performance and Security Testing
+
+#### Performance Monitoring
+- **Bundle Size Analysis**: Automated size tracking and optimization recommendations
+- **Load Time Testing**: Performance regression detection
+- **Memory Usage**: Resource consumption monitoring
+
+#### Security Validation
+- **Input Sanitization**: XSS and injection protection testing
+- **Authentication Security**: Brute force and session hijacking protection
+- **Dependency Scanning**: Automated vulnerability detection
+
 #### Detailed Testing Documentation
 
 For comprehensive testing instructions, see: **[docs/TESTING.md](docs/TESTING.md)**
 
-#### Environment Requirements for Auth Testing
+#### Environment Requirements for Testing
 
 ```env
 # Required in .env file

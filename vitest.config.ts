@@ -4,13 +4,14 @@ import { resolve } from 'path';
 /**
  * Vitest Configuration for Finanzas PYME Vision
  * 
- * Optimized configuration for unit and integration testing
- * with comprehensive coverage reporting and TypeScript support.
+ * Comprehensive configuration for unit, integration, and component testing
+ * with enhanced coverage reporting and TypeScript support.
  */
 export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, './src'),
+      '@tests': resolve(__dirname, './tests'),
     },
   },
   test: {
@@ -19,19 +20,28 @@ export default defineConfig({
     environment: 'jsdom',
     
     // Setup files
-    setupFiles: ['./src/__tests__/setup.ts'],
+    setupFiles: [
+      './src/__tests__/setup.ts',
+      './tests/setup/global-setup.ts'
+    ],
     
-    // Test patterns
+    // Test patterns - Comprehensive coverage
     include: [
       'src/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
-      'tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'
+      'tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}',
+      'tests/unit/**/*.test.{ts,tsx}',
+      'tests/integration/**/*.test.{ts,tsx}',
+      'tests/components/**/*.test.{tsx}'
     ],
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
       '**/cypress/**',
       '**/.{git,next}/**',
-      '**/e2e/**'
+      '**/e2e/**',
+      '**/build/**',
+      '**/coverage/**',
+      '**/.next/**'
     ],
     
     // Coverage configuration with v8 provider

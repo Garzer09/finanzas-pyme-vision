@@ -1,0 +1,544 @@
+/**
+ * 🔐 Enhanced Data Validation and Accounting Coherence
+ * 
+ * Provides robust validation for financial data, accounting coherence checks,
+ * and improved input sanitization for production use.
+ */
+
+import { z } from 'zod';
+
+// Financial Data Schemas
+export const FinancialEntrySchema = z.object({
+  account: z.string().min(1, 'Cuenta requerida'),
+  debit: z.number().min(0, 'Débito debe ser positivo').optional(),
+  credit: z.number().min(0, 'Crédito debe ser positivo').optional(),
+  description: z.string().min(1, 'Descripción requerida'),
+  date: z.date(),
+  reference: z.string().optional(),
+  category: z.string().optional(),
+}).refine(data => {
+  // Either debit or credit must be present, but not both
+  const hasDebit = data.debit !== undefined && data.debit > 0;
+  const hasCredit = data.credit !== undefined && data.credit > 0;
+  return hasDebit !== hasCredit; // XOR logic
+}, {
+  message: 'Debe especificar débito O crédito, no ambos',
+});
+
+export const BalanceSheetSchema = z.object({
+  assets: z.object({
+    current: z.number().min(0),
+    nonCurrent: z.number().min(0),
+    total: z.number().min(0),
+  }),
+  liabilities: z.object({
+    current: z.number().min(0),
+    nonCurrent: z.number().min(0),
+    total: z.number().min(0),
+  }),
+  equity: z.object({
+    capital: z.number(),
+    retainedEarnings: z.number(),
+    total: z.number(),
+  }),
+}).refine(data => {
+  // Accounting equation: Assets = Liabilities + Equity
+  const assetsTotal = data.assets.total;
+  const liabilitiesEquityTotal = data.liabilities.total + data.equity.total;
+  const tolerance = 0.01; // Allow for rounding differences
+  
+  return Math.abs(assetsTotal - liabilitiesEquityTotal) <= tolerance;
+}, {
+  message: 'Error en ecuación contable: Activos debe igual Pasivos + Patrimonio',
+});
+
+export const IncomeStatementSchema = z.object({
+  revenue: z.number().min(0),
+  costOfGoodsSold: z.number().min(0),
+  grossProfit: z.number(),
+  operatingExpenses: z.number().min(0),
+  operatingIncome: z.number(),
+  netIncome: z.number(),
+}).refine(data => {
+  // Validate income statement calculations
+  const calculatedGrossProfit = data.revenue - data.costOfGoodsSold;
+  const calculatedOperatingIncome = calculatedGrossProfit - data.operatingExpenses;
+  
+  const tolerance = 0.01;
+  return Math.abs(data.grossProfit - calculatedGrossProfit) <= tolerance &&
+         Math.abs(data.operatingIncome - calculatedOperatingIncome) <= tolerance;
+}, {
+  message: 'Error en cálculos del estado de resultados',
+});
+
+// Enhanced Input Sanitization
+export class DataSanitizer {
+  /**
+   * Sanitize financial amount input
+   */
+  static sanitizeAmount(input: string | number): number {
+    if (typeof input === 'number') {
+      if (!Number.isFinite(input)) {
+        throw new Error('Monto inválido: debe ser un número finito');
+      }
+      return Math.round(input * 100) / 100; // Round to 2 decimal places
+    }
+
+    // Remove currency symbols
+    let cleaned = input.replace(/[$€£¥₹]/g, '').trim();
+    
+    // Handle European format (1.234,56) vs US format (1,234.56)
+    const commaIndex = cleaned.lastIndexOf(',');
+    const dotIndex = cleaned.lastIndexOf('.');
+    
+    if (commaIndex > dotIndex) {
+      // European format: 1.234,56
+      cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+    } else if (dotIndex > commaIndex) {
+      // US format: 1,234.56
+      cleaned = cleaned.replace(/,/g, '');
+    } else if (commaIndex !== -1 && dotIndex === -1) {
+      // Only comma present, assume decimal separator
+      cleaned = cleaned.replace(',', '.');
+    }
+    
+    const amount = parseFloat(cleaned);
+    if (isNaN(amount)) {
+      throw new Error(`Monto inválido: "${input}" no es un número válido`);
+    }
+    
+    return Math.round(amount * 100) / 100;
+  }
+
+  /**
+   * Sanitize text input (XSS protection)
+   */
+  static sanitizeText(input: string): string {
+    if (!input) return '';
+    
+    return input
+      .trim()
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<[^>]*>/g, '')
+      .replace(/[<>]/g, '');
+  }
+
+  /**
+   * Sanitize account code
+   */
+  static sanitizeAccountCode(input: string): string {
+    if (!input) return '';
+    
+    return input
+      .trim()
+      .replace(/[^\w\s\-\.]/g, '')
+      .substring(0, 50); // Limit length
+  }
+}
+
+// Validation Error Class
+export class ValidationError extends Error {
+  code: string;
+
+  constructor(message: string, code = 'VALIDATION_ERROR') {
+    super(message);
+    this.name = 'ValidationError';
+    this.code = code;
+  }
+}
+
+// Main validation functions
+export async function validateAccountingEntry(entries: any[]): Promise<{
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+}> {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  if (!entries || entries.length === 0) {
+    errors.push('No hay entradas para validar');
+    return { isValid: false, errors, warnings };
+  }
+
+  // Check if entries are balanced
+  let totalDebits = 0;
+  let totalCredits = 0;
+
+  for (const entry of entries) {
+    if (entry.debit) totalDebits += entry.debit;
+    if (entry.credit) totalCredits += entry.credit;
+  }
+
+  const tolerance = 0.01;
+  if (Math.abs(totalDebits - totalCredits) > tolerance) {
+    errors.push('Entradas no balanceadas: débitos y créditos no coinciden');
+  }
+
+  // Validate individual entries
+  for (const entry of entries) {
+    const result = FinancialEntrySchema.safeParse(entry);
+    if (!result.success) {
+      errors.push(`Error en entrada: ${result.error.issues[0].message}`);
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    warnings,
+  };
+}
+
+export function validateBalanceSheet(balanceSheet: any): {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+} {
+  const result = BalanceSheetSchema.safeParse(balanceSheet);
+  
+  if (result.success) {
+    return { isValid: true, errors: [], warnings: [] };
+  }
+
+  return {
+    isValid: false,
+    errors: result.error.issues.map(issue => issue.message),
+    warnings: [],
+  };
+}
+
+export function sanitizeFinancialInput(input: any): any {
+  if (!input || typeof input !== 'object') {
+    return input;
+  }
+
+  const sanitized: any = {};
+
+  for (const [key, value] of Object.entries(input)) {
+    if (value === null || value === undefined) {
+      sanitized[key] = key.includes('amount') || key === 'debit' || key === 'credit' ? 0 : '';
+      continue;
+    }
+
+    if (typeof value === 'string') {
+      if (key.includes('amount') || key === 'debit' || key === 'credit') {
+        try {
+          sanitized[key] = DataSanitizer.sanitizeAmount(value);
+        } catch {
+          sanitized[key] = 0;
+        }
+      } else if (key === 'account') {
+        sanitized[key] = DataSanitizer.sanitizeAccountCode(value);
+      } else {
+        sanitized[key] = DataSanitizer.sanitizeText(value);
+      }
+    } else {
+      sanitized[key] = value;
+    }
+  }
+
+  return sanitized;
+}
+
+export function checkAccountingCoherence(data: any): {
+  isCoherent: boolean;
+  warnings: Array<{
+    type: string;
+    severity: 'low' | 'medium' | 'high';
+    message: string;
+  }>;
+} {
+  const warnings: Array<{
+    type: string;
+    severity: 'low' | 'medium' | 'high';
+    message: string;
+  }> = [];
+
+  // Check balance sheet coherence
+  if (data.balanceSheet) {
+    const balanceResult = validateBalanceSheet(data.balanceSheet);
+    if (!balanceResult.isValid) {
+      warnings.push({
+        type: 'BALANCE_MISMATCH',
+        severity: 'high',
+        message: 'Balance general no cuadra según ecuación contable',
+      });
+    }
+  }
+
+  // Check entries coherence
+  if (data.entries) {
+    // Check currency consistency
+    const currencies = new Set();
+    for (const entry of data.entries) {
+      if (entry.currency) {
+        currencies.add(entry.currency);
+      }
+    }
+    
+    if (currencies.size > 1) {
+      warnings.push({
+        type: 'CURRENCY_MISMATCH',
+        severity: 'medium',
+        message: 'Se detectaron múltiples monedas en las entradas',
+      });
+    }
+  }
+
+  return {
+    isCoherent: warnings.filter(w => w.severity === 'high').length === 0,
+    warnings,
+  };
+}
+    
+    if (input instanceof Date) {
+      date = input;
+    } else {
+      date = new Date(input);
+    }
+
+    if (isNaN(date.getTime())) {
+      throw new Error(`Fecha inválida: "${input}"`);
+    }
+
+    // Check reasonable date range (1900 to 2100)
+    const year = date.getFullYear();
+    if (year < 1900 || year > 2100) {
+      throw new Error(`Fecha fuera de rango: ${year}`);
+    }
+
+    return date;
+  }
+}
+
+// Accounting Coherence Validator
+export class AccountingValidator {
+  /**
+   * Validate journal entry for accounting coherence
+   */
+  static validateJournalEntry(entries: Array<{
+    account: string;
+    debit?: number;
+    credit?: number;
+    description: string;
+  }>): { isValid: boolean; errors: string[] } {
+    const errors: string[] = [];
+
+    if (entries.length === 0) {
+      errors.push('Al menos una entrada es requerida');
+      return { isValid: false, errors };
+    }
+
+    let totalDebits = 0;
+    let totalCredits = 0;
+
+    entries.forEach((entry, index) => {
+      // Validate each entry
+      try {
+        FinancialEntrySchema.parse({
+          ...entry,
+          date: new Date(),
+        });
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          error.errors.forEach(err => {
+            errors.push(`Entrada ${index + 1}: ${err.message}`);
+          });
+        }
+      }
+
+      // Accumulate totals
+      if (entry.debit) totalDebits += entry.debit;
+      if (entry.credit) totalCredits += entry.credit;
+    });
+
+    // Check accounting equation balance
+    const tolerance = 0.01;
+    if (Math.abs(totalDebits - totalCredits) > tolerance) {
+      errors.push(
+        `Asientos desbalanceados: Débitos (${totalDebits}) ≠ Créditos (${totalCredits})`
+      );
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  /**
+   * Validate trial balance
+   */
+  static validateTrialBalance(accounts: Array<{
+    account: string;
+    debit: number;
+    credit: number;
+  }>): { isValid: boolean; errors: string[]; summary: any } {
+    const errors: string[] = [];
+    
+    let totalDebits = 0;
+    let totalCredits = 0;
+    const accountSummary = new Map();
+
+    accounts.forEach(entry => {
+      // Sanitize amounts
+      try {
+        const debit = DataSanitizer.sanitizeAmount(entry.debit);
+        const credit = DataSanitizer.sanitizeAmount(entry.credit);
+        
+        totalDebits += debit;
+        totalCredits += credit;
+
+        // Track by account
+        const accountName = DataSanitizer.sanitizeAccountName(entry.account);
+        if (!accountSummary.has(accountName)) {
+          accountSummary.set(accountName, { debit: 0, credit: 0 });
+        }
+        const summary = accountSummary.get(accountName);
+        summary.debit += debit;
+        summary.credit += credit;
+
+      } catch (error) {
+        errors.push(`Error en cuenta "${entry.account}": ${(error as Error).message}`);
+      }
+    });
+
+    // Check balance
+    const tolerance = 0.01;
+    if (Math.abs(totalDebits - totalCredits) > tolerance) {
+      errors.push(
+        `Balance de comprobación desbalanceado: Total débitos (${totalDebits}) ≠ Total créditos (${totalCredits})`
+      );
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      summary: {
+        totalDebits,
+        totalCredits,
+        difference: totalDebits - totalCredits,
+        accountCount: accountSummary.size,
+        accounts: Object.fromEntries(accountSummary),
+      },
+    };
+  }
+
+  /**
+   * Validate financial ratios for reasonableness
+   */
+  static validateFinancialRatios(data: {
+    currentAssets: number;
+    currentLiabilities: number;
+    totalAssets: number;
+    totalLiabilities: number;
+    revenue: number;
+    netIncome: number;
+  }): { isValid: boolean; warnings: string[]; ratios: any } {
+    const warnings: string[] = [];
+    
+    // Calculate ratios
+    const currentRatio = data.currentLiabilities > 0 ? 
+      data.currentAssets / data.currentLiabilities : Infinity;
+    
+    const debtToAssets = data.totalAssets > 0 ? 
+      data.totalLiabilities / data.totalAssets : 0;
+    
+    const profitMargin = data.revenue > 0 ? 
+      data.netIncome / data.revenue : 0;
+
+    // Check ratio reasonableness
+    if (currentRatio < 0.5) {
+      warnings.push('Ratio de liquidez muy bajo (< 0.5)');
+    } else if (currentRatio > 10) {
+      warnings.push('Ratio de liquidez muy alto (> 10) - posible error');
+    }
+
+    if (debtToAssets > 0.9) {
+      warnings.push('Ratio de endeudamiento muy alto (> 90%)');
+    }
+
+    if (profitMargin < -0.5 || profitMargin > 0.5) {
+      warnings.push('Margen de beneficio fuera de rango normal');
+    }
+
+    return {
+      isValid: warnings.length === 0,
+      warnings,
+      ratios: {
+        currentRatio,
+        debtToAssets,
+        profitMargin,
+      },
+    };
+  }
+}
+
+// Data Validation Pipeline
+export class DataValidationPipeline {
+  /**
+   * Comprehensive validation for uploaded financial data
+   */
+  static async validateFinancialFile(data: any[]): Promise<{
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+    processedData: any[];
+    summary: any;
+  }> {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    const processedData: any[] = [];
+
+    if (!Array.isArray(data) || data.length === 0) {
+      errors.push('Archivo vacío o formato inválido');
+      return { isValid: false, errors, warnings, processedData, summary: null };
+    }
+
+    // Process each row
+    data.forEach((row, index) => {
+      try {
+        const processedRow = {
+          ...row,
+          account: DataSanitizer.sanitizeAccountName(row.account || ''),
+          description: DataSanitizer.sanitizeDescription(row.description || ''),
+          debit: row.debit ? DataSanitizer.sanitizeAmount(row.debit) : undefined,
+          credit: row.credit ? DataSanitizer.sanitizeAmount(row.credit) : undefined,
+          date: row.date ? DataSanitizer.sanitizeDate(row.date) : new Date(),
+        };
+
+        // Validate individual entry
+        FinancialEntrySchema.parse(processedRow);
+        processedData.push(processedRow);
+
+      } catch (error) {
+        if (error instanceof z.ZodError) {
+          error.errors.forEach(err => {
+            errors.push(`Fila ${index + 1}: ${err.message}`);
+          });
+        } else {
+          errors.push(`Fila ${index + 1}: ${(error as Error).message}`);
+        }
+      }
+    });
+
+    // Validate accounting coherence
+    if (processedData.length > 0) {
+      const journalValidation = AccountingValidator.validateJournalEntry(processedData);
+      if (!journalValidation.isValid) {
+        errors.push(...journalValidation.errors);
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+      warnings,
+      processedData,
+      summary: {
+        totalRows: data.length,
+        validRows: processedData.length,
+        errorCount: errors.length,
+        warningCount: warnings.length,
+      },
+    };
+  }
+}
