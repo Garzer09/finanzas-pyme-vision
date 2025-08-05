@@ -94,6 +94,9 @@ export const AdminCargaPlantillasPage: React.FC = () => {
     toast
   } = useToast();
   const [searchParams] = useSearchParams();
+  
+  // Get companyId from URL params as fallback
+  const urlCompanyId = searchParams.get('companyId');
 
   // Wizard state
   const [currentStep, setCurrentStep] = useState<'qualitative' | 'financial'>('qualitative');
@@ -252,7 +255,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       }
       
       setCompanyInfo({
-        companyId: result.company_data.company_id || '',
+        companyId: result.company_data.company_id || urlCompanyId || '',
         company_name: result.company_data.company_name,
         currency_code: result.company_data.currency_code || 'EUR',
         accounting_standard: result.company_data.accounting_standard || 'PGC',
@@ -504,6 +507,17 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       return;
     }
     
+    // Ensure we have a valid companyId
+    const finalCompanyId = companyInfo.companyId || urlCompanyId;
+    if (!finalCompanyId) {
+      toast({
+        title: "Error",
+        description: "No se puede determinar el ID de la empresa. Vuelve al paso anterior.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsProcessing(true);
     setProcessingError(null);
     
@@ -511,7 +525,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       const formData = new FormData();
 
       // Add metadata
-      formData.append('companyId', companyInfo.companyId);
+      formData.append('companyId', finalCompanyId);
       formData.append('currency_code', useTemplateData ? companyInfo.currency_code : companyInfo.currency_code);
       formData.append('accounting_standard', useTemplateData ? companyInfo.accounting_standard : companyInfo.accounting_standard);
       selectedYears.forEach(year => formData.append('selected_years[]', year.toString()));
