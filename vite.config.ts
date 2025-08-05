@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -13,6 +14,17 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === 'development' &&
     componentTagger(),
+    process.env.VITE_SENTRY_DSN && sentryVitePlugin({
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      release: {
+        name: process.env.npm_package_version || '1.0.0',
+      },
+      sourcemaps: {
+        assets: './dist/**'
+      }
+    }),
   ].filter(Boolean),
   resolve: {
     alias: {
@@ -54,5 +66,17 @@ export default defineConfig(({ mode }) => ({
   test: {
     globals: true,
     environment: 'jsdom',
+    setupFiles: ['./src/__tests__/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'src/__tests__/',
+        '**/*.d.ts',
+        '**/*.test.{ts,tsx}',
+        '**/*.spec.{ts,tsx}',
+      ],
+    },
   },
 }));

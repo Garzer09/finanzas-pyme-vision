@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
+import * as Sentry from "@sentry/react";
 import App from './App.tsx'
 import './index.css'
 import '@fontsource/inter/300.css'
@@ -14,8 +15,27 @@ import '@fontsource/inter/700.css'
 import '@fontsource/inter/800.css'
 import '@fontsource/inter/900.css'
 
+// Initialize Sentry for error tracking
+if (import.meta.env.VITE_SENTRY_DSN) {
+  Sentry.init({
+    dsn: import.meta.env.VITE_SENTRY_DSN,
+    environment: import.meta.env.VITE_ENVIRONMENT || 'development',
+    integrations: [
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration({
+        maskAllText: false,
+        blockAllMedia: false,
+      }),
+    ],
+    tracesSampleRate: import.meta.env.VITE_ENVIRONMENT === 'production' ? 0.1 : 1.0,
+    replaysSessionSampleRate: import.meta.env.VITE_ENVIRONMENT === 'production' ? 0.01 : 0.1,
+    replaysOnErrorSampleRate: 1.0,
+  });
+}
+
 // Production services initialization
 import { initializeProductionServices, setupGlobalErrorHandling } from '@/services/productionServices';
+import { registerServiceWorker } from '@/utils/serviceWorker';
 
 // Initialize global error handling immediately
 setupGlobalErrorHandling();
@@ -39,6 +59,9 @@ async function initializeApp() {
     } else {
       console.log('🔧 Running in development mode, production services disabled');
     }
+
+    // Register service worker for caching and offline support
+    await registerServiceWorker();
 
     // Render the application
     createRoot(document.getElementById('root')!).render(
