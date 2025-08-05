@@ -4,6 +4,140 @@
 
 **URL**: https://lovable.dev/projects/fc9a50c5-6c20-4e01-84b9-97b89b1ecfa8
 
+## 🧪 Testing and Validation
+
+This project includes a comprehensive testing and validation system designed for production readiness.
+
+### Available Test Scripts
+
+#### Core Testing Commands
+```sh
+# Run all unit and integration tests
+npm test
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run tests in UI mode
+npm run test:ui
+
+# Run end-to-end tests
+npm run test:e2e
+
+# Run E2E tests in UI mode
+npm run test:e2e:ui
+```
+
+#### Validation Scripts
+```sh
+# Comprehensive stability check for production readiness
+npm run stability-check
+
+# Pre-deployment validation (includes stability check + build)
+npm run pre-deploy
+
+# Validate authentication system
+npm run validate:auth
+
+# Validate navigation and routing
+npm run validate:navigation
+
+# Validate error recovery and resilience
+npm run validate:recovery
+
+# Run all validation checks
+npm run validate:all
+```
+
+### Test Structure
+
+The project uses a dual testing approach:
+
+#### 1. Component-Level Tests (`src/components/__tests__/`)
+- Detailed tests for specific components and functionality
+- Authentication flows and security validation
+- Session management and role detection
+- Error recovery and network resilience
+- End-to-end user journeys
+
+#### 2. Base Test Suites (`tests/`)
+- **`tests/auth.test.ts`** - Authentication system base tests
+- **`tests/navigation.test.ts`** - Navigation and routing base tests
+- **`tests/error-recovery.test.ts`** - Error recovery and resilience base tests
+- **`tests/stability.test.ts`** - System stability and performance base tests
+
+### Testing Configuration
+
+The project uses **Vitest** for unit/integration testing and **Playwright** for E2E testing:
+
+- **Vitest Config**: `vitest.config.ts` - Optimized for comprehensive coverage
+- **Playwright Config**: `playwright.config.ts` - Configured for robust E2E testing
+- **Coverage Thresholds**: 70% minimum coverage for production readiness
+
+### Validation Scripts Details
+
+#### Stability Check (`npm run stability-check`)
+Comprehensive validation including:
+- ✅ Code freeze status verification
+- ✅ Complete test suite execution
+- ✅ Build process validation
+- ✅ Environment configuration check
+- ✅ Critical file presence verification
+- ✅ Authentication system validation
+- ✅ Security configuration check
+- ✅ Error boundary validation
+
+#### Authentication Validation (`npm run validate:auth`)
+Specialized validation for:
+- Authentication flows (login/logout)
+- Session management
+- Role detection and permissions
+- Security validation features
+- Production security measures
+
+#### Navigation Validation (`npm run validate:navigation`)
+Validates:
+- Navigation flow tests
+- End-to-end user journeys
+- Routing protection mechanisms
+- Accessibility compliance
+- User experience flows
+
+#### Error Recovery Validation (`npm run validate:recovery`)
+Tests:
+- Error recovery mechanisms
+- Network resilience
+- Timeout and retry logic
+- Error boundaries implementation
+- Fallback component coverage
+
+### Test Coverage Requirements
+
+For production deployment, the following coverage thresholds must be met:
+- **Lines**: 70%
+- **Functions**: 70%
+- **Branches**: 70%
+- **Statements**: 70%
+
+### Running Tests in CI/CD
+
+All validation scripts are designed to run in CI/CD environments:
+
+```sh
+# Set CI environment variable for optimal test execution
+export CI=true
+
+# Run comprehensive validation
+npm run validate:all
+```
+
+### Development Testing Workflow
+
+1. **During Development**: `npm test` for rapid feedback
+2. **Before Commit**: `npm run test:coverage` to ensure coverage
+3. **Before Push**: `npm run validate:all` for comprehensive validation
+4. **Pre-Production**: `npm run stability-check` for deployment readiness
+
 ## Environment Configuration
 
 ### Supabase Edge Functions
