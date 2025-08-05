@@ -175,12 +175,34 @@ const AuthPage: React.FC = () => {
     try {
       // Password RESET flow
       if (isPasswordReset) {
+        // Validate password fields
+        if (!formData.newPassword || !formData.confirmNewPassword) {
+          toast({
+            title: 'Error',
+            description: 'Por favor completa ambos campos de contraseña',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+
+        if (formData.newPassword.length < 6) {
+          toast({
+            title: 'Error',
+            description: 'La contraseña debe tener al menos 6 caracteres',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+
         if (formData.newPassword !== formData.confirmNewPassword) {
           toast({
             title: 'Error',
             description: 'Las contraseñas no coinciden',
             variant: 'destructive'
           });
+          setLoading(false); // Reset loading state on validation error
           return;
         }
         const { error } = await supabase.auth.updateUser({
@@ -208,6 +230,17 @@ const AuthPage: React.FC = () => {
 
       // Password RECOVERY flow
       } else if (isPasswordRecovery) {
+        // Validate email for password recovery
+        if (!formData.email.trim()) {
+          toast({
+            title: 'Error',
+            description: 'Por favor ingresa tu email',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+
         const { error } = await supabase.auth.resetPasswordForEmail(
           formData.email,
           {
@@ -239,6 +272,7 @@ const AuthPage: React.FC = () => {
               'Completa todos los campos obligatorios',
             variant: 'destructive'
           });
+          setLoading(false); // Reset loading state on validation error
           return;
         }
         const { error } = await signUp(
@@ -267,6 +301,17 @@ const AuthPage: React.FC = () => {
 
       // LOGIN flow
       } else {
+        // Basic validation for login
+        if (!formData.email.trim() || !formData.password) {
+          toast({
+            title: 'Error',
+            description: 'Por favor ingresa tu email y contraseña',
+            variant: 'destructive'
+          });
+          setLoading(false);
+          return;
+        }
+
         console.debug(
           '[AUTH-PAGE] Login submit',
           { email: formData.email }
