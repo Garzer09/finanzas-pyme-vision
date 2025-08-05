@@ -21,8 +21,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateSchema | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   
-  const { templates, loading, error, loadTemplates } = useTemplates();
-  const { generateAndDownload, isGenerating } = useTemplateGeneration();
+  const { templates, loading, error, fetchTemplates: loadTemplates, generateAndDownload, isGenerating } = useTemplates();
 
   // Filter templates based on search and category
   const filteredTemplates = templates.filter(template => {
@@ -174,7 +173,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
           {Object.entries(templatesByCategory).map(([category, categoryTemplates]) => (
             <TabsContent key={category} value={category} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {categoryTemplates.map(template => (
+                {Array.isArray(categoryTemplates) && categoryTemplates.map(template => (
                   <Card 
                     key={template.id} 
                     className={`cursor-pointer transition-all hover:shadow-lg ${

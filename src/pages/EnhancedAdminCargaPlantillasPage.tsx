@@ -93,9 +93,7 @@ export const EnhancedAdminCargaPlantillasPage: React.FC = () => {
 
   // Hooks
   const { templates, getRequiredTemplates } = useTemplates();
-  const { customizations, getCustomization } = useCompanyTemplateCustomizations(
-    selectedCompany?.id || ''
-  );
+  const { customizations, getCustomization } = useTemplates();
 
   useEffect(() => {
     loadCompanies();
@@ -346,7 +344,7 @@ export const EnhancedAdminCargaPlantillasPage: React.FC = () => {
                         </div>
                         
                         {/* Show if there are customizations */}
-                        {getCustomization(selectedTemplate?.id || '') && (
+                        {customizations.length > 0 && (
                           <Badge variant="secondary" className="text-xs">
                             Personalizado
                           </Badge>
@@ -429,7 +427,7 @@ export const EnhancedAdminCargaPlantillasPage: React.FC = () => {
                     description: "Los cambios se han guardado correctamente"
                   });
                 }}
-                existingCustomization={getCustomization(selectedTemplate.id)}
+                existingCustomization={undefined}
               />
             </div>
           </div>

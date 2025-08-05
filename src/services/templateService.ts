@@ -245,6 +245,22 @@ export class TemplateService {
     
     return null;
   }
+
+  async getCustomizations(): Promise<any[]> {
+    return [];
+  }
+
+  async saveCustomization(data: any): Promise<void> {
+    console.log('Saving customization:', data);
+  }
+
+  async getCustomization(id: string): Promise<any> {
+    return {
+      id,
+      name: 'Default Customization',
+      settings: {}
+    };
+  }
 }
 
 export const templateService = new TemplateService();

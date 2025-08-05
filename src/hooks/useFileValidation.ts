@@ -58,12 +58,12 @@ export function useFileValidation() {
     }
   }, [toast]);
 
-  const processFile = useCallback(async (request: ProcessFileRequest): Promise<ProcessFileResponse | null> => {
+  const processFile = useCallback(async (file: File): Promise<any> => {
     setIsProcessing(true);
     setProcessingError(null);
     
     try {
-      const response = await EnhancedFileProcessor.processFile(request);
+      const response = await EnhancedFileProcessor.processFile(file);
       
       if (response.success) {
         const validationResults = response.validation_results;
@@ -137,12 +137,7 @@ export function useFileValidation() {
       });
 
       // Validate against template
-      const validationResults = await EnhancedFileProcessor.validateAgainstTemplate(
-        template,
-        fileData,
-        preview.file_metadata,
-        customValidations
-      );
+      const validationResults = await EnhancedFileProcessor.validateAgainstTemplate(file, template.id);
 
       return validationResults;
     } catch (err) {
@@ -271,11 +266,7 @@ export function useBatchValidation() {
               fileData.push(row);
             });
 
-            const validationResult = await EnhancedFileProcessor.validateAgainstTemplate(
-              template,
-              fileData,
-              preview.file_metadata
-            );
+            const validationResult = await EnhancedFileProcessor.validateAgainstTemplate(file, template.id);
             
             results.set(file.name, validationResult);
           }

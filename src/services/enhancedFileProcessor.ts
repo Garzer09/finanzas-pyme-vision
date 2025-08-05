@@ -188,6 +188,22 @@ export class EnhancedFileProcessor {
   async validateAgainstTemplate(file: File, templateId: string): Promise<any> {
     return { isValid: true, errors: [], warnings: [] };
   }
+
+  // Static methods for backward compatibility
+  static async processFile(file: File, options?: any): Promise<any> {
+    const processor = new EnhancedFileProcessor();
+    return processor.processFile(file, options);
+  }
+
+  static async analyzeFile(file: File): Promise<any> {
+    const processor = new EnhancedFileProcessor();
+    return processor.analyzeFile(file);
+  }
+
+  static async validateAgainstTemplate(file: File, templateId: string): Promise<any> {
+    const processor = new EnhancedFileProcessor();
+    return processor.validateAgainstTemplate(file, templateId);
+  }
 }
 
 export const enhancedFileProcessor = new EnhancedFileProcessor();

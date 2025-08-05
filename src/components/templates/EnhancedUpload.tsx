@@ -43,8 +43,7 @@ export const EnhancedUpload: React.FC<EnhancedUploadProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const { analyzeFile, processFile, isAnalyzing, isProcessing, analysisError } = useFileValidation();
-  const { templates } = useTemplates();
-  const { detectTemplate, isDetecting } = useTemplateDetection();
+  const { templates, detectTemplate, isDetecting } = useTemplates();
 
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -86,14 +85,24 @@ export const EnhancedUpload: React.FC<EnhancedUploadProps> = ({
       
       // Detect templates if not provided
       if (allowTemplateSelection && !selectedTemplate) {
-        const matches = await detectTemplate(preview.headers, preview.sample_rows);
-        setDetectedTemplates(matches);
-        
-        // Auto-select best match if confidence is high
-        if (matches.length > 0 && matches[0].confidence > 0.8) {
-          const bestMatch = templates.find(t => t.name === matches[0].template_name);
-          if (bestMatch) {
-            setSelectedTemplate(bestMatch);
+        const match = await detectTemplate(preview.headers || preview);
+        if (match) {
+          const templateMatch = {
+            templateId: match.templateId,
+            template_name: match.templateId,
+            confidence: match.confidence,
+            matched_columns: [],
+            missing_columns: [],
+            extra_columns: []
+          };
+          setDetectedTemplates([templateMatch]);
+          
+          // Auto-select best match if confidence is high
+          if (match.confidence > 0.8) {
+            const bestMatch = templates.find(t => t.id === match.templateId);
+            if (bestMatch) {
+              setSelectedTemplate(bestMatch);
+            }
           }
         }
       }
@@ -103,13 +112,7 @@ export const EnhancedUpload: React.FC<EnhancedUploadProps> = ({
   const handleValidate = useCallback(async () => {
     if (!selectedFile || !selectedTemplate) return;
     
-    const response = await processFile({
-      file: selectedFile,
-      template_name: selectedTemplate.name,
-      company_id: companyId,
-      selected_years: selectedYears,
-      dry_run: dryRun
-    });
+    const response = await processFile(selectedFile);
     
     if (response && response.validation_results) {
       setValidationResults(response.validation_results);

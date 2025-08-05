@@ -98,7 +98,11 @@ export class SecurityService {
   // Enhanced logger with security methods
   getLogger() {
     return {
-      ...console,
+      info: console.info.bind(console),
+      warn: console.warn.bind(console),
+      error: console.error.bind(console),
+      debug: console.debug.bind(console),
+      log: console.log.bind(console),
       logAuthAttempt: this.logAuthAttempt.bind(this),
       logAuthFailure: this.logAuthFailure.bind(this),
       logRateLimitExceeded: this.logRateLimitExceeded.bind(this),

@@ -12,7 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useCompanyTemplateCustomizations } from '@/hooks/useTemplates';
+import { useTemplates } from '@/hooks/useTemplates';
 import type { 
   TemplateCustomizerProps, 
   TemplateColumn, 
@@ -40,7 +40,7 @@ export const TemplateCustomizer: React.FC<TemplateCustomizerProps> = ({
   const [showAddColumn, setShowAddColumn] = useState(false);
   const [showAddValidation, setShowAddValidation] = useState(false);
 
-  const { saveCustomization } = useCompanyTemplateCustomizations(companyId);
+  const { saveCustomization } = useTemplates();
 
   useEffect(() => {
     setHasChanges(
@@ -65,10 +65,12 @@ export const TemplateCustomizer: React.FC<TemplateCustomizerProps> = ({
       created_by: undefined // Will be set by the service
     };
 
-    const success = await saveCustomization(customization);
-    if (success) {
+    try {
+      await saveCustomization(customization);
       onSave?.(customization as CompanyTemplateCustomization);
       setHasChanges(false);
+    } catch (error) {
+      console.error('Failed to save customization:', error);
     }
   };
 
