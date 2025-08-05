@@ -76,12 +76,12 @@ const CANONICAL_FILES = {
   }
 };
 const CSV_SCHEMAS = {
-  'cuenta-pyg.csv': ['Concepto', '2022', '2023', '2024', 'Notas'],
-  'balance-situacion.csv': ['Concepto', '2022', '2023', '2024', 'Notas'],
-  'pool-deuda.csv': ['Entidad', 'Tipo_Financiacion', 'Importe_Inicial', 'Tipo_Interes', 'Vencimiento', 'Moneda', 'Garantias'],
+  'cuenta-pyg.csv': ['Concepto', 'Año1', 'Año2', 'Año3', 'Notas'], // Years can be flexible
+  'balance-situacion.csv': ['Concepto', 'Año1', 'Año2', 'Año3', 'Notas'], // Years can be flexible
+  'pool-deuda.csv': ['Entidad', 'Tipo_Financiacion', 'Principal_Inicial', 'Saldo_Año1', 'Saldo_Año2', 'Saldo_Año3', 'Tipo_Interes', 'Vencimiento', 'Garantias', 'Observaciones', 'Moneda'],
   'pool-deuda-vencimientos.csv': ['Entidad', 'Tipo_Financiacion', 'Año', 'Principal', 'Intereses', 'Total'],
-  'estado-flujos.csv': ['Concepto', 'Categoria', '2022', '2023', '2024'],
-  'datos-operativos.csv': ['Concepto', 'Unidad', '2022', '2023', '2024'],
+  'estado-flujos.csv': ['Concepto', 'Año1', 'Año2', 'Año3', 'Notas'], // Years can be flexible
+  'datos-operativos.csv': ['Concepto', 'Unidad', 'Año1', 'Año2', 'Año3', 'Descripción'], // Years can be flexible
   'supuestos-financieros.csv': ['Categoria', 'Concepto', 'Valor', 'Unidad', 'Notas'],
   'empresa_cualitativa.csv': ['company_name', 'sector', 'industry', 'founded_year', 'employees_range', 'annual_revenue_range', 'hq_city', 'hq_country', 'website', 'business_description', 'currency_code', 'accounting_standard', 'consolidation', 'cif']
 };
@@ -247,14 +247,29 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       
       const result = response.data;
       
-      if (!result || !result.company_name) {
+      if (!result || !result.company_data?.company_name) {
         throw new Error('El archivo no contiene información válida de empresa');
       }
       
-      setCompanyInfo(result);
+      setCompanyInfo({
+        companyId: result.company_data.company_id || '',
+        company_name: result.company_data.company_name,
+        currency_code: result.company_data.currency_code || 'EUR',
+        accounting_standard: result.company_data.accounting_standard || 'PGC',
+        meta: {
+          sector: result.company_data.sector,
+          industry: result.company_data.industry,
+          employees: result.company_data.employees_range,
+          founded_year: result.company_data.founded_year,
+          headquarters: `${result.company_data.hq_city}, ${result.company_data.hq_country}`,
+          website: result.company_data.website,
+          description: result.company_data.business_description,
+          from_template: true
+        }
+      });
       toast({
         title: "Empresa detectada",
-        description: `${result.company_name} configurada correctamente`
+        description: `${result.company_data.company_name} configurada correctamente`
       });
     } catch (error) {
       console.error('Error uploading empresa file:', error);
@@ -457,12 +472,25 @@ export const AdminCargaPlantillasPage: React.FC = () => {
     if (lines.length === 0) return [];
     const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
     const years: number[] = [];
+    
     headers.forEach(header => {
+      // First try direct year parsing (like 2022, 2023, 2024)
       const year = parseInt(header);
       if (!isNaN(year) && year >= 2000 && year <= 2030) {
         years.push(year);
+      } else if (header.match(/Año\d+/)) {
+        // Handle generic year columns (Año1, Año2, Año3)
+        // For template files, we'll assume a default range or let user specify
+        // For now, we'll generate a default range starting from current year - 2
+        const currentYear = new Date().getFullYear();
+        const yearIndex = parseInt(header.replace('Año', '')) - 1;
+        const calculatedYear = currentYear - 2 + yearIndex;
+        if (calculatedYear >= 2000 && calculatedYear <= 2030) {
+          years.push(calculatedYear);
+        }
       }
     });
+    
     return years.sort();
   };
   const isStep2Ready = companyInfo && Object.keys(CANONICAL_FILES.obligatorios).every(fileName => obligatoriosFiles[fileName] && fileValidations[fileName]?.isValid) && selectedYears.length > 0;
