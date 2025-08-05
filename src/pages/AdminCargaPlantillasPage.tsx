@@ -498,7 +498,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
     
     return years.sort();
   };
-  const isStep2Ready = companyInfo && Object.keys(CANONICAL_FILES.obligatorios).every(fileName => obligatoriosFiles[fileName] && fileValidations[fileName]?.isValid) && selectedYears.length > 0;
+  const isStep2Ready = companyInfo && Object.keys(CANONICAL_FILES.obligatorios).every(fileName => obligatoriosFiles[fileName] && fileValidations[fileName]?.isValid);
   const handleStartDataWizard = () => {
     if (!isStep2Ready) {
       toast({
@@ -523,7 +523,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
           currency_code: companyInfo?.currency_code,
           accounting_standard: companyInfo?.accounting_standard,
           files: processedData.files,
-          selectedYears: processedData.detectedYears,
+          selectedYears: selectedYears.length > 0 ? selectedYears : detectedYears,
           dryRun: false
         }
       });
@@ -600,7 +600,8 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       formData.append('companyId', finalCompanyId);
       formData.append('currency_code', useTemplateData ? companyInfo.currency_code : companyInfo.currency_code);
       formData.append('accounting_standard', useTemplateData ? companyInfo.accounting_standard : companyInfo.accounting_standard);
-      selectedYears.forEach(year => formData.append('selected_years[]', year.toString()));
+      const yearsToProcess = selectedYears.length > 0 ? selectedYears : detectedYears;
+      yearsToProcess.forEach(year => formData.append('selected_years[]', year.toString()));
       formData.append('dry_run', dryRun.toString());
 
       // Add files
