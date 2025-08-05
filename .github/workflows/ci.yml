@@ -27,12 +27,20 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+        
       - name: Run linter
         run: npm run lint
         continue-on-error: true  # Allow linting issues for now
         
-      - name: Run tests
+      - name: Run unit tests
         run: npm run test
+        env:
+          CI: true
+          
+      - name: Run E2E tests
+        run: npm run test:e2e
         env:
           CI: true
           
@@ -46,7 +54,8 @@ jobs:
           name: test-results
           path: |
             coverage/
-            test-results.xml
+            test-results/
+            playwright-report/
           retention-days: 7
 
   security-scan:

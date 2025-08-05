@@ -2,16 +2,20 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import * as Sentry from '@sentry/react';
 
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
+  level?: 'page' | 'component' | 'feature';
+  context?: Record<string, any>;
 }
 
 interface State {
   hasError: boolean;
   error?: Error;
   errorInfo?: ErrorInfo;
+  errorId?: string;
 }
 
 export class ErrorBoundary extends Component<Props, State> {
@@ -25,14 +29,39 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo);
+    
+    // Send error to Sentry with context
+    const errorId = Sentry.captureException(error, {
+      contexts: {
+        react: {
+          componentStack: errorInfo.componentStack,
+        },
+        errorBoundary: {
+          level: this.props.level || 'component',
+          context: this.props.context || {},
+        },
+      },
+      tags: {
+        errorBoundary: true,
+        level: this.props.level || 'component',
+      },
+    });
+
     this.setState({
       error,
-      errorInfo
+      errorInfo,
+      errorId,
     });
   }
 
   private handleRetry = () => {
-    this.setState({ hasError: false, error: undefined, errorInfo: undefined });
+    this.setState({ hasError: false, error: undefined, errorInfo: undefined, errorId: undefined });
+  };
+
+  private handleReportFeedback = () => {
+    if (this.state.errorId) {
+      Sentry.showReportDialog({ eventId: this.state.errorId });
+    }
   };
 
   private handleReload = () => {
@@ -65,6 +94,22 @@ export class ErrorBoundary extends Component<Props, State> {
                 Recargar Página
               </Button>
             </div>
+
+            {this.state.errorId && (
+              <div className="text-center">
+                <Button 
+                  onClick={this.handleReportFeedback} 
+                  variant="link" 
+                  size="sm"
+                  className="text-muted-foreground"
+                >
+                  Reportar este error
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">
+                  ID del error: {this.state.errorId}
+                </p>
+              </div>
+            )}
 
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <details className="mt-4 p-4 bg-muted rounded border text-sm">
