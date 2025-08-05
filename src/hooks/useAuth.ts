@@ -41,23 +41,27 @@ export function useAuth() {
 
   // Enhanced retry with session recovery
   const enhancedRetry = useCallback(async () => {
+    console.debug('[USE-AUTH] Enhanced retry triggered');
     try {
       const originalRetry = getAuthRetry(context.authState);
       
       if (originalRetry) {
+        console.debug('[USE-AUTH] Using original retry function');
         originalRetry();
       } else {
+        console.debug('[USE-AUTH] No original retry, attempting session recovery');
         // Attempt session recovery
         const recovered = await recoverSession();
         if (!recovered) {
+          console.debug('[USE-AUTH] Session recovery failed, forcing sign out');
           // If recovery fails, force re-authentication
-          await context.signOut('/login');
+          await context.signOut('/auth');
         }
       }
     } catch (error) {
-      console.error('Enhanced retry failed:', error);
+      console.error('[USE-AUTH] Enhanced retry failed:', error);
       // Fallback to sign out
-      await context.signOut('/login');
+      await context.signOut('/auth');
     }
   }, [context.authState, context.signOut, recoverSession]);
 

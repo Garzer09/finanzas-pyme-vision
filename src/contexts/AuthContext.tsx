@@ -36,6 +36,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     status: 'initializing'
   });
 
+  // Track if user just logged in for proper redirection
+  const [hasJustLoggedIn, setHasJustLoggedIn] = useState(false);
+
   // Inactivity detection
   const [inactivityWarning, setInactivityWarning] = useState(false);
   const {
@@ -75,11 +78,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     async (userId: string, reqId: number): Promise<Role> => {
       if (!userId) return 'viewer';
 
+      console.debug('[AUTH] Fetching role for user:', userId);
+
       // reuse in-flight
       if (inFlightRef.current) {
         try {
-          return await inFlightRef.current;
+          const result = await inFlightRef.current;
+          console.debug('[AUTH] Reused in-flight role request result:', result);
+          return result;
         } catch {
+          console.debug('[AUTH] In-flight request failed, creating new request');
           /* fall through to new request */
         }
       }
@@ -87,16 +95,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       const promise = retryOperation(async () => {
         // stale check
         if (reqId !== roleReqIdRef.current) {
+          console.debug('[AUTH] Request is stale, returning last known role:', lastKnownRoleRef.current);
           return lastKnownRoleRef.current;
         }
 
+        console.debug('[AUTH] Attempting RPC role fetch...');
         // try RPC
         const { data: rpcData, error: rpcErr } = await supabase.rpc(
           'get_user_role'
         );
 
-        if (!rpcErr && rpcData === 'admin') return 'admin';
+        if (!rpcErr && rpcData === 'admin') {
+          console.debug('[AUTH] RPC returned admin role');
+          return 'admin';
+        } else if (rpcErr) {
+          console.debug('[AUTH] RPC error:', rpcErr.message);
+        } else {
+          console.debug('[AUTH] RPC returned non-admin role:', rpcData);
+        }
 
+        console.debug('[AUTH] Attempting table lookup fallback...');
         // fallback to table
         const { data: tbl, error: tblErr } = await supabase
           .from('user_roles')
@@ -104,13 +122,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           .eq('user_id', userId)
           .maybeSingle();
 
-        if (!tblErr && tbl?.role === 'admin') return 'admin';
+        if (!tblErr && tbl?.role === 'admin') {
+          console.debug('[AUTH] Table lookup confirmed admin role');
+          return 'admin';
+        } else if (tblErr) {
+          console.debug('[AUTH] Table lookup error:', tblErr.message);
+        } else {
+          console.debug('[AUTH] Table lookup returned:', tbl?.role || 'no role found');
+        }
+        
+        console.debug('[AUTH] Defaulting to viewer role');
         return 'viewer';
       });
 
       inFlightRef.current = promise;
       try {
         const role = await promise;
+        console.debug('[AUTH] Final role resolved:', role);
         return role;
       } finally {
         inFlightRef.current = null;
@@ -134,12 +162,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const handleSignIn = useCallback(
     async (email: string, password: string) => {
+      console.debug('[AUTH] Starting sign in process for:', email);
       transitionState({ status: 'authenticating' });
+      setHasJustLoggedIn(false); // Reset flag
+      
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
+      
       if (error) {
+        console.debug('[AUTH] Sign in failed:', error.message);
         transitionState({
           status: 'error',
           error: error.message,
@@ -147,6 +180,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         });
         return { error };
       }
+      
+      console.debug('[AUTH] Sign in successful, waiting for auth state change...');
+      setHasJustLoggedIn(true); // Set flag for proper redirection
       return { error: null };
     },
     [transitionState]
@@ -169,9 +205,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const handleSignOut = useCallback(
     async (redirectTo: string = '/') => {
+      console.debug('[AUTH] Signing out...');
       await supabase.auth.signOut();
       transitionState({ status: 'unauthenticated' });
       lastKnownRoleRef.current = 'none';
+      setHasJustLoggedIn(false); // Reset flag
       window.location.href = redirectTo;
     },
     [transitionState]
@@ -219,6 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           session: authState.session,
           role: 'viewer'
         });
+        // Don't reset hasJustLoggedIn here - keep it for redirection
       }, 15000); // 15 seconds timeout
 
       return () => clearTimeout(timeout);
@@ -246,12 +285,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (session?.user?.id) {
         // existing session
+        console.debug('[AUTH] Found existing session for user:', session.user.id);
         transitionState({
           status: 'resolving-role',
           user: session.user,
           session,
           role: 'none'
         });
+        setHasJustLoggedIn(false); // Existing session, not a fresh login
+        
         const reqId = ++roleReqIdRef.current;
         try {
           const userRole = await fetchUserRole(
@@ -260,6 +302,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           );
           if (mounted && reqId === roleReqIdRef.current) {
             lastKnownRoleRef.current = userRole;
+            console.debug('[AUTH] Initial role resolution successful:', userRole);
             transitionState({
               status: 'authenticated',
               user: session.user,
@@ -269,12 +312,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         } catch {
           if (mounted && reqId === roleReqIdRef.current) {
+            console.warn('[AUTH] Initial role resolution failed, transitioning to unauthenticated');
             transitionState({
               status: 'unauthenticated'
             });
           }
         }
       } else {
+        console.debug('[AUTH] No existing session found');
         transitionState({ status: 'unauthenticated' });
       }
     };
@@ -282,13 +327,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     sub = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
+        
+        console.debug('[AUTH] Auth state change event:', event, { 
+          userId: session?.user?.id, 
+          hasSession: !!session 
+        });
 
         if (event === 'SIGNED_OUT') {
+          console.debug('[AUTH] Processing SIGNED_OUT event');
           transitionState({ status: 'unauthenticated' });
           lastKnownRoleRef.current = 'none';
+          setHasJustLoggedIn(false);
         }
 
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          console.debug('[AUTH] Processing', event, 'event');
           if (session?.user?.id) {
             transitionState({
               status: 'resolving-role',
@@ -296,6 +349,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               session,
               role: 'none'
             });
+            // Keep hasJustLoggedIn for SIGNED_IN, but reset for TOKEN_REFRESHED
+            if (event === 'TOKEN_REFRESHED') {
+              setHasJustLoggedIn(false);
+            }
+            
             const reqId = ++roleReqIdRef.current;
             try {
               const userRole = await fetchUserRole(
@@ -307,6 +365,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 reqId === roleReqIdRef.current
               ) {
                 lastKnownRoleRef.current = userRole;
+                console.debug('[AUTH] Successfully resolved role after', event, ':', userRole);
                 transitionState({
                   status: 'authenticated',
                   user: session.user,
@@ -319,6 +378,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
                 mounted &&
                 reqId === roleReqIdRef.current
               ) {
+                console.warn('[AUTH] Role resolution failed after', event, ', using last known role:', lastKnownRoleRef.current);
                 transitionState({
                   status: 'authenticated',
                   user: session.user,
@@ -328,7 +388,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
               }
             }
           } else {
+            console.debug('[AUTH] No user ID in session, transitioning to unauthenticated');
             transitionState({ status: 'unauthenticated' });
+            setHasJustLoggedIn(false);
           }
         }
       }
@@ -392,6 +454,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     role,
     roleStatus,
     initialized,
+    hasJustLoggedIn,
 
     // Actions
     signIn: handleSignIn,

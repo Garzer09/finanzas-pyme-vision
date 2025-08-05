@@ -65,6 +65,33 @@ const AuthPage: React.FC = () => {
     rememberMe: false
   });
 
+  // Handle password reset tokens from URL
+  useEffect(() => {
+    const access_token = searchParams.get('access_token');
+    const refresh_token = searchParams.get('refresh_token');
+    const type = searchParams.get('type');
+
+    console.debug('[AUTH-PAGE] URL params check:', { 
+      access_token: !!access_token, 
+      refresh_token: !!refresh_token, 
+      type 
+    });
+
+    if (type === 'recovery' && access_token && refresh_token) {
+      console.debug('[AUTH-PAGE] Password recovery token detected');
+      setTokenLoading(true);
+      setIsPasswordReset(true);
+      setIsRecoveryMode(true);
+      setIsLogin(false);
+      setIsPasswordRecovery(false);
+      
+      // The session will be restored automatically by Supabase
+      setTimeout(() => {
+        setTokenLoading(false);
+      }, 2000);
+    }
+  }, [searchParams]);
+
   // Unified post-auth redirection
   useEffect(() => {
     if (!initialized || roleStatus !== 'ready') return;
@@ -76,16 +103,29 @@ const AuthPage: React.FC = () => {
     console.debug(
       `[AUTH-PAGE] ${
         hasJustLoggedIn ? 'Post-login' : 'Existing session'
-      } → ${target}`
+      } → ${target}`,
+      { 
+        role, 
+        authStatus, 
+        roleStatus, 
+        initialized,
+        hasJustLoggedIn,
+        currentPath: location.pathname
+      }
     );
-    navigate(target, { replace: !hasJustLoggedIn });
+    
+    // Only navigate if we have a valid role and target
+    if (target && role !== 'none') {
+      navigate(target, { replace: !hasJustLoggedIn });
+    }
   }, [
     initialized,
     authStatus,
     roleStatus,
     role,
     hasJustLoggedIn,
-    navigate
+    navigate,
+    location.pathname
   ]);
 
   // Debug state logger
@@ -97,6 +137,7 @@ const AuthPage: React.FC = () => {
       role,
       roleStatus,
       initialized,
+      hasJustLoggedIn,
       isRecoveryMode,
       mode: isPasswordReset
         ? 'password-reset'
@@ -113,6 +154,7 @@ const AuthPage: React.FC = () => {
     role,
     roleStatus,
     initialized,
+    hasJustLoggedIn,
     isRecoveryMode,
     isPasswordReset,
     isPasswordRecovery,
@@ -497,7 +539,10 @@ const AuthPage: React.FC = () => {
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={retry}
+                    onClick={() => {
+                      console.debug('[AUTH-PAGE] Manual retry triggered');
+                      retry();
+                    }}
                   >
                     Reintentar
                   </Button>

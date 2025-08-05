@@ -14,11 +14,25 @@ export const RequireAuth: React.FC<RequireAuthProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  console.debug('[REQUIRE-AUTH] Component render:', {
+    authStatus: authState.status,
+    initialized,
+    pathname: location.pathname
+  });
+
   // 1️⃣ Wait for authentication initialization
   if (!initialized || isAuthLoading(authState)) {
     return (
       <AuthLoadingScreen 
-        message="Verificando autenticación..." 
+        message={
+          authState.status === 'initializing' 
+            ? "Inicializando autenticación..." 
+            : authState.status === 'authenticating'
+            ? "Iniciando sesión..."
+            : authState.status === 'resolving-role'
+            ? "Verificando permisos..."
+            : "Verificando autenticación..."
+        } 
       />
     );
   }
