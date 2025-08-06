@@ -221,14 +221,6 @@ export const SimpleUserCreationForm: React.FC<SimpleUserCreationFormProps> = ({
             )}
           </div>
 
-          <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-800">
-            <p className="font-medium mb-1">Información:</p>
-            <ul className="space-y-0.5 text-blue-700">
-              <li>• No es necesario asignar empresa al crear el usuario</li>
-              <li>• Los permisos de admin se gestionan después desde el menú</li>
-              <li>• El usuario recibirá un email de confirmación</li>
-            </ul>
-          </div>
 
           <div className="flex gap-2 pt-4">
             {onCancel && (
