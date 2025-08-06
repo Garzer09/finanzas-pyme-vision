@@ -119,7 +119,7 @@ const CompanyDashboardPage = () => {
 
   const handleNavigateToModule = (module: string) => {
     // Navigate to the specific module with company context
-    navigate(`${module}?companyId=${companyId}`);
+    navigate(`/dashboard/company/${companyId}${module}`);
   };
 
   const handleManageData = () => {
