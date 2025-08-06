@@ -11,6 +11,7 @@ import { useCompanyDescription } from '@/hooks/useCompanyDescription';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 import { Edit3, Save, X, CheckCircle, AlertTriangle, Building, Globe, Users, MapPin, Calendar, DollarSign } from 'lucide-react';
 
 interface CompanyData {
@@ -42,10 +43,14 @@ export const CompanyDescriptionForm = () => {
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
   const { impersonatedUserInfo } = useAdminImpersonation();
+  const { currentCompany } = useCompanyContext();
   const { companyDescription, loading: descriptionLoading, saveCompanyDescription } = useCompanyDescription();
 
-  // Get company name from profile or impersonated user
+  // Get company name from current company context first, then fallback to impersonation/profile
   const getCompanyName = () => {
+    if (currentCompany?.name) {
+      return currentCompany.name;
+    }
     if (impersonatedUserInfo?.company_name) {
       return impersonatedUserInfo.company_name;
     }
@@ -69,8 +74,14 @@ export const CompanyDescriptionForm = () => {
         headquarters: companyDescription.headquarters || '',
         website: companyDescription.website || ''
       });
+    } else if (companyName) {
+      // Initialize with company name from context if no description exists
+      setCompanyData(prev => ({
+        ...prev,
+        name: companyName
+      }));
     }
-  }, [companyDescription]);
+  }, [companyDescription, companyName]);
 
   const handleSave = async () => {
     const success = await saveCompanyDescription({

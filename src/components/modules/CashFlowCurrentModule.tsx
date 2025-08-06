@@ -171,16 +171,16 @@ export const CashFlowCurrentModule = () => {
           setCashFlowData(defaultCashFlowData); // Keep default monthly data for chart
         } else {
           setHasRealData(false);
-          setKpiData(defaultKpiData);
-          setFlujosDetalle(defaultFlujosDetalle);
-          setCashFlowData(defaultCashFlowData);
+          setKpiData([]);
+          setFlujosDetalle([]);
+          setCashFlowData([]);
         }
       } catch (error) {
         console.error('Error fetching Cash Flow data:', error);
         setHasRealData(false);
-        setKpiData(defaultKpiData);
-        setFlujosDetalle(defaultFlujosDetalle);
-        setCashFlowData(defaultCashFlowData);
+        setKpiData([]);
+        setFlujosDetalle([]);
+        setCashFlowData([]);
       } finally {
         setLoading(false);
       }
@@ -221,6 +221,17 @@ export const CashFlowCurrentModule = () => {
           <section>
             {loading ? (
               <div className="text-center">Cargando datos de flujos de efectivo...</div>
+            ) : !hasRealData ? (
+              <div className="text-center py-12">
+                <div className="bg-slate-100 rounded-lg p-8 max-w-md mx-auto">
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    No hay datos de flujos de efectivo
+                  </h3>
+                  <p className="text-slate-600">
+                    Esta empresa no tiene datos de flujos de efectivo cargados en el sistema.
+                  </p>
+                </div>
+              </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {kpiData.map((kpi, index) => (
@@ -231,84 +242,88 @@ export const CashFlowCurrentModule = () => {
           </section>
 
           {/* Cash Flow Evolution Chart */}
-          <section>
-            <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
-              <div className="absolute inset-0 bg-gradient-to-br from-steel/5 via-white/20 to-cadet/5 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
-              <div className="absolute top-4 left-4 w-24 h-24 bg-steel/10 rounded-full blur-3xl"></div>
-              
-              <CardHeader className="relative z-10">
-                <CardTitle className="text-slate-900 flex items-center gap-3">
-                  <div className="p-3 rounded-2xl bg-steel/20 backdrop-blur-sm border border-steel/30 shadow-xl">
-                    <TrendingUp className="h-6 w-6 text-steel-700" />
+          {hasRealData && (
+            <section>
+              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-steel/5 via-white/20 to-cadet/5 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+                <div className="absolute top-4 left-4 w-24 h-24 bg-steel/10 rounded-full blur-3xl"></div>
+                
+                <CardHeader className="relative z-10">
+                  <CardTitle className="text-slate-900 flex items-center gap-3">
+                    <div className="p-3 rounded-2xl bg-steel/20 backdrop-blur-sm border border-steel/30 shadow-xl">
+                      <TrendingUp className="h-6 w-6 text-steel-700" />
+                    </div>
+                    Evolución Mensual de Flujos
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="relative z-10">
+                  <div className="h-80 relative">
+                    <div className="absolute inset-0 bg-white/30 backdrop-blur-sm rounded-2xl border border-white/40"></div>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={cashFlowData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="mes" stroke="#64748b" />
+                        <YAxis stroke="#64748b" tickFormatter={(value) => `€${(value / 1000).toFixed(0)}K`} />
+                        <Tooltip formatter={(value) => formatCurrency(Number(value))} />
+                        <Line type="monotone" dataKey="operativo" stroke="#10B981" strokeWidth={3} name="Operativo" />
+                        <Line type="monotone" dataKey="inversion" stroke="#EF4444" strokeWidth={3} name="Inversión" />
+                        <Line type="monotone" dataKey="financiacion" stroke="#F59E0B" strokeWidth={3} name="Financiación" />
+                        <Line type="monotone" dataKey="neto" stroke="#4682B4" strokeWidth={4} name="Flujo Neto" />
+                      </LineChart>
+                    </ResponsiveContainer>
                   </div>
-                  Evolución Mensual de Flujos
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="relative z-10">
-                <div className="h-80 relative">
-                  <div className="absolute inset-0 bg-white/30 backdrop-blur-sm rounded-2xl border border-white/40"></div>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={cashFlowData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="mes" stroke="#64748b" />
-                      <YAxis stroke="#64748b" tickFormatter={(value) => `€${(value / 1000).toFixed(0)}K`} />
-                      <Tooltip formatter={(value) => formatCurrency(Number(value))} />
-                      <Line type="monotone" dataKey="operativo" stroke="#10B981" strokeWidth={3} name="Operativo" />
-                      <Line type="monotone" dataKey="inversion" stroke="#EF4444" strokeWidth={3} name="Inversión" />
-                      <Line type="monotone" dataKey="financiacion" stroke="#F59E0B" strokeWidth={3} name="Financiación" />
-                      <Line type="monotone" dataKey="neto" stroke="#4682B4" strokeWidth={4} name="Flujo Neto" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
+                </CardContent>
+              </Card>
+            </section>
+          )}
 
           {/* Detailed Cash Flow Statement */}
-          <section>
-            <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
-              <div className="absolute inset-0 bg-gradient-to-br from-steel/3 via-white/20 to-cadet/3 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
-              <div className="absolute top-6 right-6 w-32 h-32 bg-steel/8 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-6 left-6 w-40 h-40 bg-cadet/6 rounded-full blur-3xl"></div>
-              
-              <CardHeader className="relative z-10">
-                <CardTitle className="text-slate-900 text-xl">Estado de Flujos Detallado</CardTitle>
-              </CardHeader>
-              <CardContent className="relative z-10 p-0">
-                <div className="max-h-[500px] overflow-y-auto">
-                  {flujosDetalle.map((item, index) => (
-                    <div
-                      key={index}
-                      className={`flex justify-between items-center py-3 px-6 border-b border-slate-100/60 ${
-                        item.principal
-                          ? 'bg-steel-100/80 font-bold backdrop-blur-sm border-t-2 border-steel-300'
-                          : item.destacar
-                          ? 'bg-steel-50/80 font-semibold backdrop-blur-sm'
-                          : 'hover:bg-slate-50/60 backdrop-blur-sm'
-                      }`}
-                    >
-                      <span className={`${
-                        item.principal 
-                          ? 'text-steel-900 font-bold text-lg' 
-                          : item.destacar 
-                          ? 'text-steel-800 font-bold' 
-                          : 'text-slate-700'
-                      }`}>
-                        {item.concepto}
-                      </span>
-                      <span className={`font-mono ${
-                        item.valor >= 0 ? 'text-success-600' : 'text-danger-600'
-                      } ${item.principal ? 'font-bold text-xl' : item.destacar ? 'font-bold text-lg' : ''}`}>
-                        {formatCurrency(item.valor)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </section>
+          {hasRealData && (
+            <section>
+              <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-br from-steel/3 via-white/20 to-cadet/3 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
+                <div className="absolute top-6 right-6 w-32 h-32 bg-steel/8 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-6 left-6 w-40 h-40 bg-cadet/6 rounded-full blur-3xl"></div>
+                
+                <CardHeader className="relative z-10">
+                  <CardTitle className="text-slate-900 text-xl">Estado de Flujos Detallado</CardTitle>
+                </CardHeader>
+                <CardContent className="relative z-10 p-0">
+                  <div className="max-h-[500px] overflow-y-auto">
+                    {flujosDetalle.map((item, index) => (
+                      <div
+                        key={index}
+                        className={`flex justify-between items-center py-3 px-6 border-b border-slate-100/60 ${
+                          item.principal
+                            ? 'bg-steel-100/80 font-bold backdrop-blur-sm border-t-2 border-steel-300'
+                            : item.destacar
+                            ? 'bg-steel-50/80 font-semibold backdrop-blur-sm'
+                            : 'hover:bg-slate-50/60 backdrop-blur-sm'
+                        }`}
+                      >
+                        <span className={`${
+                          item.principal 
+                            ? 'text-steel-900 font-bold text-lg' 
+                            : item.destacar 
+                            ? 'text-steel-800 font-bold' 
+                            : 'text-slate-700'
+                        }`}>
+                          {item.concepto}
+                        </span>
+                        <span className={`font-mono ${
+                          item.valor >= 0 ? 'text-success-600' : 'text-danger-600'
+                        } ${item.principal ? 'font-bold text-xl' : item.destacar ? 'font-bold text-lg' : ''}`}>
+                          {formatCurrency(item.valor)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
+          )}
     </main>
   );
 };
