@@ -49,22 +49,34 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
       const { useUnifiedTemplates } = await import('@/hooks/useUnifiedTemplates');
       const { processFile } = useUnifiedTemplates();
       
+      let processedCount = 0;
+      
       for (const result of uploadResults) {
         if (result.result.success) {
-          await processFile({
+          console.log(`Processing file for real save: ${result.fileName}`);
+          const processResult = await processFile({
             file: result.file || new File([], result.fileName),
             company_id: companyId || undefined,
             template_type: result.templateType,
             dry_run: false // Guardado real
           });
+          
+          if (processResult.success) {
+            processedCount++;
+          }
         }
       }
       
-      toast.success('Todos los datos han sido guardados exitosamente');
-      setCurrentStep('confirmation');
+      if (processedCount > 0) {
+        toast.success(`${processedCount} archivos guardados exitosamente en la base de datos`);
+        // Navigate to company-specific dashboard
+        onComplete(companyId || '');
+      } else {
+        toast.error('No se pudo guardar ningún archivo');
+      }
     } catch (error) {
       console.error('Error saving data:', error);
-      toast.error('Error al guardar los datos');
+      toast.error('Error al guardar los datos: ' + (error as Error).message);
     } finally {
       setIsProcessing(false);
     }
@@ -139,10 +151,11 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
 
             <div className="flex justify-center space-x-4 pt-4">
               <Button 
-                onClick={() => onComplete(companyId || '')} 
+                onClick={handleConfirmAndSave}
+                disabled={uploadResults.filter(r => r.result.success).length === 0 || isProcessing}
                 className="bg-green-600 hover:bg-green-700"
               >
-                Ver Dashboard de la Empresa
+                {isProcessing ? 'Guardando Datos...' : 'Guardar en Base de Datos'}
               </Button>
               <Button variant="outline" onClick={handleBackToUpload}>
                 Procesar Más Archivos
@@ -155,64 +168,19 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
   }
 
   if (currentStep === 'preprocessing') {
+    // Convert uploadResults to files for PreProcessingPreview
+    const files = uploadResults.map(result => result.file).filter(Boolean);
+    
     return (
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5" />
-              Previsualización de Datos
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {uploadResults.map((result, index) => (
-                <div key={index} className="p-4 border rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-medium">{result.fileName}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Tipo: {result.templateType} • Estado: {result.result.success ? 'Validado' : 'Error'}
-                      </p>
-                    </div>
-                    <div className="flex space-x-2">
-                      {result.result.success && result.result.preview_data && (
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditData(result)}
-                        >
-                          Editar Datos
-                        </Button>
-                      )}
-                      <Button 
-                        variant={result.result.success ? "default" : "destructive"}
-                        size="sm"
-                        disabled
-                      >
-                        {result.result.success ? 'Validado' : 'Con Errores'}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-            
-            <div className="flex justify-between pt-4">
-              <Button variant="outline" onClick={handleBackToUpload}>
-                Volver a Carga
-              </Button>
-              <Button 
-                onClick={handleConfirmAndSave}
-                disabled={uploadResults.filter(r => r.result.success).length === 0 || isProcessing}
-                className="bg-green-600 hover:bg-green-700"
-              >
-                {isProcessing ? 'Guardando...' : 'Confirmar y Guardar Datos'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <PreProcessingPreview
+        files={files}
+        onValidationComplete={(validatedData) => {
+          console.log('Validation completed:', validatedData);
+          // Move to confirmation step after validation
+          setCurrentStep('confirmation');
+        }}
+        onCancel={handleBackToUpload}
+      />
     );
   }
 

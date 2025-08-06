@@ -20,8 +20,8 @@ export const CompanyDescriptionModule = () => {
   // Get company information from database
   const { companyInfo, loading: companyLoading } = useCompanyInfo(companyId);
   
-  // Use company name from database or fallback
-  const companyName = companyInfo?.name || '';
+  // Use company name from database or fallback - never hardcode
+  const companyName = companyInfo?.name || 'Empresa Sin Nombre';
 
   // Shareholder data management
   const {

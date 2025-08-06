@@ -71,6 +71,7 @@ import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import ViewerMisEmpresasPage from "./pages/ViewerMisEmpresasPage";
 import ViewerDashboardPage from "./pages/ViewerDashboardPage";
+import CompanyDashboardPage from "./pages/CompanyDashboardPage";
 import { SessionRecovery } from "@/components/SessionRecovery";
 
 import { AdminCargaPlantillasPage } from "./pages/AdminCargaPlantillasPage";
@@ -124,6 +125,9 @@ const App = () => {
               {/* Viewer Routes */}
               <Route path="/app/mis-empresas" element={<ViewerMisEmpresasPage />} />
               <Route path="/app/dashboard" element={<ViewerDashboardPage />} />
+              
+              {/* Company-specific Dashboard */}
+              <Route path="/dashboard/company/:companyId" element={<CompanyDashboardPage />} />
               
               {/* Core Financial Analysis */}
               <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />

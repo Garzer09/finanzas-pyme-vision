@@ -122,6 +122,8 @@ export const useUnifiedTemplates = () => {
       setLoading(true);
       setError(null);
 
+      console.log(`🔄 Processing file: ${params.file.name}, dry_run: ${params.dry_run}, company_id: ${params.company_id}`);
+
       const formData = new FormData();
       formData.append('file', params.file);
       if (params.company_id) formData.append('company_id', params.company_id);
@@ -134,10 +136,16 @@ export const useUnifiedTemplates = () => {
 
       if (error) throw error;
 
+      console.log(`✅ Processing result:`, data);
+
       if (data?.success) {
+        const message = params.dry_run 
+          ? `Validación completada: ${data.rows_processed} filas validadas` 
+          : `Archivo procesado: ${data.rows_processed} filas procesadas${data.inserted_count ? `, ${data.inserted_count} registros insertados` : ''}`;
+        
         toast({
-          title: params.dry_run ? "Validación completada" : "Archivo procesado",
-          description: `${data.rows_processed} filas procesadas${data.inserted_count ? `, ${data.inserted_count} registros insertados` : ''}`,
+          title: params.dry_run ? "Validación completada" : "Archivo procesado exitosamente",
+          description: message,
         });
       } else if (data?.errors?.length > 0) {
         toast({
@@ -150,9 +158,10 @@ export const useUnifiedTemplates = () => {
       return data as ProcessingResult;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to process file';
+      console.error('❌ Processing error:', err);
       setError(errorMessage);
       toast({
-        title: "Error",
+        title: "Error de procesamiento",
         description: errorMessage,
         variant: "destructive",
       });
