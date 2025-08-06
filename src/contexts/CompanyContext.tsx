@@ -144,11 +144,6 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
       const hasAccess = await validateCompanyAccess(targetCompanyId);
       if (!hasAccess) {
         setError('No tienes permisos para acceder a esta empresa');
-        toast({
-          title: "Acceso denegado",
-          description: "No tienes permisos para acceder a esta empresa",
-          variant: "destructive"
-        });
         return;
       }
 
