@@ -4,15 +4,24 @@ import { CompanyDescriptionForm } from '@/components/CompanyDescriptionForm';
 import { ShareholderSearchDialog } from '@/components/ShareholderSearchDialog';
 import { ShareholderStructureCard } from '@/components/ShareholderStructureCard';
 import { useShareholderData } from '@/hooks/useShareholderData';
+import { useCompanyInfo } from '@/hooks/useCompanyInfo';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Save } from 'lucide-react';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 export const CompanyDescriptionModule = () => {
+  const [searchParams] = useSearchParams();
+  const companyId = searchParams.get('companyId');
   const [isEditing, setIsEditing] = useState(false);
-  const [companyName, setCompanyName] = useState('');
+  
+  // Get company information from database
+  const { companyInfo, loading: companyLoading } = useCompanyInfo(companyId);
+  
+  // Use company name from database or fallback
+  const companyName = companyInfo?.name || '';
 
   // Shareholder data management
   const {
@@ -29,7 +38,10 @@ export const CompanyDescriptionModule = () => {
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
-        <DashboardHeader />
+        <DashboardHeader 
+          companyInfo={companyInfo}
+          loading={companyLoading}
+        />
         
         <main className="flex-1 p-8 space-y-8 overflow-auto">
           {/* Header Section */}

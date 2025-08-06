@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { debugManager } from '@/utils/debugManager';
 
 export interface FinancialDataPoint {
   id: string;
@@ -20,7 +21,6 @@ export const useFinancialData = (dataType?: string) => {
   const mounted = useRef(true);
   const lastFetchRef = useRef<string>('');
   const cacheRef = useRef<Map<string, { data: FinancialDataPoint[]; timestamp: number }>>(new Map());
-  const debounceRef = useRef<NodeJS.Timeout>();
 
   const fetchFinancialData = useCallback(async () => {
     const fetchKey = `${dataType || 'all'}_${Date.now()}`;
@@ -38,9 +38,10 @@ export const useFinancialData = (dataType?: string) => {
       return;
     }
     
-    const startTime = performance.now();
+    const endTimer = debugManager.startTimer('financial_data_fetch');
     
     try {
+      debugManager.logInfo(`Fetching financial data from specific tables: ${dataType || 'all'}`, undefined, 'useFinancialData');
       setLoading(true);
       
       const timeoutPromise = new Promise((_, reject) => 
@@ -120,26 +121,20 @@ export const useFinancialData = (dataType?: string) => {
         }
       }
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log(`Financial data fetched successfully: ${finalData.length} records`, { hasRealData: hasRealDBData });
-      }
+      debugManager.logInfo(`Financial data fetched successfully: ${finalData.length} records`, { hasRealData: hasRealDBData }, 'useFinancialData');
       setData(finalData);
     } catch (err) {
+      endTimer();
       if (lastFetchRef.current !== fetchKey || !mounted.current) return;
       
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Failed to fetch financial data', err, { dataType });
-      }
+      debugManager.logError('Failed to fetch financial data', err, { dataType }, 'useFinancialData');
       const errorMessage = err instanceof Error ? err.message : 'Error fetching data';
       setError(errorMessage);
       setHasRealData(false);
       setData([]);
     } finally {
       if (lastFetchRef.current === fetchKey && mounted.current) {
-        const duration = performance.now() - startTime;
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Financial data fetch completed in ${duration.toFixed(2)}ms`);
-        }
+        endTimer();
         setLoading(false);
       }
     }
@@ -171,25 +166,14 @@ export const useFinancialData = (dataType?: string) => {
     return Object.values(grouped);
   };
 
-  // Debounced data fetching
-  const debouncedFetch = useCallback(() => {
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    debounceRef.current = setTimeout(fetchFinancialData, 300);
-  }, [fetchFinancialData]);
-
   useEffect(() => {
     mounted.current = true;
-    debouncedFetch();
+    fetchFinancialData();
     
     return () => {
       mounted.current = false;
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
     };
-  }, [debouncedFetch]);
+  }, [fetchFinancialData]);
 
 
   // Helper function to extract the latest year value from year-structured data

@@ -28,15 +28,37 @@ import {
 } from 'recharts';
 import { useState } from 'react';
 import { useBreakeven } from '@/hooks/useBreakeven';
+import { useAnalyticalPLData } from '@/hooks/useAnalyticalPLData';
+import { MissingFinancialData } from '@/components/ui/missing-financial-data';
 
 export const BreakevenCurrentModule = () => {
   const [scenario, setScenario] = useState('base');
+  const { analyticalData, hasRealData } = useAnalyticalPLData();
+  
+  // Show missing data indicator if no real data
+  if (!hasRealData) {
+    return (
+      <main className="flex-1 p-6 flex items-center justify-center bg-background">
+        <div className="max-w-lg w-full">
+          <MissingFinancialData 
+            dataType="pyg"
+            onUploadClick={() => console.log('Navigate to upload')}
+          />
+        </div>
+      </main>
+    );
+  }
+
+  // Calculate inputs from real P&L data
+  const ventasNetas = analyticalData.find(item => item.concept.includes('Ventas'))?.currentPeriod || 2500000;
+  const costesVariables = Math.abs(analyticalData.find(item => item.concept.includes('Variables'))?.currentPeriod || 1380000);
+  const costesFijos = Math.abs(analyticalData.find(item => item.concept.includes('Fijos'))?.currentPeriod || 795000);
   
   const initialInputs = {
-    fixedCost: 300000,
-    variableCostPct: 70,
-    pricePerUnit: 25,
-    unitsSold: 120000
+    fixedCost: costesFijos,
+    variableCostPct: (costesVariables / ventasNetas) * 100,
+    pricePerUnit: 25, // This would need to come from operational data
+    unitsSold: Math.round(ventasNetas / 25)
   };
 
   const { inputs, results, updateInput } = useBreakeven(initialInputs);

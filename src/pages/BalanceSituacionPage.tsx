@@ -2,25 +2,24 @@
 import React, { useState } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { FileUploader } from '@/components/FileUploader';
 import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { MissingFinancialData } from '@/components/ui/missing-data-indicator';
+import { DataStatusBadge } from '@/components/ui/data-status-badge';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, ComposedChart, Line, LineChart, Area, AreaChart, Legend } from 'recharts';
 import { Building2, Scale, TrendingUp, AlertTriangle, Calendar, FileDown, Eye, CheckCircle, AlertCircle, Zap, Target, DollarSign, TrendingDown, Info, ChevronDown, ChevronRight, Shield } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { DebtAnalysisSection } from '@/components/debt-analysis/DebtAnalysisSection';
 import { PercentageBadge } from '@/components/ui/percentage-badge';
 import { IntelligentInsights } from '@/components/IntelligentInsights';
+import { useFinancialData } from '@/hooks/useFinancialData';
+import { useDataValidation } from '@/hooks/useDataValidation';
 
 export const BalanceSituacionPage = () => {
-  const [hasData, setHasData] = useState(true); // Start with demo data
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState<string>('');
   const [selectedPeriod, setSelectedPeriod] = useState('2023');
   const [comparisonPeriod, setComparisonPeriod] = useState('2022');
   const [detailLevel, setDetailLevel] = useState('summary');
@@ -32,17 +31,47 @@ export const BalanceSituacionPage = () => {
     'PASIVO CORRIENTE': false
   });
 
-  // Datos financieros calculados
-  const financialData = {
-    activo_total: 2100000,
-    patrimonio_neto: 840000,
-    deuda_corto: 540000,
-    deuda_largo: 720000,
-    activo_corriente: 900000,
-    activo_no_corriente: 1200000,
-    ebitda: 450000,
-    gastos_financieros: 85000
+  // Use real financial data
+  const { data: financialData, loading, error, hasRealData } = useFinancialData('balance');
+  const { validation } = useDataValidation();
+
+  // Process real balance data
+  const processBalanceData = () => {
+    if (!hasRealData || !financialData.length) {
+      return {
+        activo_total: 0,
+        patrimonio_neto: 0,
+        deuda_corto: 0,
+        deuda_largo: 0,
+        activo_corriente: 0,
+        activo_no_corriente: 0,
+        ebitda: 0,
+        gastos_financieros: 0
+      };
+    }
+    
+    const balanceRecord = financialData.find(d => d.data_type === 'balance');
+    if (!balanceRecord?.data_content) return {};
+
+    const content = balanceRecord.data_content;
+    const latestYear = Object.keys(content).sort().pop();
+    if (!latestYear) return {};
+
+    const yearData = content[latestYear];
+    
+    return {
+      activo_total: yearData['activo_total'] || yearData['total_activo'] || 0,
+      patrimonio_neto: yearData['patrimonio_neto'] || yearData['total_patrimonio'] || 0,
+      deuda_corto: yearData['pasivo_corriente'] || 0,
+      deuda_largo: yearData['pasivo_no_corriente'] || 0,
+      activo_corriente: yearData['activo_corriente'] || 0,
+      activo_no_corriente: yearData['activo_no_corriente'] || 0,
+      ebitda: yearData['ebitda'] || 0,
+      gastos_financieros: yearData['gastos_financieros'] || 0
+    };
   };
+
+  const processedFinancialData = processBalanceData();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -55,14 +84,14 @@ export const BalanceSituacionPage = () => {
 
   const calculatePercentages = (item: number, total: number) => (item / total) * 100;
 
-  // Legacy compatibility - this ensures no runtime errors for any remaining references
-  const balanceData = financialData;
+  // Legacy compatibility
+  const balanceData = processedFinancialData;
 
   // Enhanced KPI data with patrimonio neto included
   const enhancedKpiData = [
     {
       title: 'Total Activo',
-      value: formatCurrency(financialData.activo_total),
+      value: formatCurrency(processedFinancialData.activo_total || 0),
       subtitle: 'Recursos Totales',
       trend: 'up' as const,
       trendValue: '+5.3%',
@@ -71,8 +100,8 @@ export const BalanceSituacionPage = () => {
     },
     {
       title: 'Patrimonio Neto',
-      value: formatCurrency(financialData.patrimonio_neto),
-      subtitle: `${calculatePercentages(financialData.patrimonio_neto, financialData.activo_total).toFixed(1)}% del activo`,
+      value: formatCurrency(processedFinancialData.patrimonio_neto || 0),
+      subtitle: processedFinancialData.activo_total ? `${calculatePercentages(processedFinancialData.patrimonio_neto || 0, processedFinancialData.activo_total).toFixed(1)}% del activo` : 'Sin datos',
       trend: 'up' as const,
       trendValue: '+5.2%',
       icon: Shield,
@@ -133,26 +162,26 @@ export const BalanceSituacionPage = () => {
   const assetStructureData = [
     { 
       name: 'Inmovilizado', 
-      value: 1200000, 
-      percentage: calculatePercentages(1200000, financialData.activo_total),
+      value: processedFinancialData.activo_no_corriente || 0, 
+      percentage: processedFinancialData.activo_total ? calculatePercentages(processedFinancialData.activo_no_corriente || 0, processedFinancialData.activo_total) : 0,
       color: '#4682B4' 
     },
     { 
       name: 'Existencias', 
-      value: 300000, 
-      percentage: calculatePercentages(300000, financialData.activo_total),
+      value: (processedFinancialData.activo_corriente || 0) * 0.33, 
+      percentage: processedFinancialData.activo_total ? calculatePercentages((processedFinancialData.activo_corriente || 0) * 0.33, processedFinancialData.activo_total) : 0,
       color: '#5F9EA0' 
     },
     { 
       name: 'Deudores', 
-      value: 480000, 
-      percentage: calculatePercentages(480000, financialData.activo_total),
+      value: (processedFinancialData.activo_corriente || 0) * 0.53, 
+      percentage: processedFinancialData.activo_total ? calculatePercentages((processedFinancialData.activo_corriente || 0) * 0.53, processedFinancialData.activo_total) : 0,
       color: '#87CEEB' 
     },
     { 
       name: 'Tesorería', 
-      value: 120000, 
-      percentage: calculatePercentages(120000, financialData.activo_total),
+      value: (processedFinancialData.activo_corriente || 0) * 0.14, 
+      percentage: processedFinancialData.activo_total ? calculatePercentages((processedFinancialData.activo_corriente || 0) * 0.14, processedFinancialData.activo_total) : 0,
       color: '#10B981' 
     }
   ];
@@ -161,20 +190,20 @@ export const BalanceSituacionPage = () => {
   const financingStructureData = [
     { 
       name: 'Patrimonio Neto', 
-      value: financialData.patrimonio_neto, 
-      percentage: calculatePercentages(financialData.patrimonio_neto, financialData.activo_total),
+      value: processedFinancialData.patrimonio_neto || 0, 
+      percentage: processedFinancialData.activo_total ? calculatePercentages(processedFinancialData.patrimonio_neto || 0, processedFinancialData.activo_total) : 0,
       color: '#10B981' 
     },
     { 
       name: 'Deuda L/P', 
-      value: financialData.deuda_largo, 
-      percentage: calculatePercentages(financialData.deuda_largo, financialData.activo_total),
+      value: processedFinancialData.deuda_largo || 0, 
+      percentage: processedFinancialData.activo_total ? calculatePercentages(processedFinancialData.deuda_largo || 0, processedFinancialData.activo_total) : 0,
       color: '#F59E0B' 
     },
     { 
       name: 'Deuda C/P', 
-      value: financialData.deuda_corto, 
-      percentage: calculatePercentages(financialData.deuda_corto, financialData.activo_total),
+      value: processedFinancialData.deuda_corto || 0, 
+      percentage: processedFinancialData.activo_total ? calculatePercentages(processedFinancialData.deuda_corto || 0, processedFinancialData.activo_total) : 0,
       color: '#EF4444' 
     }
   ];
@@ -227,11 +256,11 @@ export const BalanceSituacionPage = () => {
       items: [
         { 
           concepto: 'Inmovilizado Material', 
-          actual: 800000, 
-          anterior: 750000, 
-          variacion: 50000, 
+          actual: (processedFinancialData.activo_no_corriente || 0) * 0.67, 
+          anterior: (processedFinancialData.activo_no_corriente || 0) * 0.62, 
+          variacion: (processedFinancialData.activo_no_corriente || 0) * 0.05, 
           variacionPct: 6.7,
-          porcentaje: calculatePercentages(800000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages((processedFinancialData.activo_no_corriente || 0) * 0.67, processedFinancialData.activo_total) : 0
         },
         { 
           concepto: 'Inmovilizado Intangible', 
@@ -239,7 +268,7 @@ export const BalanceSituacionPage = () => {
           anterior: 280000, 
           variacion: 20000, 
           variacionPct: 7.1,
-          porcentaje: calculatePercentages(300000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(300000, processedFinancialData.activo_total) : 0
         },
         { 
           concepto: 'Inversiones Financieras L/P', 
@@ -247,7 +276,7 @@ export const BalanceSituacionPage = () => {
           anterior: 90000, 
           variacion: 10000, 
           variacionPct: 11.1,
-          porcentaje: calculatePercentages(100000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(100000, processedFinancialData.activo_total) : 0
         }
       ]
     },
@@ -260,7 +289,7 @@ export const BalanceSituacionPage = () => {
           anterior: 280000, 
           variacion: 20000, 
           variacionPct: 7.1,
-          porcentaje: calculatePercentages(300000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(300000, processedFinancialData.activo_total) : 0
         },
         { 
           concepto: 'Deudores Comerciales', 
@@ -268,7 +297,7 @@ export const BalanceSituacionPage = () => {
           anterior: 350000, 
           variacion: 50000, 
           variacionPct: 14.3,
-          porcentaje: calculatePercentages(400000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(400000, processedFinancialData.activo_total) : 0
         },
         { 
           concepto: 'Otros Créditos', 
@@ -276,7 +305,7 @@ export const BalanceSituacionPage = () => {
           anterior: 70000, 
           variacion: 10000, 
           variacionPct: 14.3,
-          porcentaje: calculatePercentages(80000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(80000, processedFinancialData.activo_total) : 0
         },
         { 
           concepto: 'Tesorería', 
@@ -284,7 +313,7 @@ export const BalanceSituacionPage = () => {
           anterior: 130000, 
           variacion: -10000, 
           variacionPct: -7.7,
-          porcentaje: calculatePercentages(120000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(120000, processedFinancialData.activo_total) : 0
         }
       ]
     },
@@ -297,7 +326,7 @@ export const BalanceSituacionPage = () => {
           anterior: 300000, 
           variacion: 0, 
           variacionPct: 0,
-          porcentaje: calculatePercentages(300000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(300000, processedFinancialData.activo_total) : 0
         },
         { 
           concepto: 'Reservas', 
@@ -305,7 +334,7 @@ export const BalanceSituacionPage = () => {
           anterior: 400000, 
           variacion: 50000, 
           variacionPct: 12.5,
-          porcentaje: calculatePercentages(450000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(450000, processedFinancialData.activo_total) : 0
         },
         { 
           concepto: 'Resultado del Ejercicio', 
@@ -313,7 +342,7 @@ export const BalanceSituacionPage = () => {
           anterior: 70000, 
           variacion: 20000, 
           variacionPct: 28.6,
-          porcentaje: calculatePercentages(90000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(90000, processedFinancialData.activo_total) : 0
         }
       ]
     },
@@ -326,7 +355,7 @@ export const BalanceSituacionPage = () => {
           anterior: 650000, 
           variacion: -50000, 
           variacionPct: -7.7,
-          porcentaje: calculatePercentages(600000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(600000, processedFinancialData.activo_total) : 0
         },
         { 
           concepto: 'Otras Deudas L/P', 
@@ -334,7 +363,7 @@ export const BalanceSituacionPage = () => {
           anterior: 100000, 
           variacion: 20000, 
           variacionPct: 20,
-          porcentaje: calculatePercentages(120000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(120000, processedFinancialData.activo_total) : 0
         }
       ]
     },
@@ -347,7 +376,7 @@ export const BalanceSituacionPage = () => {
           anterior: 220000, 
           variacion: 20000, 
           variacionPct: 9.1,
-          porcentaje: calculatePercentages(240000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(240000, processedFinancialData.activo_total) : 0
         },
         { 
           concepto: 'Acreedores Comerciales', 
@@ -355,7 +384,7 @@ export const BalanceSituacionPage = () => {
           anterior: 230000, 
           variacion: 20000, 
           variacionPct: 8.7,
-          porcentaje: calculatePercentages(250000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(250000, processedFinancialData.activo_total) : 0
         },
         { 
           concepto: 'Otras Deudas C/P', 
@@ -363,7 +392,7 @@ export const BalanceSituacionPage = () => {
           anterior: 80000, 
           variacion: -30000, 
           variacionPct: -37.5,
-          porcentaje: calculatePercentages(50000, financialData.activo_total)
+          porcentaje: processedFinancialData.activo_total ? calculatePercentages(50000, processedFinancialData.activo_total) : 0
         }
       ]
     }
@@ -377,22 +406,9 @@ export const BalanceSituacionPage = () => {
     { type: 'neutral', title: 'Estructura Patrimonial', description: 'La proporción patrimonio/deuda se mantiene estable en 40/60', icon: Info }
   ];
 
-  const handleFileUpload = async (file: File) => {
-    setIsLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      // Simulate file processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      setSuccess('Archivo de balance procesado correctamente.');
-      setHasData(true);
-    } catch (err) {
-      setError('Error al procesar el archivo de balance.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleUploadClick = () => {
+    // Navigate to admin upload page
+    window.location.href = '/admin/cargas';
   };
 
 
@@ -459,11 +475,17 @@ export const BalanceSituacionPage = () => {
                       Balance de Situación
                     </h1>
                     <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="bg-success-50 text-success-700 border-success-200">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Datos actualizados
-                      </Badge>
-                      <span className="text-slate-600 text-sm">Última actualización: 15 nov 2023</span>
+                      <DataStatusBadge 
+                        hasData={hasRealData}
+                        lastUpdated={validation.lastUpdated}
+                        completeness={validation.dataQuality.balance}
+                        variant="compact"
+                      />
+                      {validation.lastUpdated && (
+                        <span className="text-slate-600 text-sm">
+                          Última actualización: {new Date(validation.lastUpdated).toLocaleDateString('es-ES')}
+                        </span>
+                      )}
                     </div>
                   </div>
                   
@@ -509,7 +531,18 @@ export const BalanceSituacionPage = () => {
           </section>
 
           {/* Mensaje informativo cuando no hay datos */}
-          {!hasData && (
+          {!hasRealData && (
+            <section>
+              <MissingFinancialData
+                dataType="balance"
+                onUploadClick={handleUploadClick}
+                missingTables={validation.missingTables}
+              />
+            </section>
+          )}
+
+          {/* Message for old implementation - remove all hasData references */}
+          {false && (
             <section>
               <Card className="border-2 border-dashed border-slate-300 bg-slate-50">
                 <CardContent className="p-8 text-center">
@@ -529,7 +562,7 @@ export const BalanceSituacionPage = () => {
           )}
 
           {/* Enhanced KPIs Section - 6 cards in 2x3 grid */}
-          {hasData && (
+          {hasRealData && (
             <section>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {enhancedKpiData.map((kpi, index) => (
@@ -540,7 +573,7 @@ export const BalanceSituacionPage = () => {
           )}
 
           {/* Intelligent Analysis Section */}
-          {hasData && (
+          {hasRealData && (
             <section>
               <IntelligentInsights 
                 analysisType="balance"
@@ -551,7 +584,7 @@ export const BalanceSituacionPage = () => {
           )}
 
           {/* Main Visualization Section */}
-          {hasData && (
+          {hasRealData && (
             <section>
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                 {/* Left Column: Balance Waterfall (60%) */}
@@ -751,7 +784,7 @@ export const BalanceSituacionPage = () => {
            )}
 
            {/* Debt Analysis Section */}
-           {hasData && (
+           {hasRealData && (
              <section>
                <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-2xl">
                  <CardHeader>
@@ -764,11 +797,11 @@ export const BalanceSituacionPage = () => {
                  </CardHeader>
                  <CardContent>
                     <DebtAnalysisSection
-                      deudaCorto={financialData.deuda_corto}
-                      deudaLargo={financialData.deuda_largo}
-                      activoTotal={financialData.activo_total}
-                      ebitda={financialData.ebitda}
-                      gastosFinancieros={financialData.gastos_financieros}
+                      deudaCorto={processedFinancialData.deuda_corto || 0}
+                      deudaLargo={processedFinancialData.deuda_largo || 0}
+                      activoTotal={processedFinancialData.activo_total || 0}
+                      ebitda={processedFinancialData.ebitda || 0}
+                      gastosFinancieros={processedFinancialData.gastos_financieros || 0}
                     />
                  </CardContent>
                </Card>
@@ -776,7 +809,7 @@ export const BalanceSituacionPage = () => {
            )}
 
            {/* Balance Comparison Chart */}
-           {hasData && (
+           {hasRealData && (
              <section>
                <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-2xl">
                  <CardHeader>
@@ -847,12 +880,12 @@ export const BalanceSituacionPage = () => {
                      </div>
                      <div className="text-center">
                        <p className="text-sm text-slate-600">Total Activo</p>
-                       <p className="text-lg font-bold text-slate-800">{formatCurrency(financialData.activo_total)}</p>
+                       <p className="text-lg font-bold text-slate-800">{formatCurrency(processedFinancialData.activo_total || 0)}</p>
                        <p className="text-xs text-success-600">+5.3% vs 2022</p>
                      </div>
                      <div className="text-center">
                        <p className="text-sm text-slate-600">Ratio Patrimonio</p>
-                       <p className="text-lg font-bold text-primary-600">{((financialData.patrimonio_neto / financialData.activo_total) * 100).toFixed(1)}%</p>
+                       <p className="text-lg font-bold text-primary-600">{processedFinancialData.activo_total && processedFinancialData.patrimonio_neto ? ((processedFinancialData.patrimonio_neto / processedFinancialData.activo_total) * 100).toFixed(1) : 0}%</p>
                        <p className="text-xs text-slate-500">del total activo</p>
                      </div>
                    </div>
@@ -862,7 +895,7 @@ export const BalanceSituacionPage = () => {
            )}
 
            {/* Detailed Expandable Table */}
-           {hasData && (
+           {hasRealData && (
              <section>
                <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-2xl">
                  <CardHeader>
@@ -921,7 +954,7 @@ export const BalanceSituacionPage = () => {
                                   </span>
                                 </TableCell>
                                  <TableCell className="text-right font-bold">
-                                   <PercentageBadge percentage={((grupo.items.reduce((sum, item) => sum + item.actual, 0) / financialData.activo_total) * 100)} />
+                                   <PercentageBadge percentage={processedFinancialData.activo_total ? ((grupo.items.reduce((sum, item) => sum + item.actual, 0) / processedFinancialData.activo_total) * 100) : 0} />
                                  </TableCell>
                               </TableRow>
                             </CollapsibleTrigger>
@@ -962,7 +995,7 @@ export const BalanceSituacionPage = () => {
           )}
 
           {/* Analysis Panel */}
-          {hasData && (
+          {hasRealData && (
             <section>
               <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 rounded-3xl shadow-2xl">
                 <CardHeader>

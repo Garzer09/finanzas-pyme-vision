@@ -8,7 +8,6 @@ export interface UseFileUploadOptions {
   maxRows?: number;
   allowedFormats?: string[];
   targetUserId?: string;
-  companyId?: string;
   maxRetries?: number;
   retryDelay?: number;
   onUploadComplete?: (fileId: string, processedData: ProcessedData) => void;

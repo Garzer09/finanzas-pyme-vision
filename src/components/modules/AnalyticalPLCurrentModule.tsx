@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { useAnalyticalPLData } from '@/hooks/useAnalyticalPLData';
+import { MissingFinancialData } from '@/components/ui/missing-financial-data';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -23,137 +25,38 @@ interface AnalyticalPLItem {
 export const AnalyticalPLCurrentModule = () => {
   const [viewMode, setViewMode] = useState<'table' | 'margins' | 'waterfall'>('table');
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const { analyticalData, hasRealData } = useAnalyticalPLData();
 
-  const analyticalData: AnalyticalPLItem[] = [
-    {
-      concept: 'Ventas Netas',
-      currentPeriod: 2500000,
-      previousPeriod: 2230000,
-      marginPercent: 100.0,
-      variationPercent: 12.1,
-      sparklineData: [2100, 2150, 2200, 2300, 2350, 2400, 2450, 2500],
-      category: 'revenue',
-      level: 1
-    },
-    {
-      concept: 'Costes Variables',
-      currentPeriod: -1380000,
-      previousPeriod: -1250000,
-      marginPercent: -55.2,
-      variationPercent: 10.4,
-      sparklineData: [-1200, -1220, -1250, -1300, -1340, -1360, -1370, -1380],
-      category: 'variable_costs',
-      level: 1
-    },
-    {
-      concept: '  - Materias Primas',
-      currentPeriod: -950000,
-      previousPeriod: -850000,
-      marginPercent: -38.0,
-      variationPercent: 11.8,
-      sparklineData: [-820, -830, -850, -880, -920, -940, -945, -950],
-      category: 'variable_costs',
-      level: 2
-    },
-    {
-      concept: '  - Mano de Obra Directa',
-      currentPeriod: -280000,
-      previousPeriod: -260000,
-      marginPercent: -11.2,
-      variationPercent: 7.7,
-      sparklineData: [-250, -255, -260, -265, -270, -275, -278, -280],
-      category: 'variable_costs',
-      level: 2
-    },
-    {
-      concept: '  - Otros Costes Variables',
-      currentPeriod: -150000,
-      previousPeriod: -140000,
-      marginPercent: -6.0,
-      variationPercent: 7.1,
-      sparklineData: [-135, -138, -140, -145, -147, -148, -149, -150],
-      category: 'variable_costs',
-      level: 2
-    },
-    {
-      concept: 'MARGEN DE CONTRIBUCIÓN',
-      currentPeriod: 1120000,
-      previousPeriod: 980000,
-      marginPercent: 44.8,
-      variationPercent: 14.3,
-      sparklineData: [900, 920, 950, 1000, 1050, 1080, 1100, 1120],
-      category: 'margin',
-      level: 1
-    },
-    {
-      concept: 'Costes Fijos',
-      currentPeriod: -795000,
-      previousPeriod: -688000,
-      marginPercent: -31.8,
-      variationPercent: 15.6,
-      sparklineData: [-670, -675, -688, -720, -750, -770, -785, -795],
-      category: 'fixed_costs',
-      level: 1
-    },
-    {
-      concept: '  - Personal Fijo',
-      currentPeriod: -400000,
-      previousPeriod: -330000,
-      marginPercent: -16.0,
-      variationPercent: 21.2,
-      sparklineData: [-320, -325, -330, -350, -370, -385, -395, -400],
-      category: 'fixed_costs',
-      level: 2
-    },
-    {
-      concept: '  - Alquileres',
-      currentPeriod: -120000,
-      previousPeriod: -115000,
-      marginPercent: -4.8,
-      variationPercent: 4.3,
-      sparklineData: [-110, -112, -115, -116, -117, -118, -119, -120],
-      category: 'fixed_costs',
-      level: 2
-    },
-    {
-      concept: '  - Amortizaciones',
-      currentPeriod: -125000,
-      previousPeriod: -115000,
-      marginPercent: -5.0,
-      variationPercent: 8.7,
-      sparklineData: [-110, -112, -115, -118, -120, -122, -123, -125],
-      category: 'fixed_costs',
-      level: 2
-    },
-    {
-      concept: '  - Otros Gastos Fijos',
-      currentPeriod: -150000,
-      previousPeriod: -128000,
-      marginPercent: -6.0,
-      variationPercent: 17.2,
-      sparklineData: [-125, -126, -128, -135, -142, -145, -148, -150],
-      category: 'fixed_costs',
-      level: 2
-    },
-    {
-      concept: 'RESULTADO OPERATIVO (EBIT)',
-      currentPeriod: 325000,
-      previousPeriod: 292000,
-      marginPercent: 13.0,
-      variationPercent: 11.3,
-      sparklineData: [280, 285, 290, 295, 305, 315, 320, 325],
-      category: 'margin',
-      level: 1
-    }
-  ];
+  // Show missing data indicator if no real data
+  if (!hasRealData) {
+    return (
+      <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50">
+        <DashboardSidebar />
+        <div className="flex-1 flex flex-col">
+          <DashboardHeader />
+          <main className="flex-1 p-6 flex items-center justify-center">
+            <div className="max-w-lg w-full">
+              <MissingFinancialData 
+                dataType="pyg"
+                onUploadClick={() => console.log('Navigate to upload')}
+              />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
-  const waterfallData = [
-    { name: 'Ventas', value: 2500, cumulative: 2500 },
-    { name: 'Costes Variables', value: -1380, cumulative: 1120 },
-    { name: 'Margen Contribución', value: 1120, cumulative: 1120 },
-    { name: 'Costes Fijos', value: -795, cumulative: 325 },
-    { name: 'EBIT', value: 325, cumulative: 325 }
-  ];
+  // Use real analytical data from hook - dummy data removed
+  // All data now comes from useAnalyticalPLData hook
+  // Generate waterfall data from real analytical data
+  const waterfallData = analyticalData.length > 0 ? [
+    { name: 'Ventas', value: Math.round(analyticalData[0]?.currentPeriod / 1000) || 2500, cumulative: Math.round(analyticalData[0]?.currentPeriod / 1000) || 2500 },
+    { name: 'Costes Variables', value: Math.round((analyticalData[1]?.currentPeriod || -1380000) / 1000), cumulative: Math.round(((analyticalData[0]?.currentPeriod || 0) + (analyticalData[1]?.currentPeriod || 0)) / 1000) },
+    { name: 'Margen Contribución', value: Math.round((analyticalData[2]?.currentPeriod || 1120000) / 1000), cumulative: Math.round((analyticalData[2]?.currentPeriod || 1120000) / 1000) },
+    { name: 'Costes Fijos', value: Math.round((analyticalData[3]?.currentPeriod || -795000) / 1000), cumulative: Math.round((analyticalData[4]?.currentPeriod || 325000) / 1000) },
+    { name: 'EBIT', value: Math.round((analyticalData[4]?.currentPeriod || 325000) / 1000), cumulative: Math.round((analyticalData[4]?.currentPeriod || 325000) / 1000) }
+  ] : [];
 
   const formatCurrency = (value: number) => {
     if (Math.abs(value) >= 1000000) {

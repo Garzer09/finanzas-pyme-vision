@@ -10,6 +10,8 @@ import { KpiToolbar } from "@/components/segments/KpiToolbar"
 import { SegmentFilter } from "@/components/segments/SegmentFilter"
 import { InsightsPanel } from "@/components/segments/InsightsPanel"
 import { useSalesInsights } from "@/hooks/useSalesInsights"
+import { useSegmentData } from "@/hooks/useSegmentData"
+import { MissingFinancialData } from "@/components/ui/missing-financial-data"
 import { TrendingUp, TrendingDown, DollarSign, Users, Target, Euro, BarChart3, LineChart, Trophy } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SegmentFilters } from "@/schemas/segment-schemas"
@@ -21,6 +23,7 @@ const TopBottomTab = lazy(() => import("@/components/segments/TopBottomTab").the
 
 export const SalesSegmentsModule = memo(() => {
   const { toast } = useToast()
+  const { segmentsByType, hasRealData } = useSegmentData()
   
   // State for filters
   const [filters, setFilters] = useState<SegmentFilters>({
@@ -31,7 +34,27 @@ export const SalesSegmentsModule = memo(() => {
 
   const [activeTab, setActiveTab] = useState("distribucion")
 
-  // Mock data - in real app this would come from API/Supabase
+  // Show missing data indicator if no real data
+  if (!hasRealData) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <DashboardSidebar />
+        <div className="flex-1 flex flex-col">
+          <DashboardHeader />
+          <main className="flex-1 p-6 flex items-center justify-center">
+            <div className="max-w-lg w-full">
+              <MissingFinancialData 
+                dataType="operational"
+                onUploadClick={() => console.log('Navigate to upload')}
+              />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  // Use real segment data
   const kpiData = {
     totalSales: 2450000,
     yoyGrowth: 12.5,

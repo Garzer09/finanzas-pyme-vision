@@ -2,146 +2,43 @@
 import React, { useState } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { FileUploader } from '@/components/FileUploader';
 import { Gauge } from '@/components/ui/gauge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ClaudeInsights } from '@/components/ClaudeInsights';
+import { MissingFinancialData } from '@/components/ui/missing-data-indicator';
+import { DataStatusBadge } from '@/components/ui/data-status-badge';
+import { useFinancialRatios } from '@/hooks/useFinancialRatios';
+import { useDataValidation } from '@/hooks/useDataValidation';
 import { Activity } from 'lucide-react';
 
 export const RatiosFinancierosPage = () => {
-  const [hasData, setHasData] = useState(true); // Start with demo data
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>('');
-  const [success, setSuccess] = useState<string>('');
+  // Use real financial ratios data
+  const { ratios, loading, error, hasData, missingData } = useFinancialRatios();
+  const { validation } = useDataValidation();
 
-  // Demo ratios data
-  const ratiosData = [
-    {
-      label: 'Liquidez Corriente',
-      value: 1.67,
-      unit: '',
-      max: 3,
-      ranges: [
-        { min: 0, max: 1, color: '#EF4444', label: 'Crítico' },
-        { min: 1, max: 1.5, color: '#F59E0B', label: 'Bajo' },
-        { min: 1.5, max: 2.5, color: '#10B981', label: 'Adecuado' },
-        { min: 2.5, max: 3, color: '#F59E0B', label: 'Alto' }
-      ],
-      description: 'Capacidad para cubrir deudas a corto plazo'
-    },
-    {
-      label: 'Ratio Endeudamiento',
-      value: 60,
-      unit: '%',
-      max: 100,
-      ranges: [
-        { min: 0, max: 50, color: '#10B981', label: 'Bajo' },
-        { min: 50, max: 70, color: '#F59E0B', label: 'Moderado' },
-        { min: 70, max: 100, color: '#EF4444', label: 'Alto' }
-      ],
-      description: 'Proporción de deuda sobre activos totales'
-    },
-    {
-      label: 'ROE',
-      value: 3.75,
-      unit: '%',
-      max: 25,
-      ranges: [
-        { min: 0, max: 10, color: '#EF4444', label: 'Baja' },
-        { min: 10, max: 15, color: '#F59E0B', label: 'Moderada' },
-        { min: 15, max: 25, color: '#10B981', label: 'Alta' }
-      ],
-      description: 'Rentabilidad sobre patrimonio neto'
-    },
-    {
-      label: 'ROA',
-      value: 1.5,
-      unit: '%',
-      max: 20,
-      ranges: [
-        { min: 0, max: 5, color: '#EF4444', label: 'Baja' },
-        { min: 5, max: 10, color: '#F59E0B', label: 'Moderada' },
-        { min: 10, max: 20, color: '#10B981', label: 'Alta' }
-      ],
-      description: 'Rentabilidad sobre activos totales'
-    },
-    {
-      label: 'Rotación Activos',
-      value: 1.14,
-      unit: 'x',
-      max: 3,
-      ranges: [
-        { min: 0, max: 0.5, color: '#EF4444', label: 'Baja' },
-        { min: 0.5, max: 1, color: '#F59E0B', label: 'Moderada' },
-        { min: 1, max: 3, color: '#10B981', label: 'Alta' }
-      ],
-      description: 'Eficiencia en el uso de activos'
-    },
-    {
-      label: 'Cobertura Intereses',
-      value: 3.33,
-      unit: 'x',
-      max: 10,
-      ranges: [
-        { min: 0, max: 1, color: '#EF4444', label: 'Crítica' },
-        { min: 1, max: 2.5, color: '#F59E0B', label: 'Baja' },
-        { min: 2.5, max: 10, color: '#10B981', label: 'Adecuada' }
-      ],
-      description: 'Capacidad para cubrir gastos financieros'
-    },
-    {
-      label: 'Deuda/EBITDA',
-      value: 2.8,
-      unit: 'x',
-      max: 5,
-      ranges: [
-        { min: 0, max: 2, color: '#10B981', label: 'Conservador' },
-        { min: 2, max: 3.5, color: '#F59E0B', label: 'Moderado' },
-        { min: 3.5, max: 5, color: '#EF4444', label: 'Agresivo' }
-      ],
-      description: 'Capacidad de pago de deuda vs. generación de caja'
-    },
-    {
-      label: 'Apalancamiento Financiero',
-      value: 2.5,
-      unit: 'x',
-      max: 4,
-      ranges: [
-        { min: 0, max: 2, color: '#10B981', label: 'Bajo' },
-        { min: 2, max: 3, color: '#F59E0B', label: 'Moderado' },
-        { min: 3, max: 4, color: '#EF4444', label: 'Alto' }
-      ],
-      description: 'Activos financiados con deuda vs. patrimonio'
-    },
-    {
-      label: 'Ratio de Capitalización',
-      value: 45.8,
-      unit: '%',
-      max: 100,
-      ranges: [
-        { min: 0, max: 30, color: '#10B981', label: 'Bajo' },
-        { min: 30, max: 60, color: '#F59E0B', label: 'Moderado' },
-        { min: 60, max: 100, color: '#EF4444', label: 'Alto' }
-      ],
-      description: 'Deuda a largo plazo sobre capitalización total'
-    }
-  ];
+  // Transform ratios to gauge format
+  const ratiosData = ratios.map(ratio => ({
+    label: ratio.name,
+    value: ratio.value || 0,
+    unit: ratio.unit,
+    max: ratio.name === 'ROE' ? 25 : ratio.name === 'ROA' ? 20 : ratio.name === 'Ratio Endeudamiento' ? 100 : 5,
+    ranges: ratio.name === 'Liquidez Corriente' ? [
+      { min: 0, max: 1, color: '#EF4444', label: 'Crítico' },
+      { min: 1, max: 1.5, color: '#F59E0B', label: 'Bajo' },
+      { min: 1.5, max: 2.5, color: '#10B981', label: 'Adecuado' },
+      { min: 2.5, max: 3, color: '#F59E0B', label: 'Alto' }
+    ] : [
+      { min: 0, max: 50, color: '#10B981', label: 'Bueno' },
+      { min: 50, max: 75, color: '#F59E0B', label: 'Moderado' },
+      { min: 75, max: 100, color: '#EF4444', label: 'Alto' }
+    ],
+    description: ratio.description
+  })).filter(r => r.value !== null);
 
-  const handleFileUpload = async (file: File) => {
-    setIsLoading(true);
-    setError('');
-    setSuccess('');
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setSuccess('Datos financieros procesados. Ratios actualizados.');
-      setHasData(true);
-    } catch (err) {
-      setError('Error al procesar los datos financieros.');
-    } finally {
-      setIsLoading(false);
-    }
+  const handleUploadClick = () => {
+    // Navigate to admin upload page
+    window.location.href = '/admin/cargas';
   };
 
   return (
@@ -157,31 +54,30 @@ export const RatiosFinancierosPage = () => {
             <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel/10 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-r from-steel/5 via-cadet/3 to-slate-100/5 rounded-3xl"></div>
               <div className="relative z-10">
-                <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
-                  Análisis de Ratios Financieros
-                </h1>
-                <p className="text-slate-700 text-lg font-medium">Diagnóstico Integral de la Salud Financiera</p>
+                    <div className="flex items-center gap-3">
+                      <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
+                        Análisis de Ratios Financieros
+                      </h1>
+                      <DataStatusBadge 
+                        hasData={hasData}
+                        lastUpdated={validation.lastUpdated}
+                        completeness={validation.completeness}
+                        variant="compact"
+                      />
+                    </div>
+                    <p className="text-slate-700 text-lg font-medium">Diagnóstico Integral de la Salud Financiera</p>
               </div>
             </div>
           </section>
 
-          {/* Mensaje informativo cuando no hay datos */}
+          {/* Mensaje cuando no hay datos reales */}
           {!hasData && (
             <section>
-              <Card className="border-2 border-dashed border-slate-300 bg-slate-50">
-                <CardContent className="p-8 text-center">
-                  <Activity className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-slate-700 mb-2">
-                    No hay datos financieros disponibles
-                  </h3>
-                  <p className="text-slate-600 mb-4">
-                    Los datos financieros deben ser cargados por un administrador desde el panel de control.
-                  </p>
-                  <Badge variant="outline" className="text-slate-500">
-                    Contacta con tu administrador para cargar los datos
-                  </Badge>
-                </CardContent>
-              </Card>
+              <MissingFinancialData
+                dataType="financial"
+                onUploadClick={handleUploadClick}
+                missingTables={missingData}
+              />
             </section>
           )}
 

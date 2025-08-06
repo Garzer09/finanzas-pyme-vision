@@ -1,6 +1,5 @@
-import { useCompanyFinancialData } from '@/hooks/useOptimizedQueries';
-import { useCompany } from '@/contexts/CompanyContext';
-import { useMemo } from 'react';
+import { useState, useEffect } from 'react';
+import { usePeriodContext } from '@/contexts/PeriodContext';
 
 interface UsePeriodFilteredDataResult {
   data: any[];
@@ -10,65 +9,41 @@ interface UsePeriodFilteredDataResult {
 }
 
 export const usePeriodFilteredData = (dataType?: string): UsePeriodFilteredDataResult => {
-  const { selectedCompany } = useCompany();
-  const queries = useCompanyFinancialData(selectedCompany?.id || '');
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
-  const result = useMemo(() => {
+  const { getPeriodFilteredData, selectedPeriods, availablePeriods } = usePeriodContext();
 
-    if (!selectedCompany?.id) {
-      return {
-        data: [],
-        loading: false,
-        error: null,
-        refetch: async () => {}
-      };
-    }
-
-    // Map dataType to appropriate query
-    let queryIndex = -1;
-    let targetData: any[] = [];
+  const fetchData = async () => {
+    if (!dataType) return;
     
-    if (dataType === 'pyg' || dataType === 'profit_loss') {
-      queryIndex = 0;
-    } else if (dataType === 'balance' || dataType === 'balance_sheet') {
-      queryIndex = 1;
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await getPeriodFilteredData(dataType);
+      setData(result);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error loading data');
+      console.error('Error fetching period filtered data:', err);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    if (queryIndex >= 0 && queries[queryIndex]) {
-      const query = queries[queryIndex];
-      targetData = query.data || [];
-      
-      return {
-        data: targetData,
-        loading: query.isLoading,
-        error: query.error?.message || null,
-        refetch: async () => { await query.refetch(); }
-      };
-    }
+  useEffect(() => {
+    fetchData();
+  }, [dataType, selectedPeriods, availablePeriods]);
 
-    // Default case - combine all data
-    const allData = queries.reduce((acc, query) => {
-      if (query.data) {
-        acc.push(...query.data);
-      }
-      return acc;
-    }, [] as any[]);
+  const refetch = async () => {
+    await fetchData();
+  };
 
-    const isLoading = queries.some(query => query.isLoading);
-    const errorMessages = queries
-      .filter(query => query.error)
-      .map(query => query.error?.message)
-      .join(', ');
-
-    return {
-      data: allData,
-      loading: isLoading,
-      error: errorMessages || null,
-      refetch: async () => {
-        await Promise.all(queries.map(query => query.refetch()));
-      }
-    };
-  }, [queries, dataType, selectedCompany?.id]);
-
-  return result;
+  return {
+    data,
+    loading,
+    error,
+    refetch
+  };
 };

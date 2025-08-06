@@ -82,7 +82,14 @@ export const UserCard: React.FC<UserCardProps> = ({
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Building2 className="h-4 w-4" />
-              <span>{user.company_name || 'Sin empresa asignada'}</span>
+              <span className={!user.company_name || user.company_name === 'Sin empresa' ? 'text-yellow-600 font-medium' : ''}>
+                {!user.company_name || user.company_name === 'Sin empresa' ? 'Sin empresa asignada' : user.company_name}
+              </span>
+              {(!user.company_name || user.company_name === 'Sin empresa') && (
+                <Badge variant="outline" className="text-yellow-600 border-yellow-600">
+                  Requiere configuración
+                </Badge>
+              )}
             </div>
 
             <div className="flex items-center gap-2 text-sm text-muted-foreground">

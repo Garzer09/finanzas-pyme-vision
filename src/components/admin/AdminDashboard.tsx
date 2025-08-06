@@ -14,7 +14,7 @@ import {
   AlertCircle,
   Clock
 } from 'lucide-react';
-import { SimpleUserCreationForm } from './SimpleUserCreationForm';
+import { UserCreationWizard } from './UserCreationWizard';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { UserCard } from './UserCard';
 import { AdminUserDashboard } from './AdminUserDashboard';
@@ -202,8 +202,8 @@ export const AdminDashboard = () => {
               Crear Usuario
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <SimpleUserCreationForm
+          <DialogContent className="max-w-2xl">
+            <UserCreationWizard
               onComplete={handleUserCreated}
               onCancel={() => setShowUserWizard(false)}
             />

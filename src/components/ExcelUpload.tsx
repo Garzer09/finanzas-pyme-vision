@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -27,10 +26,9 @@ const useAdminImpersonationSafe = () => {
 interface ExcelUploadProps {
   onUploadComplete?: (fileId: string, processedData: any) => void;
   targetUserId?: string;
-  selectedCompany?: { id: string; name: string };
 }
 
-export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, targetUserId, selectedCompany }) => {
+export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, targetUserId }) => {
   const [uploading, setUploading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showTemplateManager, setShowTemplateManager] = useState(false);
@@ -39,7 +37,6 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, targ
   const { toast } = useToast();
   const { user } = useAuth();
   const { isImpersonating, impersonatedUserId } = useAdminImpersonationSafe();
-  const navigate = useNavigate();
 
   const handleFileUploadComplete = async (fileId: string, processedData: any) => {
     try {
@@ -113,16 +110,10 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, targ
       setShowPreview(false);
       setProcessedFile(null);
 
-      // Redirigir al dashboard específico de la empresa tras upload exitoso
-      if (!isImpersonating && !targetUserId && selectedCompany?.id) {
-        const dashboardPath = `/app/empresas/${selectedCompany.id}/dashboard`;
+      // Redirigir al dashboard si no estamos en modo admin
+      if (!isImpersonating && !targetUserId) {
         setTimeout(() => {
-          navigate(dashboardPath);
-        }, 1000); // 1 segundo de delay para que el usuario vea el mensaje de éxito
-      } else if (!isImpersonating && !targetUserId) {
-        // Fallback a la página principal si no hay empresa seleccionada
-        setTimeout(() => {
-          navigate('/home');
+          window.location.href = '/home';
         }, 1500);
       }
 
@@ -254,7 +245,6 @@ export const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, targ
       <UploadInterface
         onUploadComplete={handleFileUploadComplete}
         targetUserId={targetUserId}
-        selectedCompany={selectedCompany}
       />
     </div>
   );

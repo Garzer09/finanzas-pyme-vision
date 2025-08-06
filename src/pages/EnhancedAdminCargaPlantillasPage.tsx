@@ -147,12 +147,10 @@ export const EnhancedAdminCargaPlantillasPage: React.FC = () => {
         variant: "default"
       });
       
-      // Navigate to company-specific dashboard after successful upload
+      // Navigate to dashboard if we have company info
       if (companyInfo && selectedTemplate) {
-        const dashboardPath = `/admin/empresas/${companyInfo.companyId}/dashboard`;
-        setTimeout(() => {
-          navigate(dashboardPath);
-        }, 1000); // 1 second delay to let user see the success message
+        const currentYear = new Date().getFullYear();
+        navigate(`/admin/dashboard?companyId=${companyInfo.companyId}&period=${currentYear}`);
       }
     }
   };

@@ -37,10 +37,9 @@ import { useCompanyLogo } from '@/hooks/useCompanyLogo';
 import { useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
 import { CompanyLogo } from '@/components/CompanyLogo';
 import { Button } from '@/components/ui/button';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSessionTimeout } from '@/hooks/useSessionTimeout';
-import { useCompany } from '@/contexts/CompanyContext';
 import { LogOut, AlertCircle } from 'lucide-react';
 import { 
   AlertDialog,
@@ -75,8 +74,6 @@ export const DashboardSidebar = () => {
   const { logoUrl } = useCompanyLogo();
   const { isImpersonating, impersonatedUserInfo, setImpersonation } = useAdminImpersonation();
   const navigate = useNavigate();
-  const { companyId } = useParams<{ companyId: string }>();
-  const { selectedCompany } = useCompany();
 
   // Function to get the section key based on current path
   const getSectionFromPath = (path: string): string | null => {
@@ -159,14 +156,6 @@ export const DashboardSidebar = () => {
     });
   };
 
-  // Helper function to build company-contextualized path
-  const buildPath = (basePath: string) => {
-    if (companyId) {
-      return `/dashboard/company/${companyId}${basePath}`;
-    }
-    return basePath;
-  };
-
   const menuSections = [
     // Admin section - only visible to admins
     ...(isAdmin ? [{
@@ -175,7 +164,7 @@ export const DashboardSidebar = () => {
       expandable: false,
       items: [
         {
-          path: '/admin/empresas',
+          path: '/admin/users',
           label: 'Panel de Administración',
           icon: Shield,
           color: 'text-primary'
@@ -186,7 +175,7 @@ export const DashboardSidebar = () => {
       title: '1. Resumen Ejecutivo',
       items: [
         {
-          path: buildPath('/dashboard'),
+          path: '/admin/dashboard',
           label: 'Dashboard Principal',
           icon: Home,
           color: 'text-steel-600'
@@ -197,7 +186,7 @@ export const DashboardSidebar = () => {
       title: '2. Descripción Empresa',
       items: [
         {
-          path: buildPath('/descripcion-empresa'),
+          path: '/descripcion-empresa',
           label: 'Descripción de la Empresa',
           icon: Building2,
           color: 'text-cadet-600'
@@ -210,61 +199,61 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: buildPath('/cuenta-pyg'),
+          path: '/cuenta-pyg',
           label: 'Cuenta P&G',
           icon: FileText,
           color: 'text-steel-500'
         },
         {
-          path: buildPath('/balance-situacion'),
+          path: '/balance-situacion',
           label: 'Balance Situación',
           icon: CreditCard,
           color: 'text-steel-600'
         },
         {
-          path: buildPath('/ratios-financieros'),
+          path: '/ratios-financieros',
           label: 'Ratios Financieros',
           icon: Activity,
           color: 'text-warning-600'
         },
         {
-          path: buildPath('/flujos-caja'),
+          path: '/flujos-caja',
           label: 'Estado Flujos Caja',
           icon: Wallet,
           color: 'text-success-600'
         },
         {
-          path: buildPath('/analisis-nof'),
+          path: '/analisis-nof',
           label: 'Análisis NOF',
           icon: CircleDot,
           color: 'text-cadet-600'
         },
         {
-          path: buildPath('/punto-muerto'),
+          path: '/punto-muerto',
           label: 'Punto Muerto',
           icon: Target,
           color: 'text-danger-500'
         },
         {
-          path: buildPath('/endeudamiento'),
+          path: '/endeudamiento',
           label: 'Endeudamiento',
           icon: Database,
           color: 'text-steel-700'
         },
         {
-          path: buildPath('/servicio-deuda'),
+          path: '/servicio-deuda',
           label: 'Servicio Deuda',
           icon: AlertTriangle,
           color: 'text-warning-500'
         },
         {
-          path: buildPath('/pyg-analitico-actual'),
+          path: '/pyg-analitico-actual',
           label: 'P&G Analítico Actual',
           icon: BarChart3,
           color: 'text-cadet-500'
         },
         {
-          path: buildPath('/segmentos-actual'),
+          path: '/segmentos-actual',
           label: 'Ventas por Segmentos',
           icon: Users,
           color: 'text-steel-400'
@@ -277,7 +266,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: buildPath('/supuestos-financieros'),
+          path: '/supuestos-financieros',
           label: 'Supuestos Financieros Clave',
           icon: Calculator,
           color: 'text-primary'
@@ -290,7 +279,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: buildPath('/proyecciones'),
+          path: '/proyecciones',
           label: 'Proyecciones',
           icon: TrendingUp,
           color: 'text-success-500'
@@ -303,7 +292,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: buildPath('/escenarios'),
+          path: '/escenarios',
           label: 'Escenarios y Sensibilidad',
           icon: TrendingDown,
           color: 'text-warning-600'
@@ -316,7 +305,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: buildPath('/valoracion-eva'),
+          path: '/valoracion-eva',
           label: 'Valoración Integral',
           icon: DollarSign,
           color: 'text-steel-700'
@@ -327,7 +316,7 @@ export const DashboardSidebar = () => {
       title: '8. Conclusiones',
       items: [
         {
-          path: buildPath('/conclusiones'),
+          path: '/conclusiones',
           label: 'Conclusiones y Recomendaciones',
           icon: FileText,
           color: 'text-steel-600'

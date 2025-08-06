@@ -1,15 +1,15 @@
--- Simplificar la función handle_new_user para no requerir empresa ni otros datos
+-- Update the handle_new_user trigger to not require company_name
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger
+RETURNS TRIGGER
 LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path TO 'public'
+SECURITY DEFINER SET search_path = ''
 AS $$
 BEGIN
   -- Insert into user_profiles with minimal required data
-  INSERT INTO public.user_profiles (user_id, subscription_status)
+  INSERT INTO public.user_profiles (user_id, company_name, subscription_status)
   VALUES (
     NEW.id, 
+    COALESCE(NEW.raw_user_meta_data ->> 'company_name', 'Sin empresa'),
     'active'
   );
   
