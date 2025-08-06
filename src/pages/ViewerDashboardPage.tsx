@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, ArrowLeft, BarChart3, TrendingUp, PieChart } from 'lucide-react';
@@ -17,7 +17,9 @@ interface Company {
 
 const ViewerDashboardPage = () => {
   const [searchParams] = useSearchParams();
-  const companyId = searchParams.get('companyId');
+  const { companyId: paramCompanyId } = useParams<{ companyId: string }>();
+  // Support both URL parameter and query parameter for backward compatibility
+  const companyId = paramCompanyId || searchParams.get('companyId');
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
