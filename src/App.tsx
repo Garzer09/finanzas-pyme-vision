@@ -70,7 +70,7 @@ import { SalesSegmentsModule } from "./components/modules/SalesSegmentsModule";
 import ConclusionsPage from "./pages/ConclusionsPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
-import OptimizedViewerMisEmpresasPage from "./pages/OptimizedViewerMisEmpresasPage";
+import ViewerMisEmpresasPage from "./pages/ViewerMisEmpresasPage";
 import ViewerDashboardPage from "./pages/ViewerDashboardPage";
 import CompanyDashboardPage from "./pages/CompanyDashboardPage";
 import { SessionRecovery } from "@/components/SessionRecovery";
@@ -126,7 +126,7 @@ const App = () => {
               <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
               
               {/* Viewer Routes */}
-              <Route path="/app/mis-empresas" element={<OptimizedViewerMisEmpresasPage />} />
+              <Route path="/app/mis-empresas" element={<ViewerMisEmpresasPage />} />
               <Route path="/app/dashboard" element={<ViewerDashboardPage />} />
               <Route path="/dashboard/company/:companyId" element={<CompanyDashboardPage />} />
               
