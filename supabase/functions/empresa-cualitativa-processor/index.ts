@@ -363,47 +363,15 @@ Deno.serve(async (req) => {
     const file = formData.get('file') as File;
     const targetUserId = formData.get('targetUserId') as string;
     
-    console.log(`[${reqId}] Processing FormData`, { 
-      fileName: file?.name, 
-      fileSize: file?.size,
-      fileType: file?.type,
-      targetUserId 
-    });
+    console.log(`[${reqId}] Processing FormData`, { fileName: file?.name, targetUserId });
     
     if (!file || !targetUserId) {
-      const errorResponse = {
+      return new Response(JSON.stringify({
         success: false,
         reqId,
         code: 'MISSING_FILE_OR_USER',
-        message: 'File and target user ID are required',
-        details: {
-          hasFile: !!file,
-          hasTargetUserId: !!targetUserId,
-          fileName: file?.name || 'N/A'
-        }
-      };
-      console.error(`[${reqId}] Validation error:`, errorResponse);
-      return new Response(JSON.stringify(errorResponse), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
-    
-    // Validate file type
-    if (!file.name.toLowerCase().endsWith('.csv')) {
-      const errorResponse = {
-        success: false,
-        reqId,
-        code: 'INVALID_FILE_TYPE',
-        message: 'File must be a CSV file',
-        details: {
-          fileName: file.name,
-          fileType: file.type,
-          expectedExtension: '.csv'
-        }
-      };
-      console.error(`[${reqId}] File type error:`, errorResponse);
-      return new Response(JSON.stringify(errorResponse), { 
+        message: 'File and target user ID are required'
+      }), { 
         status: 400, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
@@ -411,19 +379,12 @@ Deno.serve(async (req) => {
     
     // Check file size (10MB limit)
     if (file.size > 10 * 1024 * 1024) {
-      const errorResponse = {
+      return new Response(JSON.stringify({
         success: false,
         reqId,
         code: 'FILE_TOO_LARGE',
-        message: 'File size exceeds 10MB limit',
-        details: {
-          fileSize: file.size,
-          maxSize: 10 * 1024 * 1024,
-          fileName: file.name
-        }
-      };
-      console.error(`[${reqId}] File size error:`, errorResponse);
-      return new Response(JSON.stringify(errorResponse), { 
+        message: 'File size exceeds 10MB limit'
+      }), { 
         status: 400, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       });
@@ -431,43 +392,11 @@ Deno.serve(async (req) => {
     
     // Convert file to text directly
     const csvContent = await file.text();
-    console.log(`[${reqId}] File content loaded:`, { 
-      contentLength: csvContent.length,
-      firstLines: csvContent.split('\n').slice(0, 3).join('\\n')
-    });
+    console.log(`[${reqId}] File content length:`, csvContent.length);
     
     // Parse CSV
-    let headers: string[];
-    let rows: string[][];
-    
-    try {
-      const parseResult = parseCSV(csvContent);
-      headers = parseResult.headers;
-      rows = parseResult.rows;
-      console.log(`[${reqId}] Parsed CSV successfully:`, { 
-        headerCount: headers.length, 
-        rowCount: rows.length,
-        headers: headers,
-        sampleRow: rows[0] || 'No data rows'
-      });
-    } catch (parseError: any) {
-      const errorResponse = {
-        success: false,
-        reqId,
-        code: 'CSV_PARSE_ERROR',
-        message: 'Error parsing CSV file',
-        details: {
-          parseError: parseError.message,
-          fileName: file.name,
-          contentSample: csvContent.substring(0, 200)
-        }
-      };
-      console.error(`[${reqId}] CSV parsing error:`, errorResponse);
-      return new Response(JSON.stringify(errorResponse), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      });
-    }
+    const { headers, rows } = parseCSV(csvContent);
+    console.log(`[${reqId}] Parsed CSV:`, { headerCount: headers.length, rowCount: rows.length });
     
     // Load existing mapping profile (using first user as org for now)
     const orgId = 'default'; // TODO: Get from actual organization context
@@ -594,30 +523,15 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error: any) {
-    console.error(`[${reqId}] ❌ Fatal error in empresa-cualitativa-processor:`, error);
-    console.error(`[${reqId}] ❌ Error stack:`, error.stack);
-    console.error(`[${reqId}] ❌ Error details:`, {
-      name: error.name,
-      message: error.message,
-      cause: error.cause
-    });
+  } catch (error) {
+    console.error(`[${reqId}] Error in empresa-cualitativa-processor:`, error);
     
-    const errorResponse = {
+    return new Response(JSON.stringify({
       success: false,
-      message: 'Error al procesar archivo de empresa cualitativa',
-      error: error.message || 'Error desconocido en el procesamiento',
-      details: {
-        reqId,
-        timestamp: new Date().toISOString(),
-        errorType: error.name || 'UnknownError',
-        stack: error.stack
-      }
-    };
-
-    console.log(`[${reqId}] 📤 Sending error response:`, errorResponse);
-    
-    return new Response(JSON.stringify(errorResponse), {
+      reqId,
+      code: 'INTERNAL_ERROR',
+      message: error.message || 'Internal server error'
+    }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

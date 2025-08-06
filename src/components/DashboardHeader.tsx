@@ -1,25 +1,12 @@
 
-import { TrendingUp, LogOut, Building2 } from 'lucide-react';
+import { TrendingUp, LogOut } from 'lucide-react';
 import { useCompanyLogo } from '@/hooks/useCompanyLogo';
 import { CompanyLogo } from '@/components/CompanyLogo';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
-interface CompanyInfo {
-  id: string;
-  name: string;
-  sector: string | null;
-  currency_code: string;
-  logo_url: string | null;
-}
-
-interface DashboardHeaderProps {
-  companyInfo?: CompanyInfo | null;
-  loading?: boolean;
-}
-
-export const DashboardHeader = ({ companyInfo, loading }: DashboardHeaderProps) => {
+export const DashboardHeader = () => {
   const { logoUrl } = useCompanyLogo();
   const { signOut } = useAuth();
 
@@ -37,29 +24,9 @@ export const DashboardHeader = ({ companyInfo, loading }: DashboardHeaderProps) 
         />
         <div>
           <h1 className="text-xl font-bold text-slate-900 leading-tight tracking-tight">
-            {companyInfo?.name || (logoUrl ? '' : 'Next Consultor-IA')}
+            {logoUrl ? '' : 'Next Consultor-IA'}
           </h1>
-          <div className="flex items-center gap-2">
-            <p className="text-sm text-slate-600 font-medium">
-              {companyInfo ? 'Dashboard Empresarial' : 'Dashboard Financiero Profesional'}
-            </p>
-            {companyInfo && (
-              <>
-                <span className="text-xs text-muted-foreground">•</span>
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Building2 className="h-3 w-3" />
-                  <span>{companyInfo.sector || 'Sin sector'}</span>
-                </div>
-                <span className="text-xs text-muted-foreground">•</span>
-                <span className="text-xs font-medium text-steel-600 bg-steel-50 px-2 py-0.5 rounded">
-                  {companyInfo.currency_code}
-                </span>
-              </>
-            )}
-            {loading && (
-              <span className="text-xs text-muted-foreground animate-pulse">Cargando empresa...</span>
-            )}
-          </div>
+          <p className="text-sm text-slate-600 font-medium">Dashboard Financiero Profesional</p>
         </div>
       </div>
       

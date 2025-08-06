@@ -175,7 +175,7 @@ export const DashboardSidebar = () => {
       title: '1. Resumen Ejecutivo',
       items: [
         {
-          path: '/admin/dashboard',
+          path: '/home',
           label: 'Dashboard Principal',
           icon: Home,
           color: 'text-steel-600'

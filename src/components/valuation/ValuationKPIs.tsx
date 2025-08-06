@@ -32,7 +32,7 @@ export const ValuationKPIs = ({ valuationData }: ValuationKPIsProps) => {
       variant: 'default' as const,
       className: 'border-t-4 border-t-primary shadow-md',
       tooltip: 'Valor = ∑(Método × Peso) / 100',
-      sources: `P&G, Balance, Flujos de Caja (Años 0-${valuationData.horizon})`
+      sources: 'P&G, Balance, Flujos de Caja (Año 0-5)'
     },
     {
       title: 'Valor por Acción',
@@ -49,16 +49,14 @@ export const ValuationKPIs = ({ valuationData }: ValuationKPIsProps) => {
     {
       title: 'WACC Calculado',
       value: `${valuationData.dcfParameters.wacc.toFixed(1)}%`,
-      subtitle: valuationData.dataStatus.hasAssumptions ? 'Desde supuestos' : 'Calculado internamente',
+      subtitle: 'Desde datos internos',
       trend: 'neutral' as const,
       trendValue: 'Costo promedio ponderado',
       icon: BarChart3,
       variant: 'default' as const,
       className: 'border-t-4 border-t-primary shadow-md',
       tooltip: 'WACC = (Kd×(1-T)×D/V) + (Ke×E/V)',
-      sources: valuationData.dataStatus.hasAssumptions 
-        ? 'Plantilla supuestos financieros' 
-        : 'Gastos financieros, ROE histórico, estructura de capital'
+      sources: 'Gastos financieros, ROE histórico, estructura de capital'
     },
     {
       title: 'Rango Valoración',
@@ -70,7 +68,7 @@ export const ValuationKPIs = ({ valuationData }: ValuationKPIsProps) => {
       variant: 'default' as const,
       className: 'border-t-4 border-t-primary shadow-md',
       tooltip: 'Rango basado en sensibilidad WACC ±1% y crecimiento ±0.5%',
-      sources: `Sensibilidad WACC ±1%, horizonte ${valuationData.horizon} años`
+      sources: 'Análisis de sensibilidad interno'
     }
   ];
 

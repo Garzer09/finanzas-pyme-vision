@@ -1,9 +1,0 @@
-company_id,loan_key,frequency,period,balance_amount,currency_code,as_of_date,source_url,confidence,uploaded_by,job_id
-EJEMPLO_TECH_SL,LOAN_001,Y,2022,1600000,EUR,2022-12-31,https://balance-situacion.pdf,1.0,,
-EJEMPLO_TECH_SL,LOAN_001,Y,2023,1200000,EUR,2023-12-31,https://balance-situacion.pdf,1.0,,
-EJEMPLO_TECH_SL,LOAN_002,Y,2022,300000,EUR,2022-12-31,https://balance-situacion.pdf,1.0,,
-EJEMPLO_TECH_SL,LOAN_002,Y,2023,450000,EUR,2023-12-31,https://balance-situacion.pdf,1.0,,
-EJEMPLO_TECH_SL,LOAN_003,Y,2022,250000,EUR,2022-12-31,https://balance-situacion.pdf,1.0,,
-EJEMPLO_TECH_SL,LOAN_003,Y,2023,200000,EUR,2023-12-31,https://balance-situacion.pdf,1.0,,
-EJEMPLO_TECH_SL,LOAN_001,M,2023-01,1550000,EUR,2023-01-31,https://balance-situacion.pdf,1.0,,
-EJEMPLO_TECH_SL,LOAN_001,M,2023-02,1500000,EUR,2023-02-28,https://balance-situacion.pdf,1.0,,

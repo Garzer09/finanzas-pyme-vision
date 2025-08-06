@@ -64,62 +64,6 @@ export const EvolutionChartsSection: React.FC = () => {
 
   const evolutionData = validateChartData(getRealEvolutionData());
 
-  // Get real balance structure data from database or fallback to demo
-  const getRealBalanceData = () => {
-    if (!hasRealData) {
-      // Demo data when no real data available
-      return [
-        {
-          category: 'Activo',
-          corriente: 850000,
-          noCorriente: 1650000,
-          total: 2500000
-        },
-        {
-          category: 'Pasivo + PN',
-          corriente: 420000,
-          noCorriente: 780000,
-          patrimonioNeto: 1300000,
-          total: 2500000
-        }
-      ];
-    }
-
-    // Real data from database
-    const balanceData = getLatestData(data || [], 'created_at');
-    if (!balanceData?.data_content) return [];
-
-    const content = balanceData.data_content;
-    
-    // Extract balance sheet components
-    const activoCorriente = safeNumber(content.activo_corriente, 0);
-    const activoNoCorriente = safeNumber(content.activo_no_corriente || content.inmovilizado, 0);
-    const totalActivo = activoCorriente + activoNoCorriente;
-    
-    const pasivoCorriente = safeNumber(content.pasivo_corriente || content.acreedores_corto_plazo, 0);
-    const pasivoNoCorriente = safeNumber(content.pasivo_no_corriente || content.acreedores_largo_plazo, 0);
-    const patrimonioNeto = safeNumber(content.patrimonio_neto || content.fondos_propios, 0);
-    const totalPasivoPn = pasivoCorriente + pasivoNoCorriente + patrimonioNeto;
-
-    return [
-      {
-        category: 'Activo',
-        corriente: activoCorriente,
-        noCorriente: activoNoCorriente,
-        total: totalActivo
-      },
-      {
-        category: 'Pasivo + PN',
-        corriente: pasivoCorriente,
-        noCorriente: pasivoNoCorriente,
-        patrimonioNeto: patrimonioNeto,
-        total: totalPasivoPn
-      }
-    ];
-  };
-
-  const balanceData = validateChartData(getRealBalanceData());
-
   // Calculate dynamic domain for balance charts based on real data
   const getBalanceChartDomain = () => {
     if (balanceData.length === 0) return [0, 2500000];
@@ -180,6 +124,61 @@ export const EvolutionChartsSection: React.FC = () => {
 
   const waterfallPGData = validateChartData(getRealWaterfallData());
 
+  // Get real balance structure data from database or fallback to demo
+  const getRealBalanceData = () => {
+    if (!hasRealData) {
+      // Demo data when no real data available
+      return [
+        {
+          category: 'Activo',
+          corriente: 850000,
+          noCorriente: 1650000,
+          total: 2500000
+        },
+        {
+          category: 'Pasivo + PN',
+          corriente: 420000,
+          noCorriente: 780000,
+          patrimonioNeto: 1300000,
+          total: 2500000
+        }
+      ];
+    }
+
+    // Real data from database
+    const balanceData = getLatestData(data || [], 'created_at');
+    if (!balanceData?.data_content) return [];
+
+    const content = balanceData.data_content;
+    
+    // Extract balance sheet components
+    const activoCorriente = safeNumber(content.activo_corriente, 0);
+    const activoNoCorriente = safeNumber(content.activo_no_corriente || content.inmovilizado, 0);
+    const totalActivo = activoCorriente + activoNoCorriente;
+    
+    const pasivoCorriente = safeNumber(content.pasivo_corriente || content.acreedores_corto_plazo, 0);
+    const pasivoNoCorriente = safeNumber(content.pasivo_no_corriente || content.acreedores_largo_plazo, 0);
+    const patrimonioNeto = safeNumber(content.patrimonio_neto || content.fondos_propios, 0);
+    const totalPasivoPn = pasivoCorriente + pasivoNoCorriente + patrimonioNeto;
+
+    return [
+      {
+        category: 'Activo',
+        corriente: activoCorriente,
+        noCorriente: activoNoCorriente,
+        total: totalActivo
+      },
+      {
+        category: 'Pasivo + PN',
+        corriente: pasivoCorriente,
+        noCorriente: pasivoNoCorriente,
+        patrimonioNeto: patrimonioNeto,
+        total: totalPasivoPn
+      }
+    ];
+  };
+
+  const balanceData = validateChartData(getRealBalanceData());
 
   if (loading) {
     return (

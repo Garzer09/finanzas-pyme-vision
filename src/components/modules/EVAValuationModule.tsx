@@ -5,7 +5,6 @@ import { DashboardPageHeader } from '@/components/DashboardPageHeader';
 import { ValuationKPIs } from '@/components/valuation/ValuationKPIs';
 import { MethodsWeightPanel } from '@/components/valuation/MethodsWeightPanel';
 import { ValuationMethodsChart } from '@/components/valuation/ValuationMethodsChart';
-import { HorizonSelector } from '@/components/valuation/HorizonSelector';
 import { useValuation } from '@/hooks/useValuation';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -16,9 +15,8 @@ export const EVAValuationModule = () => {
   const {
     valuationData,
     updateMethodWeights,
-    updateGrowthRate,
-    updateHorizon
-  } = useValuation(); // TODO: Pass companyId when available
+    updateGrowthRate
+  } = useValuation();
 
   const handleSaveValuation = () => {
     toast({
@@ -100,14 +98,6 @@ export const EVAValuationModule = () => {
               {/* KPI Cards */}
               <section>
                 <ValuationKPIs valuationData={valuationData} />
-              </section>
-
-              {/* Horizon Configuration */}
-              <section>
-                <HorizonSelector
-                  valuationData={valuationData}
-                  onHorizonChange={updateHorizon}
-                />
               </section>
 
               {/* Main Content Grid */}

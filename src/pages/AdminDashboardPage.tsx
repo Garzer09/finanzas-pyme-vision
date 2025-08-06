@@ -8,7 +8,6 @@ import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import { FinancialKPISection } from '@/components/dashboard/FinancialKPISection';
-import { IntelligentFinancialSummary } from '@/components/IntelligentFinancialSummary';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useDataValidation } from '@/hooks/useDataValidation';
@@ -502,15 +501,91 @@ export const AdminDashboardPage: React.FC = () => {
                 </Card>
               )}
 
-              {/* Intelligent Financial Analysis */}
-              {financialData && companyId && (
-                <IntelligentFinancialSummary 
-                  companyId={companyId}
-                  period={selectedPeriod}
-                  financialData={financialData}
-                  kpis={kpis}
-                  companyInfo={company}
-                />
+              {/* Financial Summary */}
+              {financialData && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <BarChart3 className="h-5 w-5" />
+                      Resumen Financiero - {selectedPeriod}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-muted-foreground">CUENTA DE RESULTADOS</h4>
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span>Ingresos:</span>
+                            <span className="font-medium">
+                              {formatCurrency(financialData.revenue, company?.currency_code || 'EUR')}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>EBITDA:</span>
+                            <span className="font-medium">
+                              {formatCurrency(financialData.ebitda, company?.currency_code || 'EUR')}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Resultado Neto:</span>
+                            <span className="font-medium">
+                              {formatCurrency(financialData.net_income, company?.currency_code || 'EUR')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-muted-foreground">BALANCE</h4>
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span>Activo Total:</span>
+                            <span className="font-medium">
+                              {formatCurrency(financialData.total_assets, company?.currency_code || 'EUR')}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Patrimonio Neto:</span>
+                            <span className="font-medium">
+                              {formatCurrency(financialData.total_equity, company?.currency_code || 'EUR')}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Pasivo Total:</span>
+                            <span className="font-medium">
+                              {formatCurrency(financialData.total_debt, company?.currency_code || 'EUR')}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm text-muted-foreground">RATIOS PRINCIPALES</h4>
+                        <div className="space-y-1">
+                          <div className="flex justify-between">
+                            <span>Margen EBITDA:</span>
+                            <span className="font-medium">
+                              {formatPercentage(financialData.revenue > 0 ? (financialData.ebitda / financialData.revenue) * 100 : 0)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>ROE:</span>
+                            <span className="font-medium">
+                              {formatPercentage(financialData.total_equity > 0 ? (financialData.net_income / financialData.total_equity) * 100 : 0)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Ratio Endeudamiento:</span>
+                            <span className="font-medium">
+                              {formatPercentage(financialData.total_assets > 0 ? (financialData.total_debt / financialData.total_assets) * 100 : 0)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
 
               {/* No Data Message */}

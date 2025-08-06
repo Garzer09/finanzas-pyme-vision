@@ -50,78 +50,17 @@ export const useCompanyDescription = () => {
       setLoading(true);
       setError(null);
 
-      // First try to get data from company_descriptions (manual entries)
-      const { data: manualData, error: manualError } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('company_descriptions')
         .select('*')
         .eq('user_id', targetUserId)
         .single();
 
-      // Check if we have a company associated with this user to get qualitative data
-      const { data: membershipData } = await supabase
-        .from('memberships')
-        .select('company_id')
-        .eq('user_id', targetUserId)
-        .single();
-
-      let qualitativeData = null;
-      if (membershipData?.company_id) {
-        // Get qualitative template data from company_info_normalized
-        const { data: qualData } = await supabase
-          .from('company_info_normalized')
-          .select('*')
-          .eq('company_id', membershipData.company_id)
-          .single();
-        qualitativeData = qualData;
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
       }
 
-      // Merge data prioritizing qualitative template data when available
-      let mergedData = null;
-      
-      if (manualData) {
-        mergedData = manualData;
-        
-        // If we have qualitative data, merge it in (template data takes priority)
-        if (qualitativeData) {
-          mergedData = {
-            ...manualData,
-            company_name: qualitativeData.company_name || manualData.company_name,
-            description: qualitativeData.description || manualData.description,
-            sector: qualitativeData.sector || manualData.sector,
-            industry: qualitativeData.industry || manualData.industry,
-            founded_year: qualitativeData.founded_year || manualData.founded_year,
-            employees: qualitativeData.employees_count?.toString() || manualData.employees,
-            headquarters: qualitativeData.headquarters || manualData.headquarters,
-            website: qualitativeData.website || manualData.website,
-            products: qualitativeData.products || manualData.products,
-            competitors: qualitativeData.competitors || manualData.competitors,
-            key_facts: qualitativeData.key_facts || manualData.key_facts,
-            data_source: qualitativeData ? 'template_enhanced' : manualData.data_source
-          };
-        }
-      } else if (qualitativeData) {
-        // Only qualitative data available, create a company description from it
-        mergedData = {
-          id: '', // Will be created when saved
-          user_id: targetUserId,
-          company_name: qualitativeData.company_name || 'Empresa Sin Nombre',
-          description: qualitativeData.description,
-          sector: qualitativeData.sector,
-          industry: qualitativeData.industry,
-          founded_year: qualitativeData.founded_year,
-          employees: qualitativeData.employees_count?.toString(),
-          headquarters: qualitativeData.headquarters,
-          website: qualitativeData.website,
-          products: qualitativeData.products,
-          competitors: qualitativeData.competitors,
-          key_facts: qualitativeData.key_facts,
-          data_source: 'template',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-      }
-
-      setCompanyDescription(mergedData);
+      setCompanyDescription(data);
     } catch (err) {
       console.error('Error fetching company description:', err);
       setError(err instanceof Error ? err.message : 'Error fetching company data');
@@ -143,7 +82,7 @@ export const useCompanyDescription = () => {
     try {
       let result;
       
-      if (companyDescription && companyDescription.id) {
+      if (companyDescription) {
         // Update existing - only include the fields we want to update
         const updateData = {
           company_name: data.company_name || companyDescription.company_name,

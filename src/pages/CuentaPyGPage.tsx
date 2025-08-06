@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { FileUploader } from '@/components/FileUploader';
 import { WaterfallChart } from '@/components/ui/waterfall-chart';
 import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,15 +15,16 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import { GlobalFilters } from '@/components/GlobalFilters';
 import { PeriodSelector } from '@/components/PeriodSelector';
-import { MissingFinancialData } from '@/components/ui/missing-data-indicator';
-import { DataStatusBadge } from '@/components/ui/data-status-badge';
 import { usePeriodContext } from '@/contexts/PeriodContext';
-import { useFinancialData } from '@/hooks/useFinancialData';
-import { useDataValidation } from '@/hooks/useDataValidation';
+import { usePeriodFilteredData } from '@/hooks/usePeriodFilteredData';
 import { FileText, TrendingUp, TrendingDown, Target, Settings, BarChart2, Info } from 'lucide-react';
 
 export const CuentaPyGPage = () => {
-  const [showComparison, setShowComparison] = useState(true);
+  const [hasData, setHasData] = useState(true); // Start with demo data
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
+  const [success, setSuccess] = useState<string>('');
+  const [showComparison, setShowComparison] = useState(true); // Habilitar por defecto
   const [showSettings, setShowSettings] = useState(false);
 
   const { 
@@ -33,96 +35,87 @@ export const CuentaPyGPage = () => {
     availablePeriods 
   } = usePeriodContext();
 
-  // Use real financial data
-  const { data: financialData, loading, error, hasRealData } = useFinancialData('pyg');
-  const { validation } = useDataValidation();
+  // Usar datos filtrados por periodo
+  const { data: pygDataCurrent, loading: loadingCurrent } = usePeriodFilteredData('profit_loss');
+  const { data: pygDataComparison, loading: loadingComparison } = usePeriodFilteredData('profit_loss_comparison');
 
-  // Process real financial data
-  const processFinancialData = () => {
-    if (!hasRealData || !financialData.length) return [];
-    
-    const pygRecord = financialData.find(d => d.data_type === 'pyg');
-    if (!pygRecord?.data_content) return [];
+  // Demo P&G data
+  const pygData = [
+    { concepto: 'Importe Neto Cifra Negocios', valor: 2400000, porcentaje: 100 },
+    { concepto: 'Aprovisionamientos', valor: -1680000, porcentaje: -70 },
+    { concepto: 'Gastos Personal', valor: -480000, porcentaje: -20 },
+    { concepto: 'Otros Gastos Explotación', valor: -120000, porcentaje: -5 },
+    { concepto: 'EBITDA', valor: 120000, porcentaje: 5, destacar: true },
+    { concepto: 'Amortizaciones', valor: -60000, porcentaje: -2.5 },
+    { concepto: 'EBIT', valor: 60000, porcentaje: 2.5, destacar: true },
+    { concepto: 'Gastos Financieros', valor: -18000, porcentaje: -0.75 },
+    { concepto: 'Resultado antes Impuestos', valor: 42000, porcentaje: 1.75 },
+    { concepto: 'Impuestos', valor: -10500, porcentaje: -0.44 },
+    { concepto: 'Resultado Neto', valor: 31500, porcentaje: 1.31, destacar: true },
+  ];
 
-    const content = pygRecord.data_content;
-    const latestYear = Object.keys(content).sort().pop();
-    if (!latestYear) return [];
+  // Waterfall chart data
+  const waterfallData = [
+    { name: 'Ingresos', value: 2400000, type: 'total' as const },
+    { name: 'Aprovisionamientos', value: -1680000, type: 'negative' as const },
+    { name: 'Gastos Personal', value: -480000, type: 'negative' as const },
+    { name: 'Otros Gastos', value: -120000, type: 'negative' as const },
+    { name: 'EBITDA', value: 120000, type: 'total' as const },
+    { name: 'Amortizaciones', value: -60000, type: 'negative' as const },
+    { name: 'EBIT', value: 60000, type: 'total' as const },
+    { name: 'Gastos Financieros', value: -18000, type: 'negative' as const },
+    { name: 'Impuestos', value: -10500, type: 'negative' as const },
+    { name: 'Resultado Neto', value: 31500, type: 'total' as const },
+  ];
 
-    const yearData = content[latestYear];
-    const totalIngresos = yearData['importe_neto_cifra_negocios'] || yearData['ventas'] || 0;
+  // KPI data
+  const kpiData = [
+    {
+      title: 'Margen Bruto',
+      value: '30%',
+      subtitle: '€720,000',
+      trend: 'up' as const,
+      trendValue: '+2%',
+      icon: TrendingUp,
+      variant: 'success' as const
+    },
+    {
+      title: 'Margen EBITDA',
+      value: '5%',
+      subtitle: '€120,000',
+      trend: 'neutral' as const,
+      trendValue: '0%',
+      icon: Target,
+      variant: 'warning' as const
+    },
+    {
+      title: 'Margen Neto',
+      value: '1.3%',
+      subtitle: '€31,500',
+      trend: 'down' as const,
+      trendValue: '-0.5%',
+      icon: TrendingDown,
+      variant: 'danger' as const
+    }
+  ];
 
-    return [
-      { concepto: 'Importe Neto Cifra Negocios', valor: yearData['importe_neto_cifra_negocios'] || 0, porcentaje: 100 },
-      { concepto: 'Aprovisionamientos', valor: -(yearData['aprovisionamientos'] || 0), porcentaje: yearData['aprovisionamientos'] ? -(yearData['aprovisionamientos'] / totalIngresos * 100) : 0 },
-      { concepto: 'Gastos Personal', valor: -(yearData['gastos_personal'] || 0), porcentaje: yearData['gastos_personal'] ? -(yearData['gastos_personal'] / totalIngresos * 100) : 0 },
-      { concepto: 'Otros Gastos Explotación', valor: -(yearData['otros_gastos_explotacion'] || 0), porcentaje: yearData['otros_gastos_explotacion'] ? -(yearData['otros_gastos_explotacion'] / totalIngresos * 100) : 0 },
-      { concepto: 'EBITDA', valor: yearData['ebitda'] || 0, porcentaje: yearData['ebitda'] ? (yearData['ebitda'] / totalIngresos * 100) : 0, destacar: true },
-      { concepto: 'Amortizaciones', valor: -(yearData['amortizaciones'] || 0), porcentaje: yearData['amortizaciones'] ? -(yearData['amortizaciones'] / totalIngresos * 100) : 0 },
-      { concepto: 'EBIT', valor: yearData['ebit'] || yearData['resultado_explotacion'] || 0, porcentaje: yearData['ebit'] ? (yearData['ebit'] / totalIngresos * 100) : 0, destacar: true },
-      { concepto: 'Gastos Financieros', valor: -(yearData['gastos_financieros'] || 0), porcentaje: yearData['gastos_financieros'] ? -(yearData['gastos_financieros'] / totalIngresos * 100) : 0 },
-      { concepto: 'Resultado antes Impuestos', valor: yearData['resultado_antes_impuestos'] || 0, porcentaje: yearData['resultado_antes_impuestos'] ? (yearData['resultado_antes_impuestos'] / totalIngresos * 100) : 0 },
-      { concepto: 'Impuestos', valor: -(yearData['impuestos'] || 0), porcentaje: yearData['impuestos'] ? -(yearData['impuestos'] / totalIngresos * 100) : 0 },
-      { concepto: 'Resultado Neto', valor: yearData['resultado_neto'] || 0, porcentaje: yearData['resultado_neto'] ? (yearData['resultado_neto'] / totalIngresos * 100) : 0, destacar: true },
-    ].filter(item => item.valor !== 0);
-  };
+  const handleFileUpload = async (file: File) => {
+    setIsLoading(true);
+    setError('');
+    setSuccess('');
 
-  const pygData = processFinancialData();
-
-  // Waterfall chart data from real data
-  const waterfallData = pygData.map(item => ({
-    name: item.concepto === 'Importe Neto Cifra Negocios' ? 'Ingresos' : item.concepto,
-    value: item.valor,
-    type: (item.destacar ? 'total' : (item.valor < 0 ? 'negative' : 'positive')) as 'total' | 'negative' | 'positive'
-  }));
-
-  // KPI data calculated from real data
-  const calculateKPIs = () => {
-    if (pygData.length === 0) return [];
-
-    const ingresos = pygData.find(item => item.concepto === 'Importe Neto Cifra Negocios')?.valor || 0;
-    const ebitda = pygData.find(item => item.concepto === 'EBITDA')?.valor || 0;
-    const resultadoNeto = pygData.find(item => item.concepto === 'Resultado Neto')?.valor || 0;
-    
-    const margenBruto = ingresos > 0 ? ((ingresos + (pygData.find(item => item.concepto === 'Aprovisionamientos')?.valor || 0)) / ingresos * 100) : 0;
-    const margenEbitda = ingresos > 0 ? (ebitda / ingresos * 100) : 0;
-    const margenNeto = ingresos > 0 ? (resultadoNeto / ingresos * 100) : 0;
-
-    return [
-      {
-        title: 'Margen Bruto',
-        value: `${margenBruto.toFixed(1)}%`,
-        subtitle: formatCurrency(ingresos + (pygData.find(item => item.concepto === 'Aprovisionamientos')?.valor || 0)),
-        trend: margenBruto > 30 ? 'up' as const : 'neutral' as const,
-        trendValue: '+2%',
-        icon: TrendingUp,
-        variant: margenBruto > 30 ? 'success' as const : 'warning' as const
-      },
-      {
-        title: 'Margen EBITDA',
-        value: `${margenEbitda.toFixed(1)}%`,
-        subtitle: formatCurrency(ebitda),
-        trend: margenEbitda > 5 ? 'up' as const : 'neutral' as const,
-        trendValue: '0%',
-        icon: Target,
-        variant: margenEbitda > 5 ? 'success' as const : 'warning' as const
-      },
-      {
-        title: 'Margen Neto',
-        value: `${margenNeto.toFixed(1)}%`,
-        subtitle: formatCurrency(resultadoNeto),
-        trend: margenNeto > 0 ? 'up' as const : 'down' as const,
-        trendValue: '-0.5%',
-        icon: margenNeto > 0 ? TrendingUp : TrendingDown,
-        variant: margenNeto > 5 ? 'success' as const : (margenNeto > 0 ? 'warning' as const : 'danger' as const)
-      }
-    ];
-  };
-
-  const kpiData = calculateKPIs();
-
-  const handleUploadClick = () => {
-    // Navigate to admin upload page
-    window.location.href = '/admin/cargas';
+    try {
+      // Simulate file processing
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Mock success
+      setSuccess('Archivo procesado correctamente. Datos actualizados.');
+      setHasData(true);
+    } catch (err) {
+      setError('Error al procesar el archivo. Verifique el formato y estructura.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -172,22 +165,14 @@ export const CuentaPyGPage = () => {
                   <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
                     Cuenta de Pérdidas y Ganancias
                   </h1>
-                  <div className="flex items-center gap-3">
-                    <p className="text-slate-700 text-lg font-medium">
-                      Análisis de Resultados con Comparativa Año Anterior
-                    </p>
-                    <DataStatusBadge 
-                      hasData={hasRealData}
-                      lastUpdated={validation.lastUpdated}
-                      completeness={validation.dataQuality.pyg}
-                      variant="compact"
-                    />
+                  <p className="text-slate-700 text-lg font-medium">
+                    Análisis de Resultados con Comparativa Año Anterior
                     {selectedPeriods.length > 0 && (
                       <Badge variant="outline" className="ml-2">
                         {selectedPeriods.length} periodo{selectedPeriods.length > 1 ? 's' : ''}
                       </Badge>
                     )}
-                  </div>
+                  </p>
                 </div>
                 
                 <RoleBasedAccess allowedRoles={['admin']}>
@@ -253,19 +238,28 @@ export const CuentaPyGPage = () => {
             )}
           </RoleBasedAccess>
 
-          {/* Mensaje cuando no hay datos reales */}
-          {!hasRealData && (
+          {/* Mensaje informativo cuando no hay datos */}
+          {!hasData && (
             <section>
-              <MissingFinancialData
-                dataType="pyg"
-                onUploadClick={handleUploadClick}
-                missingTables={validation.missingTables}
-              />
+              <Card className="border-2 border-dashed border-slate-300 bg-slate-50">
+                <CardContent className="p-8 text-center">
+                  <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                    No hay datos de P&G disponibles
+                  </h3>
+                  <p className="text-slate-600 mb-4">
+                    Los datos financieros deben ser cargados por un administrador desde el panel de control.
+                  </p>
+                  <Badge variant="outline" className="text-slate-500">
+                    Contacta con tu administrador para cargar los datos
+                  </Badge>
+                </CardContent>
+              </Card>
             </section>
           )}
 
           {/* KPIs Section con comparativa */}
-          {hasRealData && kpiData.length > 0 && (
+          {hasData && (
             <section>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {kpiData.map((kpi, index) => {
@@ -299,7 +293,7 @@ export const CuentaPyGPage = () => {
           )}
 
           {/* Charts and Data Section */}
-          {hasRealData && pygData.length > 0 && (
+          {hasData && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* P&G Table */}
               <Card className="border-0 shadow-md overflow-hidden">

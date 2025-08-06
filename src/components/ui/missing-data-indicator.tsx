@@ -1,7 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { FileText, Upload, Plus, Database, AlertTriangle } from 'lucide-react';
+import { FileText, Upload, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface MissingDataIndicatorProps {
@@ -12,15 +11,6 @@ interface MissingDataIndicatorProps {
   onCreateClick?: () => void;
   className?: string;
   size?: 'sm' | 'md' | 'lg';
-  dataType?: 'pyg' | 'balance' | 'cashflow' | 'financial';
-  templateName?: string;
-}
-
-interface SpecificMissingDataProps {
-  dataType: 'pyg' | 'balance' | 'cashflow' | 'financial';
-  missingTables?: string[];
-  onUploadClick?: () => void;
-  className?: string;
 }
 
 export const MissingDataIndicator = ({
@@ -30,9 +20,7 @@ export const MissingDataIndicator = ({
   onUploadClick,
   onCreateClick,
   className,
-  size = 'md',
-  dataType,
-  templateName
+  size = 'md'
 }: MissingDataIndicatorProps) => {
   const sizeClasses = {
     sm: 'p-3',
@@ -69,12 +57,6 @@ export const MissingDataIndicator = ({
             </p>
           </div>
 
-          {templateName && (
-            <Badge variant="outline" className="text-xs font-mono">
-              {templateName}
-            </Badge>
-          )}
-
           <div className="flex flex-col sm:flex-row gap-2 pt-2">
             {onUploadClick && (
               <Button
@@ -103,55 +85,6 @@ export const MissingDataIndicator = ({
         </div>
       </CardContent>
     </Card>
-  );
-};
-
-// Specific Missing Data Components for Financial Data Types
-export const MissingFinancialData = ({
-  dataType,
-  missingTables = [],
-  onUploadClick,
-  className
-}: SpecificMissingDataProps) => {
-  const configs = {
-    pyg: {
-      title: 'Faltan Datos de P&G',
-      description: 'No se encontraron datos de Cuenta de Pérdidas y Ganancias',
-      template: 'cuenta-pyg.csv',
-      icon: FileText
-    },
-    balance: {
-      title: 'Faltan Datos de Balance',
-      description: 'No se encontraron datos de Balance de Situación',
-      template: 'balance-situacion.csv',
-      icon: Database
-    },
-    cashflow: {
-      title: 'Faltan Datos de Flujos',
-      description: 'No se encontraron datos de Estado de Flujos de Efectivo',
-      template: 'estado-flujos.csv',
-      icon: FileText
-    },
-    financial: {
-      title: 'Faltan Datos Financieros',
-      description: 'No hay datos financieros suficientes para el análisis',
-      template: 'plantillas-financieras.zip',
-      icon: AlertTriangle
-    }
-  };
-
-  const config = configs[dataType];
-  
-  return (
-    <MissingDataIndicator
-      title={config.title}
-      description={config.description}
-      icon={config.icon}
-      templateName={config.template}
-      onUploadClick={onUploadClick}
-      className={className}
-      dataType={dataType}
-    />
   );
 };
 

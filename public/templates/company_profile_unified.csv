@@ -1,6 +1,0 @@
-company_id,record_type,as_of_date,source_url,confidence,uploaded_by,job_id,notes,extra_json,legal_name,year_founded,employees_exact,sector,hq_city,hq_country_code,website,description,holder_name,holder_type,direct_pct,indirect_pct
-EJEMPLO_TECH_SL,PROFILE,2023-12-31,https://mercantil.registradores.org,1.0,,,Denominación social oficial,"{""nif"":""B12345678""}","Ejemplo Tecnológico S.L.",2010,85,Tecnología,Madrid,ES,https://ejemplo-tech.es,"Empresa especializada en desarrollo de software empresarial y soluciones de transformación digital",,,
-EJEMPLO_TECH_SL,SHAREHOLDER,2023-12-31,https://mercantil.registradores.org,1.0,,,Accionista principal,"{""cargo"":""CEO""}",,,,,,,"Juan Pérez González",person,60.5,0.0
-EJEMPLO_TECH_SL,SHAREHOLDER,2023-12-31,https://mercantil.registradores.org,1.0,,,Accionista institucional,"{""fondo"":""venture_capital""}",,,,,,,"Tech Ventures Capital S.L.",entity,25.0,0.0
-EJEMPLO_TECH_SL,SHAREHOLDER,2023-12-31,https://mercantil.registradores.org,1.0,,,Accionista minoritario,"{""empleado"":""true""}",,,,,,,"María López Rodríguez",person,10.0,0.0
-EJEMPLO_TECH_SL,SHAREHOLDER,2023-12-31,https://mercantil.registradores.org,1.0,,,Accionista minoritario,"{""empleado"":""true""}",,,,,,,"Carlos Sánchez García",person,4.5,0.0

@@ -1,9 +1,8 @@
 /**
  * Template Service
- * Provides template management functionality using real database templates
+ * Provides template management functionality using mock data
+ * (No database tables exist for templates yet)
  */
-
-import { supabase } from '@/integrations/supabase/client';
 
 export interface TemplateSchema {
   id: string;
@@ -11,190 +10,126 @@ export interface TemplateSchema {
   display_name: string;
   category: string;
   version: string;
-  schema_definition: {
-    columns: Array<{
-      name: string;
-      type: string;
-      required: boolean;
-      description?: string;
-      validations?: Array<any>;
-    }>;
-    variableYearColumns?: boolean;
-    yearColumnPattern?: string;
-    expectedConcepts?: string[];
-    allowAdditionalColumns?: boolean;
-    delimiter?: string;
-    sections?: string[];
-  };
-  validation_rules: Array<{
-    type: string;
-    message: string;
-    severity?: 'error' | 'warning' | 'info';
-    description?: string;
-  }>;
+  fields: any[];
+  validations: any[];
   description?: string;
   is_active: boolean;
-  is_required: boolean;
   created_at: string;
-  updated_at: string;
 }
 
-// Template cache for performance
-let templateCache: TemplateSchema[] | null = null;
-let cacheTimestamp: number = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// Mock templates data
+const MOCK_TEMPLATES: TemplateSchema[] = [
+  {
+    id: '1',
+    name: 'balance-sheet',
+    display_name: 'Balance Sheet',
+    category: 'financial',
+    version: '1.0',
+    fields: [
+      { name: 'activo_corriente', type: 'number', required: true },
+      { name: 'activo_no_corriente', type: 'number', required: true },
+      { name: 'pasivo_corriente', type: 'number', required: true },
+      { name: 'pasivo_no_corriente', type: 'number', required: true },
+      { name: 'patrimonio_neto', type: 'number', required: true }
+    ],
+    validations: [
+      { rule: 'balance_check', message: 'Activo debe igual Pasivo + Patrimonio' }
+    ],
+    description: 'Standard balance sheet template',
+    is_active: true,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: '2',
+    name: 'profit-loss',
+    display_name: 'Profit & Loss',
+    category: 'financial',
+    version: '1.0',
+    fields: [
+      { name: 'ingresos', type: 'number', required: true },
+      { name: 'costes_ventas', type: 'number', required: true },
+      { name: 'gastos_operativos', type: 'number', required: true },
+      { name: 'gastos_financieros', type: 'number', required: false },
+      { name: 'impuestos', type: 'number', required: false }
+    ],
+    validations: [
+      { rule: 'positive_revenues', message: 'Ingresos deben ser positivos' }
+    ],
+    description: 'Standard profit and loss template',
+    is_active: true,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: '3',
+    name: 'cash-flow',
+    display_name: 'Cash Flow',
+    category: 'financial',
+    version: '1.0',
+    fields: [
+      { name: 'flujo_operativo', type: 'number', required: true },
+      { name: 'flujo_inversion', type: 'number', required: true },
+      { name: 'flujo_financiacion', type: 'number', required: true }
+    ],
+    validations: [],
+    description: 'Standard cash flow template',
+    is_active: true,
+    created_at: new Date().toISOString()
+  }
+];
 
 export class TemplateService {
-  private async clearCache() {
-    templateCache = null;
-    cacheTimestamp = 0;
-  }
-
-  private async getCachedTemplates(): Promise<TemplateSchema[]> {
-    const now = Date.now();
-    if (templateCache && (now - cacheTimestamp) < CACHE_DURATION) {
-      return templateCache;
-    }
-
-    const { data, error } = await supabase
-      .from('template_schemas')
-      .select('*')
-      .eq('is_active', true)
-      .order('name');
-
-    if (error) {
-      console.error('Error fetching templates:', error);
-      throw new Error(`Failed to fetch templates: ${error.message}`);
-    }
-
-    // Transform database data to match our interface
-    const transformedData = (data || []).map(item => ({
-      ...item,
-      schema_definition: typeof item.schema_definition === 'string' 
-        ? JSON.parse(item.schema_definition) 
-        : item.schema_definition,
-      validation_rules: typeof item.validation_rules === 'string'
-        ? JSON.parse(item.validation_rules)
-        : item.validation_rules
-    })) as TemplateSchema[];
-
-    templateCache = transformedData;
-    cacheTimestamp = now;
-    return templateCache;
-  }
-
   async getTemplates(): Promise<TemplateSchema[]> {
-    return this.getCachedTemplates();
+    // Simulate async operation
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return MOCK_TEMPLATES.filter(t => t.is_active);
   }
 
   async getTemplate(id: string): Promise<TemplateSchema | null> {
-    const { data, error } = await supabase
-      .from('template_schemas')
-      .select('*')
-      .eq('id', id)
-      .eq('is_active', true)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        return null; // Template not found
-      }
-      throw new Error(`Failed to fetch template: ${error.message}`);
-    }
-
-    // Transform database data to match our interface
-    if (data) {
-      return {
-        ...data,
-        schema_definition: typeof data.schema_definition === 'string' 
-          ? JSON.parse(data.schema_definition) 
-          : data.schema_definition,
-        validation_rules: typeof data.validation_rules === 'string'
-          ? JSON.parse(data.validation_rules)
-          : data.validation_rules
-      } as TemplateSchema;
-    }
-
-    return null;
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return MOCK_TEMPLATES.find(t => t.id === id) || null;
   }
 
   async getTemplatesByCategory(category: string): Promise<TemplateSchema[]> {
-    const { data, error } = await supabase
-      .from('template_schemas')
-      .select('*')
-      .eq('category', category)
-      .eq('is_active', true)
-      .order('name');
-
-    if (error) {
-      throw new Error(`Failed to fetch templates by category: ${error.message}`);
-    }
-
-    // Transform database data to match our interface
-    return (data || []).map(item => ({
-      ...item,
-      schema_definition: typeof item.schema_definition === 'string' 
-        ? JSON.parse(item.schema_definition) 
-        : item.schema_definition,
-      validation_rules: typeof item.validation_rules === 'string'
-        ? JSON.parse(item.validation_rules)
-        : item.validation_rules
-    })) as TemplateSchema[];
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return MOCK_TEMPLATES.filter(t => t.category === category && t.is_active);
   }
 
-  async createTemplate(template: Omit<TemplateSchema, 'id' | 'created_at' | 'updated_at'>): Promise<TemplateSchema> {
-    const { data, error } = await supabase
-      .from('template_schemas')
-      .insert({
-        ...template,
-        schema_definition: JSON.stringify(template.schema_definition),
-        validation_rules: JSON.stringify(template.validation_rules)
-      })
-      .select()
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to create template: ${error.message}`);
-    }
-
-    this.clearCache(); // Clear cache after creating
-    return this.getTemplate(data.id) as Promise<TemplateSchema>;
+  async createTemplate(template: Omit<TemplateSchema, 'id' | 'created_at'>): Promise<TemplateSchema> {
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const newTemplate: TemplateSchema = {
+      ...template,
+      id: Math.random().toString(36).substr(2, 9),
+      created_at: new Date().toISOString()
+    };
+    
+    // In a real implementation, this would be saved to database
+    MOCK_TEMPLATES.push(newTemplate);
+    return newTemplate;
   }
 
   async updateTemplate(id: string, updates: Partial<TemplateSchema>): Promise<TemplateSchema | null> {
-    const updateData: any = { ...updates };
-    if (updateData.schema_definition) {
-      updateData.schema_definition = JSON.stringify(updateData.schema_definition);
-    }
-    if (updateData.validation_rules) {
-      updateData.validation_rules = JSON.stringify(updateData.validation_rules);
-    }
-
-    const { error } = await supabase
-      .from('template_schemas')
-      .update(updateData)
-      .eq('id', id);
-
-    if (error) {
-      throw new Error(`Failed to update template: ${error.message}`);
-    }
-
-    this.clearCache(); // Clear cache after updating
-    return this.getTemplate(id);
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const templateIndex = MOCK_TEMPLATES.findIndex(t => t.id === id);
+    if (templateIndex === -1) return null;
+    
+    MOCK_TEMPLATES[templateIndex] = {
+      ...MOCK_TEMPLATES[templateIndex],
+      ...updates
+    };
+    
+    return MOCK_TEMPLATES[templateIndex];
   }
 
   async deleteTemplate(id: string): Promise<boolean> {
-    const { error } = await supabase
-      .from('template_schemas')
-      .update({ is_active: false })
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting template:', error);
-      return false;
-    }
-
-    this.clearCache(); // Clear cache after deleting
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    const templateIndex = MOCK_TEMPLATES.findIndex(t => t.id === id);
+    if (templateIndex === -1) return false;
+    
+    // Soft delete - mark as inactive
+    MOCK_TEMPLATES[templateIndex].is_active = false;
     return true;
   }
 
@@ -217,18 +152,18 @@ export class TemplateService {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    // Validation logic using schema_definition
-    template.schema_definition.columns.forEach(column => {
-      if (column.required && !fileData[column.name]) {
-        errors.push(`Required field '${column.name}' is missing`);
+    // Mock validation logic
+    template.fields.forEach(field => {
+      if (field.required && !fileData[field.name]) {
+        errors.push(`Required field '${field.name}' is missing`);
       }
-      if (fileData[column.name] && column.type === 'numeric' && isNaN(Number(fileData[column.name]))) {
-        errors.push(`Field '${column.name}' must be a number`);
+      if (fileData[field.name] && field.type === 'number' && isNaN(Number(fileData[field.name]))) {
+        errors.push(`Field '${field.name}' must be a number`);
       }
     });
 
-    // Warnings
-    if (Object.keys(fileData).length > template.schema_definition.columns.length) {
+    // Mock warnings
+    if (Object.keys(fileData).length > template.fields.length) {
       warnings.push('File contains more fields than template expects');
     }
 
@@ -249,74 +184,31 @@ export class TemplateService {
   }
 
   async getRequiredTemplates(): Promise<TemplateSchema[]> {
-    const { data, error } = await supabase
-      .from('template_schemas')
-      .select('*')
-      .eq('is_required', true)
-      .eq('is_active', true)
-      .order('name');
-
-    if (error) {
-      console.error('Error fetching required templates:', error);
-      return [];
-    }
-
-    // Transform database data to match our interface
-    return (data || []).map(item => ({
-      ...item,
-      schema_definition: typeof item.schema_definition === 'string' 
-        ? JSON.parse(item.schema_definition) 
-        : item.schema_definition,
-      validation_rules: typeof item.validation_rules === 'string'
-        ? JSON.parse(item.validation_rules)
-        : item.validation_rules
-    })) as TemplateSchema[];
+    return MOCK_TEMPLATES.filter(t => t.is_active);
   }
 
-  async generateTemplate(data: any): Promise<{ success: boolean; content?: string; filename?: string; error?: string }> {
-    try {
-      const { data: result, error } = await supabase.functions.invoke('template-generator', {
-        body: {
-          template_name: data.template_name || data.name,
-          company_id: data.company_id,
-          years: data.years || [],
-          customizations: data.customizations,
-          format: data.format || 'csv',
-          include_sample_data: data.include_sample_data !== false
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      return {
-        success: true,
-        content: result.template_content,
-        filename: result.filename
-      };
-    } catch (error) {
-      console.error('Error generating template:', error);
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
+  async generateTemplate(data: any): Promise<TemplateSchema> {
+    return this.createTemplate({
+      name: data.name || 'generated-template',
+      display_name: data.displayName || 'Generated Template',
+      category: data.category || 'custom',
+      version: '1.0',
+      fields: data.fields || [],
+      validations: data.validations || [],
+      description: data.description,
+      is_active: true
+    });
   }
 
   async getCompanyCustomizations(companyId: string): Promise<any[]> {
-    const { data, error } = await supabase
-      .from('company_template_customizations')
-      .select('*')
-      .eq('company_id', companyId)
-      .eq('is_active', true);
-
-    if (error) {
-      console.error('Error fetching company customizations:', error);
-      return [];
-    }
-
-    return data || [];
+    // Mock customizations
+    return [{
+      id: '1',
+      company_id: companyId,
+      template_id: '1',
+      customizations: {},
+      created_at: new Date().toISOString()
+    }];
   }
 
   async saveCompanyCustomization(companyId: string, templateId: string, customizations: any): Promise<any> {
@@ -335,36 +227,23 @@ export class TemplateService {
   }
 
   async detectTemplate(fileData: any): Promise<{ templateId: string; confidence: number } | null> {
-    try {
-      const templates = await this.getTemplates();
-      const fieldNames = Object.keys(fileData);
+    // Mock template detection
+    const fieldNames = Object.keys(fileData);
+    
+    for (const template of MOCK_TEMPLATES) {
+      const matchedFields = template.fields.filter(field => 
+        fieldNames.some(fn => fn.toLowerCase().includes(field.name.toLowerCase()))
+      );
       
-      let bestMatch: { templateId: string; confidence: number } | null = null;
-      let highestConfidence = 0;
-      
-      for (const template of templates) {
-        const templateFields = template.schema_definition.columns.map(col => col.name);
-        const matchedFields = templateFields.filter(field => 
-          fieldNames.some(fn => fn.toLowerCase().includes(field.toLowerCase()))
-        );
-        
-        if (matchedFields.length > 0) {
-          const confidence = matchedFields.length / templateFields.length;
-          if (confidence > highestConfidence) {
-            highestConfidence = confidence;
-            bestMatch = {
-              templateId: template.id,
-              confidence
-            };
-          }
-        }
+      if (matchedFields.length > 0) {
+        return {
+          templateId: template.id,
+          confidence: matchedFields.length / template.fields.length
+        };
       }
-      
-      return bestMatch;
-    } catch (error) {
-      console.error('Error detecting template:', error);
-      return null;
     }
+    
+    return null;
   }
 
   async getCustomizations(): Promise<any[]> {

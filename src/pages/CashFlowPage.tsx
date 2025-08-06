@@ -1,8 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { useCashFlowData } from '@/hooks/useCashFlowData';
-import { MissingFinancialData } from '@/components/ui/missing-financial-data';
 import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,11 +20,8 @@ import {
 import { Gauge } from '@/components/ui/gauge';
 
 export default function CashFlowPage() {
-  // Use real data hook
-  const { kpis, isLoading, error, hasRealData } = useCashFlowData();
-  
   // Estado para controlar el comportamiento adaptativo
-  const [selectedPeriods, setSelectedPeriods] = useState(['2023']);
+  const [selectedPeriods, setSelectedPeriods] = useState(['2023']); // Simular que solo hay un período
   const [activeTab, setActiveTab] = useState('operativo');
   const [isSimulatorOpen, setIsSimulatorOpen] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -37,46 +32,73 @@ export default function CashFlowPage() {
     inventario: 0
   });
 
+  // Mock data - en producción vendría de una API
   const availablePeriods = ['2023', '2022', '2021'];
   const hasSinglePeriod = selectedPeriods.length === 1;
   const hasMultiplePeriods = selectedPeriods.length > 1;
 
-  // Show missing data indicator if no real data
-  if (!hasRealData && !isLoading) {
-    return (
-      <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50">
-        <DashboardSidebar />
-        <div className="flex-1 flex flex-col">
-          <DashboardHeader />
-          <main className="flex-1 p-6 flex items-center justify-center">
-            <div className="max-w-lg w-full">
-              <MissingFinancialData 
-                dataType="cashflow"
-                onUploadClick={() => console.log('Navigate to upload')}
-              />
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
+  // Datos de flujos de caja
+  const cashFlowData = {
+    '2023': {
+      beneficioNeto: 180000,
+      amortizaciones: 120000,
+      provisiones: 15000,
+      deltaExistencias: -25000,
+      deltaClientes: -35000,
+      deltaProveedores: 20000,
+      flujoOperativo: 275000,
+      inversiones: -150000,
+      desinversiones: 10000,
+      flujoInversion: -140000,
+      nuevaFinanciacion: 80000,
+      amortizacionDeuda: -45000,
+      dividendos: -30000,
+      flujoFinanciacion: 5000,
+      flujoNeto: 140000
+    },
+    '2022': {
+      beneficioNeto: 165000,
+      amortizaciones: 110000,
+      provisiones: 12000,
+      deltaExistencias: -15000,
+      deltaClientes: -25000,
+      deltaProveedores: 15000,
+      flujoOperativo: 262000,
+      inversiones: -120000,
+      desinversiones: 5000,
+      flujoInversion: -115000,
+      nuevaFinanciacion: 50000,
+      amortizacionDeuda: -40000,
+      dividendos: -25000,
+      flujoFinanciacion: -15000,
+      flujoNeto: 132000
+    }
+  };
 
-  // Use real calculations from the hook
+  const currentData = cashFlowData[selectedPeriods[0] as keyof typeof cashFlowData];
+
+  // Cálculos dinámicos
   const calculations = useMemo(() => {
-    return {
-      flujoOperativoPctVentas: kpis.flujoOperativoPctVentas,
-      flujoInversionPctActivos: Math.abs(kpis.flujoInversion) / 2100000 * 100, // Assuming assets 2.1M
-      calidadFCO: kpis.calidadFCO,
-      autofinanciacion: kpis.autofinanciacion,
-      coberturaDeuda: kpis.coberturaDeuda
-    };
-  }, [kpis]);
+    const flujoOperativoPctVentas = (currentData.flujoOperativo / 2400000) * 100; // Asumiendo ventas de 2.4M
+    const flujoInversionPctActivos = (Math.abs(currentData.flujoInversion) / 2100000) * 100; // Asumiendo activos 2.1M
+    const calidadFCO = ((currentData.flujoOperativo - currentData.beneficioNeto) / currentData.beneficioNeto) * 100;
+    const autofinanciacion = (currentData.flujoOperativo / Math.abs(currentData.inversiones)) * 100;
+    const coberturaDeuda = currentData.flujoOperativo / 85000; // Asumiendo servicio deuda 85K
 
-  // KPIs using real data
+    return {
+      flujoOperativoPctVentas,
+      flujoInversionPctActivos,
+      calidadFCO,
+      autofinanciacion,
+      coberturaDeuda
+    };
+  }, [currentData, selectedPeriods]);
+
+  // KPIs adaptativos
   const kpiData = [
     {
       title: 'Flujo Operativo',
-      value: `€${(kpis.flujoOperativo / 1000).toFixed(0)}K`,
+      value: `€${(currentData.flujoOperativo / 1000).toFixed(0)}K`,
       subtitle: `${calculations.flujoOperativoPctVentas.toFixed(1)}% sobre ventas`,
       trend: 'up' as const,
       trendValue: hasMultiplePeriods ? '+5.0%' : '',
@@ -85,7 +107,7 @@ export default function CashFlowPage() {
     },
     {
       title: 'Flujo Inversión',
-      value: `€${(kpis.flujoInversion / 1000).toFixed(0)}K`,
+      value: `€${(currentData.flujoInversion / 1000).toFixed(0)}K`,
       subtitle: `${calculations.flujoInversionPctActivos.toFixed(1)}% sobre activos`,
       trend: 'down' as const,
       trendValue: hasMultiplePeriods ? '+21.7%' : '',
@@ -94,16 +116,16 @@ export default function CashFlowPage() {
     },
     {
       title: 'Flujo Financiación',
-      value: `€${(kpis.flujoFinanciacion / 1000).toFixed(0)}K`,
+      value: `€${(currentData.flujoFinanciacion / 1000).toFixed(0)}K`,
       subtitle: 'Estructura equilibrada',
-      trend: kpis.flujoFinanciacion > 0 ? 'up' as const : 'down' as const,
+      trend: currentData.flujoFinanciacion > 0 ? 'up' as const : 'down' as const,
       trendValue: hasMultiplePeriods ? '+133%' : '',
       icon: CreditCard,
       variant: 'default' as const
     },
     {
       title: 'Flujo Neto',
-      value: `€${(kpis.flujoNeto / 1000).toFixed(0)}K`,
+      value: `€${(currentData.flujoNeto / 1000).toFixed(0)}K`,
       subtitle: 'Impacto tesorería',
       trend: 'up' as const,
       trendValue: hasMultiplePeriods ? '+6.1%' : '',
@@ -116,7 +138,7 @@ export default function CashFlowPage() {
   const multiPeriodKpis = hasMultiplePeriods ? [
     {
       title: 'Free Cash Flow',
-      value: `€${((kpis.flujoOperativo + kpis.flujoInversion) / 1000).toFixed(0)}K`,
+      value: `€${((currentData.flujoOperativo + currentData.flujoInversion) / 1000).toFixed(0)}K`,
       subtitle: 'FCO + Inversión',
       trend: 'up' as const,
       trendValue: '+17.5%',
@@ -164,23 +186,36 @@ export default function CashFlowPage() {
     }
   ];
 
-  // Simplified waterfall data using real flows
+  // Datos para el gráfico waterfall
   const waterfallData = [
-    { name: 'FLUJO OPERATIVO', value: kpis.flujoOperativo, cumulative: kpis.flujoOperativo, type: 'subtotal' },
-    { name: 'FLUJO INVERSIÓN', value: kpis.flujoInversion, cumulative: kpis.flujoOperativo + kpis.flujoInversion, type: 'subtotal' },
-    { name: 'FLUJO FINANCIACIÓN', value: kpis.flujoFinanciacion, cumulative: kpis.flujoOperativo + kpis.flujoInversion + kpis.flujoFinanciacion, type: 'subtotal' },
-    { name: 'FLUJO NETO', value: kpis.flujoNeto, cumulative: kpis.flujoNeto, type: 'total' }
+    { name: 'Beneficio Neto', value: currentData.beneficioNeto, cumulative: currentData.beneficioNeto, type: 'base' },
+    { name: '+ Amortizaciones', value: currentData.amortizaciones, cumulative: currentData.beneficioNeto + currentData.amortizaciones, type: 'positive' },
+    { name: '+ Provisiones', value: currentData.provisiones, cumulative: currentData.beneficioNeto + currentData.amortizaciones + currentData.provisiones, type: 'positive' },
+    { name: '- Δ Existencias', value: currentData.deltaExistencias, cumulative: currentData.beneficioNeto + currentData.amortizaciones + currentData.provisiones + currentData.deltaExistencias, type: 'negative' },
+    { name: '- Δ Clientes', value: currentData.deltaClientes, cumulative: currentData.beneficioNeto + currentData.amortizaciones + currentData.provisiones + currentData.deltaExistencias + currentData.deltaClientes, type: 'negative' },
+    { name: '+ Δ Proveedores', value: currentData.deltaProveedores, cumulative: currentData.flujoOperativo, type: 'positive' },
+    { name: 'FLUJO OPERATIVO', value: currentData.flujoOperativo, cumulative: currentData.flujoOperativo, type: 'subtotal' },
+    { name: '- Inversiones', value: currentData.inversiones, cumulative: currentData.flujoOperativo + currentData.inversiones, type: 'negative' },
+    { name: '+ Desinversiones', value: currentData.desinversiones, cumulative: currentData.flujoOperativo + currentData.flujoInversion, type: 'positive' },
+    { name: 'FLUJO INVERSIÓN', value: currentData.flujoInversion, cumulative: currentData.flujoOperativo + currentData.flujoInversion, type: 'subtotal' },
+    { name: '+ Nueva Financ.', value: currentData.nuevaFinanciacion, cumulative: currentData.flujoOperativo + currentData.flujoInversion + currentData.nuevaFinanciacion, type: 'positive' },
+    { name: '- Amort. Deuda', value: currentData.amortizacionDeuda, cumulative: currentData.flujoOperativo + currentData.flujoInversion + currentData.nuevaFinanciacion + currentData.amortizacionDeuda, type: 'negative' },
+    { name: '- Dividendos', value: currentData.dividendos, cumulative: currentData.flujoNeto, type: 'negative' },
+    { name: 'FLUJO NETO', value: currentData.flujoNeto, cumulative: currentData.flujoNeto, type: 'total' }
   ];
 
-  // Simplified composition data using real flows
+  // Datos para gráficos de composición
   const origenFondos = [
-    { name: 'Flujo Operativo', value: Math.abs(kpis.flujoOperativo), color: '#10B981' },
-    { name: 'Nueva Financiación', value: Math.abs(kpis.flujoFinanciacion > 0 ? kpis.flujoFinanciacion : 0), color: '#3B82F6' }
+    { name: 'Flujo Operativo', value: Math.abs(currentData.flujoOperativo), color: '#10B981' },
+    { name: 'Nueva Financiación', value: Math.abs(currentData.nuevaFinanciacion), color: '#3B82F6' },
+    { name: 'Desinversiones', value: Math.abs(currentData.desinversiones), color: '#F59E0B' }
   ];
 
   const aplicacionFondos = [
-    { name: 'Inversiones', value: Math.abs(kpis.flujoInversion), color: '#EF4444' },
-    { name: 'Incremento Caja', value: Math.abs(kpis.flujoNeto), color: '#10B981' }
+    { name: 'Inversiones', value: Math.abs(currentData.inversiones), color: '#EF4444' },
+    { name: 'Amort. Deuda', value: Math.abs(currentData.amortizacionDeuda), color: '#8B5CF6' },
+    { name: 'Dividendos', value: Math.abs(currentData.dividendos), color: '#F97316' },
+    { name: 'Incremento Caja', value: Math.abs(currentData.flujoNeto), color: '#10B981' }
   ];
 
   // Insights automáticos
@@ -673,11 +708,11 @@ export default function CashFlowPage() {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="p-4 bg-slate-50 rounded-xl">
                           <div className="text-sm text-slate-600">CAPEX Total</div>
-                          <div className="text-xl font-bold text-slate-800">{formatCurrency(Math.abs(kpis.flujoInversion))}</div>
+                          <div className="text-xl font-bold text-slate-800">{formatCurrency(Math.abs(currentData.inversiones))}</div>
                         </div>
                         <div className="p-4 bg-slate-50 rounded-xl">
-                          <div className="text-sm text-slate-600">vs FCO</div>
-                          <div className="text-xl font-bold text-steel-800">{kpis.flujoOperativo > 0 ? ((Math.abs(kpis.flujoInversion) / kpis.flujoOperativo) * 100).toFixed(0) : 0}%</div>
+                          <div className="text-sm text-slate-600">vs Amortizaciones</div>
+                          <div className="text-xl font-bold text-steel-800">{((Math.abs(currentData.inversiones) / currentData.amortizaciones) * 100).toFixed(0)}%</div>
                         </div>
                         <div className="p-4 bg-cadet-50 rounded-xl">
                           <div className="text-sm text-cadet-600">Tasa reposición</div>
@@ -692,15 +727,15 @@ export default function CashFlowPage() {
                       <h3 className="text-lg font-semibold text-slate-800">Movimientos de Financiación</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-full">
                         <div className="p-4 bg-slate-50 rounded-xl min-w-0">
-                          <div className="text-sm text-slate-600 mb-1">Flujo financiación</div>
+                          <div className="text-sm text-slate-600 mb-1">Nueva financiación</div>
                           <div className="text-xl font-bold text-success-800 break-words">
-                            {formatCurrency(kpis.flujoFinanciacion)}
+                            {formatCurrency(currentData.nuevaFinanciacion)}
                           </div>
                         </div>
                         <div className="p-4 bg-slate-50 rounded-xl min-w-0">
-                          <div className="text-sm text-slate-600 mb-1">Flujo neto</div>
-                          <div className="text-xl font-bold text-steel-800 break-words">
-                            {formatCurrency(kpis.flujoNeto)}
+                          <div className="text-sm text-slate-600 mb-1">Amort. deuda</div>
+                          <div className="text-xl font-bold text-danger-800 break-words">
+                            {formatCurrency(Math.abs(currentData.amortizacionDeuda))}
                           </div>
                         </div>
                         <div className="p-4 bg-warning-50 rounded-xl min-w-0">

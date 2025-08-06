@@ -1,11 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface RealDebtItem {
   id: string;
-  company_id: string;
-  loan_key: string;
   entity_name: string;
   loan_type: string;
   initial_amount: number;
@@ -17,128 +15,116 @@ export interface RealDebtItem {
   currency_code: string;
 }
 
+export interface DebtMaturity {
+  id: string;
+  maturity_year: number;
+  principal_amount: number;
+  interest_amount: number;
+  total_amount: number;
+}
+
 export interface RiskMetrics {
-  dscr: number; // Debt Service Coverage Ratio
-  netDebtEbitda: number; // Net Debt / EBITDA
-  interestCoverage: number; // EBITDA / Interest Payments
+  dscr: number;
+  netDebtEbitda: number;
+  interestCoverage: number;
 }
 
 export const useRealDebtData = (companyId?: string) => {
-  const [debtData, setDebtData] = useState<RealDebtItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [debtLoans, setDebtLoans] = useState<RealDebtItem[]>([]);
+  const [debtMaturities, setDebtMaturities] = useState<DebtMaturity[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const fetchDebtData = async () => {
-    if (!user || !companyId) {
-      setDebtData([]);
-      setLoading(false);
-      return;
+  useEffect(() => {
+    if (user && companyId) {
+      fetchDebtData();
+    } else {
+      setIsLoading(false);
     }
+  }, [user, companyId]);
 
+  const fetchDebtData = async () => {
+    if (!companyId) return;
+    
     try {
-      setLoading(true);
+      setIsLoading(true);
       setError(null);
 
-      // Fetch debt loans data
+      // Fetch debt loans
       const { data: loansData, error: loansError } = await supabase
         .from('debt_loans')
-        .select(`
-          id,
-          company_id,
-          loan_key,
-          entity_name,
-          loan_type,
-          initial_amount,
-          interest_rate,
-          maturity_date,
-          guarantees,
-          observations,
-          currency_code
-        `)
+        .select('*')
         .eq('company_id', companyId)
         .order('created_at', { ascending: false });
 
       if (loansError) throw loansError;
 
-      // Fetch debt balances for current balances
-      const { data: balancesData, error: balancesError } = await supabase
-        .from('debt_balances')
-        .select('loan_id, year, year_end_balance')
+      // Fetch debt maturities
+      const { data: maturitiesData, error: maturitiesError } = await supabase
+        .from('debt_maturities')
+        .select('*')
         .eq('company_id', companyId)
-        .order('year', { ascending: false });
+        .order('maturity_year', { ascending: true });
 
-      if (balancesError) throw balancesError;
+      if (maturitiesError) throw maturitiesError;
 
-      // Combine loans with their current balances
-      const enrichedData: RealDebtItem[] = (loansData || []).map(loan => {
-        const latestBalance = balancesData?.find(b => b.loan_id === loan.id);
-        return {
-          id: loan.id.toString(),
-          company_id: loan.company_id,
-          loan_key: loan.loan_key,
-          entity_name: loan.entity_name,
-          loan_type: loan.loan_type,
-          initial_amount: loan.initial_amount,
-          current_balance: latestBalance?.year_end_balance || loan.initial_amount,
-          interest_rate: loan.interest_rate,
-          maturity_date: loan.maturity_date,
-          guarantees: loan.guarantees,
-          observations: loan.observations,
-          currency_code: loan.currency_code
-        };
-      });
+      // Transform loans data
+      const transformedLoans: RealDebtItem[] = loansData.map(loan => ({
+        id: loan.id.toString(),
+        entity_name: loan.entity_name,
+        loan_type: loan.loan_type,
+        initial_amount: Number(loan.initial_amount),
+        current_balance: Number(loan.initial_amount), // TODO: Calculate from balances
+        interest_rate: Number(loan.interest_rate),
+        maturity_date: loan.maturity_date,
+        guarantees: loan.guarantees,
+        observations: loan.observations,
+        currency_code: loan.currency_code
+      }));
 
-      setDebtData(enrichedData);
+      // Transform maturities data
+      const transformedMaturities: DebtMaturity[] = maturitiesData.map(maturity => ({
+        id: maturity.id.toString(),
+        maturity_year: maturity.maturity_year,
+        principal_amount: Number(maturity.principal_amount),
+        interest_amount: Number(maturity.interest_amount),
+        total_amount: Number(maturity.total_amount)
+      }));
+
+      setDebtLoans(transformedLoans);
+      setDebtMaturities(transformedMaturities);
     } catch (err) {
       console.error('Error fetching debt data:', err);
-      setError(err instanceof Error ? err.message : 'Error fetching debt data');
-      setDebtData([]);
+      setError(err instanceof Error ? err.message : 'Error al cargar datos de deuda');
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchDebtData();
-  }, [user, companyId]);
-
-  // Calculate metrics
+  // Calculate aggregated metrics
   const totalCapitalPendiente = useMemo(() => 
-    debtData.reduce((sum, item) => sum + item.current_balance, 0)
-  , [debtData]);
+    debtLoans.reduce((sum, item) => sum + item.current_balance, 0)
+  , [debtLoans]);
 
   const tirPromedio = useMemo(() => {
     if (totalCapitalPendiente === 0) return 0;
-    return debtData.reduce((sum, item) => 
-      sum + (item.interest_rate * item.current_balance) / totalCapitalPendiente, 0);
-  }, [debtData, totalCapitalPendiente]);
+    return debtLoans.reduce((sum, item) => 
+      sum + (item.interest_rate * item.current_balance) / totalCapitalPendiente, 0)
+  }, [debtLoans, totalCapitalPendiente]);
 
-  // Risk metrics calculation (using simulated EBITDA for now)
-  const riskMetrics = useMemo((): RiskMetrics => {
-    const ebitda = 450000; // This should come from financial data
-    const totalInterest = debtData.reduce((sum, item) => 
-      sum + (item.current_balance * item.interest_rate / 100), 0);
-
-    return {
-      dscr: ebitda > 0 ? ebitda / (totalInterest * 1.2) : 0, // Assuming 20% principal payments
-      netDebtEbitda: ebitda > 0 ? totalCapitalPendiente / ebitda : 0,
-      interestCoverage: totalInterest > 0 ? ebitda / totalInterest : 0
-    };
-  }, [debtData, totalCapitalPendiente]);
-
-  // Additional calculations for compatibility
+  // Data for charts
   const debtByEntity = useMemo(() => 
-    debtData.map((item, index) => ({
+    debtLoans.map((item, index) => ({
       name: item.entity_name,
       value: item.current_balance,
       percentage: totalCapitalPendiente > 0 ? (item.current_balance / totalCapitalPendiente) * 100 : 0,
-      color: ['#005E8A', '#6BD1FF', '#0ea5e9', '#0284c7', '#0369a1'][index % 5]
+      color: ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'][index % 5]
     }))
-  , [debtData, totalCapitalPendiente]);
+  , [debtLoans, totalCapitalPendiente]);
 
   const debtByType = useMemo(() => {
-    const typeGroups = debtData.reduce((acc: any[], item) => {
+    const typeGroups = debtLoans.reduce((acc: any[], item) => {
       const existing = acc.find(d => d.name === item.loan_type);
       if (existing) {
         existing.value += item.current_balance;
@@ -146,7 +132,7 @@ export const useRealDebtData = (companyId?: string) => {
         acc.push({
           name: item.loan_type,
           value: item.current_balance,
-          color: ['#005E8A', '#6BD1FF', '#0ea5e9', '#0284c7', '#0369a1'][acc.length % 5]
+          color: ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'][acc.length % 5]
         });
       }
       return acc;
@@ -156,50 +142,48 @@ export const useRealDebtData = (companyId?: string) => {
       ...group,
       percentage: totalCapitalPendiente > 0 ? (group.value / totalCapitalPendiente) * 100 : 0
     }));
-  }, [debtData, totalCapitalPendiente]);
+  }, [debtLoans, totalCapitalPendiente]);
 
+  // Maturities timeline
   const vencimientos = useMemo(() => {
-    const getDaysUntil = (dateStr: string): number => {
-      return Math.ceil((new Date(dateStr).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+    return debtMaturities.map(maturity => ({
+      id: maturity.id,
+      year: maturity.maturity_year,
+      principal: maturity.principal_amount,
+      interest: maturity.interest_amount,
+      total: maturity.total_amount,
+      urgency: maturity.maturity_year <= new Date().getFullYear() + 1 ? 'alta' : 
+               maturity.maturity_year <= new Date().getFullYear() + 2 ? 'media' : 'baja'
+    }));
+  }, [debtMaturities]);
+
+  // Risk metrics (using simulated EBITDA for now)
+  const riskMetrics = useMemo((): RiskMetrics => {
+    const ebitda = 450000; // TODO: Get from real financial data
+    const totalAnnualInterest = debtLoans.reduce((sum, item) => 
+      sum + (item.current_balance * item.interest_rate / 100), 0);
+    const totalAnnualDebtService = totalAnnualInterest; // Simplified
+
+    return {
+      dscr: totalAnnualDebtService > 0 ? ebitda / totalAnnualDebtService : 0,
+      netDebtEbitda: ebitda > 0 ? totalCapitalPendiente / ebitda : 0,
+      interestCoverage: totalAnnualInterest > 0 ? ebitda / totalAnnualInterest : 0
     };
+  }, [debtLoans, totalCapitalPendiente]);
 
-    const getUrgency = (days: number): 'alta' | 'media' | 'baja' => {
-      if (days <= 30) return 'alta';
-      if (days <= 90) return 'media';
-      return 'baja';
-    };
-
-    return debtData.map(item => {
-      const daysUntil = getDaysUntil(item.maturity_date);
-      const maturityYear = new Date(item.maturity_date).getFullYear();
-      return {
-        id: item.id,
-        entidad: item.entity_name,
-        tipo: item.loan_type,
-        importe: item.current_balance,
-        fecha: item.maturity_date,
-        daysUntil,
-        urgency: getUrgency(daysUntil),
-        year: maturityYear,
-        total: item.current_balance
-      };
-    }).sort((a, b) => a.daysUntil - b.daysUntil);
-  }, [debtData]);
-
-  const hasRealData = () => debtData.length > 0;
+  const hasRealData = () => debtLoans.length > 0;
 
   return {
-    debtData,
-    debtLoans: debtData, // Compatibility alias
-    loading,
-    isLoading: loading, // Compatibility alias
-    error,
+    debtLoans,
+    debtMaturities,
     totalCapitalPendiente,
     tirPromedio,
-    riskMetrics,
     debtByEntity,
     debtByType,
     vencimientos,
+    riskMetrics,
+    isLoading,
+    error,
     hasRealData,
     refetch: fetchDebtData
   };

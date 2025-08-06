@@ -1,9 +1,0 @@
-external_id,metric_code,frequency,period,value,currency,unit,value_kind,source,notes
-EJEMPLO_TECH_SL,INGRESOS,Y,2022,5000000,EUR,EUR,flow,financial_statements,Ingresos consolidados del ejercicio
-EJEMPLO_TECH_SL,INGRESOS,Y,2023,5750000,EUR,EUR,flow,financial_statements,Ingresos consolidados del ejercicio
-EJEMPLO_TECH_SL,COSTES_VENTAS,Y,2022,2000000,EUR,EUR,flow,financial_statements,Coste directo de las ventas
-EJEMPLO_TECH_SL,COSTES_VENTAS,Y,2023,2300000,EUR,EUR,flow,financial_statements,Coste directo de las ventas
-EJEMPLO_TECH_SL,ACTIVO_TOTAL,Y,2022,10000000,EUR,EUR,stock,balance_sheet,Total de activos al cierre del ejercicio
-EJEMPLO_TECH_SL,ACTIVO_TOTAL,Y,2023,12000000,EUR,EUR,stock,balance_sheet,Total de activos al cierre del ejercicio
-EJEMPLO_TECH_SL,EMPLEADOS,Y,2022,75,EUR,units,stock,hr_records,Plantilla media del ejercicio
-EJEMPLO_TECH_SL,EMPLEADOS,Y,2023,85,EUR,units,stock,hr_records,Plantilla media del ejercicio
