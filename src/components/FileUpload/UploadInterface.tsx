@@ -33,12 +33,14 @@ interface ProcessedData {
 interface UploadInterfaceProps {
   onUploadComplete?: (fileId: string, processedData: ProcessedData) => void;
   targetUserId?: string;
+  selectedCompany?: { id: string; name: string };
   className?: string;
 }
 
 export const UploadInterface: React.FC<UploadInterfaceProps> = ({
   onUploadComplete,
   targetUserId,
+  selectedCompany,
   className
 }) => {
   const [showValidator, setShowValidator] = useState(false);
@@ -63,7 +65,8 @@ export const UploadInterface: React.FC<UploadInterfaceProps> = ({
     retryUpload
   } = useFileUpload({
     onUploadComplete,
-    targetUserId
+    targetUserId,
+    companyId: selectedCompany?.id
   });
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {

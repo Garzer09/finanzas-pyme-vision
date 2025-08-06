@@ -168,68 +168,6 @@ export function useFileValidation() {
   };
 }
 
-export function useFileUpload() {
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadError, setUploadError] = useState<string | null>(null);
-  const { toast } = useToast();
-
-  const uploadWithProgress = useCallback(async (
-    file: File,
-    onProgress?: (progress: number) => void
-  ): Promise<boolean> => {
-    setIsUploading(true);
-    setUploadError(null);
-    setUploadProgress(0);
-    
-    try {
-      // Simulate upload progress for demonstration
-      // In real implementation, this would use actual upload API with progress
-      const totalSteps = 10;
-      
-      for (let i = 1; i <= totalSteps; i++) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        const progress = (i / totalSteps) * 100;
-        setUploadProgress(progress);
-        onProgress?.(progress);
-      }
-      
-      toast({
-        title: "Upload Complete",
-        description: `${file.name} uploaded successfully`,
-        variant: "default"
-      });
-      
-      return true;
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Upload failed';
-      setUploadError(errorMessage);
-      toast({
-        title: "Upload Error",
-        description: errorMessage,
-        variant: "destructive"
-      });
-      return false;
-    } finally {
-      setIsUploading(false);
-    }
-  }, [toast]);
-
-  const reset = useCallback(() => {
-    setUploadProgress(0);
-    setIsUploading(false);
-    setUploadError(null);
-  }, []);
-
-  return {
-    uploadWithProgress,
-    reset,
-    uploadProgress,
-    isUploading,
-    uploadError
-  };
-}
-
 export function useBatchValidation() {
   const [batchResults, setBatchResults] = useState<Map<string, ValidationResults>>(new Map());
   const [isValidating, setIsValidating] = useState(false);

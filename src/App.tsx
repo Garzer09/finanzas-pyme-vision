@@ -125,6 +125,9 @@ const App = () => {
               <Route path="/app/mis-empresas" element={<ViewerMisEmpresasPage />} />
               <Route path="/app/dashboard" element={<ViewerDashboardPage />} />
               
+              {/* Company-specific Dashboard Routes */}
+              <Route path="/app/empresas/:companyId/dashboard" element={<ViewerDashboardPage />} />
+              
               {/* Core Financial Analysis */}
               <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />
               <Route path="/balance-situacion" element={<BalanceSituacionPage />} />
@@ -221,6 +224,9 @@ const App = () => {
               <Route path="/admin/carga-plantillas" element={<AdminCargaPlantillasPage />} />
               <Route path="/admin/cargas" element={<AdminCargasPage />} />
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+              
+              {/* Admin Company-specific Dashboard Routes */}
+              <Route path="/admin/empresas/:companyId/dashboard" element={<ViewerDashboardPage />} />
             </Route>
             
             <Route path="*" element={<Navigate to="/" replace />} />
