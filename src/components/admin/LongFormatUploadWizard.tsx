@@ -467,6 +467,11 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
       toast.success('Datos procesados exitosamente');
       setCurrentStep(3);
       
+      // Navigate to company dashboard after successful upload
+      if (onComplete) {
+        onComplete({ companyId: currentCompanyId, success: true });
+      }
+      
     } catch (error: any) {
       console.error('Error saving data:', error);
       toast.error(`Error al guardar datos: ${error.message}`);

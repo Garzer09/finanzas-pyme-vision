@@ -225,6 +225,7 @@ export class RealTemplateService {
 
   private async saveToDatabase(companyId: string, fileType: string, data: any[]): Promise<void> {
     const currentDate = new Date().toISOString();
+    const currentUser = (await supabase.auth.getUser()).data.user;
     
     switch (fileType) {
       case 'pyg':
@@ -236,6 +237,7 @@ export class RealTemplateService {
           period_year: new Date(row.Periodo || row.periodo).getFullYear(),
           period_type: 'monthly',
           currency_code: 'EUR',
+          uploaded_by: currentUser?.id,
           created_at: currentDate
         }));
         
@@ -256,6 +258,7 @@ export class RealTemplateService {
           period_year: new Date(row.Periodo || row.periodo).getFullYear(),
           period_type: 'monthly',
           currency_code: 'EUR',
+          uploaded_by: currentUser?.id,
           created_at: currentDate
         }));
         
@@ -275,6 +278,7 @@ export class RealTemplateService {
           period_date: new Date().toISOString().split('T')[0],
           period_year: new Date().getFullYear(),
           period_type: 'annual',
+          uploaded_by: currentUser?.id,
           created_at: currentDate
         }));
         
@@ -294,6 +298,7 @@ export class RealTemplateService {
           unit: row.Unidad || row.unidad || 'percentage',
           period_year: new Date().getFullYear(),
           period_type: 'annual',
+          uploaded_by: currentUser?.id,
           created_at: currentDate
         }));
         

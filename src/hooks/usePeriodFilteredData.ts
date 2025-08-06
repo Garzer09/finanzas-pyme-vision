@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { usePeriodContext } from '@/contexts/PeriodContext';
+import { useCompany } from '@/contexts/CompanyContext';
 
 interface UsePeriodFilteredDataResult {
   data: any[];
@@ -14,19 +15,21 @@ export const usePeriodFilteredData = (dataType?: string): UsePeriodFilteredDataR
   const [error, setError] = useState<string | null>(null);
   
   const { getPeriodFilteredData, selectedPeriods, availablePeriods } = usePeriodContext();
+  const { selectedCompany } = useCompany();
 
   const fetchData = async () => {
-    if (!dataType) return;
+    if (!dataType || !selectedCompany?.id) return;
     
     setLoading(true);
     setError(null);
     
     try {
-      const result = await getPeriodFilteredData(dataType);
+      // Pass company filter to the period context
+      const result = await getPeriodFilteredData(dataType, selectedCompany.id);
       setData(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error loading data');
-      console.error('Error fetching period filtered data:', err);
+      console.error('Error fetching company-filtered data:', err);
     } finally {
       setLoading(false);
     }
@@ -34,7 +37,7 @@ export const usePeriodFilteredData = (dataType?: string): UsePeriodFilteredDataR
 
   useEffect(() => {
     fetchData();
-  }, [dataType, selectedPeriods, availablePeriods]);
+  }, [dataType, selectedPeriods, availablePeriods, selectedCompany?.id]);
 
   const refetch = async () => {
     await fetchData();

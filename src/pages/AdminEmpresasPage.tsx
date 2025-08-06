@@ -562,7 +562,7 @@ export const AdminEmpresasPage: React.FC = () => {
                                 variant="outline" 
                                 size="sm" 
                                 className="gap-2"
-                                onClick={() => navigate(`/admin/dashboard?companyId=${company.id}`)}
+                                onClick={() => navigate(`/dashboard/company/${company.id}`)}
                               >
                                 <BarChart3 className="h-4 w-4" />
                                 Dashboard

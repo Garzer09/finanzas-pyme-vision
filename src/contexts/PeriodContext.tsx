@@ -37,7 +37,7 @@ interface PeriodContextType {
   saveConfiguration: () => Promise<void>;
   loadDetectedPeriods: (fileId?: string) => Promise<void>;
   addDetectedPeriods: (periods: DetectedPeriod[]) => Promise<void>;
-  getPeriodFilteredData: (dataType: string) => Promise<any[]>;
+  getPeriodFilteredData: (dataType: string, companyId?: string) => Promise<any[]>;
 }
 
 const PeriodContext = createContext<PeriodContextType | undefined>(undefined);
@@ -216,13 +216,18 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
     }
   };
 
-  const getPeriodFilteredData = async (dataType: string) => {
+  const getPeriodFilteredData = async (dataType: string, companyId?: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
+      // Use company-specific data fetching if companyId is provided
+      if (companyId) {
+        return await getCompanyFilteredData(dataType, companyId);
+      }
+
+      // Original logic for user-based data
       if (selectedPeriods.length === 0) {
-        // Si no hay periodos seleccionados, devolver datos más recientes
         const { data, error } = await supabase
           .from('financial_data')
           .select('*')
@@ -234,7 +239,6 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
         return data || [];
       }
 
-      // Obtener fechas de los periodos seleccionados
       const selectedPeriodDates = availablePeriods
         .filter(p => selectedPeriods.includes(p.id))
         .map(p => p.period_date);
@@ -250,6 +254,68 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
       return data || [];
     } catch (error) {
       console.error('Error getting period filtered data:', error);
+      return [];
+    }
+  };
+
+  const getCompanyFilteredData = async (dataType: string, companyId: string) => {
+    try {
+      // Map data types to appropriate company tables
+      switch (dataType) {
+        case 'pyg':
+        case 'profit_loss':
+          const { data: pygData, error: pygError } = await supabase
+            .from('fs_pyg_lines')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('period_date', { ascending: false });
+          
+          if (pygError) throw pygError;
+          return pygData || [];
+
+        case 'balance':
+        case 'balance_sheet':
+          const { data: balanceData, error: balanceError } = await supabase
+            .from('fs_balance_lines')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('period_date', { ascending: false });
+          
+          if (balanceError) throw balanceError;
+          return balanceData || [];
+
+        case 'operational':
+          const { data: opData, error: opError } = await supabase
+            .from('operational_metrics')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('period_date', { ascending: false });
+          
+          if (opError) throw opError;
+          return opData || [];
+
+        case 'financial_assumptions':
+          const { data: assumptionsData, error: assumptionsError } = await supabase
+            .from('financial_assumptions_normalized')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('period_year', { ascending: false });
+          
+          if (assumptionsError) throw assumptionsError;
+          return assumptionsData || [];
+
+        default:
+          const { data: unifiedData, error: unifiedError } = await supabase
+            .from('financial_series_unified')
+            .select('*')
+            .eq('company_id', companyId)
+            .order('period', { ascending: false });
+          
+          if (unifiedError) throw unifiedError;
+          return unifiedData || [];
+      }
+    } catch (error) {
+      console.error('Error getting company filtered data:', error);
       return [];
     }
   };

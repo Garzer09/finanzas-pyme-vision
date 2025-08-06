@@ -58,9 +58,9 @@ const ViewerMisEmpresasPage = () => {
 
       setCompanies(userCompanies || []);
 
-      // If user has only one company, redirect directly to dashboard
+      // If user has only one company, redirect directly to company dashboard
       if (userCompanies?.length === 1) {
-        navigate(`/app/dashboard?companyId=${userCompanies[0].id}`);
+        navigate(`/dashboard/company/${userCompanies[0].id}`);
         return;
       }
 
@@ -77,7 +77,7 @@ const ViewerMisEmpresasPage = () => {
   };
 
   const handleCompanySelect = (companyId: string) => {
-    navigate(`/app/dashboard?companyId=${companyId}`);
+    navigate(`/dashboard/company/${companyId}`);
   };
 
   useEffect(() => {

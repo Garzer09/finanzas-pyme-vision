@@ -11,6 +11,7 @@ import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PeriodProvider } from "./contexts/PeriodContext";
 import { AdminImpersonationProvider } from "./contexts/AdminImpersonationContext";
+import { CompanyProvider } from "./contexts/CompanyContext";
 
 import { RequireAuth } from "./components/RequireAuth";
 import { RequireAdmin } from "./components/RequireAdmin";
@@ -71,6 +72,7 @@ import AdminSettingsPage from "./pages/AdminSettingsPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
 import ViewerMisEmpresasPage from "./pages/ViewerMisEmpresasPage";
 import ViewerDashboardPage from "./pages/ViewerDashboardPage";
+import CompanyDashboardPage from "./pages/CompanyDashboardPage";
 import { SessionRecovery } from "@/components/SessionRecovery";
 
 import { AdminCargaPlantillasPage } from "./pages/AdminCargaPlantillasPage";
@@ -103,8 +105,9 @@ const App = () => {
       <AuthProvider>
         <SessionRecovery>
           <AdminImpersonationProvider>
-            <PeriodProvider>
-              <TooltipProvider>
+            <CompanyProvider>
+              <PeriodProvider>
+                <TooltipProvider>
             <Toaster />
             <Sonner />
           <Routes>
@@ -124,6 +127,7 @@ const App = () => {
               {/* Viewer Routes */}
               <Route path="/app/mis-empresas" element={<ViewerMisEmpresasPage />} />
               <Route path="/app/dashboard" element={<ViewerDashboardPage />} />
+              <Route path="/dashboard/company/:companyId" element={<CompanyDashboardPage />} />
               
               {/* Core Financial Analysis */}
               <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />
@@ -229,6 +233,7 @@ const App = () => {
           <DebugToolbar />
                 </TooltipProvider>
               </PeriodProvider>
+            </CompanyProvider>
           </AdminImpersonationProvider>
         </SessionRecovery>
       </AuthProvider>
