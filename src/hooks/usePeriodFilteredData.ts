@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { usePeriodContext } from '@/contexts/PeriodContext';
+import { useCompanyFinancialData } from '@/hooks/useOptimizedQueries';
 import { useCompany } from '@/contexts/CompanyContext';
+import { useMemo } from 'react';
 
 interface UsePeriodFilteredDataResult {
   data: any[];
@@ -10,43 +10,65 @@ interface UsePeriodFilteredDataResult {
 }
 
 export const usePeriodFilteredData = (dataType?: string): UsePeriodFilteredDataResult => {
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
-  const { getPeriodFilteredData, selectedPeriods, availablePeriods } = usePeriodContext();
   const { selectedCompany } = useCompany();
+  const queries = useCompanyFinancialData(selectedCompany?.id || '');
+  
+  const result = useMemo(() => {
 
-  const fetchData = async () => {
-    if (!dataType || !selectedCompany?.id) return;
-    
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Pass company filter to the period context
-      const result = await getPeriodFilteredData(dataType, selectedCompany.id);
-      setData(result);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error loading data');
-      console.error('Error fetching company-filtered data:', err);
-    } finally {
-      setLoading(false);
+    if (!selectedCompany?.id) {
+      return {
+        data: [],
+        loading: false,
+        error: null,
+        refetch: async () => {}
+      };
     }
-  };
 
-  useEffect(() => {
-    fetchData();
-  }, [dataType, selectedPeriods, availablePeriods, selectedCompany?.id]);
+    // Map dataType to appropriate query
+    let queryIndex = -1;
+    let targetData: any[] = [];
+    
+    if (dataType === 'pyg' || dataType === 'profit_loss') {
+      queryIndex = 0;
+    } else if (dataType === 'balance' || dataType === 'balance_sheet') {
+      queryIndex = 1;
+    }
 
-  const refetch = async () => {
-    await fetchData();
-  };
+    if (queryIndex >= 0 && queries[queryIndex]) {
+      const query = queries[queryIndex];
+      targetData = query.data || [];
+      
+      return {
+        data: targetData,
+        loading: query.isLoading,
+        error: query.error?.message || null,
+        refetch: async () => { await query.refetch(); }
+      };
+    }
 
-  return {
-    data,
-    loading,
-    error,
-    refetch
-  };
+    // Default case - combine all data
+    const allData = queries.reduce((acc, query) => {
+      if (query.data) {
+        acc.push(...query.data);
+      }
+      return acc;
+    }, [] as any[]);
+
+    const isLoading = queries.some(query => query.isLoading);
+    const errorMessages = queries
+      .filter(query => query.error)
+      .map(query => query.error?.message)
+      .join(', ');
+
+    return {
+      data: allData,
+      loading: isLoading,
+      error: errorMessages || null,
+      refetch: async () => {
+        await Promise.all(queries.map(query => query.refetch()));
+      }
+    };
+  }, [queries, dataType, selectedCompany?.id]);
+
+  return result;
 };

@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useUserRole } from '@/hooks/useUserRole';
-import { supabase } from '@/integrations/supabase/client';
+import { useMembershipCheck } from '@/hooks/useOptimizedQueries';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 
@@ -18,71 +18,29 @@ export const CompanyContextualizedRoute: React.FC<CompanyContextualizedRouteProp
   const { userRole } = useUserRole();
   const { toast } = useToast();
   const [accessChecked, setAccessChecked] = useState(false);
-  const [hasAccess, setHasAccess] = useState(false);
-  const accessCacheRef = useRef<Map<string, { hasAccess: boolean; timestamp: number }>>(new Map());
+  
+  // Use optimized membership check
+  const { data: membership, isLoading: membershipLoading, error: membershipError } = useMembershipCheck(companyId || '');
+
+  // Determine access based on optimized queries
+  const hasAccess = React.useMemo(() => {
+    if (!user || !companyId) return false;
+    if (userRole === 'admin') return true;
+    return !!membership && !membershipError;
+  }, [user, companyId, userRole, membership, membershipError]);
 
   useEffect(() => {
-    const verifyAccess = async () => {
-      if (!user || !companyId) {
-        setAccessChecked(true);
-        setHasAccess(false);
-        return;
-      }
-
-      try {
-        // Check access cache first (valid for 5 minutes)
-        const cacheKey = `${user.id}_${companyId}`;
-        const cached = accessCacheRef.current.get(cacheKey);
-        if (cached && (Date.now() - cached.timestamp) < 300000) {
-          setHasAccess(cached.hasAccess);
-          setAccessChecked(true);
-          return;
-        }
-
-        // Admin users have access to all companies
-        if (userRole === 'admin') {
-          accessCacheRef.current.set(cacheKey, { hasAccess: true, timestamp: Date.now() });
-          setHasAccess(true);
-          setAccessChecked(true);
-          return;
-        }
-
-        // Regular users need membership verification
-        const { data: membership, error } = await supabase
-          .from('memberships')
-          .select('company_id')
-          .eq('user_id', user.id)
-          .eq('company_id', companyId)
-          .single();
-
-        const hasValidAccess = !error && !!membership;
-        
-        // Cache the result
-        accessCacheRef.current.set(cacheKey, { 
-          hasAccess: hasValidAccess, 
-          timestamp: Date.now() 
+    if (!membershipLoading) {
+      if (!hasAccess && user && companyId) {
+        toast({
+          title: "Acceso denegado",
+          description: "No tienes permisos para acceder a esta empresa",
+          variant: "destructive"
         });
-
-        if (!hasValidAccess) {
-          toast({
-            title: "Acceso denegado",
-            description: "No tienes permisos para acceder a esta empresa",
-            variant: "destructive"
-          });
-          setHasAccess(false);
-        } else {
-          setHasAccess(true);
-        }
-      } catch (error) {
-        console.error('Error verifying company access:', error);
-        setHasAccess(false);
-      } finally {
-        setAccessChecked(true);
       }
-    };
-
-    verifyAccess();
-  }, [user, companyId, userRole, toast]);
+      setAccessChecked(true);
+    }
+  }, [membershipLoading, hasAccess, user, companyId, toast]);
 
   // Update company context when companyId changes
   useEffect(() => {
@@ -92,7 +50,7 @@ export const CompanyContextualizedRoute: React.FC<CompanyContextualizedRouteProp
   }, [companyId, selectedCompany]);
 
   // Show loading while checking access or loading company
-  if (!accessChecked || companyLoading) {
+  if (!accessChecked || companyLoading || membershipLoading) {
     return (
       <div className="min-h-screen bg-background flex">
         <div className="w-80">
