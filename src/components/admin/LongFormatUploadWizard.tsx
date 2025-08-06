@@ -8,7 +8,9 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, FileText, CheckCircle, ArrowRight, Download, X, XCircle, Building, Users } from 'lucide-react';
+import { Upload, FileText, CheckCircle, ArrowRight, Download, X, XCircle, Building, Users, Edit3 } from 'lucide-react';
+import { DataPreviewEditor } from './DataPreviewEditor';
+import { realTemplateService, DataPreview, DataPreviewRow } from '@/services/realTemplateService';
 
 // Types
 interface CompanyInfo {
@@ -77,6 +79,8 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [isLoadingCompany, setIsLoadingCompany] = useState(false);
   const [isCompanyPreloaded, setIsCompanyPreloaded] = useState(false);
+  const [dataPreview, setDataPreview] = useState<DataPreview | null>(null);
+  const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(companyId);
 
   // Auto-load company data if companyId is provided
   React.useEffect(() => {
@@ -394,6 +398,127 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
 
   const canProceedToStep2 = () => {
     return companyInfo.name && uploadedFiles.length > 0 && uploadedFiles.every(file => file.isValid);
+  };
+
+  const handlePreviewData = async () => {
+    if (!canProceedToStep2()) return;
+    
+    setCurrentStep(2);
+    setLoading(true);
+    
+    try {
+      // Create company if needed
+      let workingCompanyId = currentCompanyId;
+      
+      if (!workingCompanyId) {
+        const { data: newCompany, error: companyError } = await supabase
+          .from('companies')
+          .insert({
+            name: companyInfo.name,
+            sector: companyInfo.sector,
+            currency_code: companyInfo.currency,
+            accounting_standard: companyInfo.accounting_standard
+          })
+          .select()
+          .single();
+        
+        if (companyError) throw companyError;
+        workingCompanyId = newCompany.id;
+        setCurrentCompanyId(workingCompanyId);
+      }
+
+      // Generate preview for the first financial file
+      const financialFile = uploadedFiles.find(f => f.type && ['financial', 'pyg', 'balance', 'cashflow'].includes(f.type));
+      
+      if (financialFile) {
+        const fileData = financialFile.content.map(row => {
+          const rowObj: any = {};
+          financialFile.headers.forEach((header, index) => {
+            rowObj[header] = row[index] || '';
+          });
+          return rowObj;
+        });
+
+        const preview = await realTemplateService.validateAndPreviewData(fileData, financialFile.name);
+        setDataPreview(preview);
+      }
+      
+    } catch (error: any) {
+      console.error('Error preparing preview:', error);
+      toast.error(`Error al preparar vista previa: ${error.message}`);
+      setCurrentStep(1);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSavePreviewData = async (modifiedRows: DataPreviewRow[]) => {
+    if (!currentCompanyId || !dataPreview) return;
+    
+    setIsProcessing(true);
+    
+    try {
+      // Save the preview data
+      await realTemplateService.saveValidatedData(currentCompanyId, dataPreview, modifiedRows);
+      
+      // Process remaining files (qualitative, optional templates)
+      await processRemainingFiles(currentCompanyId);
+      
+      toast.success('Datos procesados exitosamente');
+      setCurrentStep(3);
+      
+    } catch (error: any) {
+      console.error('Error saving data:', error);
+      toast.error(`Error al guardar datos: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const processRemainingFiles = async (workingCompanyId: string) => {
+    // Process qualitative files
+    const qualitativeFiles = uploadedFiles.filter(f => f.type === 'qualitative');
+    for (const qualitativeFile of qualitativeFiles) {
+      const csvContent = createQualitativeCSV(qualitativeFile.parsedData);
+      const formData = new FormData();
+      formData.append('file', new Blob([csvContent], { type: 'text/csv' }), qualitativeFile.name);
+      formData.append('targetUserId', workingCompanyId);
+      
+      const { error: qualError } = await supabase.functions.invoke('empresa-cualitativa-processor', {
+        body: formData
+      });
+      
+      if (qualError) {
+        console.error('Error processing qualitative data:', qualError);
+        toast.error(`Error al procesar datos cualitativos: ${qualError.message}`);
+      }
+    }
+
+    // Process optional template files
+    const optionalFiles = uploadedFiles.filter(f => f.optionalTemplate === true);
+    for (const optionalFile of optionalFiles) {
+      try {
+        await processOptionalTemplate(workingCompanyId, optionalFile);
+      } catch (error: any) {
+        console.error(`Error processing ${optionalFile.name}:`, error);
+        toast.error(`Error al procesar ${optionalFile.name}: ${error.message}`);
+      }
+    }
+  };
+
+  const handleFinalComplete = () => {
+    if (isCompanyPreloaded && currentCompanyId) {
+      // Navigate to company dashboard
+      window.location.href = `/dashboard/company/${currentCompanyId}`;
+    } else {
+      // Call completion callback for new companies
+      onComplete?.(currentCompanyId);
+    }
+  };
+
+  const handleCancelPreview = () => {
+    setDataPreview(null);
+    setCurrentStep(1);
   };
 
   const handleProcessData = async () => {
@@ -787,11 +912,11 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
                 Cancelar
               </Button>
               <Button 
-                onClick={() => setCurrentStep(2)} 
-                disabled={!canProceedToStep2()}
+                onClick={handlePreviewData} 
+                disabled={!canProceedToStep2() || loading}
                 className="flex items-center gap-2"
               >
-                Continuar a Previsualización
+                {loading ? 'Preparando...' : 'Continuar a Previsualización'}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
@@ -802,6 +927,19 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
   }
 
   if (currentStep === 2) {
+    if (dataPreview) {
+      return (
+        <div className="space-y-6">
+          <DataPreviewEditor
+            preview={dataPreview}
+            onSave={handleSavePreviewData}
+            onCancel={handleCancelPreview}
+            isLoading={isProcessing}
+          />
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-6">
         <Card>
@@ -972,6 +1110,61 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
                 {isProcessing ? 'Procesando...' : 'Procesar Datos'}
                 <CheckCircle className="h-4 w-4" />
               </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (currentStep === 3) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-600" />
+              Procesamiento Completado
+            </CardTitle>
+            <CardDescription>
+              Los datos han sido procesados exitosamente
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="text-center py-8">
+              <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">¡Datos procesados exitosamente!</h3>
+              <p className="text-muted-foreground mb-6">
+                Los datos financieros han sido guardados en la base de datos y están listos para su análisis.
+              </p>
+              
+              <div className="flex gap-4 justify-center">
+                <Button onClick={handleFinalComplete} className="bg-steel-600 hover:bg-steel-700">
+                  Ir al Dashboard
+                </Button>
+                <Button variant="outline" onClick={() => setCurrentStep(1)}>
+                  Procesar Más Datos
+                </Button>
+              </div>
+            </div>
+
+            {/* Summary */}
+            <div className="border-t pt-6">
+              <h4 className="font-medium mb-4">Resumen de Procesamiento</h4>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="p-3 bg-green-50 rounded-lg">
+                  <div className="text-sm font-medium text-green-700">Empresa</div>
+                  <div className="text-lg font-bold text-green-900">{companyInfo.name}</div>
+                </div>
+                <div className="p-3 bg-blue-50 rounded-lg">
+                  <div className="text-sm font-medium text-blue-700">Archivos Procesados</div>
+                  <div className="text-lg font-bold text-blue-900">{uploadedFiles.length}</div>
+                </div>
+                <div className="p-3 bg-purple-50 rounded-lg">
+                  <div className="text-sm font-medium text-purple-700">Estado</div>
+                  <div className="text-lg font-bold text-purple-900">Completado</div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

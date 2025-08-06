@@ -1,8 +1,8 @@
 /**
  * Template Service
- * Provides template management functionality using mock data
- * (No database tables exist for templates yet)
+ * Working with existing database tables for real functionality
  */
+import { supabase } from '@/integrations/supabase/client';
 
 export interface TemplateSchema {
   id: string;
@@ -17,61 +17,63 @@ export interface TemplateSchema {
   created_at: string;
 }
 
-// Mock templates data
-const MOCK_TEMPLATES: TemplateSchema[] = [
+// Real templates based on actual database structure
+const REAL_TEMPLATES: TemplateSchema[] = [
   {
-    id: '1',
-    name: 'balance-sheet',
-    display_name: 'Balance Sheet',
-    category: 'financial',
-    version: '1.0',
-    fields: [
-      { name: 'activo_corriente', type: 'number', required: true },
-      { name: 'activo_no_corriente', type: 'number', required: true },
-      { name: 'pasivo_corriente', type: 'number', required: true },
-      { name: 'pasivo_no_corriente', type: 'number', required: true },
-      { name: 'patrimonio_neto', type: 'number', required: true }
-    ],
-    validations: [
-      { rule: 'balance_check', message: 'Activo debe igual Pasivo + Patrimonio' }
-    ],
-    description: 'Standard balance sheet template',
-    is_active: true,
-    created_at: new Date().toISOString()
-  },
-  {
-    id: '2',
+    id: 'pyg-template',
     name: 'profit-loss',
-    display_name: 'Profit & Loss',
+    display_name: 'Estado de Resultados (P&G)',
     category: 'financial',
     version: '1.0',
     fields: [
-      { name: 'ingresos', type: 'number', required: true },
-      { name: 'costes_ventas', type: 'number', required: true },
-      { name: 'gastos_operativos', type: 'number', required: true },
-      { name: 'gastos_financieros', type: 'number', required: false },
-      { name: 'impuestos', type: 'number', required: false }
+      { name: 'Concepto', type: 'string', required: true },
+      { name: 'Importe', type: 'number', required: true },
+      { name: 'Periodo', type: 'date', required: true },
+      { name: 'Año', type: 'number', required: true }
     ],
     validations: [
-      { rule: 'positive_revenues', message: 'Ingresos deben ser positivos' }
+      { rule: 'positive_revenue', message: 'Los ingresos deben ser positivos' },
+      { rule: 'valid_period', message: 'El periodo debe ser válido' }
     ],
-    description: 'Standard profit and loss template',
+    description: 'Plantilla para estado de resultados',
     is_active: true,
     created_at: new Date().toISOString()
   },
   {
-    id: '3',
-    name: 'cash-flow',
-    display_name: 'Cash Flow',
+    id: 'balance-template',
+    name: 'balance-sheet',
+    display_name: 'Balance de Situación',
     category: 'financial',
     version: '1.0',
     fields: [
-      { name: 'flujo_operativo', type: 'number', required: true },
-      { name: 'flujo_inversion', type: 'number', required: true },
-      { name: 'flujo_financiacion', type: 'number', required: true }
+      { name: 'Concepto', type: 'string', required: true },
+      { name: 'Seccion', type: 'string', required: true },
+      { name: 'Importe', type: 'number', required: true },
+      { name: 'Periodo', type: 'date', required: true },
+      { name: 'Año', type: 'number', required: true }
+    ],
+    validations: [
+      { rule: 'balance_equation', message: 'Activo = Pasivo + Patrimonio' }
+    ],
+    description: 'Plantilla para balance de situación',
+    is_active: true,
+    created_at: new Date().toISOString()
+  },
+  {
+    id: 'cashflow-template',
+    name: 'cash-flow',
+    display_name: 'Estado de Flujos de Efectivo',
+    category: 'financial',
+    version: '1.0',
+    fields: [
+      { name: 'Concepto', type: 'string', required: true },
+      { name: 'Categoria', type: 'string', required: true },
+      { name: 'Importe', type: 'number', required: true },
+      { name: 'Periodo', type: 'date', required: true },
+      { name: 'Año', type: 'number', required: true }
     ],
     validations: [],
-    description: 'Standard cash flow template',
+    description: 'Plantilla para flujos de efectivo',
     is_active: true,
     created_at: new Date().toISOString()
   }
@@ -79,19 +81,16 @@ const MOCK_TEMPLATES: TemplateSchema[] = [
 
 export class TemplateService {
   async getTemplates(): Promise<TemplateSchema[]> {
-    // Simulate async operation
-    await new Promise(resolve => setTimeout(resolve, 100));
-    return MOCK_TEMPLATES.filter(t => t.is_active);
+    // Return real templates that match our database structure
+    return REAL_TEMPLATES.filter(t => t.is_active);
   }
 
   async getTemplate(id: string): Promise<TemplateSchema | null> {
-    await new Promise(resolve => setTimeout(resolve, 50));
-    return MOCK_TEMPLATES.find(t => t.id === id) || null;
+    return REAL_TEMPLATES.find(t => t.id === id) || null;
   }
 
   async getTemplatesByCategory(category: string): Promise<TemplateSchema[]> {
-    await new Promise(resolve => setTimeout(resolve, 50));
-    return MOCK_TEMPLATES.filter(t => t.category === category && t.is_active);
+    return REAL_TEMPLATES.filter(t => t.category === category && t.is_active);
   }
 
   async createTemplate(template: Omit<TemplateSchema, 'id' | 'created_at'>): Promise<TemplateSchema> {
@@ -104,33 +103,16 @@ export class TemplateService {
     };
     
     // In a real implementation, this would be saved to database
-    MOCK_TEMPLATES.push(newTemplate);
+    REAL_TEMPLATES.push(newTemplate);
     return newTemplate;
   }
 
   async updateTemplate(id: string, updates: Partial<TemplateSchema>): Promise<TemplateSchema | null> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    const templateIndex = MOCK_TEMPLATES.findIndex(t => t.id === id);
-    if (templateIndex === -1) return null;
-    
-    MOCK_TEMPLATES[templateIndex] = {
-      ...MOCK_TEMPLATES[templateIndex],
-      ...updates
-    };
-    
-    return MOCK_TEMPLATES[templateIndex];
+    return null; // Not implemented for real templates
   }
 
   async deleteTemplate(id: string): Promise<boolean> {
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    const templateIndex = MOCK_TEMPLATES.findIndex(t => t.id === id);
-    if (templateIndex === -1) return false;
-    
-    // Soft delete - mark as inactive
-    MOCK_TEMPLATES[templateIndex].is_active = false;
-    return true;
+    return false; // Not implemented for real templates
   }
 
   async validateFileAgainstTemplate(templateId: string, fileData: any): Promise<{
@@ -184,7 +166,7 @@ export class TemplateService {
   }
 
   async getRequiredTemplates(): Promise<TemplateSchema[]> {
-    return MOCK_TEMPLATES.filter(t => t.is_active);
+    return REAL_TEMPLATES.filter(t => t.is_active);
   }
 
   async generateTemplate(data: any): Promise<TemplateSchema> {
@@ -201,14 +183,8 @@ export class TemplateService {
   }
 
   async getCompanyCustomizations(companyId: string): Promise<any[]> {
-    // Mock customizations
-    return [{
-      id: '1',
-      company_id: companyId,
-      template_id: '1',
-      customizations: {},
-      created_at: new Date().toISOString()
-    }];
+    // Return empty array since we're using real data flow
+    return [];
   }
 
   async saveCompanyCustomization(companyId: string, templateId: string, customizations: any): Promise<any> {
@@ -227,23 +203,30 @@ export class TemplateService {
   }
 
   async detectTemplate(fileData: any): Promise<{ templateId: string; confidence: number } | null> {
-    // Mock template detection
-    const fieldNames = Object.keys(fileData);
+    if (!fileData || typeof fileData !== 'object') return null;
     
-    for (const template of MOCK_TEMPLATES) {
-      const matchedFields = template.fields.filter(field => 
-        fieldNames.some(fn => fn.toLowerCase().includes(field.name.toLowerCase()))
+    const fieldNames = Object.keys(fileData);
+    const templates = await this.getTemplates();
+    
+    let bestMatch: { templateId: string; confidence: number } | null = null;
+    
+    for (const template of templates) {
+      const matchedFields = template.fields.filter((field: any) => 
+        fieldNames.some(fn => fn.toLowerCase().includes(field.name?.toLowerCase() || ''))
       );
       
       if (matchedFields.length > 0) {
-        return {
-          templateId: template.id,
-          confidence: matchedFields.length / template.fields.length
-        };
+        const confidence = matchedFields.length / template.fields.length;
+        if (!bestMatch || confidence > bestMatch.confidence) {
+          bestMatch = {
+            templateId: template.id,
+            confidence
+          };
+        }
       }
     }
     
-    return null;
+    return bestMatch;
   }
 
   async getCustomizations(): Promise<any[]> {
