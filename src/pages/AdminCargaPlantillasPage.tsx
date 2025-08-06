@@ -4,12 +4,10 @@ import { AdminTopNavigation } from '@/components/AdminTopNavigation';
 import { LongFormatUploadWizard } from '@/components/admin/LongFormatUploadWizard';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import { toast } from 'sonner';
-
 export const AdminCargaPlantillasPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const companyId = searchParams.get('companyId');
-  
   const handleComplete = (processedCompanyId: string) => {
     toast.success('Datos procesados exitosamente');
     // Navigate to description page to review the uploaded qualitative data
@@ -19,13 +17,10 @@ export const AdminCargaPlantillasPage: React.FC = () => {
       navigate('/admin/dashboard');
     }
   };
-  
   const handleCancel = () => {
     navigate(-1);
   };
-
-  return (
-    <RoleBasedAccess allowedRoles={['admin']}>
+  return <RoleBasedAccess allowedRoles={['admin']}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50/30">
         <AdminTopNavigation />
         
@@ -40,21 +35,14 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                 <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-cadet-600 bg-clip-text text-transparent">
                   Carga de Plantillas
                 </h1>
-                <p className="text-slate-700 text-lg font-medium">
-                  Sistema unificado de carga de datos financieros y cualitativos en formato Long
-                </p>
+                <p className="text-slate-700 text-lg font-medium">Sistema unificado de carga de datos financieros y cualitativos</p>
               </div>
             </div>
           </div>
 
           {/* Long Format Upload Wizard */}
-          <LongFormatUploadWizard 
-            companyId={companyId}
-            onComplete={handleComplete}
-            onCancel={handleCancel}
-          />
+          <LongFormatUploadWizard companyId={companyId} onComplete={handleComplete} onCancel={handleCancel} />
         </div>
       </div>
-    </RoleBasedAccess>
-  );
+    </RoleBasedAccess>;
 };
