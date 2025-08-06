@@ -1,5 +1,6 @@
 import React from 'react';
 import { ModernKPICard } from '@/components/ui/modern-kpi-card';
+import { NoDataIndicator } from '@/components/ui/no-data-indicator';
 import { DollarSign, TrendingUp, Activity, BarChart3, Percent, Building2 } from 'lucide-react';
 
 interface FinancialData {
@@ -22,7 +23,16 @@ export const FinancialKPISection: React.FC<FinancialKPISectionProps> = ({
   currencyCode,
   period
 }) => {
-  if (!financialData) return null;
+  if (!financialData) {
+    return (
+      <NoDataIndicator
+        title="No hay datos financieros disponibles"
+        description="Sube las plantillas de Balance y Cuenta de Resultados para ver los KPIs financieros."
+        variant="detailed"
+        actionLabel="Subir datos financieros"
+      />
+    );
+  }
 
   // Debug log to verify we're getting real data
   console.log('FinancialKPISection - Real data:', {

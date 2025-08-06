@@ -51,47 +51,31 @@ export const useFinancialData = (dataType?: string) => {
       let result: any[] = [];
       let error = null;
 
-      // Fetch from specific financial tables based on dataType
-      if (dataType === 'estado_pyg' || !dataType) {
-        const pygQuery = supabase
-          .from('fs_pyg_lines')
-          .select('*')
-          .order('period_year', { ascending: false });
+      // Fetch from unified financial series table
+      const unifiedQuery = supabase
+        .from('financial_series_unified')
+        .select('*')
+        .order('period', { ascending: false });
+      
+      if (dataType) {
+        // Map dataType to appropriate metric categories
+        const categoryMapping: Record<string, string[]> = {
+          'estado_pyg': ['revenue', 'costs', 'profit'],
+          'balance_situacion': ['assets', 'liabilities', 'equity'],
+          'estado_flujos': ['cashflow', 'operating', 'investing', 'financing']
+        };
         
-        const { data: pygData, error: pygError } = await Promise.race([pygQuery, timeoutPromise]) as any;
-        if (pygError) error = pygError;
-        if (pygData && pygData.length > 0) {
-          const grouped = groupFinancialData(pygData, 'estado_pyg');
-          result.push(...grouped);
+        const categories = categoryMapping[dataType];
+        if (categories) {
+          unifiedQuery.in('metric_code', categories);
         }
       }
-
-      if (dataType === 'balance_situacion' || !dataType) {
-        const balanceQuery = supabase
-          .from('fs_balance_lines')
-          .select('*')
-          .order('period_year', { ascending: false });
-        
-        const { data: balanceData, error: balanceError } = await Promise.race([balanceQuery, timeoutPromise]) as any;
-        if (balanceError) error = balanceError;
-        if (balanceData && balanceData.length > 0) {
-          const grouped = groupFinancialData(balanceData, 'balance_situacion');
-          result.push(...grouped);
-        }
-      }
-
-      if (dataType === 'estado_flujos' || !dataType) {
-        const cashflowQuery = supabase
-          .from('fs_cashflow_lines')
-          .select('*')
-          .order('period_year', { ascending: false });
-        
-        const { data: cashflowData, error: cashflowError } = await Promise.race([cashflowQuery, timeoutPromise]) as any;
-        if (cashflowError) error = cashflowError;
-        if (cashflowData && cashflowData.length > 0) {
-          const grouped = groupFinancialData(cashflowData, 'estado_flujos');
-          result.push(...grouped);
-        }
+      
+      const { data: unifiedData, error: unifiedError } = await Promise.race([unifiedQuery, timeoutPromise]) as any;
+      if (unifiedError) error = unifiedError;
+      if (unifiedData && unifiedData.length > 0) {
+        const grouped = groupUnifiedData(unifiedData, dataType);
+        result.push(...grouped);
       }
 
       // Check if this is still the latest fetch
@@ -140,26 +124,26 @@ export const useFinancialData = (dataType?: string) => {
     }
   }, [dataType]);
 
-  // Group financial data by year and data type
-  const groupFinancialData = (data: any[], type: string): FinancialDataPoint[] => {
+  // Group unified financial data by period and data type
+  const groupUnifiedData = (data: any[], type?: string): FinancialDataPoint[] => {
     if (!data || data.length === 0) return [];
     
     const grouped = data.reduce((acc, item) => {
-      const year = item.period_year;
-      const key = `${type}_${year}`;
+      const period = item.period;
+      const key = `${type || 'unified'}_${period}`;
       
       if (!acc[key]) {
         acc[key] = {
           id: key,
-          data_type: type,
-          period_date: `${year}-12-31`,
-          period_type: 'annual',
+          data_type: type || 'unified',
+          period_date: item.as_of_date || `${period.split('-')[0]}-12-31`,
+          period_type: item.frequency || 'annual',
           data_content: {},
           created_at: item.created_at || new Date().toISOString()
         };
       }
       
-      acc[key].data_content[item.concept] = item.amount;
+      acc[key].data_content[item.metric_code] = item.value;
       return acc;
     }, {} as Record<string, FinancialDataPoint>);
     

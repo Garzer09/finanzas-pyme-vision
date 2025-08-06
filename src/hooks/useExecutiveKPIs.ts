@@ -25,10 +25,10 @@ export interface UseExecutiveKPIsResult {
   };
 }
 
-export const useExecutiveKPIs = (): UseExecutiveKPIsResult => {
+export const useExecutiveKPIs = (companyId?: string): UseExecutiveKPIsResult => {
   const { ratios, hasData: hasRatiosData } = useFinancialRatios();
   const { valuationData, calculateWACC } = useValuation();
-  const { hasRealData, totalCapitalPendiente, riskMetrics } = useRealDebtData();
+  const { hasRealData, totalCapitalPendiente, riskMetrics } = useRealDebtData(companyId);
   const hasDebtData = hasRealData();
   const { hasRealData: hasFinancialData, getLatestData } = useFinancialData();
 

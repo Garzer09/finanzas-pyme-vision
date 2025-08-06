@@ -128,7 +128,7 @@ export const useUnifiedTemplates = () => {
       if (params.template_type) formData.append('template_type', params.template_type);
       if (params.dry_run) formData.append('dry_run', 'true');
 
-      const { data, error } = await supabase.functions.invoke('unified-template-processor', {
+      const { data, error } = await supabase.functions.invoke('unified-template-processor-v2', {
         body: formData
       });
 
