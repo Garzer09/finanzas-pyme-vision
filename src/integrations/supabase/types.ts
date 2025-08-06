@@ -412,6 +412,60 @@ export type Database = {
         }
         Relationships: []
       }
+      company_template_customizations: {
+        Row: {
+          company_id: string
+          created_at: string
+          created_by: string
+          custom_display_name: string | null
+          custom_schema: Json | null
+          custom_validations: Json | null
+          id: string
+          is_active: boolean
+          template_schema_id: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          created_by: string
+          custom_display_name?: string | null
+          custom_schema?: Json | null
+          custom_validations?: Json | null
+          id?: string
+          is_active?: boolean
+          template_schema_id: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          created_by?: string
+          custom_display_name?: string | null
+          custom_schema?: Json | null
+          custom_validations?: Json | null
+          id?: string
+          is_active?: boolean
+          template_schema_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_template_customizations_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_template_customizations_template_schema_id_fkey"
+            columns: ["template_schema_id"]
+            isOneToOne: false
+            referencedRelation: "template_schemas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       data_mapping_rules: {
         Row: {
           confidence_score: number | null
@@ -1333,6 +1387,102 @@ export type Database = {
         }
         Relationships: []
       }
+      template_generation_history: {
+        Row: {
+          company_id: string | null
+          file_size: number | null
+          generated_at: string
+          generated_filename: string
+          generation_parameters: Json
+          id: string
+          template_schema_id: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          file_size?: number | null
+          generated_at?: string
+          generated_filename: string
+          generation_parameters?: Json
+          id?: string
+          template_schema_id: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          file_size?: number | null
+          generated_at?: string
+          generated_filename?: string
+          generation_parameters?: Json
+          id?: string
+          template_schema_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_generation_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_generation_history_template_schema_id_fkey"
+            columns: ["template_schema_id"]
+            isOneToOne: false
+            referencedRelation: "template_schemas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      template_schemas: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          display_name: string
+          id: string
+          is_active: boolean
+          is_required: boolean
+          name: string
+          schema_definition: Json
+          updated_at: string
+          validation_rules: Json
+          version: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          name: string
+          schema_definition?: Json
+          updated_at?: string
+          validation_rules?: Json
+          version?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean
+          is_required?: boolean
+          name?: string
+          schema_definition?: Json
+          updated_at?: string
+          validation_rules?: Json
+          version?: string
+        }
+        Relationships: []
+      }
       test_sessions: {
         Row: {
           analysis_results: Json | null
@@ -1431,6 +1581,75 @@ export type Database = {
           unit_short_name?: string
         }
         Relationships: []
+      }
+      upload_history: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          detected_years: number[] | null
+          file_metadata: Json | null
+          file_size: number | null
+          id: string
+          original_filename: string
+          processing_logs: Json | null
+          selected_years: number[] | null
+          template_name: string | null
+          template_schema_id: string | null
+          updated_at: string
+          upload_status: string
+          user_id: string
+          validation_results: Json | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          detected_years?: number[] | null
+          file_metadata?: Json | null
+          file_size?: number | null
+          id?: string
+          original_filename: string
+          processing_logs?: Json | null
+          selected_years?: number[] | null
+          template_name?: string | null
+          template_schema_id?: string | null
+          updated_at?: string
+          upload_status?: string
+          user_id: string
+          validation_results?: Json | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          detected_years?: number[] | null
+          file_metadata?: Json | null
+          file_size?: number | null
+          id?: string
+          original_filename?: string
+          processing_logs?: Json | null
+          selected_years?: number[] | null
+          template_name?: string | null
+          template_schema_id?: string | null
+          updated_at?: string
+          upload_status?: string
+          user_id?: string
+          validation_results?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upload_history_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "upload_history_template_schema_id_fkey"
+            columns: ["template_schema_id"]
+            isOneToOne: false
+            referencedRelation: "template_schemas"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_kpis: {
         Row: {

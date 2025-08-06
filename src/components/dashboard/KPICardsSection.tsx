@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, DollarSign, Percent, Activity, Building } from 'lucide-react';
 import { useFinancialData } from '@/hooks/useFinancialData';
+import { useRealDataDetection } from '@/hooks/useRealDataDetection';
 
 interface KPIData {
   title: string;
@@ -14,8 +15,13 @@ interface KPIData {
   description: string;
 }
 
-export const KPICardsSection: React.FC = () => {
+interface KPICardsSectionProps {
+  companyId?: string;
+}
+
+export const KPICardsSection: React.FC<KPICardsSectionProps> = ({ companyId }) => {
   const { data, loading, hasRealData, getLatestData, calculateGrowth, getPeriodComparison } = useFinancialData();
+  const { dataAvailability, hasRealData: hasValidData } = useRealDataDetection(companyId);
 
   if (loading) {
     return (
@@ -31,8 +37,8 @@ export const KPICardsSection: React.FC = () => {
     );
   }
 
-  // Si no hay datos reales, mostrar mensaje informativo
-  if (!hasRealData) {
+  // Si no hay datos reales, mostrar mensaje informativo  
+  if (!hasValidData && !hasRealData) {
     return (
       <div className="space-y-8">
         <div className="flex items-center justify-between mb-4">
@@ -40,7 +46,7 @@ export const KPICardsSection: React.FC = () => {
             Indicadores Clave de Rendimiento
           </h3>
           <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
-            Sin datos cargados
+            {companyId ? `Sin datos para empresa ${companyId.slice(0, 8)}` : 'Sin datos cargados'}
           </Badge>
         </div>
         <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
