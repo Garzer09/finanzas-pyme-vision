@@ -1,21 +1,23 @@
-
-import { DashboardHeader } from '@/components/DashboardHeader';
-import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { TrendingUp, DollarSign, Percent, Calculator } from 'lucide-react';
-import { useFinancialData } from '@/hooks/useFinancialData';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useCompanyData } from '@/hooks/useCompanyData';
+import { MissingFinancialData } from '@/components/ui/missing-financial-data';
 
 export const ProfitLossCurrentModule = () => {
-  const [plData, setPlData] = useState<any[]>([]);
-  const [kpiData, setKpiData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [hasRealData, setHasRealData] = useState(false);
+  const { data, loading, error, hasRealData, getLatestData, currentCompany, hasCompanyContext } = useCompanyData('pyg');
 
-  // Default data as fallback
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-ES', {
+      style: 'currency',
+      currency: 'EUR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(value);
+  };
+
+  // Default fallback data
   const defaultKpiData = [
     {
       title: 'Ingresos Totales',
@@ -77,219 +79,180 @@ export const ProfitLossCurrentModule = () => {
     { trimestre: 'Q4', ingresos: 650000, gastos: 560000, beneficio: 90000 }
   ];
 
-  useEffect(() => {
-    const fetchPygData = async () => {
-      setLoading(true);
-      try {
-        // Fetch P&G data directly from fs_pyg_lines table
-        const { data: pygData, error } = await supabase
-          .from('fs_pyg_lines')
-          .select('*')
-          .order('period_year', { ascending: false });
+  // Process real data if available
+  const processedData = () => {
+    if (!hasRealData || !data.length) {
+      return { kpiData: defaultKpiData, plData: defaultPlData };
+    }
 
-        if (error) throw error;
+    const latestData = getLatestData('pyg');
+    if (!latestData?.data_content) {
+      return { kpiData: defaultKpiData, plData: defaultPlData };
+    }
 
-        if (pygData && pygData.length > 0) {
-          setHasRealData(true);
-          console.log('P&G Data from fs_pyg_lines:', pygData);
-          
-          // Group by year and get latest year data
-          const latestYear = Math.max(...pygData.map(item => item.period_year));
-          const latestYearData = pygData.filter(item => item.period_year === latestYear);
-          
-          // Calculate KPIs from real data
-          const dataMap = new Map(latestYearData.map(item => [item.concept, item.amount]));
-          
-          const revenue = dataMap.get('Cifra de negocios') || 0;
-          const otherIncome = dataMap.get('Otros ingresos de explotación') || 0;
-          const purchases = Math.abs(dataMap.get('Aprovisionamientos (compras)') || 0);
-          const otherExpenses = Math.abs(dataMap.get('Otros gastos de explotación') || 0);
-          const ebitda = revenue + otherIncome - purchases - otherExpenses;
-          const netIncome = dataMap.get('Resultado del ejercicio') || 0;
-          
-          // Build real KPI data
-          const realKpiData = [
-            {
-              title: 'Ingresos Totales',
-              value: formatCurrency(revenue),
-              subtitle: 'Cifra de negocios',
-              trend: 'up' as const,
-              trendValue: '+12%',
-              icon: DollarSign,
-              variant: 'success' as const
-            },
-            {
-              title: 'EBITDA',
-              value: formatCurrency(ebitda),
-              subtitle: `${((ebitda / revenue) * 100).toFixed(1)}% margen`,
-              trend: 'up' as const,
-              trendValue: '+5%',
-              icon: TrendingUp,
-              variant: 'success' as const
-            },
-            {
-              title: 'Resultado Neto',
-              value: formatCurrency(netIncome),
-              subtitle: `${((netIncome / revenue) * 100).toFixed(1)}% margen`,
-              trend: 'up' as const,
-              trendValue: '+8%',
-              icon: Calculator,
-              variant: netIncome >= 0 ? 'success' as const : 'danger' as const
-            }
-          ];
-          
-          // Build real P&L data from database
-          const realPlData = latestYearData.map(item => ({
-            concepto: item.concept,
-            valor: item.amount,
-            porcentaje: revenue !== 0 ? (item.amount / revenue) * 100 : 0,
-            destacar: ['Cifra de negocios', 'Resultado del ejercicio'].includes(item.concept)
-          }));
-          
-          setPlData(realPlData);
-          setKpiData(realKpiData);
-        } else {
-          setHasRealData(false);
-          setPlData(defaultPlData);
-          setKpiData(defaultKpiData);
-        }
-      } catch (error) {
-        console.error('Error fetching P&G data:', error);
-        setHasRealData(false);
-        setPlData(defaultPlData);
-        setKpiData(defaultKpiData);
-      } finally {
-        setLoading(false);
+    const content = latestData.data_content;
+    
+    // Extract main financial figures
+    const revenue = content['importe_neto_cifra_negocios'] || content['ventas'] || 0;
+    const ebitda = content['ebitda'] || 0;
+    const netIncome = content['resultado_neto'] || 0;
+
+    const kpiData = [
+      {
+        title: 'Ingresos Totales',
+        value: formatCurrency(revenue),
+        subtitle: hasCompanyContext ? `${currentCompany?.name}` : 'Cifra de negocios',
+        trend: 'up' as const,
+        trendValue: '+12%',
+        icon: DollarSign,
+        variant: 'success' as const
+      },
+      {
+        title: 'EBITDA',
+        value: formatCurrency(ebitda),
+        subtitle: revenue ? `${((ebitda / revenue) * 100).toFixed(1)}% margen` : 'Sin datos',
+        trend: 'up' as const,
+        trendValue: '+5%',
+        icon: TrendingUp,
+        variant: 'success' as const
+      },
+      {
+        title: 'Resultado Neto',
+        value: formatCurrency(netIncome),
+        subtitle: revenue ? `${((netIncome / revenue) * 100).toFixed(1)}% margen` : 'Sin datos',
+        trend: netIncome >= 0 ? 'up' as const : 'down' as const,
+        trendValue: '+8%',
+        icon: Calculator,
+        variant: netIncome >= 0 ? 'success' as const : 'danger' as const
       }
-    };
+    ];
 
-    fetchPygData();
-  }, []);
+    // Build P&L structure from real data
+    const plData = Object.entries(content).map(([key, value]) => ({
+      concepto: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+      valor: Number(value) || 0,
+      porcentaje: revenue !== 0 ? (Number(value) / revenue) * 100 : 0,
+      destacar: ['ebitda', 'resultado_neto', 'importe_neto_cifra_negocios'].includes(key)
+    })).filter(item => item.valor !== 0);
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-ES', {
-      style: 'currency',
-      currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
+    return { kpiData, plData };
   };
 
-  return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <DashboardSidebar />
-      
-      <div className="flex-1 flex flex-col">
-        <DashboardHeader />
-        
-        <main className="flex-1 p-6 space-y-8 overflow-auto">
-          {/* Header Section */}
-          <section className="relative">
-            <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel/10 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-r from-steel/5 via-cadet/3 to-slate-100/5 rounded-3xl"></div>
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent"></div>
-              <div className="absolute top-0 left-0 w-32 h-32 bg-steel/10 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-0 right-0 w-40 h-40 bg-cadet/8 rounded-full blur-3xl"></div>
-              
-              <div className="relative z-10">
-                <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
-                  Cuenta de Resultados Actual
-                </h1>
-                <p className="text-slate-700 text-lg font-medium">Análisis detallado del rendimiento financiero y rentabilidad</p>
-              </div>
-            </div>
-          </section>
+  const { kpiData, plData } = processedData();
 
-          {/* KPIs Grid */}
-          <section>
-            {loading ? (
-              <div className="text-center">Cargando datos financieros...</div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {kpiData.map((kpi, index) => (
-                  <ModernKPICard key={index} {...kpi} />
-                ))}
-              </div>
-            )}
-          </section>
-
-          {/* P&L Statement */}
-          <section>
-            <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
-              <div className="absolute inset-0 bg-gradient-to-br from-steel/3 via-white/20 to-cadet/3 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
-              <div className="absolute top-6 right-6 w-32 h-32 bg-steel/8 rounded-full blur-3xl"></div>
-              <div className="absolute bottom-6 left-6 w-40 h-40 bg-cadet/6 rounded-full blur-3xl"></div>
-              
-              <CardHeader className="relative z-10">
-                <CardTitle className="text-slate-900 text-xl">Cuenta de Resultados Detallada</CardTitle>
-              </CardHeader>
-              <CardContent className="relative z-10 p-0">
-                <div className="max-h-[500px] overflow-y-auto">
-                  {plData.map((item, index) => (
-                    <div
-                      key={index}
-                      className={`flex justify-between items-center py-3 px-6 border-b border-slate-100/60 ${
-                        item.destacar
-                          ? 'bg-steel-50/80 font-semibold backdrop-blur-sm'
-                          : 'hover:bg-slate-50/60 backdrop-blur-sm'
-                      }`}
-                    >
-                      <span className={`${item.destacar ? 'text-steel-800 font-bold' : 'text-slate-700'}`}>
-                        {item.concepto}
-                      </span>
-                      <div className="flex space-x-6 text-right">
-                        <span className={`font-mono ${
-                          item.valor >= 0 ? 'text-success-600' : 'text-danger-600'
-                        } ${item.destacar ? 'font-bold text-lg' : ''}`}>
-                          {formatCurrency(item.valor)}
-                        </span>
-                        <span className={`text-slate-500 w-16 ${item.destacar ? 'font-semibold' : ''}`}>
-                          {item.porcentaje.toFixed(1)}%
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* Quarterly Evolution Chart */}
-          <section>
-            <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
-              <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
-              <div className="absolute inset-0 bg-gradient-to-br from-cadet/5 via-white/20 to-steel/5 opacity-60 group-hover:opacity-80 transition-opacity duration-300"></div>
-              <div className="absolute bottom-4 right-4 w-32 h-32 bg-cadet/8 rounded-full blur-3xl"></div>
-              
-              <CardHeader className="relative z-10">
-                <CardTitle className="text-slate-900 flex items-center gap-3">
-                  <div className="p-3 rounded-2xl bg-cadet/20 backdrop-blur-sm border border-cadet/30 shadow-xl">
-                    <TrendingUp className="h-6 w-6 text-cadet-700" />
-                  </div>
-                  Evolución Trimestral
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="relative z-10">
-                <div className="h-80 relative">
-                  <div className="absolute inset-0 bg-white/30 backdrop-blur-sm rounded-2xl border border-white/40"></div>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={evolucionTrimestral}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="trimestre" stroke="#64748b" />
-                      <YAxis stroke="#64748b" tickFormatter={(value) => `€${(value / 1000).toFixed(0)}K`} />
-                      <Tooltip formatter={(value) => `€${Number(value).toLocaleString()}`} />
-                      <Line type="monotone" dataKey="ingresos" stroke="#4682B4" strokeWidth={3} name="Ingresos" />
-                      <Line type="monotone" dataKey="gastos" stroke="#5F9EA0" strokeWidth={3} name="Gastos" />
-                      <Line type="monotone" dataKey="beneficio" stroke="#10B981" strokeWidth={3} name="Beneficio" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-          </section>
-        </main>
+  if (loading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center">Cargando datos financieros...</div>
       </div>
+    );
+  }
+
+  if (!hasRealData && hasCompanyContext) {
+    return (
+      <div className="container mx-auto p-6">
+        <MissingFinancialData 
+          dataType="pyg"
+          onUploadClick={() => window.location.href = '/admin/cargas'}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      {/* Header Section */}
+      <section className="relative">
+        <div className="relative bg-white/80 backdrop-blur-2xl border border-white/40 rounded-3xl p-8 shadow-2xl shadow-steel/10 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-steel/5 via-cadet/3 to-slate-100/5 rounded-3xl"></div>
+          <div className="relative z-10">
+            <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
+              Cuenta de Resultados
+            </h1>
+            <p className="text-slate-700 text-lg font-medium">
+              {hasCompanyContext && currentCompany ? 
+                `Análisis de rentabilidad - ${currentCompany.name}` : 
+                'Análisis detallado del rendimiento financiero y rentabilidad'
+              }
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* KPIs Grid */}
+      <section>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {kpiData.map((kpi, index) => (
+            <ModernKPICard key={index} {...kpi} />
+          ))}
+        </div>
+      </section>
+
+      {/* P&L Statement */}
+      <section>
+        <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl overflow-hidden">
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-slate-900 text-xl">Cuenta de Resultados Detallada</CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10 p-0">
+            <div className="max-h-[500px] overflow-y-auto">
+              {plData.map((item, index) => (
+                <div
+                  key={index}
+                  className={`flex justify-between items-center py-3 px-6 border-b border-slate-100/60 ${
+                    item.destacar
+                      ? 'bg-steel-50/80 font-semibold backdrop-blur-sm'
+                      : 'hover:bg-slate-50/60 backdrop-blur-sm'
+                  }`}
+                >
+                  <span className={`${item.destacar ? 'text-steel-800 font-bold' : 'text-slate-700'}`}>
+                    {item.concepto}
+                  </span>
+                  <div className="flex space-x-6 text-right">
+                    <span className={`font-mono ${
+                      item.valor >= 0 ? 'text-success-600' : 'text-danger-600'
+                    } ${item.destacar ? 'font-bold text-lg' : ''}`}>
+                      {formatCurrency(item.valor)}
+                    </span>
+                    <span className={`text-slate-500 w-16 ${item.destacar ? 'font-semibold' : ''}`}>
+                      {item.porcentaje.toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Quarterly Evolution Chart */}
+      <section>
+        <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl overflow-hidden">
+          <CardHeader className="relative z-10">
+            <CardTitle className="text-slate-900 flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-cadet/20 backdrop-blur-sm border border-cadet/30 shadow-xl">
+                <TrendingUp className="h-6 w-6 text-cadet-700" />
+              </div>
+              Evolución Trimestral
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="relative z-10">
+            <div className="h-80 relative">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={evolucionTrimestral}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="trimestre" stroke="#64748b" />
+                  <YAxis stroke="#64748b" tickFormatter={(value) => `€${(value / 1000).toFixed(0)}K`} />
+                  <Tooltip formatter={(value) => `€${Number(value).toLocaleString()}`} />
+                  <Line type="monotone" dataKey="ingresos" stroke="#4682B4" strokeWidth={3} name="Ingresos" />
+                  <Line type="monotone" dataKey="gastos" stroke="#5F9EA0" strokeWidth={3} name="Gastos" />
+                  <Line type="monotone" dataKey="beneficio" stroke="#10B981" strokeWidth={3} name="Beneficio" />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
     </div>
   );
 };

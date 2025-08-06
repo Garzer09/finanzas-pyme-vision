@@ -10,6 +10,7 @@ import { InactivityWarning } from "@/components/InactivityWarning";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { PeriodProvider } from "./contexts/PeriodContext";
+import { CompanyProvider } from "./contexts/CompanyContext";
 import { AdminImpersonationProvider } from "./contexts/AdminImpersonationContext";
 
 import { RequireAuth } from "./components/RequireAuth";
@@ -103,8 +104,9 @@ const App = () => {
       <AuthProvider>
         <SessionRecovery>
           <AdminImpersonationProvider>
-            <PeriodProvider>
-              <TooltipProvider>
+            <CompanyProvider>
+              <PeriodProvider>
+                <TooltipProvider>
             <Toaster />
             <Sonner />
           <Routes>
@@ -229,6 +231,7 @@ const App = () => {
           <DebugToolbar />
                 </TooltipProvider>
               </PeriodProvider>
+            </CompanyProvider>
           </AdminImpersonationProvider>
         </SessionRecovery>
       </AuthProvider>

@@ -216,14 +216,14 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
     }
   };
 
-  const getPeriodFilteredData = async (dataType: string) => {
+  const getPeriodFilteredData = async (dataType: string, companyId?: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
 
       if (selectedPeriods.length === 0) {
         // Si no hay periodos seleccionados, devolver datos más recientes
-        const { data, error } = await supabase
+        let query = supabase
           .from('financial_data')
           .select('*')
           .eq('user_id', user.id)
@@ -231,6 +231,20 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
           .order('period_date', { ascending: false })
           .limit(12);
 
+        if (companyId) {
+          // Note: financial_data table doesn't have company_id, use memberships for filtering
+          const { data: membershipData } = await supabase
+            .from('memberships')
+            .select('company_id')
+            .eq('user_id', user.id)
+            .eq('company_id', companyId);
+          
+          if (!membershipData || membershipData.length === 0) {
+            return [];
+          }
+        }
+
+        const { data, error } = await query;
         return data || [];
       }
 
@@ -239,7 +253,7 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
         .filter(p => selectedPeriods.includes(p.id))
         .map(p => p.period_date);
 
-      const { data, error } = await supabase
+      let query = supabase
         .from('financial_data')
         .select('*')
         .eq('user_id', user.id)
@@ -247,6 +261,20 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
         .in('period_date', selectedPeriodDates)
         .order('period_date', { ascending: false });
 
+      if (companyId) {
+        // Note: financial_data table doesn't have company_id, use memberships for filtering
+        const { data: membershipData } = await supabase
+          .from('memberships')
+          .select('company_id')
+          .eq('user_id', user.id)
+          .eq('company_id', companyId);
+        
+        if (!membershipData || membershipData.length === 0) {
+          return [];
+        }
+      }
+
+      const { data, error } = await query;
       return data || [];
     } catch (error) {
       console.error('Error getting period filtered data:', error);

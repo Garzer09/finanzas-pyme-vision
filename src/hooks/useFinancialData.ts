@@ -13,7 +13,7 @@ export interface FinancialDataPoint {
 
 // Note: Mock data removed - only real data from database will be displayed
 
-export const useFinancialData = (dataType?: string) => {
+export const useFinancialData = (dataType?: string, companyId?: string) => {
   const [data, setData] = useState<FinancialDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -23,13 +23,13 @@ export const useFinancialData = (dataType?: string) => {
   const cacheRef = useRef<Map<string, { data: FinancialDataPoint[]; timestamp: number }>>(new Map());
 
   const fetchFinancialData = useCallback(async () => {
-    const fetchKey = `${dataType || 'all'}_${Date.now()}`;
+    const fetchKey = `${companyId || 'no-company'}_${dataType || 'all'}_${Date.now()}`;
     lastFetchRef.current = fetchKey;
     
     if (!mounted.current) return;
 
     // Verificar cache (válido por 5 minutos)
-    const cacheKey = dataType || 'all';
+    const cacheKey = `${companyId || 'no-company'}_${dataType || 'all'}`;
     const cached = cacheRef.current.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp) < 300000) {
       setData(cached.data);
@@ -53,10 +53,14 @@ export const useFinancialData = (dataType?: string) => {
 
       // Fetch from specific financial tables based on dataType
       if (dataType === 'estado_pyg' || !dataType) {
-        const pygQuery = supabase
+        let pygQuery = supabase
           .from('fs_pyg_lines')
           .select('*')
           .order('period_year', { ascending: false });
+        
+        if (companyId) {
+          pygQuery = pygQuery.eq('company_id', companyId);
+        }
         
         const { data: pygData, error: pygError } = await Promise.race([pygQuery, timeoutPromise]) as any;
         if (pygError) error = pygError;
@@ -67,10 +71,14 @@ export const useFinancialData = (dataType?: string) => {
       }
 
       if (dataType === 'balance_situacion' || !dataType) {
-        const balanceQuery = supabase
+        let balanceQuery = supabase
           .from('fs_balance_lines')
           .select('*')
           .order('period_year', { ascending: false });
+        
+        if (companyId) {
+          balanceQuery = balanceQuery.eq('company_id', companyId);
+        }
         
         const { data: balanceData, error: balanceError } = await Promise.race([balanceQuery, timeoutPromise]) as any;
         if (balanceError) error = balanceError;
@@ -81,10 +89,14 @@ export const useFinancialData = (dataType?: string) => {
       }
 
       if (dataType === 'estado_flujos' || !dataType) {
-        const cashflowQuery = supabase
+        let cashflowQuery = supabase
           .from('fs_cashflow_lines')
           .select('*')
           .order('period_year', { ascending: false });
+        
+        if (companyId) {
+          cashflowQuery = cashflowQuery.eq('company_id', companyId);
+        }
         
         const { data: cashflowData, error: cashflowError } = await Promise.race([cashflowQuery, timeoutPromise]) as any;
         if (cashflowError) error = cashflowError;
@@ -138,7 +150,7 @@ export const useFinancialData = (dataType?: string) => {
         setLoading(false);
       }
     }
-  }, [dataType]);
+  }, [dataType, companyId]);
 
   // Group financial data by year and data type
   const groupFinancialData = (data: any[], type: string): FinancialDataPoint[] => {

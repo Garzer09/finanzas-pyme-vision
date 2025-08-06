@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useSearchParams } from 'react-router-dom';
 import { 
   Home,
   FileText,
@@ -56,6 +56,8 @@ import {
 export const DashboardSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const { signOut } = useAuth();
+  const [searchParams] = useSearchParams();
+  const companyId = searchParams.get('companyId');
   
   // Initialize session timeout (moved here to ensure AuthProvider is available)
   useSessionTimeout({ timeoutMinutes: 120, warningMinutes: 15 });
@@ -431,7 +433,7 @@ export const DashboardSidebar = () => {
                       return (
                         <NavLink
                           key={item.path}
-                          to={item.path}
+                          to={companyId ? `${item.path}?companyId=${companyId}` : item.path}
                           className={cn(
                             "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative text-sm font-medium",
                             active
@@ -463,7 +465,7 @@ export const DashboardSidebar = () => {
                   return (
                     <NavLink
                       key={item.path}
-                      to={item.path}
+                      to={companyId ? `${item.path}?companyId=${companyId}` : item.path}
                       className={cn(
                         "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative mb-1 font-medium",
                         active
