@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useCompany } from '@/contexts/CompanyContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -19,6 +19,7 @@ export const CompanyContextualizedRoute: React.FC<CompanyContextualizedRouteProp
   const { toast } = useToast();
   const [accessChecked, setAccessChecked] = useState(false);
   const [hasAccess, setHasAccess] = useState(false);
+  const accessCacheRef = useRef<Map<string, { hasAccess: boolean; timestamp: number }>>(new Map());
 
   useEffect(() => {
     const verifyAccess = async () => {
@@ -29,8 +30,18 @@ export const CompanyContextualizedRoute: React.FC<CompanyContextualizedRouteProp
       }
 
       try {
+        // Check access cache first (valid for 5 minutes)
+        const cacheKey = `${user.id}_${companyId}`;
+        const cached = accessCacheRef.current.get(cacheKey);
+        if (cached && (Date.now() - cached.timestamp) < 300000) {
+          setHasAccess(cached.hasAccess);
+          setAccessChecked(true);
+          return;
+        }
+
         // Admin users have access to all companies
         if (userRole === 'admin') {
+          accessCacheRef.current.set(cacheKey, { hasAccess: true, timestamp: Date.now() });
           setHasAccess(true);
           setAccessChecked(true);
           return;
@@ -44,7 +55,15 @@ export const CompanyContextualizedRoute: React.FC<CompanyContextualizedRouteProp
           .eq('company_id', companyId)
           .single();
 
-        if (error || !membership) {
+        const hasValidAccess = !error && !!membership;
+        
+        // Cache the result
+        accessCacheRef.current.set(cacheKey, { 
+          hasAccess: hasValidAccess, 
+          timestamp: Date.now() 
+        });
+
+        if (!hasValidAccess) {
           toast({
             title: "Acceso denegado",
             description: "No tienes permisos para acceder a esta empresa",

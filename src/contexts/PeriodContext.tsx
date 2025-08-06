@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -68,7 +68,7 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
     loadUserConfiguration();
   }, []);
 
-  const loadUserConfiguration = async () => {
+  const loadUserConfiguration = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -103,11 +103,13 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
       // Cargar periodos detectados
       await loadDetectedPeriods();
     } catch (error) {
-      console.error('Error loading user configuration:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error loading user configuration:', error);
+      }
     }
-  };
+  }, []);
 
-  const loadDetectedPeriods = async (fileId?: string) => {
+  const loadDetectedPeriods = useCallback(async (fileId?: string) => {
     setLoading(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -144,11 +146,13 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
         setSelectedPeriods(defaultSelected);
       }
     } catch (error) {
-      console.error('Error loading detected periods:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error loading detected periods:', error);
+      }
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedPeriods]);
 
   const addDetectedPeriods = async (periods: DetectedPeriod[]) => {
     try {
@@ -216,7 +220,7 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
     }
   };
 
-  const getPeriodFilteredData = async (dataType: string, companyId?: string) => {
+  const getPeriodFilteredData = useCallback(async (dataType: string, companyId?: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
@@ -253,10 +257,12 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
 
       return data || [];
     } catch (error) {
-      console.error('Error getting period filtered data:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error getting period filtered data:', error);
+      }
       return [];
     }
-  };
+  }, [selectedPeriods, availablePeriods]);
 
   const getCompanyFilteredData = async (dataType: string, companyId: string) => {
     try {
@@ -315,12 +321,14 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
           return unifiedData || [];
       }
     } catch (error) {
-      console.error('Error getting company filtered data:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error getting company filtered data:', error);
+      }
       return [];
     }
   };
 
-  const value: PeriodContextType = {
+  const value = useMemo((): PeriodContextType => ({
     availablePeriods,
     selectedPeriods,
     comparisonEnabled,
@@ -335,7 +343,16 @@ export const PeriodProvider: React.FC<PeriodProviderProps> = ({ children }) => {
     loadDetectedPeriods,
     addDetectedPeriods,
     getPeriodFilteredData
-  };
+  }), [
+    availablePeriods,
+    selectedPeriods,
+    comparisonEnabled,
+    comparisonPeriods,
+    currentPeriod,
+    loading,
+    loadDetectedPeriods,
+    getPeriodFilteredData
+  ]);
 
   return (
     <PeriodContext.Provider value={value}>

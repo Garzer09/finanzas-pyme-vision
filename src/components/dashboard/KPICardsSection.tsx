@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, DollarSign, Percent, Activity, Building } from 'lucide-react';
@@ -16,7 +16,7 @@ interface KPIData {
   description: string;
 }
 
-export const KPICardsSection: React.FC = () => {
+const KPICardsSectionComponent: React.FC = () => {
   const { selectedCompany } = useCompany();
   const { data: pygData, loading: pygLoading } = usePeriodFilteredData('pyg');
   const { data: balanceData, loading: balanceLoading } = usePeriodFilteredData('balance');
@@ -59,37 +59,40 @@ export const KPICardsSection: React.FC = () => {
     );
   }
 
-  // Get latest data for KPIs
-  const getLatestByYear = (data: any[], concept: string) => {
-    if (!data.length) return null;
-    
-    // Group by year and get the latest record for the concept
-    const conceptData = data.filter(item => 
-      item.concept && item.concept.toLowerCase().includes(concept.toLowerCase())
-    );
-    
-    if (!conceptData.length) return null;
-    
-    // Sort by year descending and get the latest
-    return conceptData.sort((a, b) => b.period_year - a.period_year)[0];
-  };
+  // Memoized data calculation
+  const latestData = useMemo(() => {
+    // Get latest data for KPIs
+    const getLatestByYear = (data: any[], concept: string) => {
+      if (!data.length) return null;
+      
+      // Group by year and get the latest record for the concept
+      const conceptData = data.filter(item => 
+        item.concept && item.concept.toLowerCase().includes(concept.toLowerCase())
+      );
+      
+      if (!conceptData.length) return null;
+      
+      // Sort by year descending and get the latest
+      return conceptData.sort((a, b) => b.period_year - a.period_year)[0];
+    };
 
-  // Calculate KPIs from real data
-  const latestRevenue = getLatestByYear(pygData, 'importe neto');
-  const latestEbitda = getLatestByYear(pygData, 'resultado de explotación');
-  const latestNetProfit = getLatestByYear(pygData, 'resultado del ejercicio');
-  
-  const latestCurrentAssets = getLatestByYear(balanceData, 'activo corriente');
-  const latestCurrentLiabilities = getLatestByYear(balanceData, 'pasivo corriente');
-  const latestTotalAssets = getLatestByYear(balanceData, 'activo');
-  const latestTotalDebt = getLatestByYear(balanceData, 'pasivo');
+    return {
+      revenue: getLatestByYear(pygData, 'importe neto'),
+      ebitda: getLatestByYear(pygData, 'resultado de explotación'),
+      netProfit: getLatestByYear(pygData, 'resultado del ejercicio'),
+      currentAssets: getLatestByYear(balanceData, 'activo corriente'),
+      currentLiabilities: getLatestByYear(balanceData, 'pasivo corriente'),
+      totalAssets: getLatestByYear(balanceData, 'activo'),
+      totalDebt: getLatestByYear(balanceData, 'pasivo')
+    };
+  }, [pygData, balanceData]);
 
-  // KPIs from real data
-  const currentKPIs: KPIData[] = [
+  // Memoized KPIs calculation
+  const currentKPIs = useMemo((): KPIData[] => [
     {
       title: 'Ingresos Totales',
-      value: latestRevenue 
-        ? (latestRevenue.amount / 1000000).toFixed(1)
+      value: latestData.revenue 
+        ? (latestData.revenue.amount / 1000000).toFixed(1)
         : 'N/A',
       unit: `M${selectedCompany?.currency_code || 'EUR'}`,
       status: 'good',
@@ -98,28 +101,28 @@ export const KPICardsSection: React.FC = () => {
     },
     {
       title: 'EBITDA',
-      value: latestEbitda 
-        ? (latestEbitda.amount / 1000000).toFixed(1)
+      value: latestData.ebitda 
+        ? (latestData.ebitda.amount / 1000000).toFixed(1)
         : 'N/A',
       unit: `M${selectedCompany?.currency_code || 'EUR'}`,
-      status: latestEbitda?.amount > 0 ? 'good' : 'warning',
+      status: latestData.ebitda?.amount > 0 ? 'good' : 'warning',
       icon: TrendingUp,
       description: 'Resultado operativo'
     },
     {
       title: 'Beneficio Neto',
-      value: latestNetProfit 
-        ? (latestNetProfit.amount / 1000).toFixed(0)
+      value: latestData.netProfit 
+        ? (latestData.netProfit.amount / 1000).toFixed(0)
         : 'N/A',
       unit: `K${selectedCompany?.currency_code || 'EUR'}`,
-      status: latestNetProfit?.amount > 0 ? 'good' : 'warning',
+      status: latestData.netProfit?.amount > 0 ? 'good' : 'warning',
       icon: Percent,
       description: 'Resultado final del ejercicio'
     },
     {
       title: 'Activo Total',
-      value: latestTotalAssets 
-        ? (latestTotalAssets.amount / 1000000).toFixed(1)
+      value: latestData.totalAssets 
+        ? (latestData.totalAssets.amount / 1000000).toFixed(1)
         : 'N/A',
       unit: `M${selectedCompany?.currency_code || 'EUR'}`,
       status: 'good',
@@ -128,29 +131,29 @@ export const KPICardsSection: React.FC = () => {
     },
     {
       title: 'Ratio Liquidez',
-      value: latestCurrentAssets && latestCurrentLiabilities 
-        ? (latestCurrentAssets.amount / latestCurrentLiabilities.amount).toFixed(2)
+      value: latestData.currentAssets && latestData.currentLiabilities 
+        ? (latestData.currentAssets.amount / latestData.currentLiabilities.amount).toFixed(2)
         : 'N/A',
       unit: 'x',
-      status: latestCurrentAssets && latestCurrentLiabilities 
-        ? (latestCurrentAssets.amount / latestCurrentLiabilities.amount) > 1.2 ? 'good' : 'warning'
+      status: latestData.currentAssets && latestData.currentLiabilities 
+        ? (latestData.currentAssets.amount / latestData.currentLiabilities.amount) > 1.2 ? 'good' : 'warning'
         : 'good',
       icon: Activity,
       description: 'Activo corriente / Pasivo corriente'
     },
     {
       title: 'Fondo de Maniobra',
-      value: latestCurrentAssets && latestCurrentLiabilities
-        ? ((latestCurrentAssets.amount - latestCurrentLiabilities.amount) / 1000).toFixed(0)
+      value: latestData.currentAssets && latestData.currentLiabilities
+        ? ((latestData.currentAssets.amount - latestData.currentLiabilities.amount) / 1000).toFixed(0)
         : 'N/A',
       unit: `K${selectedCompany?.currency_code || 'EUR'}`,
-      status: latestCurrentAssets && latestCurrentLiabilities
-        ? (latestCurrentAssets.amount - latestCurrentLiabilities.amount) > 0 ? 'good' : 'warning'
+      status: latestData.currentAssets && latestData.currentLiabilities
+        ? (latestData.currentAssets.amount - latestData.currentLiabilities.amount) > 0 ? 'good' : 'warning'
         : 'good',
       icon: DollarSign,
       description: 'Capital de trabajo disponible'
     }
-  ];
+  ], [latestData, selectedCompany?.currency_code]);
 
   return (
     <div className="space-y-8">
@@ -207,3 +210,5 @@ export const KPICardsSection: React.FC = () => {
     </div>
   );
 };
+
+export const KPICardsSection = memo(KPICardsSectionComponent);

@@ -110,6 +110,8 @@ class DebugManager {
   }
 
   public log(level: LogLevel, message: string, source: string = 'app', data?: any): void {
+    // Only log in development or for critical errors in production
+    if (process.env.NODE_ENV === 'production' && level !== 'critical') return;
     if (!this.isEnabled && level !== 'error' && level !== 'critical') return;
 
     const entry: LogEntry = {
