@@ -182,7 +182,7 @@ export const MultiFileUploadInterface: React.FC<MultiFileUploadInterfaceProps> =
           file: uploadedFile.file,
           company_id: companyId || undefined,
           template_type: uploadedFile.templateType,
-          dry_run: true // First pass validation
+          dry_run: true // Validation preview only
         });
 
         // Update file with result
