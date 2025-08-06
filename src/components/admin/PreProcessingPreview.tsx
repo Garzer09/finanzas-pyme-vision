@@ -42,15 +42,17 @@ interface EditableCell {
 }
 
 interface PreProcessingPreviewProps {
-  files: File[];
+  uploadResults: any[];
   onValidationComplete: (results: { [filename: string]: PreProcessingData }) => void;
   onCancel: () => void;
+  onEdit?: (result: any) => void;
 }
 
 export const PreProcessingPreview: React.FC<PreProcessingPreviewProps> = ({
-  files,
+  uploadResults,
   onValidationComplete,
-  onCancel
+  onCancel,
+  onEdit
 }) => {
   const [previewData, setPreviewData] = useState<{ [filename: string]: PreProcessingData }>({});
   const [loading, setLoading] = useState(false);
@@ -58,79 +60,72 @@ export const PreProcessingPreview: React.FC<PreProcessingPreviewProps> = ({
   const [currentFile, setCurrentFile] = useState<string>('');
 
   useEffect(() => {
-    if (files.length > 0) {
-      processFiles();
+    console.log('🔄 PreProcessingPreview received uploadResults:', uploadResults);
+    if (uploadResults.length > 0) {
+      processUploadResults();
     }
-  }, [files]);
+  }, [uploadResults]);
 
-  const processFiles = async () => {
+  const processUploadResults = async () => {
+    console.log('🎯 Processing upload results for preview');
     setLoading(true);
     const results: { [filename: string]: PreProcessingData } = {};
 
     try {
-      for (const file of files) {
-        console.log(`🔍 Pre-processing file: ${file.name}`);
+      for (const uploadResult of uploadResults) {
+        console.log(`📋 Processing result for: ${uploadResult.fileName}`, uploadResult);
         
-        const sessionId = crypto.randomUUID();
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('dry_run', 'true');
-        formData.append('session_id', sessionId);
-
-        const { data, error } = await supabase.functions.invoke('unified-template-processor-v3', {
-          body: formData
-        });
-
-        if (error) {
-          console.error(`Error processing ${file.name}:`, error);
-          toast({
-            title: "Pre-processing Error",
-            description: `Failed to pre-process ${file.name}: ${error.message}`,
-            variant: "destructive",
-          });
-          continue;
-        }
-
-        if (data?.success) {
-          // Transform the response into PreProcessingData format
-          const fileContent = await file.text();
-          const lines = fileContent.split('\n').filter(line => line.trim());
-          const headers = lines[0]?.split(',').map(h => h.trim().replace(/['"]/g, '')) || [];
+        if (uploadResult.result?.success) {
+          const data = uploadResult.result;
           
           const validationIssues: ValidationIssue[] = [
-            ...data.errors.map((error: string) => ({
+            ...(data.errors || []).map((error: string) => ({
               type: 'error' as const,
               message: error,
               fixable: isFixableError(error)
             })),
-            ...data.warnings.map((warning: string) => ({
+            ...(data.warnings || []).map((warning: string) => ({
               type: 'warning' as const,
               message: warning,
               fixable: isFixableWarning(warning)
             }))
           ];
 
-          results[file.name] = {
+          // Get headers from the preview data
+          const previewData = data.preview || [];
+          const headers = previewData.length > 0 ? Object.keys(previewData[0]) : [];
+          
+          console.log(`📊 Extracted data for ${uploadResult.fileName}:`, {
+            headers: headers.length,
+            rows: previewData.length,
+            errors: data.errors?.length || 0,
+            warnings: data.warnings?.length || 0
+          });
+
+          results[uploadResult.fileName] = {
             headers,
-            rows: data.preview || [],
-            template_type: data.template_type,
+            rows: previewData,
+            template_type: data.template_type || uploadResult.templateType,
             validation_issues: validationIssues,
             file_info: {
-              name: file.name,
-              size: file.size,
-              rows_count: data.rows_processed
+              name: uploadResult.fileName,
+              size: uploadResult.file?.size || 0,
+              rows_count: data.rows_processed || previewData.length
             }
           };
+        } else {
+          console.warn(`⚠️ Upload result not successful for ${uploadResult.fileName}:`, uploadResult.result);
         }
       }
 
+      console.log('🔍 Final preview data:', results);
       setPreviewData(results);
       if (Object.keys(results).length > 0) {
         setCurrentFile(Object.keys(results)[0]);
       }
 
     } catch (error) {
-      console.error('Pre-processing error:', error);
+      console.error('❌ Pre-processing error:', error);
       toast({
         title: "Pre-processing Failed",
         description: "Failed to pre-process files. Please try again.",
@@ -270,8 +265,12 @@ export const PreProcessingPreview: React.FC<PreProcessingPreviewProps> = ({
             Cancel
           </Button>
           <Button 
-            onClick={() => onValidationComplete(previewData)}
+            onClick={() => {
+              console.log('🚀 Continuing with preview data:', previewData);
+              onValidationComplete(previewData);
+            }}
             disabled={hasErrors && !hasFixableIssues}
+            className={hasErrors && !hasFixableIssues ? 'opacity-50' : ''}
           >
             Continue Processing
           </Button>
@@ -284,6 +283,15 @@ export const PreProcessingPreview: React.FC<PreProcessingPreviewProps> = ({
           <AlertDescription>
             Some files have validation errors that need to be fixed before processing.
             {hasFixableIssues && " You can edit the data below to resolve some issues."}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {Object.keys(previewData).length === 0 && !loading && (
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            No valid data found in uploaded files. Please check your files and try again.
           </AlertDescription>
         </Alert>
       )}
@@ -336,8 +344,8 @@ export const PreProcessingPreview: React.FC<PreProcessingPreviewProps> = ({
                     <XCircle className="h-4 w-4 text-destructive" />
                     <span>{data.validation_issues.filter(i => i.type === 'error').length} Errors</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <AlertTriangle className="h-4 w-4 text-warning" />
+                  <div className="flex items-center space-x-2 text-yellow-600">
+                    <AlertTriangle className="h-4 w-4" />
                     <span>{data.validation_issues.filter(i => i.type === 'warning').length} Warnings</span>
                   </div>
                 </CardContent>
@@ -349,12 +357,12 @@ export const PreProcessingPreview: React.FC<PreProcessingPreviewProps> = ({
                 </CardHeader>
                 <CardContent className="space-y-1 text-sm">
                   {data.validation_issues.filter(i => i.type === 'error').length === 0 ? (
-                    <div className="flex items-center space-x-2 text-success">
+                    <div className="flex items-center space-x-2 text-green-600">
                       <CheckCircle className="h-4 w-4" />
                       <span>Ready to Process</span>
                     </div>
                   ) : (
-                    <div className="flex items-center space-x-2 text-destructive">
+                    <div className="flex items-center space-x-2 text-red-600">
                       <XCircle className="h-4 w-4" />
                       <span>Needs Attention</span>
                     </div>
@@ -385,8 +393,8 @@ export const PreProcessingPreview: React.FC<PreProcessingPreviewProps> = ({
                               </p>
                             )}
                           </div>
-                          {issue.fixable && (
-                            <Badge variant="outline" className="text-xs">
+                           {issue.fixable && (
+                            <Badge variant="outline" className="text-xs bg-yellow-50 border-yellow-200 text-yellow-800">
                               Fixable
                             </Badge>
                           )}

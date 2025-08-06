@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { MultiFileUploadInterface } from './MultiFileUploadInterface';
 import { EditableDataPreview } from './EditableDataPreview';
-import { PreProcessingPreview } from './PreProcessingPreview';
+import { EnhancedPreProcessingPreview } from './EnhancedPreProcessingPreview';
 import { AlertTriangle, Upload, Settings, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -42,7 +42,13 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
     setCurrentStep('edit');
   };
 
-  const handleConfirmAndSave = async () => {
+  const handleConfirmAndSave = async (modifiedData?: any[]) => {
+    console.log('🚀 Starting handleConfirmAndSave with:', { 
+      uploadResults: uploadResults.length, 
+      companyId, 
+      hasModifiedData: !!modifiedData 
+    });
+    
     setIsProcessing(true);
     
     try {
@@ -50,22 +56,32 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
       const { processFile } = useUnifiedTemplates();
       
       let processedCount = 0;
+      const dataToProcess = modifiedData || uploadResults;
       
-      for (const result of uploadResults) {
-        if (result.result.success) {
-          console.log(`Processing file for real save: ${result.fileName}`);
+      console.log('📁 Processing files for real save:', dataToProcess.length);
+      
+      for (const result of dataToProcess) {
+        if (result.result?.success) {
+          console.log(`📄 Processing file for real save: ${result.fileName}`);
+          
           const processResult = await processFile({
             file: result.file || new File([], result.fileName),
             company_id: companyId || undefined,
-            template_type: result.templateType,
-            dry_run: false // Guardado real
+            template_type: result.templateType || result.result.template_type,
+            dry_run: false
           });
+          
+          console.log(`✅ Process result for ${result.fileName}:`, processResult);
           
           if (processResult.success) {
             processedCount++;
+          } else {
+            console.error(`❌ Failed to process ${result.fileName}:`, processResult.errors);
           }
         }
       }
+      
+      console.log(`📊 Processing complete: ${processedCount}/${dataToProcess.length} files saved`);
       
       if (processedCount > 0) {
         toast.success(`${processedCount} archivos guardados exitosamente en la base de datos`);
@@ -75,7 +91,7 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
         toast.error('No se pudo guardar ningún archivo');
       }
     } catch (error) {
-      console.error('Error saving data:', error);
+      console.error('❌ Error saving data:', error);
       toast.error('Error al guardar los datos: ' + (error as Error).message);
     } finally {
       setIsProcessing(false);
@@ -83,17 +99,8 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
   };
 
   const handleSaveEditedData = async (modifiedData: any[]) => {
-    setIsProcessing(true);
-    
-    try {
-      // Guardar datos editados
-      await handleConfirmAndSave();
-    } catch (error) {
-      console.error('Error saving edited data:', error);
-      toast.error('Error al guardar los datos editados');
-    } finally {
-      setIsProcessing(false);
-    }
+    console.log('💾 Saving edited data:', modifiedData);
+    await handleConfirmAndSave(modifiedData);
   };
 
   const handleBackToUpload = () => {
@@ -151,7 +158,7 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
 
             <div className="flex justify-center space-x-4 pt-4">
               <Button 
-                onClick={handleConfirmAndSave}
+                onClick={() => handleConfirmAndSave()}
                 disabled={uploadResults.filter(r => r.result.success).length === 0 || isProcessing}
                 className="bg-green-600 hover:bg-green-700"
               >
@@ -168,18 +175,18 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
   }
 
   if (currentStep === 'preprocessing') {
-    // Convert uploadResults to files for PreProcessingPreview
-    const files = uploadResults.map(result => result.file).filter(Boolean);
+    console.log('🔍 Rendering preprocessing step with uploadResults:', uploadResults);
     
     return (
-      <PreProcessingPreview
-        files={files}
-        onValidationComplete={(validatedData) => {
-          console.log('Validation completed:', validatedData);
-          // Move to confirmation step after validation
+      <EnhancedPreProcessingPreview
+        uploadResults={uploadResults}
+        onValidationComplete={(modifiedResults) => {
+          console.log('✅ Validation completed with modified data:', modifiedResults);
+          setUploadResults(modifiedResults);
           setCurrentStep('confirmation');
         }}
         onCancel={handleBackToUpload}
+        onEdit={handleEditData}
       />
     );
   }
