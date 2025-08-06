@@ -8,8 +8,9 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useTemplates, useTemplateGeneration } from '@/hooks/useTemplates';
-import type { TemplateManagerProps, TemplateSchema } from '@/types/templates';
+import { useRealTemplates } from '@/hooks/useRealTemplates';
+import type { TemplateManagerProps } from '@/types/templates';
+import type { DatabaseTemplateSchema } from '@/services/realTemplateService';
 
 export const TemplateManager: React.FC<TemplateManagerProps> = ({
   onTemplateSelect,
@@ -18,10 +19,10 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateSchema | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<DatabaseTemplateSchema | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   
-  const { templates, loading, error, fetchTemplates: loadTemplates, generateAndDownload, isGenerating } = useTemplates();
+  const { templates, loading, error, fetchTemplates: loadTemplates, generateTemplate, hasRealData } = useRealTemplates(companyId);
 
   // Filter templates based on search and category
   const filteredTemplates = templates.filter(template => {
@@ -39,26 +40,32 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
     }
     acc[category].push(template);
     return acc;
-  }, {} as Record<string, TemplateSchema[]>);
+  }, {} as Record<string, DatabaseTemplateSchema[]>);
 
-  const handleTemplateSelect = (template: TemplateSchema) => {
+  const handleTemplateSelect = (template: DatabaseTemplateSchema) => {
     setSelectedTemplate(template);
-    onTemplateSelect?.(template);
+    // Convert to legacy format for compatibility
+    onTemplateSelect?.({
+      ...template,
+      fields: template.schema_definition.columns,
+      validations: template.validation_rules,
+      updated_at: template.created_at
+    } as any);
   };
 
-  const handleDownloadTemplate = async (template: TemplateSchema) => {
+  const handleDownloadTemplate = async (template: DatabaseTemplateSchema) => {
     const currentYear = new Date().getFullYear();
     const years = [currentYear - 2, currentYear - 1, currentYear];
     
-    await generateAndDownload({
+    await generateTemplate({
       template_name: template.name,
-      company_id: companyId,
       years,
-      format: 'csv'
+      format: 'csv',
+      include_sample_data: true
     });
   };
 
-  const handlePreviewTemplate = (template: TemplateSchema) => {
+  const handlePreviewTemplate = (template: DatabaseTemplateSchema) => {
     setSelectedTemplate(template);
     setShowPreview(true);
   };
@@ -196,6 +203,11 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
                                 Obligatorio
                               </Badge>
                             )}
+                            {hasRealData && (
+                              <Badge variant="default" className="text-xs bg-green-100 text-green-800">
+                                BD
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -238,7 +250,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
                               e.stopPropagation();
                               handleDownloadTemplate(template);
                             }}
-                            disabled={isGenerating}
+                            disabled={loading}
                             className="flex-1"
                           >
                             <Download className="h-3 w-3 mr-1" />
@@ -369,7 +381,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
               <div className="flex gap-3 pt-4 border-t">
                 <Button 
                   onClick={() => handleDownloadTemplate(selectedTemplate)}
-                  disabled={isGenerating}
+                  disabled={loading}
                   className="flex-1"
                 >
                   <Download className="h-4 w-4 mr-2" />
