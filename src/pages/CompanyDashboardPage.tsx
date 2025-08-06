@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Building2, ArrowLeft, BarChart3, TrendingUp, PieChart, Upload, Settings } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,7 @@ const CompanyDashboardPage = () => {
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
   const { user } = useAuth();
+  const { userRole } = useUserRole();
   const { toast } = useToast();
 
   const verifyAccessAndLoadData = async () => {
@@ -42,25 +44,30 @@ const CompanyDashboardPage = () => {
     try {
       setLoading(true);
 
-      // Verify user has membership to this company
-      const { data: membership, error: membershipError } = await supabase
-        .from('memberships')
-        .select('company_id')
-        .eq('user_id', user.id)
-        .eq('company_id', companyId)
-        .single();
+      // Admin users have access to all companies
+      if (userRole === 'admin') {
+        setHasAccess(true);
+      } else {
+        // Regular users need membership verification
+        const { data: membership, error: membershipError } = await supabase
+          .from('memberships')
+          .select('company_id')
+          .eq('user_id', user.id)
+          .eq('company_id', companyId)
+          .single();
 
-      if (membershipError || !membership) {
-        toast({
-          title: "Acceso denegado",
-          description: "No tienes permisos para acceder a esta empresa",
-          variant: "destructive"
-        });
-        navigate('/app/mis-empresas');
-        return;
+        if (membershipError || !membership) {
+          toast({
+            title: "Acceso denegado",
+            description: "No tienes permisos para acceder a esta empresa",
+            variant: "destructive"
+          });
+          navigate('/app/mis-empresas');
+          return;
+        }
+        
+        setHasAccess(true);
       }
-
-      setHasAccess(true);
 
       // Load company details
       const { data: companyData, error: companyError } = await supabase

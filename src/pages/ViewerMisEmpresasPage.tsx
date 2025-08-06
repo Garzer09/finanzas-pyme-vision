@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Building2, TrendingUp, Users, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useUserRole } from '@/hooks/useUserRole';
 import { useToast } from '@/hooks/use-toast';
 import { DashboardHeader } from '@/components/DashboardHeader';
 
@@ -21,6 +22,7 @@ const ViewerMisEmpresasPage = () => {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { userRole } = useUserRole();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -30,33 +32,44 @@ const ViewerMisEmpresasPage = () => {
     try {
       setLoading(true);
       
-      // Fetch companies user is member of
-      const { data: memberships, error: membershipsError } = await supabase
-        .from('memberships')
-        .select('company_id')
-        .eq('user_id', user.id);
+      let userCompanies: Company[] = [];
 
-      if (membershipsError) throw membershipsError;
+      if (userRole === 'admin') {
+        // Admin users can see all companies
+        const { data: allCompanies, error: companiesError } = await supabase
+          .from('companies')
+          .select('id, name, currency_code, sector, created_at')
+          .order('created_at', { ascending: false });
 
-      if (!memberships || memberships.length === 0) {
-        setCompanies([]);
-        return;
+        if (companiesError) throw companiesError;
+        userCompanies = allCompanies || [];
+        
+      } else {
+        // Regular users see only assigned companies
+        const { data: memberships, error: membershipsError } = await supabase
+          .from('memberships')
+          .select('company_id')
+          .eq('user_id', user.id);
+
+        if (membershipsError) throw membershipsError;
+
+        if (!memberships || memberships.length === 0) {
+          setCompanies([]);
+          return;
+        }
+
+        const companyIds = memberships.map(m => m.company_id);
+        const { data: companiesData, error: companiesError } = await supabase
+          .from('companies')
+          .select('id, name, currency_code, sector, created_at')
+          .in('id', companyIds)
+          .order('created_at', { ascending: false });
+
+        if (companiesError) throw companiesError;
+        userCompanies = companiesData || [];
       }
 
-      // Get company IDs
-      const companyIds = memberships.map(m => m.company_id);
-
-      // Fetch company details
-      const { data: companiesData, error: companiesError } = await supabase
-        .from('companies')
-        .select('id, name, currency_code, sector, created_at')
-        .in('id', companyIds);
-
-      if (companiesError) throw companiesError;
-
-      const userCompanies = companiesData || [];
-
-      setCompanies(userCompanies || []);
+      setCompanies(userCompanies);
 
       // If user has only one company, redirect directly to company dashboard
       if (userCompanies?.length === 1) {
@@ -101,9 +114,14 @@ const ViewerMisEmpresasPage = () => {
       
       <main className="container mx-auto p-6 space-y-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold">Mis Empresas</h1>
+          <h1 className="text-3xl font-bold">
+            {userRole === 'admin' ? 'Todas las Empresas' : 'Mis Empresas'}
+          </h1>
           <p className="text-muted-foreground">
-            Selecciona una empresa para acceder a su dashboard financiero
+            {userRole === 'admin' 
+              ? 'Como administrador, tienes acceso a todas las empresas del sistema'
+              : 'Selecciona una empresa para acceder a su dashboard financiero'
+            }
           </p>
         </div>
 
