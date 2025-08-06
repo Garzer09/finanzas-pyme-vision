@@ -38,10 +38,7 @@ export const CompanyDescriptionModule = () => {
       <DashboardSidebar />
       
       <div className="flex-1 flex flex-col">
-        <DashboardHeader 
-          companyInfo={companyInfo}
-          loading={companyLoading}
-        />
+        <DashboardHeader />
         
         <main className="flex-1 p-8 space-y-8 overflow-auto">
           {/* Header Section */}

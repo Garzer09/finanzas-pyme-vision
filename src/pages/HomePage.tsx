@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { DashboardHeader } from '@/components/DashboardHeader';
+import { CompanyProvider } from '@/components/CompanyProvider';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -255,13 +257,16 @@ const HomePage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-light-gray-bg flex">
-      {/* Sidebar */}
-      <DashboardSidebar />
-      
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto">
-        <div className="container mx-auto p-6 space-y-8">
+    <CompanyProvider>
+      <div className="min-h-screen bg-light-gray-bg flex">
+        {/* Sidebar */}
+        <DashboardSidebar />
+        
+        {/* Main Content */}
+        <div className="flex-1 flex flex-col">
+          <DashboardHeader />
+          <div className="flex-1 overflow-auto">
+            <div className="container mx-auto p-6 space-y-8">
           {/* Welcome Section */}
           <div className="text-center space-y-4">
             <h1 className="text-3xl font-bold text-steel-blue-dark">
@@ -476,8 +481,10 @@ const HomePage = () => {
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
     </div>
+    </CompanyProvider>
   );
 };
 

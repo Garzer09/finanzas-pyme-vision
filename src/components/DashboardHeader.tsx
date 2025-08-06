@@ -3,25 +3,14 @@ import { TrendingUp, LogOut, Building2 } from 'lucide-react';
 import { useCompanyLogo } from '@/hooks/useCompanyLogo';
 import { CompanyLogo } from '@/components/CompanyLogo';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
-interface CompanyInfo {
-  id: string;
-  name: string;
-  sector: string | null;
-  currency_code: string;
-  logo_url: string | null;
-}
-
-interface DashboardHeaderProps {
-  companyInfo?: CompanyInfo | null;
-  loading?: boolean;
-}
-
-export const DashboardHeader = ({ companyInfo, loading }: DashboardHeaderProps) => {
+export const DashboardHeader = () => {
   const { logoUrl } = useCompanyLogo();
   const { signOut } = useAuth();
+  const { currentCompany, loading } = useCompanyContext();
 
   return (
     <header className="flex items-center justify-between whitespace-nowrap border-b border-slate-200/60 px-10 py-4 bg-white/98 backdrop-blur-xl shadow-professional">
@@ -37,22 +26,22 @@ export const DashboardHeader = ({ companyInfo, loading }: DashboardHeaderProps) 
         />
         <div>
           <h1 className="text-xl font-bold text-slate-900 leading-tight tracking-tight">
-            {companyInfo?.name || (logoUrl ? '' : 'Next Consultor-IA')}
+            {currentCompany?.name || (logoUrl ? '' : 'Next Consultor-IA')}
           </h1>
           <div className="flex items-center gap-2">
             <p className="text-sm text-slate-600 font-medium">
-              {companyInfo ? 'Dashboard Empresarial' : 'Dashboard Financiero Profesional'}
+              {currentCompany ? 'Dashboard Empresarial' : 'Análisis Financiero Profesional'}
             </p>
-            {companyInfo && (
+            {currentCompany && (
               <>
                 <span className="text-xs text-muted-foreground">•</span>
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Building2 className="h-3 w-3" />
-                  <span>{companyInfo.sector || 'Sin sector'}</span>
+                  <span>{currentCompany.sector || 'Sin sector'}</span>
                 </div>
                 <span className="text-xs text-muted-foreground">•</span>
                 <span className="text-xs font-medium text-steel-600 bg-steel-50 px-2 py-0.5 rounded">
-                  {companyInfo.currency_code}
+                  {currentCompany.currency_code}
                 </span>
               </>
             )}
