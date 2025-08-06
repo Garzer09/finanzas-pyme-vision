@@ -8,13 +8,14 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Upload, FileText, CheckCircle, ArrowRight, Download, X, XCircle, Building, Users } from 'lucide-react';
+import { Upload, FileText, CheckCircle, ArrowRight, Download, X, XCircle, Building, Users, Sparkles } from 'lucide-react';
 import { useDataYearDetection } from '@/hooks/useDataYearDetection';
 import { DataManagementPanel } from './DataManagementPanel';
 import { ProcessingStatusPanel } from './ProcessingStatusPanel';
 import { QualitativePreview } from '../QualitativePreview';
 import { EditableQualitativePreview } from './EditableQualitativePreview';
 import { EnhancedFileProcessor, ProcessedFileResult } from '@/services/enhancedFileProcessor';
+import { useUnifiedTemplates } from '@/hooks/useUnifiedTemplates';
 
 // Types
 interface CompanyInfo {
@@ -73,6 +74,8 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [selectedFormat, setSelectedFormat] = useState<'legacy' | 'unified'>('unified');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
   const [companyInfo, setCompanyInfo] = useState<CompanyInfo>({
     name: '',
     currency: 'EUR',
@@ -89,6 +92,15 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
   const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
   const { detectYearsFromFiles } = useDataYearDetection();
   const fileProcessor = new EnhancedFileProcessor();
+  
+  // Unified templates hook
+  const {
+    loading: unifiedLoading,
+    generateTemplate: generateUnifiedTemplate,
+    processFile: processUnifiedFile,
+    fetchMetrics,
+    metrics
+  } = useUnifiedTemplates();
 
   // Update edited qualitative data
   const updateEditedQualitativeData = (field: string, value: any, section: 'company' | 'shareholders', index?: number) => {
@@ -836,28 +848,87 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
 
             <Separator />
 
-            {/* Unified Template Download */}
+            {/* Template Selection */}
             <div className="space-y-4">
               <h3 className="text-lg font-semibold mb-4">Plantillas Disponibles</h3>
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium text-blue-900">Paquete Completo de Plantillas</h4>
-                    <p className="text-sm text-blue-700 mt-1">
-                      Incluye todas las plantillas disponibles: P&G, Balance, Flujos, Pool Deuda, Supuestos, Datos Operativos y Empresa Cualitativa
-                      {isCompanyPreloaded && ` - Pre-configurado para ${companyInfo.name}`}
-                    </p>
-                  </div>
-                  <Button
-                    onClick={handleDownloadAllTemplates}
-                    disabled={loading || isLoadingCompany}
-                    className="ml-4 flex items-center gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    {loading ? 'Generando...' : 'Descargar Todas'}
-                  </Button>
-                </div>
+              
+              {/* Format Selection */}
+              <div>
+                <Label>Formato de Plantilla</Label>
+                <Select value={selectedFormat} onValueChange={(value: 'legacy' | 'unified') => {
+                  setSelectedFormat(value);
+                  setSelectedTemplate('');
+                }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona formato..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unified">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        Formato Unificado (Recomendado)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="legacy">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-4 h-4" />
+                        Formato Legacy
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+
+              {/* Template Type Selection */}
+              <div>
+                <Label>{selectedFormat === 'unified' ? 'Tipo de Plantilla' : 'Plantilla Legacy'}</Label>
+                <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                  <SelectTrigger>
+                    <SelectValue placeholder={selectedFormat === 'unified' ? "Elige tipo..." : "Elige plantilla..."} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {selectedFormat === 'unified' ? (
+                      <>
+                        <SelectItem value="financial_series">
+                          <div className="space-y-1">
+                            <div className="font-medium">Series Financieras</div>
+                            <div className="text-xs text-muted-foreground">Balance, P&L, Cash Flow, Métricas</div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="company_profile">
+                          <div className="space-y-1">
+                            <div className="font-medium">Perfil de Empresa</div>
+                            <div className="text-xs text-muted-foreground">Datos cualitativos y accionistas</div>
+                          </div>
+                        </SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="balance-situacion">Balance de Situación</SelectItem>
+                        <SelectItem value="cuenta-pyg">Cuenta P&G</SelectItem>
+                        <SelectItem value="estado-flujos">Cash Flow</SelectItem>
+                        <SelectItem value="empresa_cualitativa">Empresa Cualitativa</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {/* Download Button */}
+              <Button
+                onClick={() => selectedFormat === 'unified' ? generateUnifiedTemplate({
+                  template_type: selectedTemplate as 'financial_series' | 'company_profile',
+                  company_id: companyId || undefined,
+                  external_id: companyInfo.name?.replace(/\s+/g, '_').toUpperCase() || 'COMPANY_ID',
+                  years: [2022, 2023, 2024],
+                  include_sample_data: true
+                }) : handleDownloadAllTemplates()}
+                disabled={!selectedTemplate || loading || unifiedLoading}
+                className="w-full flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                {(loading || unifiedLoading) ? 'Generando...' : `Descargar ${selectedFormat === 'unified' ? 'Plantilla Unificada' : 'Plantillas Legacy'}`}
+              </Button>
             </div>
 
             <Separator />

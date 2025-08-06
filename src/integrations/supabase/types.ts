@@ -367,6 +367,57 @@ export type Database = {
           },
         ]
       }
+      company_profile_unified: {
+        Row: {
+          as_of_date: string
+          company_id: string
+          confidence: number | null
+          created_at: string
+          external_id: string | null
+          extra_json: Json | null
+          field_name: string
+          field_value: string | null
+          id: number
+          job_id: string | null
+          notes: string | null
+          record_type: string
+          source_url: string | null
+          uploaded_by: string | null
+        }
+        Insert: {
+          as_of_date: string
+          company_id: string
+          confidence?: number | null
+          created_at?: string
+          external_id?: string | null
+          extra_json?: Json | null
+          field_name: string
+          field_value?: string | null
+          id?: number
+          job_id?: string | null
+          notes?: string | null
+          record_type: string
+          source_url?: string | null
+          uploaded_by?: string | null
+        }
+        Update: {
+          as_of_date?: string
+          company_id?: string
+          confidence?: number | null
+          created_at?: string
+          external_id?: string | null
+          extra_json?: Json | null
+          field_name?: string
+          field_value?: string | null
+          id?: number
+          job_id?: string | null
+          notes?: string | null
+          record_type?: string
+          source_url?: string | null
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       company_shareholder_info: {
         Row: {
           board_of_directors: Json | null
@@ -875,6 +926,71 @@ export type Database = {
           },
         ]
       }
+      financial_series_unified: {
+        Row: {
+          company_id: string
+          confidence_score: number | null
+          created_at: string
+          currency: string
+          external_id: string | null
+          frequency: string
+          id: number
+          job_id: string | null
+          metric_code: string
+          notes: string | null
+          period: string
+          source: string | null
+          unit: string
+          uploaded_by: string | null
+          value: number
+          value_kind: string
+        }
+        Insert: {
+          company_id: string
+          confidence_score?: number | null
+          created_at?: string
+          currency?: string
+          external_id?: string | null
+          frequency: string
+          id?: number
+          job_id?: string | null
+          metric_code: string
+          notes?: string | null
+          period: string
+          source?: string | null
+          unit?: string
+          uploaded_by?: string | null
+          value?: number
+          value_kind?: string
+        }
+        Update: {
+          company_id?: string
+          confidence_score?: number | null
+          created_at?: string
+          currency?: string
+          external_id?: string | null
+          frequency?: string
+          id?: number
+          job_id?: string | null
+          metric_code?: string
+          notes?: string | null
+          period?: string
+          source?: string | null
+          unit?: string
+          uploaded_by?: string | null
+          value?: number
+          value_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_series_unified_metric_code_fkey"
+            columns: ["metric_code"]
+            isOneToOne: false
+            referencedRelation: "metrics_dictionary"
+            referencedColumns: ["metric_code"]
+          },
+        ]
+      }
       financial_synonyms: {
         Row: {
           canonical_term: string
@@ -1180,6 +1296,74 @@ export type Database = {
           created_at?: string | null
           role?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      metric_aliases: {
+        Row: {
+          alias: string
+          confidence_score: number | null
+          created_at: string
+          id: string
+          metric_code: string
+        }
+        Insert: {
+          alias: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          metric_code: string
+        }
+        Update: {
+          alias?: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          metric_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_aliases_metric_code_fkey"
+            columns: ["metric_code"]
+            isOneToOne: false
+            referencedRelation: "metrics_dictionary"
+            referencedColumns: ["metric_code"]
+          },
+        ]
+      }
+      metrics_dictionary: {
+        Row: {
+          category: string
+          created_at: string
+          default_unit: string
+          description: string | null
+          id: string
+          is_active: boolean
+          metric_code: string
+          metric_name: string
+          value_kind: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          default_unit?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          metric_code: string
+          metric_name: string
+          value_kind?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          default_unit?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          metric_code?: string
+          metric_name?: string
+          value_kind?: string
         }
         Relationships: []
       }

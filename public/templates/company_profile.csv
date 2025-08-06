@@ -1,0 +1,20 @@
+external_id,record_type,as_of_date,field_name,field_value,source_url,confidence,notes
+EJEMPLO_TECH_SL,PROFILE,2023-12-31,legal_name,Ejemplo Tecnológico S.L.,https://mercantil.registradores.org,1.0,Denominación social oficial
+EJEMPLO_TECH_SL,PROFILE,2023-12-31,year_founded,2010,https://mercantil.registradores.org,1.0,Año de constitución de la sociedad
+EJEMPLO_TECH_SL,PROFILE,2023-12-31,employees_exact,85,https://seg-social.es,0.9,Plantilla media anual
+EJEMPLO_TECH_SL,PROFILE,2023-12-31,annual_revenue_value,5750000,https://registromercantil.org,1.0,Cifra de negocios anual
+EJEMPLO_TECH_SL,PROFILE,2023-12-31,annual_revenue_currency,EUR,https://registromercantil.org,1.0,Moneda de las cuentas anuales
+EJEMPLO_TECH_SL,PROFILE,2023-12-31,hq_city,Madrid,https://mercantil.registradores.org,1.0,Domicilio social
+EJEMPLO_TECH_SL,PROFILE,2023-12-31,hq_country_code,ES,https://mercantil.registradores.org,1.0,País del domicilio social
+EJEMPLO_TECH_SL,PROFILE,2023-12-31,sector,Tecnología,https://cnae.com.es,0.8,Sector de actividad principal
+EJEMPLO_TECH_SL,PROFILE,2023-12-31,industry_isic,6201,https://cnae.com.es,0.9,Código CNAE actividad principal
+EJEMPLO_TECH_SL,PROFILE,2023-12-31,website,https://ejemplo-tech.es,https://empresa.com,0.7,Sitio web corporativo
+EJEMPLO_TECH_SL,PROFILE,2023-12-31,description,Empresa especializada en desarrollo de software empresarial y soluciones de transformación digital,https://empresa.com,0.8,Descripción de la actividad
+EJEMPLO_TECH_SL,SHAREHOLDER,2023-12-31,holder_name,Juan Pérez González,https://mercantil.registradores.org,1.0,Accionista principal
+EJEMPLO_TECH_SL,SHAREHOLDER,2023-12-31,holder_type,person,https://mercantil.registradores.org,1.0,Tipo de titular
+EJEMPLO_TECH_SL,SHAREHOLDER,2023-12-31,direct_pct,60.5,https://mercantil.registradores.org,1.0,Participación directa en %
+EJEMPLO_TECH_SL,SHAREHOLDER,2023-12-31,control_mechanism,ordinary_shares,https://mercantil.registradores.org,1.0,Mecanismo de control
+EJEMPLO_TECH_SL,SHAREHOLDER,2023-12-31,holder_name,Tech Ventures Capital S.L.,https://mercantil.registradores.org,1.0,Accionista institucional
+EJEMPLO_TECH_SL,SHAREHOLDER,2023-12-31,holder_type,entity,https://mercantil.registradores.org,1.0,Tipo de titular
+EJEMPLO_TECH_SL,SHAREHOLDER,2023-12-31,direct_pct,25.0,https://mercantil.registradores.org,1.0,Participación directa en %
+EJEMPLO_TECH_SL,SHAREHOLDER,2023-12-31,control_mechanism,ordinary_shares,https://mercantil.registradores.org,1.0,Mecanismo de control
