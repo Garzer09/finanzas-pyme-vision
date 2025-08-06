@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { MultiFileUploadInterface } from './MultiFileUploadInterface';
 import { EditableDataPreview } from './EditableDataPreview';
+import { PreProcessingPreview } from './PreProcessingPreview';
 import { AlertTriangle, Upload, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 

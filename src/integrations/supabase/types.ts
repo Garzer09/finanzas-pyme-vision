@@ -1565,6 +1565,56 @@ export type Database = {
         }
         Relationships: []
       }
+      processing_logs: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          error_details: Json | null
+          id: string
+          performance_metrics: Json | null
+          session_id: string
+          step_data: Json | null
+          step_name: string
+          step_status: string
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          performance_metrics?: Json | null
+          session_id?: string
+          step_data?: Json | null
+          step_name: string
+          step_status: string
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          performance_metrics?: Json | null
+          session_id?: string
+          step_data?: Json | null
+          step_name?: string
+          step_status?: string
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shareholder_search_history: {
         Row: {
           company_name: string
@@ -1718,6 +1768,48 @@ export type Database = {
           updated_at?: string
           validation_rules?: Json
           version?: string
+        }
+        Relationships: []
+      }
+      template_validation_rules: {
+        Row: {
+          created_at: string
+          error_message: string
+          id: string
+          is_active: boolean
+          metric_code: string | null
+          record_type: string | null
+          rule_name: string
+          rule_type: string
+          severity: string
+          updated_at: string
+          validation_config: Json
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          id?: string
+          is_active?: boolean
+          metric_code?: string | null
+          record_type?: string | null
+          rule_name: string
+          rule_type: string
+          severity?: string
+          updated_at?: string
+          validation_config?: Json
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          id?: string
+          is_active?: boolean
+          metric_code?: string | null
+          record_type?: string | null
+          rule_name?: string
+          rule_type?: string
+          severity?: string
+          updated_at?: string
+          validation_config?: Json
         }
         Relationships: []
       }
@@ -2083,6 +2175,19 @@ export type Database = {
       is_first_user: {
         Args: Record<PropertyKey, never>
         Returns: boolean
+      }
+      log_processing_step: {
+        Args: {
+          _session_id: string
+          _company_id: string
+          _user_id: string
+          _step_name: string
+          _step_status: string
+          _step_data?: Json
+          _error_details?: Json
+          _performance_metrics?: Json
+        }
+        Returns: undefined
       }
       promote_user_to_admin: {
         Args: { target_user_id: string }
