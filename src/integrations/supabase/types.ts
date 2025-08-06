@@ -373,48 +373,84 @@ export type Database = {
           company_id: string
           confidence: number | null
           created_at: string
+          description: string | null
+          direct_pct: number | null
+          employees_exact: number | null
           external_id: string | null
           extra_json: Json | null
           field_name: string
           field_value: string | null
+          holder_name: string | null
+          holder_type: string | null
+          hq_city: string | null
+          hq_country_code: string | null
           id: number
+          indirect_pct: number | null
           job_id: string | null
+          legal_name: string | null
           notes: string | null
           record_type: string
+          sector: string | null
           source_url: string | null
           uploaded_by: string | null
+          website: string | null
+          year_founded: number | null
         }
         Insert: {
           as_of_date: string
           company_id: string
           confidence?: number | null
           created_at?: string
+          description?: string | null
+          direct_pct?: number | null
+          employees_exact?: number | null
           external_id?: string | null
           extra_json?: Json | null
           field_name: string
           field_value?: string | null
+          holder_name?: string | null
+          holder_type?: string | null
+          hq_city?: string | null
+          hq_country_code?: string | null
           id?: number
+          indirect_pct?: number | null
           job_id?: string | null
+          legal_name?: string | null
           notes?: string | null
           record_type: string
+          sector?: string | null
           source_url?: string | null
           uploaded_by?: string | null
+          website?: string | null
+          year_founded?: number | null
         }
         Update: {
           as_of_date?: string
           company_id?: string
           confidence?: number | null
           created_at?: string
+          description?: string | null
+          direct_pct?: number | null
+          employees_exact?: number | null
           external_id?: string | null
           extra_json?: Json | null
           field_name?: string
           field_value?: string | null
+          holder_name?: string | null
+          holder_type?: string | null
+          hq_city?: string | null
+          hq_country_code?: string | null
           id?: number
+          indirect_pct?: number | null
           job_id?: string | null
+          legal_name?: string | null
           notes?: string | null
           record_type?: string
+          sector?: string | null
           source_url?: string | null
           uploaded_by?: string | null
+          website?: string | null
+          year_founded?: number | null
         }
         Relationships: []
       }
@@ -928,10 +964,12 @@ export type Database = {
       }
       financial_series_unified: {
         Row: {
+          as_of_date: string | null
           company_id: string
           confidence_score: number | null
           created_at: string
           currency: string
+          customer_code: string | null
           external_id: string | null
           frequency: string
           id: number
@@ -939,6 +977,10 @@ export type Database = {
           metric_code: string
           notes: string | null
           period: string
+          product_code: string | null
+          region_code: string | null
+          scenario: string | null
+          segment_json: Json | null
           source: string | null
           unit: string
           uploaded_by: string | null
@@ -946,10 +988,12 @@ export type Database = {
           value_kind: string
         }
         Insert: {
+          as_of_date?: string | null
           company_id: string
           confidence_score?: number | null
           created_at?: string
           currency?: string
+          customer_code?: string | null
           external_id?: string | null
           frequency: string
           id?: number
@@ -957,6 +1001,10 @@ export type Database = {
           metric_code: string
           notes?: string | null
           period: string
+          product_code?: string | null
+          region_code?: string | null
+          scenario?: string | null
+          segment_json?: Json | null
           source?: string | null
           unit?: string
           uploaded_by?: string | null
@@ -964,10 +1012,12 @@ export type Database = {
           value_kind?: string
         }
         Update: {
+          as_of_date?: string | null
           company_id?: string
           confidence_score?: number | null
           created_at?: string
           currency?: string
+          customer_code?: string | null
           external_id?: string | null
           frequency?: string
           id?: number
@@ -975,6 +1025,10 @@ export type Database = {
           metric_code?: string
           notes?: string | null
           period?: string
+          product_code?: string | null
+          region_code?: string | null
+          scenario?: string | null
+          segment_json?: Json | null
           source?: string | null
           unit?: string
           uploaded_by?: string | null
@@ -2041,6 +2095,14 @@ export type Database = {
       refresh_ratios_mv: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      validate_balance_sheet_integrity: {
+        Args: {
+          company_uuid: string
+          period_text: string
+          scenario_text?: string
+        }
+        Returns: Json
       }
     }
     Enums: {
