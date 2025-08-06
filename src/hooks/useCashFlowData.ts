@@ -45,11 +45,19 @@ export const useCashFlowData = (companyId?: string): UseCashFlowDataResult => {
     setError(null);
     
     try {
-      const { data, error: supabaseError } = await supabase
+      let query = supabase
         .from('fs_cashflow_lines')
-        .select('*')
-        .eq('company_id', companyId || user.id)
-        .order('period_date', { ascending: false });
+        .select('*');
+      
+      if (companyId) {
+        query = query.eq('company_id', companyId);
+      } else {
+        // If no companyId provided, don't fetch any data for now
+        setCashFlowData([]);
+        return;
+      }
+      
+      const { data, error: supabaseError } = await query.order('period_date', { ascending: false });
 
       if (supabaseError) {
         throw new Error(supabaseError.message);

@@ -6,7 +6,10 @@ import { TrendingUp, DollarSign, ArrowUpCircle, ArrowDownCircle } from 'lucide-r
 import { supabase } from '@/integrations/supabase/client';
 import { useEffect, useState } from 'react';
 
+import { useCompanyContext } from '@/contexts/CompanyContext';
+
 export const CashFlowCurrentModule = () => {
+  const { companyId } = useCompanyContext();
   const [kpiData, setKpiData] = useState<any[]>([]);
   const [cashFlowData, setCashFlowData] = useState<any[]>([]);
   const [flujosDetalle, setFlujosDetalle] = useState<any[]>([]);
@@ -80,10 +83,15 @@ export const CashFlowCurrentModule = () => {
       setLoading(true);
       try {
         // Fetch Cash Flow data directly from fs_cashflow_lines table
-        const { data: cashflowData, error } = await supabase
+        let query = supabase
           .from('fs_cashflow_lines')
-          .select('*')
-          .order('period_year', { ascending: false });
+          .select('*');
+        
+        if (companyId) {
+          query = query.eq('company_id', companyId);
+        }
+        
+        const { data: cashflowData, error } = await query.order('period_year', { ascending: false });
 
         if (error) throw error;
 
@@ -179,7 +187,7 @@ export const CashFlowCurrentModule = () => {
     };
 
     fetchCashFlowData();
-  }, []);
+  }, [companyId]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {

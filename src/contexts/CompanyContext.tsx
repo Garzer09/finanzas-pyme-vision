@@ -102,6 +102,18 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
   const validateCompanyAccess = async (targetCompanyId: string): Promise<boolean> => {
     if (!user || !targetCompanyId) return false;
 
+    // Check if user is admin first
+    const { data: userRole } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
+
+    // Admins have access to all companies
+    if (userRole?.role === 'admin') {
+      return true;
+    }
+
     try {
       const { data: membership, error } = await supabase
         .from('memberships')
