@@ -125,45 +125,6 @@ export const CompanyDescriptionForm = () => {
 
   return (
     <div className="space-y-6">
-      {/* Status information */}
-      {companyName && (
-        <Card className="modern-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building className="h-5 w-5 text-primary" />
-              {companyName}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {descriptionLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-              </div>
-            ) : (
-              <div>
-                {companyDescription ? (
-                  <Alert>
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      Información de la empresa cargada desde la base de datos.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      No hay información disponible. Puedes completar los datos manualmente.
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
       {/* Información de la Empresa */}
       <Card className="modern-card">
         <CardHeader>
