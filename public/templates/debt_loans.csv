@@ -1,4 +1,4 @@
-company_id,loan_key,lender,loan_type,currency_code,initial_amount,start_date,maturity_date,rate_type,interest_rate_pct,amortization,collateral,covenants,notes,as_of_date,source_url,confidence,uploaded_by,job_id
-EJEMPLO_TECH_SL,LOAN_001,Banco Santander,term_loan,EUR,2000000,2020-01-15,2025-01-15,fixed,3.5,french,inmuebles,debt_service_ratio_min_1.2,Préstamo hipotecario para oficinas,2023-12-31,https://contrato-prestamo.pdf,1.0,,
-EJEMPLO_TECH_SL,LOAN_002,BBVA,credit_line,EUR,500000,2022-06-01,2027-06-01,variable,euribor_plus_200,interest_only,garantia_personal,clean_up_provision,Línea de crédito operativa,2023-12-31,https://contrato-credito.pdf,1.0,,
-EJEMPLO_TECH_SL,LOAN_003,ICO,subsidized,EUR,300000,2021-03-01,2026-03-01,fixed,1.5,french,none,employment_maintenance,Préstamo ICO COVID-19,2023-12-31,https://ico-prestamo.pdf,1.0,,
+company_id,loan_key,lender,loan_type,currency_code,initial_amount,start_date,maturity_date,rate_type,interest_rate_pct,rate_index,spread_bps,amortization,collateral,covenants,notes,as_of_date,source_url,confidence,uploaded_by,job_id
+EJEMPLO_TECH_SL,LOAN_001,Banco Santander,term_loan,EUR,2000000,2020-01-15,2025-01-15,fixed,3.5,FIXED,0,french,inmuebles,debt_service_ratio_min_1.2,Préstamo hipotecario para oficinas,2023-12-31,https://contrato-prestamo.pdf,1.0,,
+EJEMPLO_TECH_SL,LOAN_002,BBVA,credit_line,EUR,500000,2022-06-01,2027-06-01,variable,4.2,EURIBOR_3M,200,interest_only,garantia_personal,clean_up_provision,Línea de crédito operativa,2023-12-31,https://contrato-credito.pdf,1.0,,
+EJEMPLO_TECH_SL,LOAN_003,ICO,subsidized,EUR,300000,2021-03-01,2026-03-01,fixed,1.5,FIXED,0,french,none,employment_maintenance,Préstamo ICO COVID-19,2023-12-31,https://ico-prestamo.pdf,1.0,,

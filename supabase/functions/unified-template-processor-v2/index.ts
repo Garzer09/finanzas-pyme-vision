@@ -66,7 +66,7 @@ Deno.serve(async (req) => {
 
     console.log(`📋 Processing ${templateType} template for company ${companyId}`);
 
-    // Read and parse CSV
+    // Read and parse CSV with improved parser
     const csvContent = await file.text();
     const lines = csvContent.split('\n').filter(line => line.trim());
     
@@ -74,28 +74,8 @@ Deno.serve(async (req) => {
       throw new Error('CSV must have at least header and one data row');
     }
 
-    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
-    const dataRows = lines.slice(1).map(line => {
-      // Simple CSV parsing (handles basic quotes)
-      const values = [];
-      let current = '';
-      let inQuotes = false;
-      
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') {
-          inQuotes = !inQuotes;
-        } else if (char === ',' && !inQuotes) {
-          values.push(current.trim());
-          current = '';
-        } else {
-          current += char;
-        }
-      }
-      values.push(current.trim());
-      
-      return values.map(v => v.replace(/"/g, ''));
-    });
+    const headers = parseCSVLine(lines[0]);
+    const dataRows = lines.slice(1).map(line => parseCSVLine(line));
 
     // Validate template structure
     const validation = validateTemplateStructure(templateType, headers, dataRows);
@@ -199,91 +179,129 @@ Deno.serve(async (req) => {
   }
 });
 
+// Robust CSV parser that handles escaped quotes and commas
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  let i = 0;
+
+  while (i < line.length) {
+    const char = line[i];
+    
+    if (char === '"') {
+      // Check if this is an escaped quote (double quote)
+      if (i + 1 < line.length && line[i + 1] === '"') {
+        current += '"';
+        i += 2; // Skip both quotes
+      } else {
+        inQuotes = !inQuotes;
+        i++;
+      }
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+      i++;
+    } else {
+      current += char;
+      i++;
+    }
+  }
+  
+  result.push(current.trim());
+  return result;
+}
+
 function validateTemplateStructure(templateType: string, headers: string[], dataRows: string[][]): ValidationResult {
   const errors: ValidationError[] = [];
   const warnings: ValidationError[] = [];
   
-  // Define required fields for each template
-  const requiredFields: Record<string, string[]> = {
-    facts: ['company_id', 'metric_code', 'frequency', 'period', 'value', 'value_kind', 'unit', 'currency_code', 'scenario'],
-    debt_loans: ['company_id', 'loan_key', 'lender', 'loan_type', 'currency_code', 'initial_amount', 'start_date', 'maturity_date'],
-    debt_balances: ['company_id', 'loan_key', 'frequency', 'period', 'balance_amount', 'currency_code'],
-    company_profile_unified: ['company_id', 'record_type', 'as_of_date', 'source_url', 'confidence']
+  // Define expected fields for each template type
+  const expectedFields: { [key: string]: string[] } = {
+    'facts': [
+      'company_id', 'metric_code', 'frequency', 'period', 'value', 'value_kind', 
+      'unit', 'currency_code', 'scenario', 'as_of_date', 'source_url', 'confidence',
+      'uploaded_by', 'job_id', 'product_code', 'region_code', 'customer_code', 'segment_json'
+    ],
+    'debt_loans': [
+      'company_id', 'loan_key', 'lender', 'loan_type', 'currency_code', 'initial_amount',
+      'start_date', 'maturity_date', 'rate_type', 'interest_rate_pct', 'rate_index', 'spread_bps',
+      'amortization', 'collateral', 'covenants', 'notes', 'as_of_date', 'source_url', 'confidence',
+      'uploaded_by', 'job_id'
+    ],
+    'debt_balances': [
+      'company_id', 'loan_key', 'frequency', 'period', 'balance_amount', 'currency_code',
+      'as_of_date', 'source_url', 'confidence', 'uploaded_by', 'job_id'
+    ],
+    'company_profile_unified': [
+      'company_id', 'record_type', 'as_of_date', 'source_url', 'confidence', 'uploaded_by',
+      'job_id', 'notes', 'extra_json', 'legal_name', 'year_founded', 'employees_exact',
+      'sector', 'hq_city', 'hq_country_code', 'website', 'description', 'holder_name',
+      'holder_type', 'direct_pct', 'indirect_pct'
+    ]
   };
 
-  const required = requiredFields[templateType] || [];
-  
-  // Check required headers
-  for (const field of required) {
-    if (!headers.includes(field)) {
+  const expected = expectedFields[templateType];
+  if (!expected) {
+    errors.push({
+      row: 0,
+      field: 'template_type',
+      value: templateType,
+      error: `Template type '${templateType}' is not supported`,
+      severity: 'error'
+    });
+    return { isValid: false, errors, warnings, summary: { totalRows: 0, validRows: 0, errorRows: 1, warningRows: 0 } };
+  }
+
+  // Check headers match exactly
+  if (headers.length !== expected.length) {
+    errors.push({
+      row: 0,
+      field: 'headers',
+      value: headers.length,
+      error: `Expected ${expected.length} columns, but found ${headers.length}`,
+      severity: 'error'
+    });
+  }
+
+  for (let i = 0; i < expected.length; i++) {
+    if (headers[i] !== expected[i]) {
       errors.push({
         row: 0,
-        field,
-        value: 'missing',
-        error: `Required field '${field}' not found in headers`,
+        field: `column_${i + 1}`,
+        value: headers[i] || 'missing',
+        error: `Column ${i + 1}: expected '${expected[i]}', found '${headers[i] || 'missing'}'`,
         severity: 'error'
       });
     }
   }
 
   // Validate data rows
-  dataRows.forEach((row, rowIndex) => {
-    if (row.length !== headers.length) {
+  dataRows.forEach((row, index) => {
+    const rowNumber = index + 2; // +2 because index starts at 0 and we skip header row
+    
+    // Check row length - STRICT validation
+    if (row.length !== expected.length) {
       errors.push({
-        row: rowIndex + 2,
+        row: rowNumber,
         field: 'row_structure',
         value: row.length,
-        error: `Row has ${row.length} columns, expected ${headers.length}`,
+        error: `Expected exactly ${expected.length} columns, found ${row.length}. Check for unescaped commas or quotes.`,
         severity: 'error'
       });
+      return; // Skip further validation for malformed rows
     }
 
-    // Validate specific fields based on template type
-    headers.forEach((header, colIndex) => {
-      const value = row[colIndex];
-      
-      // Check required fields are not empty
-      if (required.includes(header) && (!value || value.trim() === '')) {
-        errors.push({
-          row: rowIndex + 2,
-          field: header,
-          value,
-          error: `Required field '${header}' is empty`,
-          severity: 'error'
-        });
-      }
-
-      // Validate specific field types
-      if (header === 'value' && value && isNaN(Number(value))) {
-        errors.push({
-          row: rowIndex + 2,
-          field: header,
-          value,
-          error: 'Value must be numeric',
-          severity: 'error'
-        });
-      }
-
-      if (header.includes('_pct') && value && (isNaN(Number(value)) || Number(value) < 0 || Number(value) > 100)) {
-        warnings.push({
-          row: rowIndex + 2,
-          field: header,
-          value,
-          error: 'Percentage should be between 0 and 100',
-          severity: 'warning'
-        });
-      }
-
-      if (header.includes('_date') && value && !isValidDate(value)) {
-        errors.push({
-          row: rowIndex + 2,
-          field: header,
-          value,
-          error: 'Date must be in YYYY-MM-DD format',
-          severity: 'error'
-        });
-      }
-    });
+    // Template-specific validations
+    if (templateType === 'facts') {
+      validateFactsRow(row, rowNumber, errors, warnings);
+    } else if (templateType === 'debt_loans') {
+      validateDebtLoansRow(row, rowNumber, errors, warnings);
+    } else if (templateType === 'debt_balances') {
+      validateDebtBalancesRow(row, rowNumber, errors, warnings);
+    } else if (templateType === 'company_profile_unified') {
+      validateCompanyProfileRow(row, rowNumber, errors, warnings);
+    }
   });
 
   return {
@@ -292,11 +310,186 @@ function validateTemplateStructure(templateType: string, headers: string[], data
     warnings,
     summary: {
       totalRows: dataRows.length,
-      validRows: dataRows.length - errors.filter(e => e.row > 0).length,
+      validRows: dataRows.filter((_, index) => !errors.some(e => e.row === index + 2)).length,
       errorRows: errors.filter(e => e.row > 0).length,
       warningRows: warnings.filter(w => w.row > 0).length
     }
   };
+}
+
+function validateFactsRow(row: string[], rowNumber: number, errors: ValidationError[], warnings: ValidationError[]) {
+  // Required fields validation
+  if (!row[0]?.trim()) errors.push({ row: rowNumber, field: 'company_id', value: row[0], error: 'company_id is required', severity: 'error' });
+  if (!row[1]?.trim()) errors.push({ row: rowNumber, field: 'metric_code', value: row[1], error: 'metric_code is required', severity: 'error' });
+  if (!row[2]?.trim()) errors.push({ row: rowNumber, field: 'frequency', value: row[2], error: 'frequency is required', severity: 'error' });
+  if (!row[3]?.trim()) errors.push({ row: rowNumber, field: 'period', value: row[3], error: 'period is required', severity: 'error' });
+  if (!row[4]?.trim()) errors.push({ row: rowNumber, field: 'value', value: row[4], error: 'value is required', severity: 'error' });
+  
+  // Validate numeric value
+  if (row[4] && isNaN(parseFloat(row[4]))) {
+    errors.push({ row: rowNumber, field: 'value', value: row[4], error: 'value must be numeric', severity: 'error' });
+  }
+  
+  // Validate value_kind
+  if (row[5] && !['flow', 'stock'].includes(row[5])) {
+    errors.push({ row: rowNumber, field: 'value_kind', value: row[5], error: 'value_kind must be "flow" or "stock"', severity: 'error' });
+  }
+  
+  // Validate frequency
+  if (row[2] && !['Y', 'Q', 'M', 'D'].includes(row[2])) {
+    errors.push({ row: rowNumber, field: 'frequency', value: row[2], error: 'frequency must be Y, Q, M, or D', severity: 'error' });
+  }
+  
+  // Validate currency consistency
+  if (row[6] === 'currency' && !row[7]?.trim()) {
+    errors.push({ row: rowNumber, field: 'currency_code', value: row[7], error: 'currency_code is required when unit="currency"', severity: 'error' });
+  }
+  
+  if (row[6] && row[6] !== 'currency' && row[7]?.trim()) {
+    warnings.push({ row: rowNumber, field: 'currency_code', value: row[7], error: `currency_code should be empty when unit="${row[6]}"`, severity: 'warning' });
+  }
+  
+  // Validate period format
+  if (row[2] && row[3]) {
+    const frequency = row[2];
+    const period = row[3];
+    
+    if (frequency === 'Y' && !/^\d{4}$/.test(period)) {
+      errors.push({ row: rowNumber, field: 'period', value: period, error: 'For yearly frequency, period must be YYYY format', severity: 'error' });
+    } else if (frequency === 'Q' && !/^\d{4}-Q[1-4]$/.test(period)) {
+      errors.push({ row: rowNumber, field: 'period', value: period, error: 'For quarterly frequency, period must be YYYY-Q[1-4] format', severity: 'error' });
+    } else if (frequency === 'M' && !/^\d{4}-\d{2}$/.test(period)) {
+      errors.push({ row: rowNumber, field: 'period', value: period, error: 'For monthly frequency, period must be YYYY-MM format', severity: 'error' });
+    }
+  }
+  
+  // Validate segment_json if not empty
+  if (row[17]?.trim()) {
+    try {
+      JSON.parse(row[17]);
+    } catch (e) {
+      errors.push({ row: rowNumber, field: 'segment_json', value: row[17], error: 'segment_json must be valid JSON', severity: 'error' });
+    }
+  }
+  
+  // Validate date format
+  if (row[9] && !isValidDate(row[9])) {
+    errors.push({ row: rowNumber, field: 'as_of_date', value: row[9], error: 'as_of_date must be in YYYY-MM-DD format', severity: 'error' });
+  }
+}
+
+function validateDebtLoansRow(row: string[], rowNumber: number, errors: ValidationError[], warnings: ValidationError[]) {
+  // Required fields
+  if (!row[0]?.trim()) errors.push({ row: rowNumber, field: 'company_id', value: row[0], error: 'company_id is required', severity: 'error' });
+  if (!row[1]?.trim()) errors.push({ row: rowNumber, field: 'loan_key', value: row[1], error: 'loan_key is required', severity: 'error' });
+  if (!row[2]?.trim()) errors.push({ row: rowNumber, field: 'lender', value: row[2], error: 'lender is required', severity: 'error' });
+  
+  // Validate numeric fields
+  if (row[5] && isNaN(parseFloat(row[5]))) {
+    errors.push({ row: rowNumber, field: 'initial_amount', value: row[5], error: 'initial_amount must be numeric', severity: 'error' });
+  }
+  if (row[9] && isNaN(parseFloat(row[9]))) {
+    errors.push({ row: rowNumber, field: 'interest_rate_pct', value: row[9], error: 'interest_rate_pct must be numeric', severity: 'error' });
+  }
+  if (row[11] && isNaN(parseFloat(row[11]))) {
+    errors.push({ row: rowNumber, field: 'spread_bps', value: row[11], error: 'spread_bps must be numeric', severity: 'error' });
+  }
+  
+  // Validate rate_index
+  if (row[10] && !['FIXED', 'EURIBOR_1M', 'EURIBOR_3M', 'EURIBOR_6M', 'EURIBOR_12M'].includes(row[10])) {
+    warnings.push({ row: rowNumber, field: 'rate_index', value: row[10], error: `rate_index '${row[10]}' is not a standard index`, severity: 'warning' });
+  }
+  
+  // Validate dates
+  if (row[6] && !isValidDate(row[6])) {
+    errors.push({ row: rowNumber, field: 'start_date', value: row[6], error: 'start_date must be in YYYY-MM-DD format', severity: 'error' });
+  }
+  if (row[7] && !isValidDate(row[7])) {
+    errors.push({ row: rowNumber, field: 'maturity_date', value: row[7], error: 'maturity_date must be in YYYY-MM-DD format', severity: 'error' });
+  }
+  if (row[16] && !isValidDate(row[16])) {
+    errors.push({ row: rowNumber, field: 'as_of_date', value: row[16], error: 'as_of_date must be in YYYY-MM-DD format', severity: 'error' });
+  }
+  
+  // Validate maturity_date >= start_date
+  if (row[6] && row[7] && isValidDate(row[6]) && isValidDate(row[7])) {
+    if (new Date(row[7]) < new Date(row[6])) {
+      errors.push({ row: rowNumber, field: 'maturity_date', value: row[7], error: 'maturity_date must be greater than or equal to start_date', severity: 'error' });
+    }
+  }
+}
+
+function validateDebtBalancesRow(row: string[], rowNumber: number, errors: ValidationError[], warnings: ValidationError[]) {
+  // Required fields
+  if (!row[0]?.trim()) errors.push({ row: rowNumber, field: 'company_id', value: row[0], error: 'company_id is required', severity: 'error' });
+  if (!row[1]?.trim()) errors.push({ row: rowNumber, field: 'loan_key', value: row[1], error: 'loan_key is required', severity: 'error' });
+  if (!row[2]?.trim()) errors.push({ row: rowNumber, field: 'frequency', value: row[2], error: 'frequency is required', severity: 'error' });
+  if (!row[3]?.trim()) errors.push({ row: rowNumber, field: 'period', value: row[3], error: 'period is required', severity: 'error' });
+  
+  // Validate numeric balance
+  if (row[4] && isNaN(parseFloat(row[4]))) {
+    errors.push({ row: rowNumber, field: 'balance_amount', value: row[4], error: 'balance_amount must be numeric', severity: 'error' });
+  }
+  
+  // Validate frequency
+  if (row[2] && !['Y', 'M'].includes(row[2])) {
+    errors.push({ row: rowNumber, field: 'frequency', value: row[2], error: 'frequency must be Y or M', severity: 'error' });
+  }
+  
+  // Validate period format
+  if (row[2] && row[3]) {
+    const frequency = row[2];
+    const period = row[3];
+    
+    if (frequency === 'Y' && !/^\d{4}$/.test(period)) {
+      errors.push({ row: rowNumber, field: 'period', value: period, error: 'For yearly frequency, period must be YYYY format', severity: 'error' });
+    } else if (frequency === 'M' && !/^\d{4}-\d{2}$/.test(period)) {
+      errors.push({ row: rowNumber, field: 'period', value: period, error: 'For monthly frequency, period must be YYYY-MM format', severity: 'error' });
+    }
+  }
+  
+  // Validate date format
+  if (row[6] && !isValidDate(row[6])) {
+    errors.push({ row: rowNumber, field: 'as_of_date', value: row[6], error: 'as_of_date must be in YYYY-MM-DD format', severity: 'error' });
+  }
+}
+
+function validateCompanyProfileRow(row: string[], rowNumber: number, errors: ValidationError[], warnings: ValidationError[]) {
+  // Required fields
+  if (!row[0]?.trim()) errors.push({ row: rowNumber, field: 'company_id', value: row[0], error: 'company_id is required', severity: 'error' });
+  if (!row[1]?.trim()) errors.push({ row: rowNumber, field: 'record_type', value: row[1], error: 'record_type is required', severity: 'error' });
+  
+  // Validate record_type
+  if (row[1] && !['PROFILE', 'SHAREHOLDER'].includes(row[1])) {
+    errors.push({ row: rowNumber, field: 'record_type', value: row[1], error: 'record_type must be "PROFILE" or "SHAREHOLDER"', severity: 'error' });
+  }
+  
+  // Validate holder_type for SHAREHOLDER records
+  if (row[1] === 'SHAREHOLDER' && row[18] && !['person', 'entity'].includes(row[18])) {
+    errors.push({ row: rowNumber, field: 'holder_type', value: row[18], error: 'holder_type must be "person" or "entity" for SHAREHOLDER records', severity: 'error' });
+  }
+  
+  // Validate percentages
+  if (row[19] && (isNaN(parseFloat(row[19])) || parseFloat(row[19]) < 0 || parseFloat(row[19]) > 100)) {
+    errors.push({ row: rowNumber, field: 'direct_pct', value: row[19], error: 'direct_pct must be a number between 0 and 100', severity: 'error' });
+  }
+  if (row[20] && (isNaN(parseFloat(row[20])) || parseFloat(row[20]) < 0 || parseFloat(row[20]) > 100)) {
+    errors.push({ row: rowNumber, field: 'indirect_pct', value: row[20], error: 'indirect_pct must be a number between 0 and 100', severity: 'error' });
+  }
+  
+  // Validate extra_json if not empty
+  if (row[8]?.trim()) {
+    try {
+      JSON.parse(row[8]);
+    } catch (e) {
+      errors.push({ row: rowNumber, field: 'extra_json', value: row[8], error: 'extra_json must be valid JSON', severity: 'error' });
+    }
+  }
+  
+  // Validate date format
+  if (row[2] && !isValidDate(row[2])) {
+    errors.push({ row: rowNumber, field: 'as_of_date', value: row[2], error: 'as_of_date must be in YYYY-MM-DD format', severity: 'error' });
+  }
 }
 
 function isValidDate(dateString: string): boolean {
@@ -334,7 +527,7 @@ async function processFactsTemplate(headers: string[], dataRows: string[][], com
       product_code: rowData.product_code,
       region_code: rowData.region_code,
       customer_code: rowData.customer_code,
-      segment_json: rowData.segment_json ? JSON.parse(rowData.segment_json) : {},
+      segment_json: rowData.segment_json ? JSON.parse(rowData.segment_json || '{}') : {},
       uploaded_by: userId,
       job_id: jobId
     };
@@ -403,7 +596,7 @@ async function processCompanyProfileTemplate(headers: string[], dataRows: string
       source_url: rowData.source_url,
       confidence: parseFloat(rowData.confidence) || 1.0,
       notes: rowData.notes,
-      extra_json: rowData.extra_json ? JSON.parse(rowData.extra_json) : {},
+      extra_json: rowData.extra_json ? JSON.parse(rowData.extra_json || '{}') : {},
       // Profile fields
       legal_name: rowData.legal_name,
       year_founded: rowData.year_founded ? parseInt(rowData.year_founded) : null,
@@ -507,24 +700,31 @@ async function insertCompanyProfileData(supabase: any, data: any[]) {
 }
 
 async function validateBalanceSheet(supabase: any, companyId: string, data: any[]) {
-  // Get unique periods and scenarios from the data
-  const periodsScenarios = [...new Set(data.map(d => `${d.period}_${d.scenario}`))];
+  const validationResults = [];
   
-  const validations = [];
+  // Group by period and scenario
+  const groups = data.reduce((acc: any, row: any) => {
+    const key = `${row.period}_${row.scenario}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(row);
+    return acc;
+  }, {});
   
-  for (const periodScenario of periodsScenarios) {
-    const [period, scenario] = periodScenario.split('_');
+  for (const [key, rows] of Object.entries(groups)) {
+    const [period, scenario] = key.split('_');
     
-    const { data: validation } = await supabase.rpc('validate_balance_sheet_integrity', {
-      company_uuid: companyId,
-      period_text: period,
-      scenario_text: scenario
-    });
-    
-    if (validation) {
-      validations.push(validation);
+    try {
+      const { data: validation } = await supabase.rpc('validate_balance_sheet_integrity', {
+        company_uuid: companyId,
+        period_text: period,
+        scenario_text: scenario
+      });
+      
+      validationResults.push(validation);
+    } catch (error) {
+      console.error(`Balance validation error for ${period} ${scenario}:`, error);
     }
   }
   
-  return validations;
+  return validationResults;
 }
