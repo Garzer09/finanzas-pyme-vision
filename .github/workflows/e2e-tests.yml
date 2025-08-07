@@ -5,6 +5,7 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main, develop ]
+  workflow_dispatch: {}
 
 env:
   NODE_VERSION: '18'
@@ -42,6 +43,8 @@ jobs:
           CI: true
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || 'https://demo.supabase.co' }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || 'demo-key' }}
+          COMPANY1_ID: ${{ secrets.COMPANY1_ID }}
+          COMPANY2_ID: ${{ secrets.COMPANY2_ID }}
           
       - name: Upload test results
         uses: actions/upload-artifact@v4
