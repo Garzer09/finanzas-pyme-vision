@@ -38,7 +38,7 @@ export const useAnalyticalPLData = (companyId?: string): UseAnalyticalPLDataResu
   const { user } = useAuth();
 
   const fetchPLData = async () => {
-    if (!user) return;
+    if (!user || !companyId) return;
     
     setIsLoading(true);
     setError(null);
@@ -47,7 +47,7 @@ export const useAnalyticalPLData = (companyId?: string): UseAnalyticalPLDataResu
       const { data, error: supabaseError } = await supabase
         .from('fs_pyg_lines')
         .select('*')
-        .eq('company_id', companyId || user.id)
+        .eq('company_id', companyId)
         .order('period_date', { ascending: false });
 
       if (supabaseError) {

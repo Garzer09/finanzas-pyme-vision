@@ -40,7 +40,7 @@ export const useSegmentData = (companyId?: string): UseSegmentDataResult => {
   const { user } = useAuth();
 
   const fetchOperationalData = async () => {
-    if (!user) return;
+    if (!user || !companyId) return;
     
     setIsLoading(true);
     setError(null);
@@ -49,7 +49,7 @@ export const useSegmentData = (companyId?: string): UseSegmentDataResult => {
       const { data, error: supabaseError } = await supabase
         .from('operational_metrics')
         .select('*')
-        .eq('company_id', companyId || user.id)
+        .eq('company_id', companyId)
         .order('period_date', { ascending: false });
 
       if (supabaseError) {

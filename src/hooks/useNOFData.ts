@@ -46,7 +46,7 @@ export const useNOFData = (companyId?: string): UseNOFDataResult => {
   const { user } = useAuth();
 
   const fetchBalanceData = async () => {
-    if (!user) return;
+    if (!user || !companyId) return;
     
     setIsLoading(true);
     setError(null);
@@ -55,7 +55,7 @@ export const useNOFData = (companyId?: string): UseNOFDataResult => {
       const { data, error: supabaseError } = await supabase
         .from('fs_balance_lines')
         .select('*')
-        .eq('company_id', companyId || user.id)
+        .eq('company_id', companyId)
         .order('period_date', { ascending: false });
 
       if (supabaseError) {

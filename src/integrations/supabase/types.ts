@@ -2157,9 +2157,19 @@ export type Database = {
       }
     }
     Functions: {
+      get_accessible_companies: {
+        Args: { _user_id?: string }
+        Returns: {
+          company_id: string
+        }[]
+      }
       get_user_role: {
-        Args: Record<PropertyKey, never> | { user_uuid?: string }
+        Args: Record<PropertyKey, never>
         Returns: string
+      }
+      has_company_access: {
+        Args: { _user_id: string; _company_id: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
