@@ -326,3 +326,5 @@ export function VentasSegmentosTab({ scenario, yearRange, unit, includeInflation
     </div>
   )
 }
+
+export default VentasSegmentosTab

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { useCompanyContext } from '@/contexts/CompanyContext';
 
 interface CompanyProviderProps {
@@ -8,16 +8,17 @@ interface CompanyProviderProps {
 
 export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) => {
   const [searchParams] = useSearchParams();
-  const { setCurrentCompany, clearCurrentCompany } = useCompanyContext();
-  const companyId = searchParams.get('companyId');
+  const { setCurrentCompany } = useCompanyContext();
+  const { companyId: paramCompanyId } = useParams<{ companyId: string }>();
+  const queryCompanyId = searchParams.get('companyId');
+  const effectiveCompanyId = paramCompanyId || queryCompanyId;
 
   useEffect(() => {
-    if (companyId) {
-      setCurrentCompany(companyId);
-    } else {
-      clearCurrentCompany();
+    if (effectiveCompanyId) {
+      setCurrentCompany(effectiveCompanyId);
     }
-  }, [companyId, setCurrentCompany, clearCurrentCompany]);
+    // Intentionally do NOT clear when missing to avoid loops during route changes
+  }, [effectiveCompanyId, setCurrentCompany]);
 
   return <>{children}</>;
 };
