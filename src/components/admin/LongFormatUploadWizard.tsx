@@ -611,7 +611,8 @@ const fileProcessor = new EnhancedFileProcessor();
             accounting_standard: companyInfo.accounting_standard,
             files: filesToProcess,
             selectedYears: [],
-            dryRun: true
+            dryRun: true,
+            force: true
           }
         });
         
@@ -681,7 +682,8 @@ const fileProcessor = new EnhancedFileProcessor();
           accounting_standard: companyInfo.accounting_standard,
           files: pendingCommit.filesToProcess,
           selectedYears: [],
-          dryRun: false
+          dryRun: false,
+          force: true
         }
       });
       if (commitError) throw commitError;
