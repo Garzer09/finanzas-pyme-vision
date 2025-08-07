@@ -73,23 +73,28 @@ export const useExecutiveKPIs = (): UseExecutiveKPIsResult => {
     let roicVsWacc: ExecutiveKPI;
     if (valuationData && hasFinancialData) {
       const wacc = calculateWACC();
-      const psgData = getLatestData('pyg');
+      const pl = getLatestData('estado_pyg');
       
-      if (psgData?.data_content) {
-        // Calculate simplified ROIC from available data
-        const ebit = Object.values(psgData.data_content as any).find((item: any) => 
-          item?.concept?.toLowerCase().includes('resultado') && 
-          item?.concept?.toLowerCase().includes('explotacion')
-        );
-        const ebitAmount = (ebit as any)?.amount || 0;
+      if (pl?.data_content) {
+        // Helper to read numeric values from flattened maps with synonyms
+        const getNum = (obj: any, keys: string[]): number => {
+          for (const k of keys) {
+            const v = obj?.[k];
+            if (v !== undefined && v !== null && !isNaN(Number(v))) return Number(v);
+          }
+          return 0;
+        };
         
-        const balanceData = getLatestData('balance');
-        const totalAssetsItem = balanceData?.data_content ? 
-          Object.values(balanceData.data_content as any).find((item: any) => 
-            item?.concept?.toLowerCase().includes('total') && 
-            item?.concept?.toLowerCase().includes('activo')
-          ) : null;
-        const totalAssets = (totalAssetsItem as any)?.amount || 1;
+        // Prefer EBIT; fallback to EBITDA if needed
+        const ebitAmount = getNum(pl.data_content, [
+          'resultado_explotacion', 'ebit', 'resultado_operativo', 'ebitda', 'resultado_bruto_explotacion'
+        ]);
+        
+        const balanceData = getLatestData('balance_situacion');
+        const totalAssets = getNum(balanceData?.data_content || {}, [
+          'activo_total', 'total_activo', 'activo'
+        ]) || 1;
+
 
         const roic = (ebitAmount * 0.75) / totalAssets * 100; // Simplified ROIC with 25% tax assumption
         const difference = roic - (wacc * 100);

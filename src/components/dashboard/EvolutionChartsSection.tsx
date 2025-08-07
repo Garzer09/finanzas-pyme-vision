@@ -5,10 +5,10 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 import { WaterfallChart } from '@/components/ui/waterfall-chart';
 import { TrendingUp } from 'lucide-react';
 import { useFinancialData } from '@/hooks/useFinancialData';
-import { getLatestData } from '@/utils/dataHelpers';
+
 
 export const EvolutionChartsSection: React.FC = () => {
-  const { data, loading, hasRealData, getMultiYearData, safeNumber } = useFinancialData();
+  const { data, loading, hasRealData, getMultiYearData, safeNumber, getLatestData } = useFinancialData();
 
   // Función para validar y limpiar datos antes de pasarlos a Recharts
   const validateChartData = (data: any[]): any[] => {
@@ -93,10 +93,10 @@ export const EvolutionChartsSection: React.FC = () => {
     }
 
     // Real data from database
-    const pygData = getLatestData(data || [], 'created_at');
-    if (!pygData?.data_content) return [];
+    const latestPL = getLatestData('estado_pyg');
+    if (!latestPL?.data_content) return [];
 
-    const content = pygData.data_content;
+    const content = latestPL.data_content;
     
     // Build waterfall from real P&G data
     const facturacion = safeNumber(content.ingresos_explotacion || content.ventas || content.cifra_negocios, 0);
@@ -146,10 +146,10 @@ export const EvolutionChartsSection: React.FC = () => {
     }
 
     // Real data from database
-    const balanceData = getLatestData(data || [], 'created_at');
-    if (!balanceData?.data_content) return [];
+    const latestBalance = getLatestData('balance_situacion');
+    if (!latestBalance?.data_content) return [];
 
-    const content = balanceData.data_content;
+    const content = latestBalance.data_content;
     
     // Extract balance sheet components
     const activoCorriente = safeNumber(content.activo_corriente, 0);
