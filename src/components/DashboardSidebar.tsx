@@ -57,7 +57,12 @@ export const DashboardSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const { signOut } = useAuth();
   const [searchParams] = useSearchParams();
-  const companyId = searchParams.get('companyId');
+  const location = useLocation();
+  
+  // Extract companyId from URL params (new structure: /app/:companyId)
+  const companyId = location.pathname.includes('/app/') ? 
+    location.pathname.split('/app/')[1]?.split('/')[0] : 
+    searchParams.get('companyId');
   
   // Initialize session timeout (moved here to ensure AuthProvider is available)
   useSessionTimeout({ timeoutMinutes: 120, warningMinutes: 15 });
@@ -70,7 +75,6 @@ export const DashboardSidebar = () => {
     admin: false
   });
   
-  const location = useLocation();
   const currentPath = location.pathname;
   const { isAdmin } = useUserRole();
   const { logoUrl } = useCompanyLogo();
@@ -177,7 +181,7 @@ export const DashboardSidebar = () => {
       title: '1. Resumen Ejecutivo',
       items: [
         {
-          path: '/admin/dashboard',
+          path: companyId ? `/app/${companyId}` : '/admin/dashboard',
           label: 'Dashboard Principal',
           icon: Home,
           color: 'text-steel-600'
@@ -188,7 +192,7 @@ export const DashboardSidebar = () => {
       title: '2. Descripción Empresa',
       items: [
         {
-          path: '/descripcion-empresa',
+          path: companyId ? `/app/${companyId}/descripcion-empresa` : '/descripcion-empresa',
           label: 'Descripción de la Empresa',
           icon: Building2,
           color: 'text-cadet-600'
@@ -201,61 +205,61 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: '/cuenta-pyg',
+          path: companyId ? `/app/${companyId}/cuenta-pyg` : '/cuenta-pyg',
           label: 'Cuenta P&G',
           icon: FileText,
           color: 'text-steel-500'
         },
         {
-          path: '/balance-situacion',
+          path: companyId ? `/app/${companyId}/balance-situacion` : '/balance-situacion',
           label: 'Balance Situación',
           icon: CreditCard,
           color: 'text-steel-600'
         },
         {
-          path: '/ratios-financieros',
+          path: companyId ? `/app/${companyId}/ratios-financieros` : '/ratios-financieros',
           label: 'Ratios Financieros',
           icon: Activity,
           color: 'text-warning-600'
         },
         {
-          path: '/flujos-caja',
+          path: companyId ? `/app/${companyId}/flujos-caja` : '/flujos-caja',
           label: 'Estado Flujos Caja',
           icon: Wallet,
           color: 'text-success-600'
         },
         {
-          path: '/analisis-nof',
+          path: companyId ? `/app/${companyId}/analisis-nof` : '/analisis-nof',
           label: 'Análisis NOF',
           icon: CircleDot,
           color: 'text-cadet-600'
         },
         {
-          path: '/punto-muerto',
+          path: companyId ? `/app/${companyId}/punto-muerto` : '/punto-muerto',
           label: 'Punto Muerto',
           icon: Target,
           color: 'text-danger-500'
         },
         {
-          path: '/endeudamiento',
+          path: companyId ? `/app/${companyId}/endeudamiento` : '/endeudamiento',
           label: 'Endeudamiento',
           icon: Database,
           color: 'text-steel-700'
         },
         {
-          path: '/servicio-deuda',
+          path: companyId ? `/app/${companyId}/servicio-deuda` : '/servicio-deuda',
           label: 'Servicio Deuda',
           icon: AlertTriangle,
           color: 'text-warning-500'
         },
         {
-          path: '/pyg-analitico-actual',
+          path: companyId ? `/app/${companyId}/pyg-analitico-actual` : '/pyg-analitico-actual',
           label: 'P&G Analítico Actual',
           icon: BarChart3,
           color: 'text-cadet-500'
         },
         {
-          path: '/segmentos-actual',
+          path: companyId ? `/app/${companyId}/segmentos-actual` : '/segmentos-actual',
           label: 'Ventas por Segmentos',
           icon: Users,
           color: 'text-steel-400'
@@ -268,7 +272,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: '/supuestos-financieros',
+          path: companyId ? `/app/${companyId}/supuestos-financieros` : '/supuestos-financieros',
           label: 'Supuestos Financieros Clave',
           icon: Calculator,
           color: 'text-primary'
@@ -281,7 +285,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: '/proyecciones',
+          path: companyId ? `/app/${companyId}/proyecciones` : '/proyecciones',
           label: 'Proyecciones',
           icon: TrendingUp,
           color: 'text-success-500'
@@ -294,7 +298,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: '/escenarios',
+          path: companyId ? `/app/${companyId}/escenarios` : '/escenarios',
           label: 'Escenarios y Sensibilidad',
           icon: TrendingDown,
           color: 'text-warning-600'
@@ -307,7 +311,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: '/valoracion-eva',
+          path: companyId ? `/app/${companyId}/valoracion-eva` : '/valoracion-eva',
           label: 'Valoración Integral',
           icon: DollarSign,
           color: 'text-steel-700'
@@ -318,7 +322,7 @@ export const DashboardSidebar = () => {
       title: '8. Conclusiones',
       items: [
         {
-          path: '/conclusiones',
+          path: companyId ? `/app/${companyId}/conclusiones` : '/conclusiones',
           label: 'Conclusiones y Recomendaciones',
           icon: FileText,
           color: 'text-steel-600'
@@ -433,7 +437,7 @@ export const DashboardSidebar = () => {
                       return (
                         <NavLink
                           key={item.path}
-                          to={companyId ? `${item.path}?companyId=${companyId}` : item.path}
+                          to={item.path}
                           className={cn(
                             "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative text-sm font-medium",
                             active
@@ -465,7 +469,7 @@ export const DashboardSidebar = () => {
                   return (
                     <NavLink
                       key={item.path}
-                      to={companyId ? `${item.path}?companyId=${companyId}` : item.path}
+                      to={item.path}
                       className={cn(
                         "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative mb-1 font-medium",
                         active
