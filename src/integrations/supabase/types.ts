@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instanciate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "13.0.4"
   }
   public: {
     Tables: {
@@ -366,6 +366,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      company_profile_unified: {
+        Row: {
+          as_of_date: string
+          company_id: string
+          confidence: number | null
+          created_at: string
+          description: string | null
+          direct_pct: number | null
+          employees_exact: number | null
+          external_id: string | null
+          extra_json: Json | null
+          field_name: string
+          field_value: string | null
+          holder_name: string | null
+          holder_type: string | null
+          hq_city: string | null
+          hq_country_code: string | null
+          id: number
+          indirect_pct: number | null
+          job_id: string | null
+          legal_name: string | null
+          notes: string | null
+          record_type: string
+          sector: string | null
+          source_url: string | null
+          uploaded_by: string | null
+          website: string | null
+          year_founded: number | null
+        }
+        Insert: {
+          as_of_date: string
+          company_id: string
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          direct_pct?: number | null
+          employees_exact?: number | null
+          external_id?: string | null
+          extra_json?: Json | null
+          field_name: string
+          field_value?: string | null
+          holder_name?: string | null
+          holder_type?: string | null
+          hq_city?: string | null
+          hq_country_code?: string | null
+          id?: number
+          indirect_pct?: number | null
+          job_id?: string | null
+          legal_name?: string | null
+          notes?: string | null
+          record_type: string
+          sector?: string | null
+          source_url?: string | null
+          uploaded_by?: string | null
+          website?: string | null
+          year_founded?: number | null
+        }
+        Update: {
+          as_of_date?: string
+          company_id?: string
+          confidence?: number | null
+          created_at?: string
+          description?: string | null
+          direct_pct?: number | null
+          employees_exact?: number | null
+          external_id?: string | null
+          extra_json?: Json | null
+          field_name?: string
+          field_value?: string | null
+          holder_name?: string | null
+          holder_type?: string | null
+          hq_city?: string | null
+          hq_country_code?: string | null
+          id?: number
+          indirect_pct?: number | null
+          job_id?: string | null
+          legal_name?: string | null
+          notes?: string | null
+          record_type?: string
+          sector?: string | null
+          source_url?: string | null
+          uploaded_by?: string | null
+          website?: string | null
+          year_founded?: number | null
+        }
+        Relationships: []
       }
       company_shareholder_info: {
         Row: {
@@ -875,6 +962,89 @@ export type Database = {
           },
         ]
       }
+      financial_series_unified: {
+        Row: {
+          as_of_date: string | null
+          company_id: string
+          confidence_score: number | null
+          created_at: string
+          currency: string
+          customer_code: string | null
+          external_id: string | null
+          frequency: string
+          id: number
+          job_id: string | null
+          metric_code: string
+          notes: string | null
+          period: string
+          product_code: string | null
+          region_code: string | null
+          scenario: string | null
+          segment_json: Json | null
+          source: string | null
+          unit: string
+          uploaded_by: string | null
+          value: number
+          value_kind: string
+        }
+        Insert: {
+          as_of_date?: string | null
+          company_id: string
+          confidence_score?: number | null
+          created_at?: string
+          currency?: string
+          customer_code?: string | null
+          external_id?: string | null
+          frequency: string
+          id?: number
+          job_id?: string | null
+          metric_code: string
+          notes?: string | null
+          period: string
+          product_code?: string | null
+          region_code?: string | null
+          scenario?: string | null
+          segment_json?: Json | null
+          source?: string | null
+          unit?: string
+          uploaded_by?: string | null
+          value?: number
+          value_kind?: string
+        }
+        Update: {
+          as_of_date?: string | null
+          company_id?: string
+          confidence_score?: number | null
+          created_at?: string
+          currency?: string
+          customer_code?: string | null
+          external_id?: string | null
+          frequency?: string
+          id?: number
+          job_id?: string | null
+          metric_code?: string
+          notes?: string | null
+          period?: string
+          product_code?: string | null
+          region_code?: string | null
+          scenario?: string | null
+          segment_json?: Json | null
+          source?: string | null
+          unit?: string
+          uploaded_by?: string | null
+          value?: number
+          value_kind?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "financial_series_unified_metric_code_fkey"
+            columns: ["metric_code"]
+            isOneToOne: false
+            referencedRelation: "metrics_dictionary"
+            referencedColumns: ["metric_code"]
+          },
+        ]
+      }
       financial_synonyms: {
         Row: {
           canonical_term: string
@@ -1183,6 +1353,74 @@ export type Database = {
         }
         Relationships: []
       }
+      metric_aliases: {
+        Row: {
+          alias: string
+          confidence_score: number | null
+          created_at: string
+          id: string
+          metric_code: string
+        }
+        Insert: {
+          alias: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          metric_code: string
+        }
+        Update: {
+          alias?: string
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          metric_code?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "metric_aliases_metric_code_fkey"
+            columns: ["metric_code"]
+            isOneToOne: false
+            referencedRelation: "metrics_dictionary"
+            referencedColumns: ["metric_code"]
+          },
+        ]
+      }
+      metrics_dictionary: {
+        Row: {
+          category: string
+          created_at: string
+          default_unit: string
+          description: string | null
+          id: string
+          is_active: boolean
+          metric_code: string
+          metric_name: string
+          value_kind: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          default_unit?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          metric_code: string
+          metric_name: string
+          value_kind?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          default_unit?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          metric_code?: string
+          metric_name?: string
+          value_kind?: string
+        }
+        Relationships: []
+      }
       operational_metrics: {
         Row: {
           company_id: string
@@ -1326,6 +1564,56 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      processing_logs: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          error_details: Json | null
+          id: string
+          performance_metrics: Json | null
+          session_id: string
+          step_data: Json | null
+          step_name: string
+          step_status: string
+          timestamp: string
+          user_id: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          performance_metrics?: Json | null
+          session_id?: string
+          step_data?: Json | null
+          step_name: string
+          step_status: string
+          timestamp?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          performance_metrics?: Json | null
+          session_id?: string
+          step_data?: Json | null
+          step_name?: string
+          step_status?: string
+          timestamp?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processing_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       shareholder_search_history: {
         Row: {
@@ -1480,6 +1768,48 @@ export type Database = {
           updated_at?: string
           validation_rules?: Json
           version?: string
+        }
+        Relationships: []
+      }
+      template_validation_rules: {
+        Row: {
+          created_at: string
+          error_message: string
+          id: string
+          is_active: boolean
+          metric_code: string | null
+          record_type: string | null
+          rule_name: string
+          rule_type: string
+          severity: string
+          updated_at: string
+          validation_config: Json
+        }
+        Insert: {
+          created_at?: string
+          error_message: string
+          id?: string
+          is_active?: boolean
+          metric_code?: string | null
+          record_type?: string | null
+          rule_name: string
+          rule_type: string
+          severity?: string
+          updated_at?: string
+          validation_config?: Json
+        }
+        Update: {
+          created_at?: string
+          error_message?: string
+          id?: string
+          is_active?: boolean
+          metric_code?: string | null
+          record_type?: string | null
+          rule_name?: string
+          rule_type?: string
+          severity?: string
+          updated_at?: string
+          validation_config?: Json
         }
         Relationships: []
       }
@@ -1846,6 +2176,19 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      log_processing_step: {
+        Args: {
+          _session_id: string
+          _company_id: string
+          _user_id: string
+          _step_name: string
+          _step_status: string
+          _step_data?: Json
+          _error_details?: Json
+          _performance_metrics?: Json
+        }
+        Returns: undefined
+      }
       promote_user_to_admin: {
         Args: { target_user_id: string }
         Returns: undefined
@@ -1857,6 +2200,14 @@ export type Database = {
       refresh_ratios_mv: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      validate_balance_sheet_integrity: {
+        Args: {
+          company_uuid: string
+          period_text: string
+          scenario_text?: string
+        }
+        Returns: Json
       }
     }
     Enums: {
