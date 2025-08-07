@@ -593,8 +593,8 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
           detectedYears: [2022, 2023, 2024] // Default years, should be detected from data
         }));
         
-        // Call processing function
-        const { data, error } = await supabase.functions.invoke('admin-pack-upload', {
+        // Primera fase: validación en servidor (dry-run)
+        const { data: dryData, error: dryError } = await supabase.functions.invoke('admin-pack-upload', {
           body: {
             companyId: currentCompanyId,
             company_name: companyInfo.name,
@@ -602,11 +602,60 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
             accounting_standard: companyInfo.accounting_standard,
             files: filesToProcess,
             selectedYears: [],
-            dryRun: false
+            dryRun: true
           }
         });
         
-        if (error) throw error;
+        if (dryError) throw dryError;
+
+        // Esperar a que el job de validación termine
+        const jobId = dryData?.job_id;
+        if (!jobId) {
+          toast.error('No se pudo iniciar la validación (dry-run)');
+        } else {
+          let attempts = 0;
+          let validationOk = false;
+          let lastMessage = '';
+          while (attempts < 30) { // ~60s
+            const { data: job } = await supabase
+              .from('processing_jobs')
+              .select('status, stats_json')
+              .eq('id', jobId)
+              .single();
+            
+            const status = job?.status;
+            lastMessage = job?.stats_json?.message || '';
+            if (status === 'DONE') { validationOk = true; break; }
+            if (status === 'FAILED') { validationOk = false; break; }
+            await new Promise(r => setTimeout(r, 2000));
+            attempts++;
+          }
+          
+          if (!validationOk) {
+            toast.error(`Validación fallida: ${lastMessage || 'Revisa el histórico de cargas'}`);
+            return;
+          }
+          
+          // Confirmación explícita del admin para proceder con la carga definitiva
+          const proceed = window.confirm('Validación correcta. ¿Deseas cargar los datos definitivamente en el sistema?');
+          if (proceed) {
+            const { error: commitError } = await supabase.functions.invoke('admin-pack-upload', {
+              body: {
+                companyId: currentCompanyId,
+                company_name: companyInfo.name,
+                currency_code: companyInfo.currency,
+                accounting_standard: companyInfo.accounting_standard,
+                files: filesToProcess,
+                selectedYears: [],
+                dryRun: false
+              }
+            });
+            if (commitError) throw commitError;
+            toast.success('Carga confirmada. Procesamiento iniciado.');
+          } else {
+            toast.message('Validación completada. Carga cancelada por el administrador.');
+          }
+        }
       }
 
       // Process only valid optional template files
