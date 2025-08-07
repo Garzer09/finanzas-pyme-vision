@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -23,6 +24,9 @@ import { DebtWaccStep } from "./DebtWaccStep"
 import { CapexAmortizationStep } from "./CapexAmortizationStep"
 import { TaxOthersStep } from "./TaxOthersStep"
 import { debounce } from "lodash"
+import { useCompanyContext } from "@/contexts/CompanyContext"
+import { useFinancialAssumptionsData } from "@/hooks/useFinancialAssumptionsData"
+import { supabase } from "@/integrations/supabase/client"
 
 const steps = [
   "Premisas de Ingresos",
@@ -78,6 +82,8 @@ export function FinancialAssumptionsWizard() {
   const [currentStep, setCurrentStep] = useState(0)
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const { companyId } = useCompanyContext()
+  const { getLatestAssumption, hasRealData, refetch } = useFinancialAssumptionsData(companyId || undefined)
 
   // Load data from localStorage on mount
   const [savedData, setSavedData] = useState<FinancialAssumptions>(() => {
@@ -95,7 +101,7 @@ export function FinancialAssumptionsWizard() {
     mode: "onChange"
   })
 
-  const { watch, trigger, getValues, setError, clearErrors } = form
+  const { watch, trigger, getValues, setError, clearErrors, setValue, reset } = form
 
   // Auto-save with debounce
   const debouncedSave = debounce((data: FinancialAssumptions) => {
@@ -110,6 +116,47 @@ export function FinancialAssumptionsWizard() {
     })
     return () => subscription.unsubscribe()
   }, [watch, debouncedSave])
+
+  // Precargar desde Supabase cuando existan supuestos para la empresa
+  useEffect(() => {
+    if (!companyId) return
+    const mappings = [
+      { path: 'revenueAssumptions.salesGrowth', name: 'crecimiento_ingresos' },
+      { path: 'revenueAssumptions.averageUnitPrice', name: 'precio_medio' },
+      { path: 'operatingCosts.variableCostPercentage', name: 'costes_variables' },
+      { path: 'operatingCosts.fixedAnnualCost', name: 'costes_fijos' },
+      { path: 'operatingCosts.personnelCost', name: 'costes_personal' },
+      { path: 'workingCapital.collectionDays', name: 'dias_cobro' },
+      { path: 'workingCapital.paymentDays', name: 'dias_pago' },
+      { path: 'workingCapital.inventoryDays', name: 'dias_inventario' },
+      { path: 'debtWacc.averageDebtCost', name: 'coste_deuda' },
+      { path: 'debtWacc.wacc', name: 'wacc' },
+      { path: 'capexAmortization.plannedInvestment', name: 'capex' },
+      { path: 'taxOthers.effectiveTaxRate', name: 'tasa_impositiva' },
+      { path: 'taxOthers.dividendPolicy', name: 'politica_dividendos' },
+    ] as const
+
+    let updated: Record<string, any> = {}
+    mappings.forEach(m => {
+      const a = getLatestAssumption(m.name)
+      if (a && isFinite(Number(a.assumption_value))) {
+        // construir objeto anidado tipo { revenueAssumptions: { salesGrowth: value } }
+        const keys = m.path.split('.')
+        let cursor: any = updated
+        keys.forEach((k, idx) => {
+          if (idx === keys.length - 1) {
+            cursor[k] = Number(a.assumption_value)
+          } else {
+            cursor[k] = cursor[k] || {}
+            cursor = cursor[k]
+          }
+        })
+      }
+    })
+    if (Object.keys(updated).length > 0) {
+      reset({ ...defaultValues, ...savedData, ...updated })
+    }
+  }, [companyId, hasRealData, getLatestAssumption, reset])  
 
   const progress = ((currentStep + 1) / steps.length) * 100
 
@@ -149,6 +196,84 @@ export function FinancialAssumptionsWizard() {
     }
   }
 
+  // Persistencia en Supabase para campos numéricos clave
+  const persistToDB = async (data: FinancialAssumptions) => {
+    if (!companyId) {
+      toast({
+        title: "Empresa no seleccionada",
+        description: "Selecciona una empresa para guardar los supuestos.",
+        variant: "destructive",
+      })
+      return false
+    }
+
+    const year = new Date().getFullYear()
+    const mapping = [
+      { path: 'revenueAssumptions.salesGrowth', name: 'crecimiento_ingresos', category: 'ingresos', unit: 'percentage' },
+      { path: 'revenueAssumptions.averageUnitPrice', name: 'precio_medio', category: 'ingresos', unit: 'EUR' },
+      { path: 'operatingCosts.variableCostPercentage', name: 'costes_variables', category: 'costes', unit: 'percentage' },
+      { path: 'operatingCosts.fixedAnnualCost', name: 'costes_fijos', category: 'costes', unit: 'EUR' },
+      { path: 'operatingCosts.personnelCost', name: 'costes_personal', category: 'costes', unit: 'EUR' },
+      { path: 'workingCapital.collectionDays', name: 'dias_cobro', category: 'capital_trabajo', unit: 'days' },
+      { path: 'workingCapital.paymentDays', name: 'dias_pago', category: 'capital_trabajo', unit: 'days' },
+      { path: 'workingCapital.inventoryDays', name: 'dias_inventario', category: 'capital_trabajo', unit: 'days' },
+      { path: 'debtWacc.averageDebtCost', name: 'coste_deuda', category: 'financiacion', unit: 'percentage' },
+      { path: 'debtWacc.wacc', name: 'wacc', category: 'financiacion', unit: 'percentage' },
+      { path: 'capexAmortization.plannedInvestment', name: 'capex', category: 'capex', unit: 'EUR' },
+      { path: 'taxOthers.effectiveTaxRate', name: 'tasa_impositiva', category: 'impuestos', unit: 'percentage' },
+      { path: 'taxOthers.dividendPolicy', name: 'politica_dividendos', category: 'impuestos', unit: 'percentage' },
+    ] as const
+
+    const getByPath = (obj: any, path: string) => path.split('.').reduce((acc, k) => (acc ? acc[k] : undefined), obj)
+
+    const rows = mapping.map(m => {
+      const raw = getByPath(data, m.path)
+      const val = Number(raw)
+      if (!isFinite(val)) return null
+      return {
+        company_id: companyId,
+        assumption_value: val,
+        period_year: year,
+        period_quarter: null,
+        period_month: null,
+        uploaded_by: null,
+        job_id: null,
+        assumption_category: m.category,
+        assumption_name: m.name,
+        unit: m.unit,
+        period_type: 'annual',
+        notes: null
+      }
+    }).filter(Boolean) as any[]
+
+    try {
+      // Borrado previo para las mismas claves del año actual (evita duplicados)
+      if (rows.length > 0) {
+        const names = rows.map(r => r.assumption_name)
+        await supabase
+          .from('financial_assumptions_normalized')
+          .delete()
+          .eq('company_id', companyId)
+          .eq('period_year', year)
+          .in('assumption_name', names)
+      }
+
+      if (rows.length > 0) {
+        const { error: insertError } = await supabase
+          .from('financial_assumptions_normalized')
+          .insert(rows)
+
+        if (insertError) throw insertError
+      }
+
+      await refetch()
+      return true
+    } catch (err) {
+      console.error('Error guardando supuestos en DB:', err)
+      return false
+    }
+  }
+
   const handleNext = async () => {
     const isValid = await canProceed()
     if (isValid && currentStep < steps.length - 1) {
@@ -171,9 +296,20 @@ export function FinancialAssumptionsWizard() {
       if (isValid) {
         const data = getValues()
         localStorage.setItem('financial-assumptions', JSON.stringify(data))
+
+        const ok = await persistToDB(data)
+        if (!ok) {
+          toast({
+            title: "Guardado parcial",
+            description: "Se guardó en local pero hubo un problema guardando en la base de datos.",
+            variant: "destructive",
+          })
+          return
+        }
+
         toast({
           title: "Wizard completado",
-          description: "Los supuestos financieros han sido configurados exitosamente.",
+          description: "Los supuestos financieros han sido configurados y guardados.",
         })
       } else {
         toast({
@@ -205,10 +341,18 @@ export function FinancialAssumptionsWizard() {
       const isValid = await trigger()
       if (isValid) {
         const data = getValues()
-        // Here you would typically save to your API
-        // await saveFinancialAssumptions(data)
-        
         localStorage.setItem('financial-assumptions', JSON.stringify(data))
+        
+        const ok = await persistToDB(data)
+        if (!ok) {
+          toast({
+            title: "Error al guardar en base de datos",
+            description: "Los datos se guardaron localmente pero no en Supabase.",
+            variant: "destructive",
+          })
+          return
+        }
+
         toast({
           title: "Guardado exitoso",
           description: "Los supuestos financieros han sido guardados correctamente.",
