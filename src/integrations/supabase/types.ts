@@ -631,6 +631,60 @@ export type Database = {
         }
         Relationships: []
       }
+      data_versions: {
+        Row: {
+          changed_at: string
+          company_id: string
+          concept: string | null
+          data_type: string | null
+          id: number
+          job_id: string | null
+          new_amount: number | null
+          old_amount: number | null
+          period_month: number | null
+          period_quarter: number | null
+          period_type: string | null
+          period_year: number | null
+          section: string | null
+          table_name: string
+          user_id: string | null
+        }
+        Insert: {
+          changed_at?: string
+          company_id: string
+          concept?: string | null
+          data_type?: string | null
+          id?: number
+          job_id?: string | null
+          new_amount?: number | null
+          old_amount?: number | null
+          period_month?: number | null
+          period_quarter?: number | null
+          period_type?: string | null
+          period_year?: number | null
+          section?: string | null
+          table_name: string
+          user_id?: string | null
+        }
+        Update: {
+          changed_at?: string
+          company_id?: string
+          concept?: string | null
+          data_type?: string | null
+          id?: number
+          job_id?: string | null
+          new_amount?: number | null
+          old_amount?: number | null
+          period_month?: number | null
+          period_quarter?: number | null
+          period_type?: string | null
+          period_year?: number | null
+          section?: string | null
+          table_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       debt_balances: {
         Row: {
           company_id: string
@@ -1003,6 +1057,75 @@ export type Database = {
           },
         ]
       }
+      financial_lines_staging: {
+        Row: {
+          amount: number
+          company_id: string
+          concept_normalized: string
+          concept_original: string
+          created_at: string
+          currency_code: string
+          data_type: string
+          error: Json
+          file_name: string | null
+          id: number
+          job_id: string
+          period_month: number | null
+          period_quarter: number | null
+          period_type: string
+          period_year: number
+          section: string | null
+          sheet_name: string | null
+          source: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          company_id: string
+          concept_normalized: string
+          concept_original: string
+          created_at?: string
+          currency_code?: string
+          data_type: string
+          error?: Json
+          file_name?: string | null
+          id?: number
+          job_id: string
+          period_month?: number | null
+          period_quarter?: number | null
+          period_type: string
+          period_year: number
+          section?: string | null
+          sheet_name?: string | null
+          source?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          concept_normalized?: string
+          concept_original?: string
+          created_at?: string
+          currency_code?: string
+          data_type?: string
+          error?: Json
+          file_name?: string | null
+          id?: number
+          job_id?: string
+          period_month?: number | null
+          period_quarter?: number | null
+          period_type?: string
+          period_year?: number
+          section?: string | null
+          sheet_name?: string | null
+          source?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       financial_series_unified: {
         Row: {
           as_of_date: string | null
@@ -1260,6 +1383,39 @@ export type Database = {
           period_type?: string
           period_year?: number
           uploaded_by?: string | null
+        }
+        Relationships: []
+      }
+      import_audit: {
+        Row: {
+          company_id: string
+          created_at: string
+          data_type: string
+          id: string
+          job_id: string
+          rows_errors: number
+          rows_staged: number
+          rows_upserted: number
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          data_type: string
+          id?: string
+          job_id: string
+          rows_errors?: number
+          rows_staged?: number
+          rows_upserted?: number
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          data_type?: string
+          id?: string
+          job_id?: string
+          rows_errors?: number
+          rows_staged?: number
+          rows_upserted?: number
         }
         Relationships: []
       }
@@ -2239,6 +2395,14 @@ export type Database = {
           _performance_metrics?: Json
         }
         Returns: undefined
+      }
+      normalize_spanish_text: {
+        Args: { txt: string }
+        Returns: string
+      }
+      process_financial_staging: {
+        Args: { p_job: string }
+        Returns: Json
       }
       promote_user_to_admin: {
         Args: { target_user_id: string }
