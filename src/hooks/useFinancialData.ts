@@ -21,16 +21,17 @@ export const useFinancialData = (dataType?: string, companyId?: string) => {
   const mounted = useRef(true);
   const lastFetchRef = useRef<string>('');
   const cacheRef = useRef<Map<string, { data: FinancialDataPoint[]; timestamp: number }>>(new Map());
-  const { validateCompanyAccess } = useCompanyContext();
+  const { validateCompanyAccess, companyId: contextCompanyId } = useCompanyContext();
 
   const fetchFinancialData = useCallback(async () => {
-    const fetchKey = `${companyId || 'no-company'}_${dataType || 'all'}_${Date.now()}`;
+    const effectiveCompanyId = companyId || contextCompanyId || undefined;
+    const fetchKey = `${effectiveCompanyId || 'no-company'}_${dataType || 'all'}_${Date.now()}`;
     lastFetchRef.current = fetchKey;
     
     if (!mounted.current) return;
 
     // Verificar cache (válido por 5 minutos)
-    const cacheKey = `${companyId || 'no-company'}_${dataType || 'all'}`;
+    const cacheKey = `${effectiveCompanyId || 'no-company'}_${dataType || 'all'}`;
     const cached = cacheRef.current.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp) < 300000) {
       setData(cached.data);
@@ -45,7 +46,7 @@ export const useFinancialData = (dataType?: string, companyId?: string) => {
       debugManager.logInfo(`Fetching financial data from specific tables: ${dataType || 'all'}`, undefined, 'useFinancialData');
       setLoading(true);
 
-      if (!companyId) {
+      if (!effectiveCompanyId) {
         setData([]);
         setHasRealData(false);
         setLoading(false);
@@ -53,7 +54,7 @@ export const useFinancialData = (dataType?: string, companyId?: string) => {
         return;
       }
 
-      const allowed = await validateCompanyAccess(companyId);
+      const allowed = await validateCompanyAccess(effectiveCompanyId);
       if (!allowed) {
         setError('Unauthorized company access');
         setHasRealData(false);
@@ -76,8 +77,8 @@ export const useFinancialData = (dataType?: string, companyId?: string) => {
           .select('*')
           .order('period_year', { ascending: false });
         
-        if (companyId) {
-          pygQuery = pygQuery.eq('company_id', companyId);
+        if (effectiveCompanyId) {
+          pygQuery = pygQuery.eq('company_id', effectiveCompanyId);
         }
         
         const { data: pygData, error: pygError } = await Promise.race([pygQuery, timeoutPromise]) as any;
@@ -94,8 +95,8 @@ export const useFinancialData = (dataType?: string, companyId?: string) => {
           .select('*')
           .order('period_year', { ascending: false });
         
-        if (companyId) {
-          balanceQuery = balanceQuery.eq('company_id', companyId);
+        if (effectiveCompanyId) {
+          balanceQuery = balanceQuery.eq('company_id', effectiveCompanyId);
         }
         
         const { data: balanceData, error: balanceError } = await Promise.race([balanceQuery, timeoutPromise]) as any;
@@ -112,8 +113,8 @@ export const useFinancialData = (dataType?: string, companyId?: string) => {
           .select('*')
           .order('period_year', { ascending: false });
         
-        if (companyId) {
-          cashflowQuery = cashflowQuery.eq('company_id', companyId);
+        if (effectiveCompanyId) {
+          cashflowQuery = cashflowQuery.eq('company_id', effectiveCompanyId);
         }
         
         const { data: cashflowData, error: cashflowError } = await Promise.race([cashflowQuery, timeoutPromise]) as any;

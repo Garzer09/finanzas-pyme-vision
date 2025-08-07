@@ -14,7 +14,7 @@ export const AdminCargaPlantillasPage: React.FC = () => {
     toast.success('Datos procesados exitosamente');
     // Navigate to description page to review the uploaded qualitative data
     if (processedCompanyId) {
-      navigate(`/descripcion-empresa?companyId=${processedCompanyId}`);
+      navigate(`/app/${processedCompanyId}/balance-situacion`);
     } else {
       navigate('/admin/dashboard');
     }

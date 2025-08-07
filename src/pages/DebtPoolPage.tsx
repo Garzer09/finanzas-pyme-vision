@@ -2,12 +2,12 @@
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { DebtPoolModule } from '@/components/modules/DebtPoolModule';
-import { CompanyProvider } from '@/components/CompanyProvider';
+
 import { CompanyHeader } from '@/components/CompanyHeader';
 
 export default function DebtPoolPage() {
   return (
-    <CompanyProvider>
+    <div className="flex min-h-screen">
       <div className="flex min-h-screen">
         <DashboardSidebar />
         <div className="flex-1 flex flex-col">
@@ -18,6 +18,6 @@ export default function DebtPoolPage() {
           </main>
         </div>
       </div>
-    </CompanyProvider>
+    
   );
 }

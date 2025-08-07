@@ -2,12 +2,12 @@
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { NOFModule } from '@/components/modules/NOFModule';
-import { CompanyProvider } from '@/components/CompanyProvider';
+
 import { CompanyHeader } from '@/components/CompanyHeader';
 
 export default function NOFAnalysisPage() {
   return (
-    <CompanyProvider>
+    <div className="flex min-h-screen">
       <div className="flex min-h-screen">
         <DashboardSidebar />
         <div className="flex-1 flex flex-col">
@@ -18,6 +18,6 @@ export default function NOFAnalysisPage() {
           </main>
         </div>
       </div>
-    </CompanyProvider>
+    
   );
 }

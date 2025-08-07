@@ -1,6 +1,6 @@
 import React from 'react';
 
-import { CompanyProvider } from './CompanyProvider';
+import { useCompanyParams } from '@/hooks/useCompanyParams';
 
 interface CompanyLayoutProps {
   children: React.ReactNode;
@@ -10,11 +10,11 @@ interface CompanyLayoutProps {
  * Layout component that automatically sets the company context based on URL params
  */
 export const CompanyLayout: React.FC<CompanyLayoutProps> = ({ children }) => {
-  
+  useCompanyParams();
 
   return (
-    <CompanyProvider>
+    <>
       {children}
-    </CompanyProvider>
+    </>
   );
 };

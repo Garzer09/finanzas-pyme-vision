@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { DashboardHeader } from '@/components/DashboardHeader';
-import { CompanyProvider } from '@/components/CompanyProvider';
+
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -257,7 +257,7 @@ const HomePage = () => {
   };
 
   return (
-    <CompanyProvider>
+    <div className="min-h-screen bg-light-gray-bg flex">
       <div className="min-h-screen bg-light-gray-bg flex">
         {/* Sidebar */}
         <DashboardSidebar />
@@ -484,7 +484,7 @@ const HomePage = () => {
         </div>
       </div>
     </div>
-    </CompanyProvider>
+    
   );
 };
 
