@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { debugManager } from '@/utils/debugManager';
-
+import { useCompanyContext } from '@/contexts/CompanyContext';
 export interface FinancialDataPoint {
   id: string;
   data_type: string;
@@ -21,6 +21,7 @@ export const useFinancialData = (dataType?: string, companyId?: string) => {
   const mounted = useRef(true);
   const lastFetchRef = useRef<string>('');
   const cacheRef = useRef<Map<string, { data: FinancialDataPoint[]; timestamp: number }>>(new Map());
+  const { validateCompanyAccess } = useCompanyContext();
 
   const fetchFinancialData = useCallback(async () => {
     const fetchKey = `${companyId || 'no-company'}_${dataType || 'all'}_${Date.now()}`;
@@ -43,6 +44,23 @@ export const useFinancialData = (dataType?: string, companyId?: string) => {
     try {
       debugManager.logInfo(`Fetching financial data from specific tables: ${dataType || 'all'}`, undefined, 'useFinancialData');
       setLoading(true);
+
+      if (!companyId) {
+        setData([]);
+        setHasRealData(false);
+        setLoading(false);
+        setError(null);
+        return;
+      }
+
+      const allowed = await validateCompanyAccess(companyId);
+      if (!allowed) {
+        setError('Unauthorized company access');
+        setHasRealData(false);
+        setData([]);
+        setLoading(false);
+        return;
+      }
       
       const timeoutPromise = new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Timeout')), 15000)

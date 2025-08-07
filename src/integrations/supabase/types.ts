@@ -671,90 +671,131 @@ export type Database = {
           company_id: string
           created_at: string
           currency_code: string
+          current_balance: number | null
+          end_date: string | null
+          entity: string | null
           entity_name: string
+          frequency: string | null
           guarantees: string | null
           id: number
           initial_amount: number
+          initial_principal: number | null
           interest_rate: number
           job_id: string | null
           loan_key: string
           loan_type: string
           maturity_date: string
           observations: string | null
+          rate_type: string | null
+          start_date: string | null
           uploaded_by: string | null
         }
         Insert: {
           company_id: string
           created_at?: string
           currency_code?: string
+          current_balance?: number | null
+          end_date?: string | null
+          entity?: string | null
           entity_name: string
+          frequency?: string | null
           guarantees?: string | null
           id?: number
           initial_amount?: number
+          initial_principal?: number | null
           interest_rate?: number
           job_id?: string | null
           loan_key: string
           loan_type: string
           maturity_date: string
           observations?: string | null
+          rate_type?: string | null
+          start_date?: string | null
           uploaded_by?: string | null
         }
         Update: {
           company_id?: string
           created_at?: string
           currency_code?: string
+          current_balance?: number | null
+          end_date?: string | null
+          entity?: string | null
           entity_name?: string
+          frequency?: string | null
           guarantees?: string | null
           id?: number
           initial_amount?: number
+          initial_principal?: number | null
           interest_rate?: number
           job_id?: string | null
           loan_key?: string
           loan_type?: string
           maturity_date?: string
           observations?: string | null
+          rate_type?: string | null
+          start_date?: string | null
           uploaded_by?: string | null
         }
         Relationships: []
       }
       debt_maturities: {
         Row: {
+          amount_interest: number | null
+          amount_principal: number | null
           breakdown_json: Json | null
           company_id: string
           created_at: string
+          due_date: string | null
           id: number
           interest_amount: number
           job_id: string | null
+          loan_id: number | null
           maturity_year: number
           principal_amount: number
           total_amount: number
           uploaded_by: string | null
         }
         Insert: {
+          amount_interest?: number | null
+          amount_principal?: number | null
           breakdown_json?: Json | null
           company_id: string
           created_at?: string
+          due_date?: string | null
           id?: number
           interest_amount?: number
           job_id?: string | null
+          loan_id?: number | null
           maturity_year: number
           principal_amount?: number
           total_amount?: number
           uploaded_by?: string | null
         }
         Update: {
+          amount_interest?: number | null
+          amount_principal?: number | null
           breakdown_json?: Json | null
           company_id?: string
           created_at?: string
+          due_date?: string | null
           id?: number
           interest_amount?: number
           job_id?: string | null
+          loan_id?: number | null
           maturity_year?: number
           principal_amount?: number
           total_amount?: number
           uploaded_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "debt_maturities_loan_id_fkey"
+            columns: ["loan_id"]
+            isOneToOne: false
+            referencedRelation: "debt_loans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       detected_periods: {
         Row: {

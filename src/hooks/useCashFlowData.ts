@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 
 interface CashFlowData {
   id: number;
@@ -37,6 +38,7 @@ export const useCashFlowData = (companyId?: string): UseCashFlowDataResult => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { validateCompanyAccess } = useCompanyContext();
 
   const fetchCashFlowData = async () => {
     if (!user) return;
@@ -54,6 +56,15 @@ export const useCashFlowData = (companyId?: string): UseCashFlowDataResult => {
       } else {
         // If no companyId provided, don't fetch any data for now
         setCashFlowData([]);
+        setIsLoading(false);
+        return;
+      }
+
+      const allowed = await validateCompanyAccess(companyId);
+      if (!allowed) {
+        setError('Unauthorized company access');
+        setCashFlowData([]);
+        setIsLoading(false);
         return;
       }
       
@@ -119,15 +130,11 @@ export const useCashFlowData = (companyId?: string): UseCashFlowDataResult => {
 
     const flujoNeto = flujoOperativo + flujoInversion + flujoFinanciacion;
 
-    // Get net income for quality calculation (from P&G data)
-    // This would ideally come from P&G lines, but for now we'll estimate
-    const beneficioNeto = flujoOperativo * 0.65; // Rough estimate
-
-    // Calculate derived KPIs
-    const flujoOperativoPctVentas = flujoOperativo > 0 ? (flujoOperativo / (flujoOperativo * 2.5)) * 100 : 0;
-    const calidadFCO = beneficioNeto > 0 ? ((flujoOperativo - beneficioNeto) / beneficioNeto) * 100 : 0;
+    // Derived KPIs strictly from available real cash flow aggregates (no estimates)
+    const flujoOperativoPctVentas = 0;
+    const calidadFCO = 0;
     const autofinanciacion = Math.abs(flujoInversion) > 0 ? (flujoOperativo / Math.abs(flujoInversion)) * 100 : 0;
-    const coberturaDeuda = flujoOperativo / 85000; // Assuming service debt of 85K
+    const coberturaDeuda = 0;
 
     return {
       flujoOperativo,

@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 
 export interface DebtItem {
   id: string;
@@ -29,38 +30,77 @@ export const useDebtData = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch debt data from database
+  // Fetch debt data from database (real tables)
+  const { validateCompanyAccess } = useCompanyContext();
+
   useEffect(() => {
     if (!companyId) return;
 
     const fetchDebtData = async () => {
       setLoading(true);
+      setError(null);
       try {
-        // Fetch from debt_balances table
-        const { data, error: fetchError } = await supabase
-          .from('debt_balances')
+        const allowed = await validateCompanyAccess(companyId);
+        if (!allowed) {
+          setError('Unauthorized company access');
+          setDebtItems([]);
+          return;
+        }
+
+        const { data: loans, error: loansError } = await supabase
+          .from('debt_loans')
           .select('*')
           .eq('company_id', companyId);
+        if (loansError) throw loansError;
 
-        if (fetchError) throw fetchError;
+        const { data: maturities, error: matError } = await supabase
+          .from('debt_maturities')
+          .select('*')
+          .eq('company_id', companyId);
+        if (matError) throw matError;
 
-        // Transform database data to DebtItem format
-        const transformedData: DebtItem[] = (data || []).map((item: any) => ({
-          id: item.id.toString(),
-          entidad: `Entidad ${item.loan_id}`,
-          tipo: 'Préstamo',
-          capitalInicial: item.year_end_balance,
-          capitalPendiente: item.year_end_balance,
-          tipoInteres: 3.5, // Default value
-          plazoRestante: 12,
-          cuota: item.year_end_balance / 12,
-          proximoVencimiento: `${item.year + 1}-12-31`,
-          ultimoVencimiento: `${item.year + 3}-12-31`,
-          frecuencia: 'Mensual',
-          garantias: 'Por definir'
-        }));
+        const matByLoan = new Map<number, any[]>();
+        (maturities || []).forEach((m: any) => {
+          const key = Number(m.loan_id);
+          if (!matByLoan.has(key)) matByLoan.set(key, []);
+          matByLoan.get(key)!.push(m);
+        });
 
-        setDebtItems(transformedData);
+        const today = new Date();
+        const transformed: DebtItem[] = (loans || []).map((loan: any) => {
+          const list = (matByLoan.get(Number(loan.id)) || []).sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+          const upcoming = list.find((m: any) => new Date(m.due_date) >= today);
+          const last = list.length > 0 ? list[list.length - 1] : null;
+          const nextQuota = upcoming ? Number(upcoming.amount_principal || 0) + Number(upcoming.amount_interest || 0) : 0;
+
+          const endDate = loan.end_date ? new Date(loan.end_date) : undefined;
+          const monthsLeft = endDate ? Math.max(0, (endDate.getFullYear() - today.getFullYear()) * 12 + (endDate.getMonth() - today.getMonth())) : 0;
+
+          const freqMap: Record<string, string> = {
+            monthly: 'Mensual',
+            quarterly: 'Trimestral',
+            semiannual: 'Semestral',
+            annual: 'Anual',
+            bullet: 'A vencimiento'
+          };
+
+          return {
+            id: String(loan.id),
+            entidad: loan.entity || 'Entidad',
+            tipo: loan.loan_type || 'Préstamo',
+            capitalInicial: Number(loan.initial_principal ?? loan.current_balance ?? 0),
+            capitalPendiente: Number(loan.current_balance ?? 0),
+            tipoInteres: Number(loan.interest_rate ?? 0),
+            plazoRestante: monthsLeft,
+            cuota: nextQuota,
+            proximoVencimiento: upcoming ? String(upcoming.due_date) : '',
+            ultimoVencimiento: last ? String(last.due_date) : '',
+            frecuencia: freqMap[(loan.frequency || 'monthly').toLowerCase()] || 'Mensual',
+            garantias: loan.guarantees || undefined
+          } as DebtItem;
+        });
+
+        setDebtItems(transformed);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Error loading debt data');
       } finally {
@@ -69,7 +109,7 @@ export const useDebtData = () => {
     };
 
     fetchDebtData();
-  }, [companyId]);
+  }, [companyId, validateCompanyAccess]);
 
   // Cálculos principales
   const totalCapitalPendiente = useMemo(() => 
