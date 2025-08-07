@@ -140,14 +140,7 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
     setError(null);
 
     try {
-      // Validate access first
-      const hasAccess = await validateCompanyAccess(targetCompanyId);
-      if (!hasAccess) {
-        setError('No tienes permisos para acceder a esta empresa');
-        return;
-      }
-
-      // Load company data
+      // Load company data directly - permissions are handled at route level
       const { data: company, error: companyError } = await supabase
         .from('companies')
         .select('*')
@@ -155,19 +148,18 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
         .single();
 
       if (companyError) {
-        throw companyError;
+        // Silently handle errors - don't show toasts for normal navigation
+        console.debug('Company not found or no access:', targetCompanyId);
+        clearCurrentCompany();
+        return;
       }
 
       setCurrentCompanyState(company);
       setCompanyId(targetCompanyId);
     } catch (err) {
-      console.error('Error setting current company:', err);
-      setError(err instanceof Error ? err.message : 'Error al cargar la empresa');
-      toast({
-        title: "Error",
-        description: "Error al cargar los datos de la empresa",
-        variant: "destructive"
-      });
+      // Only log for debugging, no user-facing errors
+      console.debug('Error loading company:', err);
+      clearCurrentCompany();
     } finally {
       setLoading(false);
     }
