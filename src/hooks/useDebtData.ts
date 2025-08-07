@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface DebtItem {
   id: string;
@@ -22,64 +24,52 @@ export interface RiskMetrics {
 }
 
 export const useDebtData = () => {
-  const [debtItems, setDebtItems] = useState<DebtItem[]>([
-    {
-      id: '1',
-      entidad: 'Banco Santander',
-      tipo: 'Préstamo ICO',
-      capitalInicial: 500000,
-      capitalPendiente: 320000,
-      tipoInteres: 3.5,
-      plazoRestante: 36,
-      cuota: 9500,
-      proximoVencimiento: '2024-02-15',
-      ultimoVencimiento: '2027-02-15',
-      frecuencia: 'Mensual',
-      garantias: 'Hipoteca sobre inmueble'
-    },
-    {
-      id: '2',
-      entidad: 'BBVA',
-      tipo: 'Línea de Crédito',
-      capitalInicial: 200000,
-      capitalPendiente: 150000,
-      tipoInteres: 4.2,
-      plazoRestante: 12,
-      cuota: 0,
-      proximoVencimiento: '2024-12-31',
-      ultimoVencimiento: '2024-12-31',
-      frecuencia: 'A vencimiento',
-      garantias: 'Aval personal'
-    },
-    {
-      id: '3',
-      entidad: 'CaixaBank',
-      tipo: 'Leasing',
-      capitalInicial: 180000,
-      capitalPendiente: 95000,
-      tipoInteres: 3.8,
-      plazoRestante: 24,
-      cuota: 4200,
-      proximoVencimiento: '2024-02-01',
-      ultimoVencimiento: '2026-02-01',
-      frecuencia: 'Mensual',
-      garantias: 'Bien objeto de leasing'
-    },
-    {
-      id: '4',
-      entidad: 'Banco Sabadell',
-      tipo: 'Descuento Comercial',
-      capitalInicial: 100000,
-      capitalPendiente: 85000,
-      tipoInteres: 2.8,
-      plazoRestante: 6,
-      cuota: 0,
-      proximoVencimiento: '2024-08-15',
-      ultimoVencimiento: '2024-08-15',
-      frecuencia: 'A vencimiento',
-      garantias: 'Sin garantías'
-    }
-  ]);
+  const { companyId } = useParams<{ companyId: string }>();
+  const [debtItems, setDebtItems] = useState<DebtItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch debt data from database
+  useEffect(() => {
+    if (!companyId) return;
+
+    const fetchDebtData = async () => {
+      setLoading(true);
+      try {
+        // Fetch from debt_balances table
+        const { data, error: fetchError } = await supabase
+          .from('debt_balances')
+          .select('*')
+          .eq('company_id', companyId);
+
+        if (fetchError) throw fetchError;
+
+        // Transform database data to DebtItem format
+        const transformedData: DebtItem[] = (data || []).map((item: any) => ({
+          id: item.id.toString(),
+          entidad: `Entidad ${item.loan_id}`,
+          tipo: 'Préstamo',
+          capitalInicial: item.year_end_balance,
+          capitalPendiente: item.year_end_balance,
+          tipoInteres: 3.5, // Default value
+          plazoRestante: 12,
+          cuota: item.year_end_balance / 12,
+          proximoVencimiento: `${item.year + 1}-12-31`,
+          ultimoVencimiento: `${item.year + 3}-12-31`,
+          frecuencia: 'Mensual',
+          garantias: 'Por definir'
+        }));
+
+        setDebtItems(transformedData);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Error loading debt data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDebtData();
+  }, [companyId]);
 
   // Cálculos principales
   const totalCapitalPendiente = useMemo(() => 
@@ -195,6 +185,8 @@ export const useDebtData = () => {
     debtByType,
     vencimientos,
     riskMetrics,
+    loading,
+    error,
     addDebtItem,
     updateDebtItem,
     deleteDebtItem

@@ -12,6 +12,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { PeriodProvider } from "./contexts/PeriodContext";
 import { CompanyProvider } from "./contexts/CompanyContext";
 import { AdminImpersonationProvider } from "./contexts/AdminImpersonationContext";
+import { CompanyLayout } from "./components/CompanyLayout";
 
 import { RequireAuth } from "./components/RequireAuth";
 import { RequireAdmin } from "./components/RequireAdmin";
@@ -117,102 +118,107 @@ const App = () => {
 
             {/* Protected Routes - Require Authentication */}
             <Route element={<RequireAuth><Outlet /></RequireAuth>}>
+              {/* Company Selection Route */}
+              <Route path="/app/mis-empresas" element={<ViewerMisEmpresasPage />} />
+              
+              {/* Legacy routes for backwards compatibility */}
               <Route path="/subir-excel" element={<ExcelUploadPage />} />
               <Route path="/archivos" element={<FilesDashboardPage />} />
               <Route path="/suscripcion" element={<SubscriptionPage />} />
               <Route path="/file-upload-demo" element={<FileUploadDemoPage />} />
               <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
               
-              {/* Viewer Routes */}
-              <Route path="/app/mis-empresas" element={<ViewerMisEmpresasPage />} />
-              <Route path="/app/dashboard" element={<ViewerDashboardPage />} />
-              
-              {/* Core Financial Analysis */}
-              <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />
-              <Route path="/balance-situacion" element={<BalanceSituacionPage />} />
-              <Route path="/ratios-financieros" element={<RatiosFinancierosPage />} />
-              
-              {/* Advanced Financial Analysis */}
-              <Route path="/flujos-caja" element={<CashFlowPage />} />
-              <Route path="/analisis-nof" element={<NOFAnalysisPage />} />
-              <Route path="/punto-muerto" element={<BreakEvenPage />} />
-              <Route path="/endeudamiento" element={<DebtPoolPage />} />
-              <Route path="/servicio-deuda" element={<DebtServicePage />} />
-              
-              {/* Sección 3 - Situación Actual */}
-              <Route path="/situacion-actual" element={
-                <Suspense fallback={<ModuleLoadingFallback />}>
-                  <SituacionActualModule />
-                </Suspense>
-              } />
-              <Route path="/pyg-actual" element={<ProfitLossCurrentModule />} />
-              <Route path="/pyg-analitico-actual" element={<AnalyticalPLCurrentModule />} />
-              <Route path="/balance-actual" element={<BalanceSheetCurrentModule />} />
-              <Route path="/flujos-actual" element={
-                <Suspense fallback={<ModuleLoadingFallback />}>
-                  <FinancialAnalysisModule />
-                </Suspense>
-              } />
-              <Route path="/ratios-actual" element={<FinancialRatiosCurrentModule />} />
-              <Route path="/punto-muerto-actual" element={
-                <Suspense fallback={<ModuleLoadingFallback />}>
-                  <FinancialAnalysisModule />
-                </Suspense>
-              } />
-              <Route path="/endeudamiento-actual" element={
-                <Suspense fallback={<ModuleLoadingFallback />}>
-                  <FinancialAnalysisModule />
-                </Suspense>
-              } />
-              <Route path="/servicio-deuda-actual" element={
-                <Suspense fallback={<ModuleLoadingFallback />}>
-                  <FinancialAnalysisModule />
-                </Suspense>
-              } />
-              <Route path="/nof-actual" element={
-                <Suspense fallback={<ModuleLoadingFallback />}>
-                  <FinancialAnalysisModule />
-                </Suspense>
-              } />
-              <Route path="/segmentos-actual" element={<SalesSegmentsModule />} />
-              
-              {/* Sección 4 - Supuestos */}
-              <Route path="/supuestos-financieros" element={
-                <Suspense fallback={<ModuleLoadingFallback />}>
-                  <KeyFinancialAssumptionsModule />
-                </Suspense>
-              } />
-              
-              {/* Sección 5 - Proyecciones */}
-              <Route path="/proyecciones" element={
-                <Suspense fallback={<ModuleLoadingFallback />}>
-                  <ProjectionsModule />
-                </Suspense>
-              } />
-              
-              {/* Sección 6 - Sensibilidad */}
-              <Route path="/escenarios" element={
-                <Suspense fallback={<ModuleLoadingFallback />}>
-                  <SensitivityModuleNew />
-                </Suspense>
-              } />
-              
-              {/* Sección 7 - Valoración EVA */}
-              <Route path="/valoracion-eva" element={
-                <Suspense fallback={<ModuleLoadingFallback />}>
-                  <EVAValuationModule />
-                </Suspense>
-              } />
-              
-              {/* Simulador */}
-              <Route path="/simulador" element={
-                <Suspense fallback={<ModuleLoadingFallback />}>
-                  <SimulatorModule />
-                </Suspense>
-              } />
-              
-              {/* Conclusiones */}
-              <Route path="/conclusiones" element={<ConclusionsPage />} />
+              {/* Company-specific routes with dynamic companyId */}
+              <Route path="/app/:companyId" element={<CompanyLayout><Outlet /></CompanyLayout>}>
+                <Route index element={<ViewerDashboardPage />} />
+                
+                {/* Core Financial Analysis */}
+                <Route path="cuenta-pyg" element={<CuentaPyGPage />} />
+                <Route path="balance-situacion" element={<BalanceSituacionPage />} />
+                <Route path="ratios-financieros" element={<RatiosFinancierosPage />} />
+                
+                {/* Advanced Financial Analysis */}
+                <Route path="flujos-caja" element={<CashFlowPage />} />
+                <Route path="analisis-nof" element={<NOFAnalysisPage />} />
+                <Route path="punto-muerto" element={<BreakEvenPage />} />
+                <Route path="endeudamiento" element={<DebtPoolPage />} />
+                <Route path="servicio-deuda" element={<DebtServicePage />} />
+                
+                {/* Sección 3 - Situación Actual */}
+                <Route path="situacion-actual" element={
+                  <Suspense fallback={<ModuleLoadingFallback />}>
+                    <SituacionActualModule />
+                  </Suspense>
+                } />
+                <Route path="pyg-actual" element={<ProfitLossCurrentModule />} />
+                <Route path="pyg-analitico-actual" element={<AnalyticalPLCurrentModule />} />
+                <Route path="balance-actual" element={<BalanceSheetCurrentModule />} />
+                <Route path="flujos-actual" element={
+                  <Suspense fallback={<ModuleLoadingFallback />}>
+                    <FinancialAnalysisModule />
+                  </Suspense>
+                } />
+                <Route path="ratios-actual" element={<FinancialRatiosCurrentModule />} />
+                <Route path="punto-muerto-actual" element={
+                  <Suspense fallback={<ModuleLoadingFallback />}>
+                    <FinancialAnalysisModule />
+                  </Suspense>
+                } />
+                <Route path="endeudamiento-actual" element={
+                  <Suspense fallback={<ModuleLoadingFallback />}>
+                    <FinancialAnalysisModule />
+                  </Suspense>
+                } />
+                <Route path="servicio-deuda-actual" element={
+                  <Suspense fallback={<ModuleLoadingFallback />}>
+                    <FinancialAnalysisModule />
+                  </Suspense>
+                } />
+                <Route path="nof-actual" element={
+                  <Suspense fallback={<ModuleLoadingFallback />}>
+                    <FinancialAnalysisModule />
+                  </Suspense>
+                } />
+                <Route path="segmentos-actual" element={<SalesSegmentsModule />} />
+                
+                {/* Sección 4 - Supuestos */}
+                <Route path="supuestos-financieros" element={
+                  <Suspense fallback={<ModuleLoadingFallback />}>
+                    <KeyFinancialAssumptionsModule />
+                  </Suspense>
+                } />
+                
+                {/* Sección 5 - Proyecciones */}
+                <Route path="proyecciones" element={
+                  <Suspense fallback={<ModuleLoadingFallback />}>
+                    <ProjectionsModule />
+                  </Suspense>
+                } />
+                
+                {/* Sección 6 - Sensibilidad */}
+                <Route path="escenarios" element={
+                  <Suspense fallback={<ModuleLoadingFallback />}>
+                    <SensitivityModuleNew />
+                  </Suspense>
+                } />
+                
+                {/* Sección 7 - Valoración EVA */}
+                <Route path="valoracion-eva" element={
+                  <Suspense fallback={<ModuleLoadingFallback />}>
+                    <EVAValuationModule />
+                  </Suspense>
+                } />
+                
+                {/* Simulador */}
+                <Route path="simulador" element={
+                  <Suspense fallback={<ModuleLoadingFallback />}>
+                    <SimulatorModule />
+                  </Suspense>
+                } />
+                
+                {/* Conclusiones */}
+                <Route path="conclusiones" element={<ConclusionsPage />} />
+              </Route>
             </Route>
 
             {/* Admin Routes - Require Admin Role */}
