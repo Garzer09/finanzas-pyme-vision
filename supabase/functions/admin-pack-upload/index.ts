@@ -170,7 +170,8 @@ Deno.serve(async (req) => {
         currencyCode,
         accountingStandard,
         importMode,
-        dryRun
+        dryRun,
+        force: Boolean((parsedData && (parsedData.force ?? parsedData.forceReprocess)) || false)
       }
     } else {
       // Parse FormData (legacy support)
@@ -201,7 +202,8 @@ Deno.serve(async (req) => {
         currencyCode,
         accountingStandard,
         importMode,
-        dryRun
+        dryRun,
+        force: (formData.get('force') === 'true' || formData.get('force') === '1')
       }
     }
     
@@ -277,13 +279,17 @@ Deno.serve(async (req) => {
       .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
       .single()
 
-    if (duplicateJob) {
+    if (duplicateJob && !parsedData.force) {
       return new Response(JSON.stringify({ 
-        error: `Pack de archivos duplicado procesado recientemente (Job: ${duplicateJob.id})` 
+        error: `Pack de archivos duplicado procesado recientemente (Job: ${duplicateJob.id})`
       }), {
         status: 409,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
+    }
+
+    if (duplicateJob && parsedData.force) {
+      console.warn(`Force reprocess enabled - bypassing duplicate check for job ${duplicateJob.id}`)
     }
 
     // Create processing job
