@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, FileText, CheckCircle, ArrowRight, Download, X, XCircle, Building, Users } from 'lucide-react';
 import { useDataYearDetection } from '@/hooks/useDataYearDetection';
@@ -88,7 +89,14 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
   const [editedQualitativeData, setEditedQualitativeData] = useState<QualitativeData | null>(null);
   const [modifiedFields, setModifiedFields] = useState<Set<string>>(new Set());
   const { detectYearsFromFiles } = useDataYearDetection();
-  const fileProcessor = new EnhancedFileProcessor();
+const fileProcessor = new EnhancedFileProcessor();
+
+  // Confirmación UI state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [validationStats, setValidationStats] = useState<any | null>(null);
+  const [validationMessage, setValidationMessage] = useState<string>('');
+  const [pendingCommit, setPendingCommit] = useState<{ companyId: string; filesToProcess: any[] } | null>(null);
+  const [isCommitting, setIsCommitting] = useState(false);
 
   // Update edited qualitative data
   const updateEditedQualitativeData = (field: string, value: any, section: 'company' | 'shareholders', index?: number) => {
@@ -616,6 +624,7 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
           let attempts = 0;
           let validationOk = false;
           let lastMessage = '';
+          let lastStats: any = {};
           while (attempts < 30) { // ~60s
             const { data: job } = await supabase
               .from('processing_jobs')
@@ -625,6 +634,7 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
             
             const status = job?.status;
             const stats = (job?.stats_json as any) || {};
+            lastStats = stats;
             lastMessage = stats?.message || '';
             if (status === 'DONE') { validationOk = true; break; }
             if (status === 'FAILED') { validationOk = false; break; }
@@ -637,63 +647,63 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
             return;
           }
           
-          // Confirmación explícita del admin para proceder con la carga definitiva
-          const proceed = window.confirm('Validación correcta. ¿Deseas cargar los datos definitivamente en el sistema?');
-          if (proceed) {
-            const { error: commitError } = await supabase.functions.invoke('admin-pack-upload', {
-              body: {
-                companyId: currentCompanyId,
-                company_name: companyInfo.name,
-                currency_code: companyInfo.currency,
-                accounting_standard: companyInfo.accounting_standard,
-                files: filesToProcess,
-                selectedYears: [],
-                dryRun: false
-              }
-            });
-            if (commitError) throw commitError;
-            toast.success('Carga confirmada. Procesamiento iniciado.');
-          } else {
-            toast.message('Validación completada. Carga cancelada por el administrador.');
-          }
+          // Abrir UI de confirmación con resumen de validación
+          setValidationStats(lastStats);
+          setValidationMessage(lastMessage || 'Validación correcta');
+          setPendingCommit({ companyId: currentCompanyId as string, filesToProcess });
+          setConfirmOpen(true);
+          toast.success('Validación correcta. Revisa y confirma para iniciar la carga.');
         }
       }
 
-      // Process only valid optional template files
-      const optionalFiles = uploadedFiles.filter(f => f.optionalTemplate === true && f.isValid);
-      for (const optionalFile of optionalFiles) {
-        try {
-          await processOptionalTemplate(currentCompanyId, optionalFile);
-        } catch (error: any) {
-          console.error(`Error processing ${optionalFile.name}:`, error);
-          toast.error(`Error al procesar ${optionalFile.name}: ${error.message}`);
-        }
-      }
-      
-      // Show processing results
-      const processedCount = qualitativeFiles.length + (financialFiles.length > 0 ? 1 : 0) + optionalFiles.length;
-      const skippedCount = uploadedFiles.length - validFiles.length;
-      
-      if (processedCount > 0) {
-        toast.success(`${processedCount} archivo(s) procesado(s) exitosamente`);
-      }
-      if (skippedCount > 0) {
-        toast.warning(`${skippedCount} archivo(s) omitido(s) por errores`);
-      }
-      
-      // Always use the completion callback with the correct company ID
-      if (currentCompanyId) {
-        onComplete?.(currentCompanyId);
-      } else {
-        console.error('No company ID available for navigation');
-        toast.error('Error: No se pudo obtener el ID de la empresa');
-      }
+      // La confirmación y procesos finales (plantillas opcionales, navegación, toasts)
+      // se ejecutarán tras la confirmación del admin en handleCommitData().
       
     } catch (error: any) {
       console.error('Error processing data:', error);
       toast.error(`Error al procesar datos: ${error.message}`);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  // Commit confirmed data after successful validation
+  const handleCommitData = async () => {
+    if (!pendingCommit) return;
+    try {
+      setIsCommitting(true);
+      const { error: commitError } = await supabase.functions.invoke('admin-pack-upload', {
+        body: {
+          companyId: pendingCommit.companyId,
+          company_name: companyInfo.name,
+          currency_code: companyInfo.currency,
+          accounting_standard: companyInfo.accounting_standard,
+          files: pendingCommit.filesToProcess,
+          selectedYears: [],
+          dryRun: false
+        }
+      });
+      if (commitError) throw commitError;
+
+      // Process only valid optional template files
+      const optionalFiles = uploadedFiles.filter(f => f.optionalTemplate === true && f.isValid);
+      for (const optionalFile of optionalFiles) {
+        try {
+          await processOptionalTemplate(pendingCommit.companyId, optionalFile);
+        } catch (error: any) {
+          console.error(`Error processing ${optionalFile.name}:`, error);
+          toast.error(`Error al procesar ${optionalFile.name}: ${error.message}`);
+        }
+      }
+
+      toast.success('Carga confirmada. Procesamiento iniciado.');
+      setConfirmOpen(false);
+      onComplete?.(pendingCommit.companyId);
+    } catch (error: any) {
+      console.error('Error en confirmación de carga:', error);
+      toast.error(`Error al confirmar la carga: ${error.message}`);
+    } finally {
+      setIsCommitting(false);
     }
   };
 
@@ -1181,10 +1191,48 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
                 disabled={isProcessing || uploadedFiles.filter(file => file.isValid).length === 0}
                 className="flex items-center gap-2"
               >
-                {isProcessing ? 'Procesando...' : `Procesar ${uploadedFiles.filter(file => file.isValid).length} Archivo(s) Válido(s)`}
+                {isProcessing ? 'Validando...' : `Validar y confirmar (${uploadedFiles.filter(file => file.isValid).length})`}
                 <CheckCircle className="h-4 w-4" />
               </Button>
             </div>
+
+            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirmar carga definitiva</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    {validationMessage || 'Se validaron los archivos correctamente. Esta acción impactará los dashboards.'}
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+
+                {validationStats && (
+                  <div className="rounded-md border p-3 text-sm">
+                    <div className="grid grid-cols-2 gap-2">
+                      {'inserted_rows' in validationStats && (
+                        <div><span className="font-medium">Insertados:</span> {validationStats.inserted_rows}</div>
+                      )}
+                      {'updated_rows' in validationStats && (
+                        <div><span className="font-medium">Actualizados:</span> {validationStats.updated_rows}</div>
+                      )}
+                      {'warnings_count' in validationStats && (
+                        <div><span className="font-medium">Avisos:</span> {validationStats.warnings_count}</div>
+                      )}
+                      {'errors_count' in validationStats && (
+                        <div><span className="font-medium">Errores:</span> {validationStats.errors_count}</div>
+                      )}
+                    </div>
+                    <pre className="mt-3 max-h-40 overflow-auto bg-muted/50 p-2 rounded">{JSON.stringify(validationStats, null, 2)}</pre>
+                  </div>
+                )}
+
+                <AlertDialogFooter>
+                  <AlertDialogCancel disabled={isCommitting}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleCommitData} disabled={isCommitting}>
+                    {isCommitting ? 'Confirmando...' : 'Confirmar y cargar'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardContent>
         </Card>
       </div>
