@@ -6,7 +6,7 @@ import { useCompanyData } from '@/hooks/useCompanyData';
 import { MissingFinancialData } from '@/components/ui/missing-financial-data';
 
 export const ProfitLossCurrentModule = () => {
-  const { data, loading, error, hasRealData, getLatestData, currentCompany, hasCompanyContext } = useCompanyData('pyg');
+  const { data, loading, error, hasRealData, getLatestData, currentCompany, hasCompanyContext } = useCompanyData('estado_pyg');
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -79,23 +79,47 @@ export const ProfitLossCurrentModule = () => {
     { trimestre: 'Q4', ingresos: 650000, gastos: 560000, beneficio: 90000 }
   ];
 
+  // Helpers to robustly find values by multiple synonyms/variants
+  const normalizeKey = (key: string) => key.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_');
+  const findValue = (content: Record<string, any>, variants: string[]) => {
+    const map = new Map<string, any>();
+    Object.entries(content).forEach(([k, v]) => map.set(normalizeKey(k), v));
+    for (const variant of variants) {
+      const norm = normalizeKey(variant);
+      if (map.has(norm)) return Number(map.get(norm)) || 0;
+      // fuzzy contains
+      for (const [k, v] of map.entries()) {
+        if (k.includes(norm)) return Number(v) || 0;
+      }
+    }
+    return 0;
+  };
+
   // Process real data if available
   const processedData = () => {
     if (!hasRealData || !data.length) {
       return { kpiData: defaultKpiData, plData: defaultPlData };
     }
 
-    const latestData = getLatestData('pyg');
+    const latestData = getLatestData('estado_pyg');
     if (!latestData?.data_content) {
       return { kpiData: defaultKpiData, plData: defaultPlData };
     }
 
     const content = latestData.data_content;
     
-    // Extract main financial figures
-    const revenue = content['importe_neto_cifra_negocios'] || content['ventas'] || 0;
-    const ebitda = content['ebitda'] || 0;
-    const netIncome = content['resultado_neto'] || 0;
+    // Extract main financial figures using robust synonyms
+    const revenue = findValue(content, [
+      'importe_neto_cifra_negocios', 'importe neto cifra negocios', 'cifra de negocios', 'ventas', 'ingresos', 'importe_neto_de_la_cifra_de_negocios'
+    ]);
+    const ebitda = findValue(content, [
+      'ebitda', 'resultado bruto de explotacion', 'resultado_bruto_explotacion'
+    ]);
+    const netIncome = findValue(content, [
+      'resultado_neto', 'beneficio_neto', 'resultado del ejercicio', 'resultado_del_ejercicio'
+    ]);
+
+    console.info('[P&L] Records:', data.length, 'Latest keys:', Object.keys(content).length, 'Revenue:', revenue, 'EBITDA:', ebitda, 'Net:', netIncome);
 
     const kpiData = [
       {

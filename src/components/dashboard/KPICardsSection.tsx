@@ -68,7 +68,7 @@ export const KPICardsSection: React.FC<KPICardsSectionProps> = ({ companyId }) =
 
   const ratiosData = getLatestData('ratios_financieros');
   const pygData = getLatestData('estado_pyg');
-  const balanceData = getLatestData('estado_balance');
+  const balanceData = getLatestData('balance_situacion');
 
   // KPIs Año 0 (Actuales)
   const currentKPIs: KPIData[] = [

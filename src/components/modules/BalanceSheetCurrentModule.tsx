@@ -56,12 +56,14 @@ export const BalanceSheetCurrentModule = () => {
             (dataMap.get('Efectivo y equivalentes') || 0)
           );
 
-          const totalEquity = (
+          const totalEquityGranular = (
             (dataMap.get('Capital social') || 0) +
             (dataMap.get('Reservas') || 0) +
             (dataMap.get('Resultados ejercicios anteriores') || 0) +
             (dataMap.get('Resultado del ejercicio') || 0)
           );
+
+          const totalEquity = totalEquityGranular || (dataMap.get('Patrimonio neto') || dataMap.get('Patrimonio Neto') || 0);
 
           const totalDebt = (
             (dataMap.get('Deudas a largo plazo') || 0) +

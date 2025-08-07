@@ -23,7 +23,7 @@ export const RealTimeKPICards: React.FC = () => {
 
   const ratiosData = getLatestData('ratios_financieros');
   const pygData = getLatestData('estado_pyg');
-  const balanceData = getLatestData('estado_balance');
+  const balanceData = getLatestData('balance_situacion');
 
   const kpis = [
     {
@@ -83,8 +83,8 @@ export const RealTimeKPICards: React.FC = () => {
         : 'N/A',
       unit: 'M€',
       trend: calculateGrowth(
-        getPeriodComparison('estado_balance')[0]?.data_content,
-        getPeriodComparison('estado_balance')[1]?.data_content,
+        getPeriodComparison('balance_situacion')[0]?.data_content,
+        getPeriodComparison('balance_situacion')[1]?.data_content,
         'activo_total'
       ),
       status: 'good',
