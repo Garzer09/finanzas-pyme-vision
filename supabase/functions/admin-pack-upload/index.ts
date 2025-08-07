@@ -592,14 +592,10 @@ function validatePyGData(rows: any[], metadata: any): { valid: boolean, errors: 
 
   for (const row of rows) {
     const concept = row['Concepto']?.trim()
-    
     if (!concept) continue
 
-    // Check if concept is allowed
-    if (!PGC_CONCEPTS_PYG.includes(concept)) {
-      errors.push(`Concepto P&G no permitido: ${concept}`)
-      continue
-    }
+    // Relaxed concept validation: allow unknown concepts and focus on numeric checks
+    // This avoids false negatives due to naming variations; mapping happens downstream
 
     // Validate amounts are numbers (negative values allowed in P&L)
     for (const [key, value] of Object.entries(row)) {
@@ -642,10 +638,11 @@ function validateBalanceData(rows: any[], metadata: any): { valid: boolean, erro
             yearlyTotals[year] = { activo: 0, pasivo_pn: 0 }
           }
 
-          // Determine section
-          if (concept.includes('ACTIVO')) {
+          // Determine section using explicit 'Seccion' if present, fallback to concept
+          const sectionSource = (row['Seccion']?.toString() || concept || '').toUpperCase()
+          if (sectionSource.includes('ACTIVO')) {
             yearlyTotals[year].activo += amount
-          } else if (concept.includes('PATRIMONIO') || concept.includes('PASIVO')) {
+          } else if (sectionSource.includes('PATRIMONIO') || sectionSource.includes('PASIVO')) {
             yearlyTotals[year].pasivo_pn += amount
           }
         }
