@@ -97,6 +97,7 @@ const fileProcessor = new EnhancedFileProcessor();
   const [validationMessage, setValidationMessage] = useState<string>('');
   const [pendingCommit, setPendingCommit] = useState<{ companyId: string; filesToProcess: any[] } | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
+  const [manualType, setManualType] = useState<'pyg' | 'balance' | 'cashflow'>('pyg');
 
   // Update edited qualitative data
   const updateEditedQualitativeData = (field: string, value: any, section: 'company' | 'shareholders', index?: number) => {
@@ -816,6 +817,73 @@ const fileProcessor = new EnhancedFileProcessor();
     return csv;
   };
 
+  const revalidateFile = (f: FileData): FileData => {
+    const inferredType = f.type || detectFileType(f.name, f.headers);
+    const errors = validateFileStructure(inferredType, f.headers);
+    return { ...f, type: inferredType as FileData['type'], errors, isValid: errors.length === 0 };
+  };
+
+  const updateHeader = (fileIdx: number, headerIdx: number, value: string) => {
+    setUploadedFiles(prev => {
+      const copy = [...prev];
+      const f = { ...copy[fileIdx], headers: [...copy[fileIdx].headers] } as FileData;
+      f.headers[headerIdx] = value;
+      copy[fileIdx] = revalidateFile(f);
+      return copy;
+    });
+  };
+
+  const updateCell = (fileIdx: number, rowIdx: number, colIdx: number, value: string) => {
+    setUploadedFiles(prev => {
+      const copy = [...prev];
+      const rows = copy[fileIdx].content.map(r => [...r]);
+      if (!rows[rowIdx]) rows[rowIdx] = new Array(copy[fileIdx].headers.length).fill('');
+      rows[rowIdx][colIdx] = value;
+      const f = { ...copy[fileIdx], content: rows } as FileData;
+      copy[fileIdx] = revalidateFile(f);
+      return copy;
+    });
+  };
+
+  const addRow = (fileIdx: number) => {
+    setUploadedFiles(prev => {
+      const copy = [...prev];
+      const empty = new Array(copy[fileIdx].headers.length).fill('');
+      const f = { ...copy[fileIdx], content: [...copy[fileIdx].content, empty] } as FileData;
+      copy[fileIdx] = revalidateFile(f);
+      return copy;
+    });
+  };
+
+  const removeRow = (fileIdx: number, rowIdx: number) => {
+    setUploadedFiles(prev => {
+      const copy = [...prev];
+      const f = { ...copy[fileIdx], content: copy[fileIdx].content.filter((_, i) => i !== rowIdx) } as FileData;
+      copy[fileIdx] = revalidateFile(f);
+      return copy;
+    });
+  };
+
+  const addManualDataset = () => {
+    const headersMap: Record<'pyg' | 'balance' | 'cashflow', string[]> = {
+      pyg: ['Concepto', 'Periodo', 'Año', 'Importe'],
+      balance: ['Concepto', 'Seccion', 'Periodo', 'Año', 'Importe'],
+      cashflow: ['Concepto', 'Categoria', 'Periodo', 'Año', 'Importe']
+    };
+    const headers = headersMap[manualType];
+    const newFile: FileData = {
+      name: `manual-${manualType}.csv`,
+      headers,
+      content: [],
+      isValid: validateFileStructure(manualType, headers).length === 0,
+      errors: [],
+      type: manualType,
+      optionalTemplate: false
+    };
+    setUploadedFiles(prev => [...prev, newFile]);
+    toast.success('Dataset manual creado. Rellena las filas necesarias.');
+  };
+
   if (currentStep === 1) {
     return (
       <div className="space-y-6">
@@ -1130,6 +1198,26 @@ const fileProcessor = new EnhancedFileProcessor();
                 </Card>
               </div>
               
+              {/* Preview sections + manual dataset */}
+              <div className="space-y-4">
+                <div className="flex flex-wrap items-end gap-3">
+                  <div className="w-60">
+                    <Label>Nuevo dataset manual</Label>
+                    <Select value={manualType} onValueChange={(v) => setManualType(v as any)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Tipo de dataset" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pyg">P&G (Resultados)</SelectItem>
+                        <SelectItem value="balance">Balance</SelectItem>
+                        <SelectItem value="cashflow">Flujos de caja</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button variant="outline" onClick={addManualDataset}>Añadir dataset manual</Button>
+                </div>
+              </div>
+              
               {/* Preview sections */}
               <div className="space-y-6">
                 {uploadedFiles.map((file, index) => (
@@ -1150,29 +1238,45 @@ const fileProcessor = new EnhancedFileProcessor();
                             <thead>
                               <tr className="bg-gray-50">
                                 {file.headers.map((header, i) => (
-                                  <th key={i} className="border border-gray-200 px-4 py-2 text-left">
-                                    {header}
+                                  <th key={i} className="border border-gray-200 px-3 py-2 text-left min-w-[140px]">
+                                    <Input
+                                      value={header}
+                                      onChange={(e) => updateHeader(index, i, e.target.value)}
+                                      className="h-8"
+                                    />
                                   </th>
                                 ))}
+                                <th className="border border-gray-200 px-3 py-2 text-left w-28">Acciones</th>
                               </tr>
                             </thead>
                             <tbody>
-                              {file.content.slice(0, 10).map((row, i) => (
+                              {(file.content.length > 0 ? file.content.slice(0, 50) : [new Array(file.headers.length).fill('')]).map((row, i) => (
                                 <tr key={i}>
-                                  {row.map((cell, j) => (
-                                    <td key={j} className="border border-gray-200 px-4 py-2">
-                                      {cell}
+                                  {file.headers.map((_, j) => (
+                                    <td key={j} className="border border-gray-200 px-3 py-2">
+                                      <Input
+                                        value={(row && row[j]) || ''}
+                                        onChange={(e) => updateCell(index, i, j, e.target.value)}
+                                        className="h-8"
+                                      />
                                     </td>
                                   ))}
+                                  <td className="border border-gray-200 px-2 py-2">
+                                    <Button variant="ghost" size="sm" onClick={() => removeRow(index, i)}>Eliminar</Button>
+                                  </td>
                                 </tr>
                               ))}
                             </tbody>
                           </table>
-                          {file.content.length > 10 && (
-                            <div className="text-sm text-muted-foreground mt-2">
-                              Mostrando 10 de {file.content.length} filas
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="text-sm text-muted-foreground">Filas: {file.content.length}</div>
+                            <div className="flex items-center gap-2">
+                              <Button variant="outline" size="sm" onClick={() => addRow(index)}>Añadir fila</Button>
+                              {file.content.length > 50 && (
+                                <div className="text-xs text-muted-foreground">Mostrando 50 de {file.content.length} filas</div>
+                              )}
                             </div>
-                          )}
+                          </div>
                         </div>
                       )}
                     </CardContent>
