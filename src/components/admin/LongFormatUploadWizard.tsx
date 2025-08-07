@@ -624,7 +624,8 @@ export const LongFormatUploadWizard: React.FC<LongFormatUploadWizardProps> = ({
               .single();
             
             const status = job?.status;
-            lastMessage = job?.stats_json?.message || '';
+            const stats = (job?.stats_json as any) || {};
+            lastMessage = stats?.message || '';
             if (status === 'DONE') { validationOk = true; break; }
             if (status === 'FAILED') { validationOk = false; break; }
             await new Promise(r => setTimeout(r, 2000));
