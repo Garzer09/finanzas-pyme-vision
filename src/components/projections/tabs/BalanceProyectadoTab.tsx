@@ -3,6 +3,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Lightbulb, Building2 } from 'lucide-react'
 import { useProjectionInsights } from '@/hooks/useProjectionInsights'
+import { useProjections } from '@/hooks/useProjections'
 
 interface BalanceProyectadoTabProps {
   scenario: 'base' | 'optimista' | 'pesimista'
@@ -12,25 +13,9 @@ interface BalanceProyectadoTabProps {
 }
 
 export function BalanceProyectadoTab({ scenario, yearRange, unit, includeInflation }: BalanceProyectadoTabProps) {
-  // Mock data - evolución del activo
-  const activoData = [
-    { year: 'A0', inmovilizado: 800, circulante: 600, tesoreria: 200 },
-    { year: 'A1', inmovilizado: 920, circulante: 680, tesoreria: 400 },
-    { year: 'A2', inmovilizado: 1050, circulante: 770, tesoreria: 650 },
-    { year: 'A3', inmovilizado: 1200, circulante: 870, tesoreria: 950 },
-    { year: 'A4', inmovilizado: 1360, circulante: 980, tesoreria: 1320 },
-    { year: 'A5', inmovilizado: 1540, circulante: 1100, tesoreria: 1770 }
-  ].slice(0, yearRange[1] + 1)
-
-  // Mock data - estructura de financiación
-  const financiacionData = [
-    { year: 'A0', patrimonio: 600, deudaLP: 800, deudaCP: 200 },
-    { year: 'A1', patrimonio: 750, deudaLP: 900, deudaCP: 350 },
-    { year: 'A2', patrimonio: 920, deudaLP: 1000, deudaCP: 550 },
-    { year: 'A3', patrimonio: 1120, deudaLP: 1100, deudaCP: 800 },
-    { year: 'A4', patrimonio: 1350, deudaLP: 1200, deudaCP: 1110 },
-    { year: 'A5', patrimonio: 1620, deudaLP: 1300, deudaCP: 1490 }
-  ].slice(0, yearRange[1] + 1)
+  const { balanceData } = useProjections(scenario, yearRange)
+  const activoData = balanceData.activo.slice(0, yearRange[1] + 1)
+  const financiacionData = balanceData.financiacion.slice(0, yearRange[1] + 1)
 
   const insights = useProjectionInsights({
     scenario,

@@ -74,20 +74,29 @@ export const HorizonSelector = ({ valuationData, onHorizonChange }: HorizonSelec
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {horizonOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value.toString()}>
-                  <div className="flex items-center justify-between w-full">
-                    <div className="flex flex-col">
-                      <span className="font-medium">{option.label}</span>
-                      <span className="text-xs text-slate-500">{option.description}</span>
+              {horizonOptions.map((option) => {
+                const disabled = option.value < 3;
+                return (
+                  <SelectItem 
+                    key={option.value} 
+                    value={option.value.toString()} 
+                    disabled={disabled}
+                  >
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex flex-col">
+                        <span className={`font-medium ${disabled ? 'text-slate-400' : ''}`}>{option.label}</span>
+                        <span className={`text-xs ${disabled ? 'text-slate-300' : 'text-slate-500'}`}>
+                          {disabled ? 'Mínimo 3 años' : option.description}
+                        </span>
+                      </div>
+                      <div className={`ml-4 flex items-center gap-1 text-xs ${getAvailabilityColor(getDataAvailability(option.value))}`}>
+                        <Clock className="h-3 w-3" />
+                        {getAvailabilityText(getDataAvailability(option.value))}
+                      </div>
                     </div>
-                    <div className={`ml-4 flex items-center gap-1 text-xs ${getAvailabilityColor(getDataAvailability(option.value))}`}>
-                      <Clock className="h-3 w-3" />
-                      {getAvailabilityText(getDataAvailability(option.value))}
-                    </div>
-                  </div>
-                </SelectItem>
-              ))}
+                  </SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>

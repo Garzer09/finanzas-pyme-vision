@@ -181,7 +181,7 @@ export const DashboardSidebar = () => {
       title: '1. Resumen Ejecutivo',
       items: [
         {
-          path: companyId ? `/app/${companyId}` : '/admin/dashboard',
+          path: companyId ? `/app/${companyId}` : '/app/mis-empresas',
           label: 'Dashboard Principal',
           icon: Home,
           color: 'text-steel-600'
@@ -192,7 +192,7 @@ export const DashboardSidebar = () => {
       title: '2. Descripción Empresa',
       items: [
         {
-          path: companyId ? `/app/${companyId}/descripcion-empresa` : '/descripcion-empresa',
+          path: companyId ? `/app/${companyId}/descripcion-empresa` : '/app/mis-empresas',
           label: 'Descripción de la Empresa',
           icon: Building2,
           color: 'text-cadet-600'
@@ -205,61 +205,61 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: companyId ? `/app/${companyId}/cuenta-pyg` : '/cuenta-pyg',
+          path: companyId ? `/app/${companyId}/cuenta-pyg` : '/app/mis-empresas',
           label: 'Cuenta P&G',
           icon: FileText,
           color: 'text-steel-500'
         },
         {
-          path: companyId ? `/app/${companyId}/balance-situacion` : '/balance-situacion',
+          path: companyId ? `/app/${companyId}/balance-situacion` : '/app/mis-empresas',
           label: 'Balance Situación',
           icon: CreditCard,
           color: 'text-steel-600'
         },
         {
-          path: companyId ? `/app/${companyId}/ratios-financieros` : '/ratios-financieros',
+          path: companyId ? `/app/${companyId}/ratios-financieros` : '/app/mis-empresas',
           label: 'Ratios Financieros',
           icon: Activity,
           color: 'text-warning-600'
         },
         {
-          path: companyId ? `/app/${companyId}/flujos-caja` : '/flujos-caja',
+          path: companyId ? `/app/${companyId}/flujos-caja` : '/app/mis-empresas',
           label: 'Estado Flujos Caja',
           icon: Wallet,
           color: 'text-success-600'
         },
         {
-          path: companyId ? `/app/${companyId}/analisis-nof` : '/analisis-nof',
+          path: companyId ? `/app/${companyId}/analisis-nof` : '/app/mis-empresas',
           label: 'Análisis NOF',
           icon: CircleDot,
           color: 'text-cadet-600'
         },
         {
-          path: companyId ? `/app/${companyId}/punto-muerto` : '/punto-muerto',
+          path: companyId ? `/app/${companyId}/punto-muerto` : '/app/mis-empresas',
           label: 'Punto Muerto',
           icon: Target,
           color: 'text-danger-500'
         },
         {
-          path: companyId ? `/app/${companyId}/endeudamiento` : '/endeudamiento',
+          path: companyId ? `/app/${companyId}/endeudamiento` : '/app/mis-empresas',
           label: 'Endeudamiento',
           icon: Database,
           color: 'text-steel-700'
         },
         {
-          path: companyId ? `/app/${companyId}/servicio-deuda` : '/servicio-deuda',
+          path: companyId ? `/app/${companyId}/servicio-deuda` : '/app/mis-empresas',
           label: 'Servicio Deuda',
           icon: AlertTriangle,
           color: 'text-warning-500'
         },
         {
-          path: companyId ? `/app/${companyId}/pyg-analitico-actual` : '/pyg-analitico-actual',
+          path: companyId ? `/app/${companyId}/pyg-analitico-actual` : '/app/mis-empresas',
           label: 'P&G Analítico Actual',
           icon: BarChart3,
           color: 'text-cadet-500'
         },
         {
-          path: companyId ? `/app/${companyId}/segmentos-actual` : '/segmentos-actual',
+          path: companyId ? `/app/${companyId}/segmentos-actual` : '/app/mis-empresas',
           label: 'Ventas por Segmentos',
           icon: Users,
           color: 'text-steel-400'
@@ -272,7 +272,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: companyId ? `/app/${companyId}/supuestos-financieros` : '/supuestos-financieros',
+          path: companyId ? `/app/${companyId}/supuestos-financieros` : '/app/mis-empresas',
           label: 'Supuestos Financieros Clave',
           icon: Calculator,
           color: 'text-primary'
@@ -285,7 +285,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: companyId ? `/app/${companyId}/proyecciones` : '/proyecciones',
+          path: companyId ? `/app/${companyId}/proyecciones` : '/app/mis-empresas',
           label: 'Proyecciones',
           icon: TrendingUp,
           color: 'text-success-500'
@@ -298,7 +298,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: companyId ? `/app/${companyId}/escenarios` : '/escenarios',
+          path: companyId ? `/app/${companyId}/escenarios` : '/app/mis-empresas',
           label: 'Escenarios y Sensibilidad',
           icon: TrendingDown,
           color: 'text-warning-600'
@@ -311,7 +311,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: companyId ? `/app/${companyId}/valoracion-eva` : '/valoracion-eva',
+          path: companyId ? `/app/${companyId}/valoracion-eva` : '/app/mis-empresas',
           label: 'Valoración Integral',
           icon: DollarSign,
           color: 'text-steel-700'
@@ -322,7 +322,7 @@ export const DashboardSidebar = () => {
       title: '8. Conclusiones',
       items: [
         {
-          path: companyId ? `/app/${companyId}/conclusiones` : '/conclusiones',
+          path: companyId ? `/app/${companyId}/conclusiones` : '/app/mis-empresas',
           label: 'Conclusiones y Recomendaciones',
           icon: FileText,
           color: 'text-steel-600'

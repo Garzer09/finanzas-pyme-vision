@@ -5,6 +5,7 @@ import { useFinancialData } from './useFinancialData';
 import { useRealDebtData } from './useRealDebtData';
 import { useFinancialAssumptionsData } from './useFinancialAssumptionsData';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 
 export interface ValuationMethod {
   id: string;
@@ -47,6 +48,7 @@ export interface FinancialData {
   // Cash Flow data
   operatingCashFlow: number[];
   freeCashFlow: number[];
+  cash?: number[];
   
   // Financial metrics
   interestExpense: number[];
@@ -67,14 +69,16 @@ export interface ValuationData {
 
 export const useValuation = (companyId?: string) => {
   const { user } = useAuth();
-  const { data: financialDataRaw, hasRealData: hasFinancialData } = useFinancialData();
-  const { debtLoans, hasRealData: hasDebtDataFn } = useRealDebtData(companyId);
-  const { getLatestAssumption, hasRealData: hasAssumptionsFn } = useFinancialAssumptionsData(companyId);
+  const { companyId: contextCompanyId } = useCompanyContext();
+  const effectiveCompanyId = companyId || contextCompanyId;
+  const { data: financialDataRaw, hasRealData: hasFinancialData } = useFinancialData(undefined, effectiveCompanyId);
+  const { debtLoans, hasRealData: hasDebtDataFn } = useRealDebtData(effectiveCompanyId);
+  const { getLatestAssumption, hasRealData: hasAssumptionsFn } = useFinancialAssumptionsData(effectiveCompanyId);
   
   const hasDebtData = hasDebtDataFn();
   const hasAssumptions = hasAssumptionsFn();
   
-  const [horizon, setHorizon] = useState<number>(3); // Default to 3 years per client requirement
+  const [horizon, setHorizon] = useState<number>(3);
 
   const [methods, setMethods] = useState<ValuationMethod[]>([
     { id: 'dcf', name: 'DCF', value: 0, weight: 60 },
@@ -84,7 +88,9 @@ export const useValuation = (companyId?: string) => {
 
   // Get growth rate from assumptions or use default
   const growthAssumption = getLatestAssumption('crecimiento_terminal') || getLatestAssumption('crecimiento_ingresos');
-  const [growthRate, setGrowthRate] = useState(growthAssumption?.assumption_value || 2.5);
+  const [growthRate, setGrowthRate] = useState(growthAssumption?.assumption_value ?? 2.5);
+  const taxAssumption = getLatestAssumption('tipo_impositivo');
+  const sharesAssumption = getLatestAssumption('acciones_en_circulacion');
 
   // Helpers to build series from multiple yearly snapshots
   const sortByDateAsc = (arr: any[]) =>
@@ -120,11 +126,12 @@ export const useValuation = (companyId?: string) => {
       equity: getSeriesFrom(balItems, ['patrimonio_neto', 'fondos_propios']),
       operatingCashFlow: getSeriesFrom(cfItems, ['flujos_explotacion', 'cashflow_operaciones']),
       freeCashFlow: getSeriesFrom(cfItems, ['flujo_caja_libre', 'fcf']),
+      cash: getSeriesFrom(balItems, ['efectivo', 'caja', 'equivalentes_efectivo', 'disponibilidades']),
       interestExpense: getSeriesFrom(pygItems, ['gastos_financieros', 'coste_financiero']),
-      taxRate: 25,
-      sharesOutstanding: 1000000
+      taxRate: Number(taxAssumption?.assumption_value) || 25,
+      sharesOutstanding: Number(sharesAssumption?.assumption_value) || 1000000
     };
-  }, [financialDataRaw]);
+  }, [financialDataRaw, taxAssumption, sharesAssumption]);
 
   // Data status for UI indicators
   const dataStatus = useMemo<DataStatus>(() => {
@@ -219,7 +226,9 @@ export const useValuation = (companyId?: string) => {
     const enterpriseValue = pvFCF + pvTerminalValue;
     
     const currentDebt = financialData.totalDebt[financialData.totalDebt.length - 1] || 0;
-    const currentCash = (financialData.currentAssets[financialData.currentAssets.length - 1] || 0) * 0.3;
+    const currentCash = financialData.cash && financialData.cash.length > 0 
+      ? (financialData.cash[financialData.cash.length - 1] || 0)
+      : 0;
     const netDebt = currentDebt - currentCash;
     
     return Math.max(0, enterpriseValue - netDebt);
@@ -229,9 +238,11 @@ export const useValuation = (companyId?: string) => {
   const calculateBookValue = useCallback(() => {
     const currentEquity = financialData.equity[financialData.equity.length - 1] || 0;
     const fixedAssets = financialData.fixedAssets[financialData.fixedAssets.length - 1] || 0;
-    const revaluationAdjustment = fixedAssets * 0.1;
+    const revalAssumption = getLatestAssumption('ajuste_revalorizacion_fijos_pct');
+    const revaluationPct = Number(revalAssumption?.assumption_value) || 10;
+    const revaluationAdjustment = fixedAssets * (revaluationPct / 100);
     return Math.max(0, currentEquity + revaluationAdjustment);
-  }, [financialData]);
+  }, [financialData, getLatestAssumption]);
 
   // Calculate Liquidation Value
   const calculateLiquidationValue = useCallback(() => {
@@ -239,15 +250,18 @@ export const useValuation = (companyId?: string) => {
     const fixedAssets = financialData.fixedAssets[financialData.fixedAssets.length - 1] || 0;
     const totalDebt = financialData.totalDebt[financialData.totalDebt.length - 1] || 0;
     
-    const currentAssetsCoeff = 0.8;
-    const fixedAssetsCoeff = 0.6;
-    const liquidationCosts = 0.15;
+    const caCoeffAss = getLatestAssumption('coef_liquidacion_activo_corriente_pct');
+    const faCoeffAss = getLatestAssumption('coef_liquidacion_activo_fijo_pct');
+    const costsAss = getLatestAssumption('costes_liquidacion_pct');
+    const currentAssetsCoeff = (Number(caCoeffAss?.assumption_value) || 80) / 100;
+    const fixedAssetsCoeff = (Number(faCoeffAss?.assumption_value) || 60) / 100;
+    const liquidationCosts = (Number(costsAss?.assumption_value) || 15) / 100;
     
     const grossLiquidationValue = (currentAssets * currentAssetsCoeff) + (fixedAssets * fixedAssetsCoeff);
     const netLiquidationValue = grossLiquidationValue * (1 - liquidationCosts) - totalDebt;
     
     return Math.max(0, netLiquidationValue);
-  }, [financialData]);
+  }, [financialData, getLatestAssumption]);
 
   // Update method values when parameters change
   const updateMethodValues = useCallback(() => {
@@ -310,8 +324,13 @@ export const useValuation = (companyId?: string) => {
       const terminalFCF = fcfProjections[fcfProjections.length - 1] * (1 + g);
       const terminalValue = terminalFCF / denominator;
       const pvTerminalValue = terminalValue / Math.pow(1 + wacc, horizon);
-      
-      return pvFCF + pvTerminalValue;
+      const enterpriseValue = pvFCF + pvTerminalValue;
+      const currentDebt = financialData.totalDebt[financialData.totalDebt.length - 1] || 0;
+      const currentCash = financialData.cash && financialData.cash.length > 0 
+        ? (financialData.cash[financialData.cash.length - 1] || 0)
+        : 0;
+      const netDebt = currentDebt - currentCash;
+      return Math.max(0, enterpriseValue - netDebt);
     });
     
     const minValue = Math.min(...values);
@@ -355,7 +374,8 @@ export const useValuation = (companyId?: string) => {
   }, []);
 
   const updateHorizon = useCallback((newHorizon: number) => {
-    setHorizon(newHorizon);
+    const clamped = Math.max(3, newHorizon);
+    setHorizon(clamped);
   }, []);
 
   const valuationData: ValuationData = {

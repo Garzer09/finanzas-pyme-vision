@@ -3,6 +3,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import { Lightbulb, TrendingUp, Activity, Shield, DollarSign } from 'lucide-react'
 import { useProjectionInsights } from '@/hooks/useProjectionInsights'
+import { useProjections } from '@/hooks/useProjections'
 
 interface RatiosTabProps {
   scenario: 'base' | 'optimista' | 'pesimista'
@@ -12,42 +13,8 @@ interface RatiosTabProps {
 }
 
 export function RatiosTab({ scenario, yearRange, unit, includeInflation }: RatiosTabProps) {
-  // Mock data - en producción vendría de API/Supabase
-  const rentabilidadData = [
-    { year: 'A0', roe: 12.5, roa: 8.3, roic: 15.2 },
-    { year: 'A1', roe: 13.8, roa: 9.1, roic: 16.4 },
-    { year: 'A2', roe: 15.2, roa: 9.8, roic: 17.8 },
-    { year: 'A3', roe: 16.1, roa: 10.4, roic: 18.5 },
-    { year: 'A4', roe: 17.3, roa: 11.2, roic: 19.7 },
-    { year: 'A5', roe: 18.1, roa: 11.8, roic: 20.3 }
-  ].slice(0, yearRange[1] + 1)
-
-  const liquidezData = [
-    { year: 'A0', currentRatio: 1.8, quickRatio: 1.2, cashRatio: 0.4 },
-    { year: 'A1', currentRatio: 2.1, quickRatio: 1.4, cashRatio: 0.6 },
-    { year: 'A2', currentRatio: 2.3, quickRatio: 1.6, cashRatio: 0.8 },
-    { year: 'A3', currentRatio: 2.5, quickRatio: 1.7, cashRatio: 0.9 },
-    { year: 'A4', currentRatio: 2.8, quickRatio: 1.9, cashRatio: 1.1 },
-    { year: 'A5', currentRatio: 3.0, quickRatio: 2.1, cashRatio: 1.3 }
-  ].slice(0, yearRange[1] + 1)
-
-  const solvenciaData = [
-    { year: 'A0', debtToEquity: 2.8, debtToAssets: 0.65, timesInterest: 12.6 },
-    { year: 'A1', debtToEquity: 2.5, debtToAssets: 0.62, timesInterest: 13.6 },
-    { year: 'A2', debtToEquity: 2.2, debtToAssets: 0.58, timesInterest: 14.8 },
-    { year: 'A3', debtToEquity: 1.9, debtToAssets: 0.54, timesInterest: 15.3 },
-    { year: 'A4', debtToEquity: 1.7, debtToAssets: 0.51, timesInterest: 16.5 },
-    { year: 'A5', debtToEquity: 1.5, debtToAssets: 0.48, timesInterest: 17.8 }
-  ].slice(0, yearRange[1] + 1)
-
-  const endeudamientoData = [
-    { year: 'A0', deudaTotal: 1800, cobertura: 14.4, dscr: 1.8 },
-    { year: 'A1', deudaTotal: 1650, cobertura: 15.4, dscr: 2.1 },
-    { year: 'A2', deudaTotal: 1480, cobertura: 16.3, dscr: 2.3 },
-    { year: 'A3', deudaTotal: 1290, cobertura: 17.2, dscr: 2.6 },
-    { year: 'A4', deudaTotal: 1080, cobertura: 18.9, dscr: 2.9 },
-    { year: 'A5', deudaTotal: 850, cobertura: 19.8, dscr: 3.2 }
-  ].slice(0, yearRange[1] + 1)
+  const { ratiosData } = useProjections(scenario, yearRange)
+  const { rentabilidadData, liquidezData, solvenciaData, endeudamientoData } = ratiosData
 
   const insights = useProjectionInsights({
     scenario,

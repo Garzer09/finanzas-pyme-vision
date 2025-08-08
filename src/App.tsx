@@ -128,6 +128,8 @@ const App = () => {
               {/* Company-specific routes with dynamic companyId */}
               <Route path="/app/:companyId" element={<CompanyLayout><Outlet /></CompanyLayout>}>
                 <Route index element={<ViewerDashboardPage />} />
+                {/* Descripción de la empresa dentro del contexto de compañía */}
+                <Route path="descripcion-empresa" element={<CompanyDescriptionModule />} />
                 
                 {/* Core Financial Analysis */}
                 <Route path="cuenta-pyg" element={<CuentaPyGPage />} />
