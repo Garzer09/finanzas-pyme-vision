@@ -31,6 +31,17 @@ export const MetodologiaSensibilidadModule = () => {
     return Math.max(1, Math.round(val / 1000)); // convertir a K€
   }, [data]);
 
+  const baseRevenueK = useMemo(() => {
+    if (!data || data.length === 0) return 2500;
+    const items = data.filter(d => d.data_type === 'estado_pyg');
+    if (items.length === 0) return 2500;
+    const latest = [...items].sort((a, b) => new Date(b.period_date).getTime() - new Date(a.period_date).getTime())[0];
+    const content = latest?.data_content || {};
+    const ingresos = Number(content['ingresos_explotacion'] ?? content['importe_neto_cifra_negocios'] ?? content['ventas']);
+    const val = isFinite(ingresos) && ingresos !== 0 ? ingresos : 2500000;
+    return Math.max(1, Math.round(val / 1000)); // convertir a K€
+  }, [data]);
+
   // Use sensitivity hook con EBITDA base real
   const {
     sensitivityData,
@@ -96,11 +107,20 @@ export const MetodologiaSensibilidadModule = () => {
                       onSalesDirectChange={setSalesDelta}
                       onCostsDirectChange={setCostsDelta}
                     />
-                    <ScenarioAnalysis />
+                    <ScenarioAnalysis 
+                      baseEbitdaK={sensitivityData.ebitdaBase}
+                      baseRevenueK={baseRevenueK}
+                      salesImpactPer1Percent={sensitivityData.salesImpactPer1Percent}
+                      costsImpactPer1Percent={sensitivityData.costsImpactPer1Percent}
+                    />
                   </div>
 
                   {/* Tornado Chart */}
-                  <TornadoChart />
+                  <TornadoChart 
+                    baseEbitdaK={sensitivityData.ebitdaBase}
+                    salesImpactPer1Percent={sensitivityData.salesImpactPer1Percent}
+                    costsImpactPer1Percent={sensitivityData.costsImpactPer1Percent}
+                  />
                 </div>
 
                 {/* Insights Sidebar */}

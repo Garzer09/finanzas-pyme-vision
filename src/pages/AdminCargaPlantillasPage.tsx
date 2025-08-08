@@ -4,6 +4,8 @@ import { AdminTopNavigation } from '@/components/AdminTopNavigation';
 import { LongFormatUploadWizard } from '@/components/admin/LongFormatUploadWizard';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { supabase } from '@/integrations/supabase/client';
 
 export const AdminCargaPlantillasPage: React.FC = () => {
   const navigate = useNavigate();
@@ -22,6 +24,33 @@ export const AdminCargaPlantillasPage: React.FC = () => {
   
   const handleCancel = () => {
     navigate(-1);
+  };
+
+  const handleCreateDemoCompany = async () => {
+    try {
+      // Crea empresa demo rápida y navega a carga con su companyId
+      const { data: existing } = await supabase
+        .from('companies')
+        .select('id')
+        .eq('name', 'Empresa Demo SA')
+        .single();
+
+      let id = existing?.id as string | undefined;
+      if (!id) {
+        const { data, error } = await supabase
+          .from('companies')
+          .insert({ name: 'Empresa Demo SA', sector: 'Servicios', currency_code: 'EUR', accounting_standard: 'PGC' })
+          .select('id')
+          .single();
+        if (error) throw error;
+        id = data?.id as string;
+      }
+
+      toast.success('Empresa Demo creada');
+      navigate(`/admin/carga-plantillas?companyId=${id}`);
+    } catch (e: any) {
+      toast.error(`No se pudo crear la Empresa Demo: ${e?.message || 'Error'}`);
+    }
   };
 
   return (
@@ -45,6 +74,13 @@ export const AdminCargaPlantillasPage: React.FC = () => {
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Acciones rápidas */}
+          <div className="mb-6 flex items-center gap-3">
+            <Button variant="default" onClick={handleCreateDemoCompany}>
+              Crear Empresa Demo y Cargar Plantillas
+            </Button>
           </div>
 
           {/* Long Format Upload Wizard */}

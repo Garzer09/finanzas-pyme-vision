@@ -610,7 +610,7 @@ const fileProcessor = new EnhancedFileProcessor();
             currency_code: companyInfo.currency,
             accounting_standard: companyInfo.accounting_standard,
             files: filesToProcess,
-            selectedYears: [],
+            selectedYears: (detectedYears && detectedYears.length > 0) ? detectedYears : [],
             dryRun: true,
             force: true
           }
@@ -681,7 +681,7 @@ const fileProcessor = new EnhancedFileProcessor();
           currency_code: companyInfo.currency,
           accounting_standard: companyInfo.accounting_standard,
           files: pendingCommit.filesToProcess,
-          selectedYears: [],
+          selectedYears: (detectedYears && detectedYears.length > 0) ? detectedYears : [],
           dryRun: false,
           force: true
         }

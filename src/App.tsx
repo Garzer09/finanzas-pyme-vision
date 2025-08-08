@@ -19,13 +19,10 @@ import { RequireAdmin } from "./components/RequireAdmin";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
-import Index from "./pages/Index";
-import LandingPage from "./pages/LandingPage";
-import NotFound from "./pages/NotFound";
+// Removed unused pages: Index, LandingPage, NotFound
 import ExcelUploadPage from "./pages/ExcelUploadPage";
 import FilesDashboardPage from "./pages/FilesDashboardPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
-import { FileUploadDemoPage } from "./pages/FileUploadDemoPage";
 // Core Financial Analysis Pages
 import { CuentaPyGPage } from "./pages/CuentaPyGPage";
 import { BalanceSituacionPage } from "./pages/BalanceSituacionPage";
@@ -47,8 +44,8 @@ const FinancialAnalysisModule = React.lazy(() =>
 const ProjectionsModule = React.lazy(() => 
   import("./components/modules/ProjectionsModule").then(m => ({ default: m.ProjectionsModule }))
 );
-const SensitivityModuleNew = React.lazy(() => 
-  import("./components/modules/SensitivityModuleNew").then(m => ({ default: m.SensitivityModuleNew }))
+const MetodologiaSensibilidadModule = React.lazy(() => 
+  import("./components/modules/MetodologiaSensibilidadModule").then(m => ({ default: m.MetodologiaSensibilidadModule }))
 );
 const EVAValuationModule = React.lazy(() => 
   import("./components/modules/EVAValuationModule").then(m => ({ default: m.EVAValuationModule }))
@@ -125,7 +122,7 @@ const App = () => {
               <Route path="/subir-excel" element={<ExcelUploadPage />} />
               <Route path="/archivos" element={<FilesDashboardPage />} />
               <Route path="/suscripcion" element={<SubscriptionPage />} />
-              <Route path="/file-upload-demo" element={<FileUploadDemoPage />} />
+              {/** Ruta de demo eliminada para producción **/}
               <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
               
               {/* Company-specific routes with dynamic companyId */}
@@ -198,7 +195,7 @@ const App = () => {
                 {/* Sección 6 - Sensibilidad */}
                 <Route path="escenarios" element={
                   <Suspense fallback={<ModuleLoadingFallback />}>
-                    <SensitivityModuleNew />
+                    <MetodologiaSensibilidadModule />
                   </Suspense>
                 } />
                 

@@ -9,9 +9,21 @@ import { CustomScenario } from '@/schemas/scenario-schemas';
 
 interface ScenarioAnalysisProps {
   className?: string;
+  baseEbitdaK: number;
+  baseRevenueK?: number;
+  salesImpactPer1Percent: number; // K€ por 1%
+  costsImpactPer1Percent: number; // K€ por 1%
+  priceImpactPer1Percent?: number; // K€ por 1%
 }
 
-export const ScenarioAnalysis = ({ className }: ScenarioAnalysisProps) => {
+export const ScenarioAnalysis = ({ 
+  className,
+  baseEbitdaK,
+  baseRevenueK,
+  salesImpactPer1Percent,
+  costsImpactPer1Percent,
+  priceImpactPer1Percent = 10
+}: ScenarioAnalysisProps) => {
   const [selectedScenario, setSelectedScenario] = useState<string>('base');
   const [showDialog, setShowDialog] = useState(false);
   const [dialogScenario, setDialogScenario] = useState<CustomScenario | null>(null);
@@ -47,11 +59,10 @@ export const ScenarioAnalysis = ({ className }: ScenarioAnalysisProps) => {
   ]);
 
   const calculateEbitda = (scenario: CustomScenario) => {
-    const baseEbitda = 450;
-    const salesImpact = scenario.salesDelta * 25; // €25K per 1%
-    const costsImpact = scenario.costsDelta * 15; // €15K per 1%
-    const priceImpact = scenario.priceDelta * 10; // €10K per 1%
-    return baseEbitda + salesImpact - costsImpact + priceImpact;
+    const salesImpact = scenario.salesDelta * salesImpactPer1Percent;
+    const costsImpact = scenario.costsDelta * costsImpactPer1Percent;
+    const priceImpact = scenario.priceDelta * priceImpactPer1Percent;
+    return baseEbitdaK + salesImpact - costsImpact + priceImpact;
   };
 
   const chartData = scenarios.map(scenario => ({
@@ -206,7 +217,10 @@ export const ScenarioAnalysis = ({ className }: ScenarioAnalysisProps) => {
                 </div>
                 <div>
                   <span className="text-slate-600">Margen:</span>
-                  <p className="font-semibold">{((calculateEbitda(dialogScenario) / 2500) * 100).toFixed(1)}%</p>
+                  <p className="font-semibold">{(() => {
+                    const revenue = baseRevenueK && baseRevenueK > 0 ? baseRevenueK : 2500;
+                    return ((calculateEbitda(dialogScenario) / revenue) * 100).toFixed(1);
+                  })()}%</p>
                 </div>
               </div>
               {dialogScenario.note && (
