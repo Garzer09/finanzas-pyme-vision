@@ -4,6 +4,8 @@ import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
 import { Lightbulb, Users } from 'lucide-react'
 import { useProjectionInsights } from '@/hooks/useProjectionInsights'
 import { useProjections } from '@/hooks/useProjections'
+import { useCompanyContext } from '@/contexts/CompanyContext'
+import { useSegmentData } from '@/hooks/useSegmentData'
 
 interface VentasSegmentosTabProps {
   scenario: 'base' | 'optimista' | 'pesimista'
@@ -14,9 +16,17 @@ interface VentasSegmentosTabProps {
 
 export function VentasSegmentosTab({ scenario, yearRange, unit, includeInflation }: VentasSegmentosTabProps) {
   const { plData } = useProjections(scenario, yearRange)
-  // Distribución por segmentos derivada de histórico/supuestos: porcentajes aproximados
-  // Si más adelante hay tabla real de segmentos, se reemplaza aquí
-  const segmentMix = { premium: 0.17, estandar: 0.25, basicos: 0.2, servicios: 0.12 }
+  const { companyId } = useCompanyContext()
+  const { segmentsByType, hasRealData } = useSegmentData(companyId)
+  // Si hay datos reales de segmentos, derivar el mix desde 'producto'
+  const topProducto = segmentsByType.producto.slice(0, 4)
+  const totalSales = topProducto.reduce((s, x) => s + x.sales, 0) || 1
+  const segmentMix = hasRealData && topProducto.length >= 2 ? {
+    premium: (topProducto[0]?.sales || 0) / totalSales,
+    estandar: (topProducto[1]?.sales || 0) / totalSales,
+    basicos: (topProducto[2]?.sales || 0) / totalSales,
+    servicios: (topProducto[3]?.sales || 0) / totalSales,
+  } : { premium: 0.17, estandar: 0.25, basicos: 0.2, servicios: 0.12 }
   const marginMix = { premium: 35, estandar: 25, basicos: 15, servicios: 45 }
 
   const ventasData = plData.map((p, idx) => ({
