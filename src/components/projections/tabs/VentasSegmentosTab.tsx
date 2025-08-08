@@ -3,6 +3,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Lightbulb, Users } from 'lucide-react'
 import { useProjectionInsights } from '@/hooks/useProjectionInsights'
+import { useProjections } from '@/hooks/useProjections'
 
 interface VentasSegmentosTabProps {
   scenario: 'base' | 'optimista' | 'pesimista'
@@ -12,25 +13,27 @@ interface VentasSegmentosTabProps {
 }
 
 export function VentasSegmentosTab({ scenario, yearRange, unit, includeInflation }: VentasSegmentosTabProps) {
-  // Mock data - ventas por segmento
-  const ventasData = [
-    { year: 'A0', premium: 408, estandar: 600, basicos: 480, servicios: 312 },
-    { year: 'A1', premium: 459, estandar: 675, basicos: 540, servicios: 351 },
-    { year: 'A2', premium: 517, estandar: 761, basicos: 609, servicios: 395 },
-    { year: 'A3', premium: 582, estandar: 858, basicos: 687, servicios: 445 },
-    { year: 'A4', premium: 655, estandar: 968, basicos: 775, servicios: 502 },
-    { year: 'A5', premium: 737, estandar: 1092, basicos: 875, servicios: 566 }
-  ].slice(0, yearRange[1] + 1)
+  const { plData } = useProjections(scenario, yearRange)
+  // Distribución por segmentos derivada de histórico/supuestos: porcentajes aproximados
+  // Si más adelante hay tabla real de segmentos, se reemplaza aquí
+  const segmentMix = { premium: 0.17, estandar: 0.25, basicos: 0.2, servicios: 0.12 }
+  const marginMix = { premium: 35, estandar: 25, basicos: 15, servicios: 45 }
 
-  // Mock data - márgenes por segmento
-  const margenData = [
-    { year: 'A0', premium: 35, estandar: 25, basicos: 15, servicios: 45 },
-    { year: 'A1', premium: 36, estandar: 26, basicos: 16, servicios: 46 },
-    { year: 'A2', premium: 37, estandar: 27, basicos: 17, servicios: 47 },
-    { year: 'A3', premium: 38, estandar: 28, basicos: 18, servicios: 48 },
-    { year: 'A4', premium: 39, estandar: 29, basicos: 19, servicios: 49 },
-    { year: 'A5', premium: 40, estandar: 30, basicos: 20, servicios: 50 }
-  ].slice(0, yearRange[1] + 1)
+  const ventasData = plData.map((p, idx) => ({
+    year: `A${idx}`,
+    premium: Math.round(p.ingresos * segmentMix.premium),
+    estandar: Math.round(p.ingresos * segmentMix.estandar),
+    basicos: Math.round(p.ingresos * segmentMix.basicos),
+    servicios: Math.round(p.ingresos * segmentMix.servicios),
+  })).slice(0, yearRange[1] + 1)
+
+  const margenData = plData.map((_, idx) => ({
+    year: `A${idx}`,
+    premium: marginMix.premium,
+    estandar: marginMix.estandar,
+    basicos: marginMix.basicos,
+    servicios: marginMix.servicios,
+  })).slice(0, yearRange[1] + 1)
 
   const insights = useProjectionInsights({
     scenario,
@@ -218,8 +221,8 @@ export function VentasSegmentosTab({ scenario, yearRange, unit, includeInflation
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Premium A5</p>
-                <p className="text-2xl font-bold text-primary">{formatValue(737)}</p>
-                <p className="text-xs text-success">+81% vs A0 | 40% margen</p>
+                <p className="text-2xl font-bold text-primary">{formatValue(ventasData[5]?.premium ?? ventasData[ventasData.length-1]?.premium ?? 0)}</p>
+                <p className="text-xs text-success">40% margen</p>
               </div>
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Users className="h-4 w-4 text-primary" />
@@ -233,8 +236,8 @@ export function VentasSegmentosTab({ scenario, yearRange, unit, includeInflation
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Estándar A5</p>
-                <p className="text-2xl font-bold text-success">{formatValue(1092)}</p>
-                <p className="text-xs text-success">+82% vs A0 | 30% margen</p>
+                <p className="text-2xl font-bold text-success">{formatValue(ventasData[5]?.estandar ?? ventasData[ventasData.length-1]?.estandar ?? 0)}</p>
+                <p className="text-xs text-success">30% margen</p>
               </div>
               <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center">
                 <Users className="h-4 w-4 text-success" />
@@ -248,8 +251,8 @@ export function VentasSegmentosTab({ scenario, yearRange, unit, includeInflation
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Básicos A5</p>
-                <p className="text-2xl font-bold text-warning">{formatValue(875)}</p>
-                <p className="text-xs text-warning">+82% vs A0 | 20% margen</p>
+                <p className="text-2xl font-bold text-warning">{formatValue(ventasData[5]?.basicos ?? ventasData[ventasData.length-1]?.basicos ?? 0)}</p>
+                <p className="text-xs text-warning">20% margen</p>
               </div>
               <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center">
                 <Users className="h-4 w-4 text-warning" />
@@ -263,8 +266,8 @@ export function VentasSegmentosTab({ scenario, yearRange, unit, includeInflation
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Servicios A5</p>
-                <p className="text-2xl font-bold text-purple-600">{formatValue(566)}</p>
-                <p className="text-xs text-purple-600">+81% vs A0 | 50% margen</p>
+                <p className="text-2xl font-bold text-purple-600">{formatValue(ventasData[5]?.servicios ?? ventasData[ventasData.length-1]?.servicios ?? 0)}</p>
+                <p className="text-xs text-purple-600">50% margen</p>
               </div>
               <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
                 <Users className="h-4 w-4 text-purple-600" />
