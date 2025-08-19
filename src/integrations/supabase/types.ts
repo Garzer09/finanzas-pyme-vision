@@ -2403,47 +2403,7 @@ export type Database = {
           },
         ]
       }
-      fs_ratios_secured: {
-        Row: {
-          autonomia_financiera: number | null
-          calculated_at: string | null
-          company_id: string | null
-          margen_neto: number | null
-          period_month: number | null
-          period_quarter: number | null
-          period_type: string | null
-          period_year: number | null
-          prueba_acida: number | null
-          ratio_corriente: number | null
-          ratio_endeudamiento_financiero: number | null
-          ratio_endeudamiento_total: number | null
-          ratio_tesoreria: number | null
-          roa: number | null
-          roe: number | null
-          rotacion_activos: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_fs_balance_company"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       trial_balance_daily_mv: {
-        Row: {
-          account: string | null
-          balance: number | null
-          company_id: string | null
-          credit_sum: number | null
-          debit_sum: number | null
-          tx_date: string | null
-        }
-        Relationships: []
-      }
-      trial_balance_daily_secured: {
         Row: {
           account: string | null
           balance: number | null
