@@ -111,14 +111,12 @@ export class HealthCheckService {
     const startTime = Date.now();
     
     try {
-      // Simple health check to Supabase
-      const response = await fetch(`https://hlwchpmogvwmpuvwmvwv.supabase.co/rest/v1/`, {
-        method: 'HEAD',
-        headers: {
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhsd2NocG1vZ3Z3bXB1dndtdnd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyODQ5MjMsImV4cCI6MjA2Mzg2MDkyM30.WAKJS5_qPOgzTdwNmIRo15w-SD8KyH9X6x021bEhKaY',
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhsd2NocG1vZ3Z3bXB1dndtdnd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyODQ5MjMsImV4cCI6MjA2Mzg2MDkyM30.WAKJS5_qPOgzTdwNmIRo15w-SD8KyH9X6x021bEhKaY`
-        }
-      });
+      // Use Supabase client for secure health check
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Simple RPC call to test database connectivity
+      const { error } = await supabase.rpc('get_user_role').limit(0);
+      const response = { ok: !error };
 
       const responseTime = Date.now() - startTime;
 

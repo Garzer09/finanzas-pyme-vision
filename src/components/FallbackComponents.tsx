@@ -157,10 +157,9 @@ export const FileUploadFallback = () => {
  */
 export const AuthFallback = () => {
   const handleRetry = () => {
-    // Clear any cached auth state
-    localStorage.removeItem('auth-token');
+    // Let Supabase manage auth state - no manual token manipulation
     sessionStorage.clear();
-    window.location.href = '/login';
+    window.location.href = '/auth';
   };
 
   return (
