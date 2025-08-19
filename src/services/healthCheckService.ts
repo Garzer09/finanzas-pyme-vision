@@ -112,11 +112,11 @@ export class HealthCheckService {
     
     try {
       // Simple health check to Supabase
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
+      const response = await fetch(`https://hlwchpmogvwmpuvwmvwv.supabase.co/rest/v1/`, {
         method: 'HEAD',
         headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhsd2NocG1vZ3Z3bXB1dndtdnd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyODQ5MjMsImV4cCI6MjA2Mzg2MDkyM30.WAKJS5_qPOgzTdwNmIRo15w-SD8KyH9X6x021bEhKaY',
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhsd2NocG1vZ3Z3bXB1dndtdnd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyODQ5MjMsImV4cCI6MjA2Mzg2MDkyM30.WAKJS5_qPOgzTdwNmIRo15w-SD8KyH9X6x021bEhKaY`
         }
       });
 

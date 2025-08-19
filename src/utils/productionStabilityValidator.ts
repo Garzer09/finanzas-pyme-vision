@@ -52,7 +52,7 @@ async function validateEdgeFunctions(): Promise<{ issues: string[], warnings: st
 
   try {
     // Check environment variables for edge functions
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseUrl = "https://hlwchpmogvwmpuvwmvwv.supabase.co";
     if (!supabaseUrl) {
       issues.push('Supabase URL not configured for edge functions');
     } else if (supabaseUrl.includes('localhost') && import.meta.env.PROD) {
