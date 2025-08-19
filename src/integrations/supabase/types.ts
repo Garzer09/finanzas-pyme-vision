@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "13.0.4"
@@ -1057,6 +1057,36 @@ export type Database = {
           },
         ]
       }
+      financial_data_imports: {
+        Row: {
+          company_id: string
+          errors: Json
+          finished_at: string | null
+          id: string
+          rows_by_table: Json
+          started_at: string
+          status: string
+        }
+        Insert: {
+          company_id: string
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          rows_by_table?: Json
+          started_at?: string
+          status: string
+        }
+        Update: {
+          company_id?: string
+          errors?: Json
+          finished_at?: string | null
+          id?: string
+          rows_by_table?: Json
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       financial_lines_staging: {
         Row: {
           amount: number
@@ -1285,7 +1315,15 @@ export type Database = {
           section?: string
           uploaded_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_fs_balance_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fs_cashflow_lines: {
         Row: {
@@ -1336,7 +1374,15 @@ export type Database = {
           period_year?: number
           uploaded_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_fs_cashflow_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       fs_pyg_lines: {
         Row: {
@@ -1384,7 +1430,15 @@ export type Database = {
           period_year?: number
           uploaded_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_fs_pyg_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       import_audit: {
         Row: {
@@ -2339,9 +2393,57 @@ export type Database = {
           roe: number | null
           rotacion_activos: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_fs_balance_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fs_ratios_secured: {
+        Row: {
+          autonomia_financiera: number | null
+          calculated_at: string | null
+          company_id: string | null
+          margen_neto: number | null
+          period_month: number | null
+          period_quarter: number | null
+          period_type: string | null
+          period_year: number | null
+          prueba_acida: number | null
+          ratio_corriente: number | null
+          ratio_endeudamiento_financiero: number | null
+          ratio_endeudamiento_total: number | null
+          ratio_tesoreria: number | null
+          roa: number | null
+          roe: number | null
+          rotacion_activos: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_fs_balance_company"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       trial_balance_daily_mv: {
+        Row: {
+          account: string | null
+          balance: number | null
+          company_id: string | null
+          credit_sum: number | null
+          debit_sum: number | null
+          tx_date: string | null
+        }
+        Relationships: []
+      }
+      trial_balance_daily_secured: {
         Row: {
           account: string | null
           balance: number | null
@@ -2365,13 +2467,13 @@ export type Database = {
         Returns: string
       }
       has_company_access: {
-        Args: { _user_id: string; _company_id: string }
+        Args: { _company_id: string; _user_id: string }
         Returns: boolean
       }
       has_role: {
         Args: {
-          user_uuid: string
           check_role: Database["public"]["Enums"]["app_role"]
+          user_uuid: string
         }
         Returns: boolean
       }
@@ -2385,16 +2487,24 @@ export type Database = {
       }
       log_processing_step: {
         Args: {
-          _session_id: string
           _company_id: string
-          _user_id: string
-          _step_name: string
-          _step_status: string
-          _step_data?: Json
           _error_details?: Json
           _performance_metrics?: Json
+          _session_id: string
+          _step_data?: Json
+          _step_name: string
+          _step_status: string
+          _user_id: string
         }
         Returns: undefined
+      }
+      normalize_financial_lines: {
+        Args: { _company_id: string; _import_id: string }
+        Returns: Json
+      }
+      normalize_financials: {
+        Args: { company_uuid: string; import_id: string }
+        Returns: Json
       }
       normalize_spanish_text: {
         Args: { txt: string }
