@@ -6,6 +6,7 @@ import { useProjectionInsights } from '@/hooks/useProjectionInsights'
 import { useProjections } from '@/hooks/useProjections'
 import { useCompanyContext } from '@/contexts/CompanyContext'
 import { useSegmentData } from '@/hooks/useSegmentData'
+import { useFinancialAssumptionsData } from '@/hooks/useFinancialAssumptionsData'
 
 interface VentasSegmentosTabProps {
   scenario: 'base' | 'optimista' | 'pesimista'
@@ -18,6 +19,7 @@ export function VentasSegmentosTab({ scenario, yearRange, unit, includeInflation
   const { plData } = useProjections(scenario, yearRange)
   const { companyId } = useCompanyContext()
   const { segmentsByType, hasRealData } = useSegmentData(companyId)
+  const { getLatestAssumption } = useFinancialAssumptionsData(companyId)
   // Si hay datos reales de segmentos, derivar el mix desde 'producto'
   const topProducto = segmentsByType.producto.slice(0, 4)
   const totalSales = topProducto.reduce((s, x) => s + x.sales, 0) || 1
@@ -27,7 +29,12 @@ export function VentasSegmentosTab({ scenario, yearRange, unit, includeInflation
     basicos: (topProducto[2]?.sales || 0) / totalSales,
     servicios: (topProducto[3]?.sales || 0) / totalSales,
   } : { premium: 0.17, estandar: 0.25, basicos: 0.2, servicios: 0.12 }
-  const marginMix = { premium: 35, estandar: 25, basicos: 15, servicios: 45 }
+  const marginMix = {
+    premium: Number(getLatestAssumption('margen_segmento_premium')?.assumption_value) || 35,
+    estandar: Number(getLatestAssumption('margen_segmento_estandar')?.assumption_value) || 25,
+    basicos: Number(getLatestAssumption('margen_segmento_basicos')?.assumption_value) || 15,
+    servicios: Number(getLatestAssumption('margen_segmento_servicios')?.assumption_value) || 45,
+  }
 
   const ventasData = plData.map((p, idx) => ({
     year: `A${idx}`,

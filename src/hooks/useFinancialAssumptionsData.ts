@@ -113,6 +113,45 @@ export const useFinancialAssumptionsData = (companyId?: string) => {
 
   const hasRealData = () => assumptions.length > 0;
 
+  const upsertAssumption = async (
+    assumption_name: string,
+    assumption_value: number,
+    options?: { unit?: string; category?: string; period_year?: number; period_type?: string }
+  ) => {
+    if (!companyId) throw new Error('companyId requerido para guardar supuestos');
+    const period_year = options?.period_year ?? new Date().getFullYear();
+    const period_type = options?.period_type ?? 'annual';
+    const unit = options?.unit ?? '%';
+    const category = options?.category ?? 'segment';
+
+    const { error } = await supabase
+      .from('financial_assumptions_normalized')
+      .upsert({
+        company_id: companyId,
+        assumption_category: category,
+        assumption_name,
+        assumption_value,
+        unit,
+        period_year,
+        period_type
+      }, { onConflict: 'company_id,assumption_name,period_year,period_type' });
+
+    if (error) throw error;
+    await fetchAssumptionsData();
+  };
+
+  const upsertSegmentMargins = async (margins: {
+    premium: number;
+    estandar: number;
+    basicos: number;
+    servicios: number;
+  }) => {
+    await upsertAssumption('margen_segmento_premium', margins.premium, { unit: '%', category: 'segment' });
+    await upsertAssumption('margen_segmento_estandar', margins.estandar, { unit: '%', category: 'segment' });
+    await upsertAssumption('margen_segmento_basicos', margins.basicos, { unit: '%', category: 'segment' });
+    await upsertAssumption('margen_segmento_servicios', margins.servicios, { unit: '%', category: 'segment' });
+  };
+
   return {
     assumptions,
     getAssumptionsByCategory,
@@ -122,6 +161,8 @@ export const useFinancialAssumptionsData = (companyId?: string) => {
     isLoading,
     error,
     hasRealData,
-    refetch: fetchAssumptionsData
+    refetch: fetchAssumptionsData,
+    upsertAssumption,
+    upsertSegmentMargins
   };
 };
