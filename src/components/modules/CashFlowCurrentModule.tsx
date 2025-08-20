@@ -171,16 +171,16 @@ export const CashFlowCurrentModule = () => {
           setCashFlowData(defaultCashFlowData); // Keep default monthly data for chart
         } else {
           setHasRealData(false);
-          setKpiData([]);
-          setFlujosDetalle([]);
-          setCashFlowData([]);
+          setKpiData(defaultKpiData);
+          setFlujosDetalle(defaultFlujosDetalle);
+          setCashFlowData(defaultCashFlowData);
         }
       } catch (error) {
         console.error('Error fetching Cash Flow data:', error);
         setHasRealData(false);
-        setKpiData([]);
-        setFlujosDetalle([]);
-        setCashFlowData([]);
+        setKpiData(defaultKpiData);
+        setFlujosDetalle(defaultFlujosDetalle);
+        setCashFlowData(defaultCashFlowData);
       } finally {
         setLoading(false);
       }
@@ -221,28 +221,26 @@ export const CashFlowCurrentModule = () => {
           <section>
             {loading ? (
               <div className="text-center">Cargando datos de flujos de efectivo...</div>
-            ) : !hasRealData ? (
-              <div className="text-center py-12">
-                <div className="bg-slate-100 rounded-lg p-8 max-w-md mx-auto">
-                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                    No hay datos de flujos de efectivo
-                  </h3>
-                  <p className="text-slate-600">
-                    Esta empresa no tiene datos de flujos de efectivo cargados en el sistema.
-                  </p>
-                </div>
-              </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {kpiData.map((kpi, index) => (
-                  <ModernKPICard key={index} {...kpi} />
-                ))}
-              </div>
+              <>
+                {!hasRealData && (
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-blue-800 text-sm">
+                      <strong>Datos de demostración:</strong> Esta empresa no tiene datos reales de flujos de efectivo. Se muestran datos de ejemplo para demostrar la funcionalidad.
+                    </p>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {kpiData.map((kpi, index) => (
+                    <ModernKPICard key={index} {...kpi} />
+                  ))}
+                </div>
+              </>
             )}
           </section>
 
           {/* Cash Flow Evolution Chart */}
-          {hasRealData && (
+          {(hasRealData || (!hasRealData && kpiData.length > 0)) && (
             <section>
               <Card className="bg-white/90 backdrop-blur-2xl border border-white/40 hover:border-steel/30 rounded-3xl shadow-2xl hover:shadow-2xl hover:shadow-steel/20 transition-all duration-500 group overflow-hidden">
                 <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>

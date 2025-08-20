@@ -20,6 +20,59 @@ export const BalanceSheetCurrentModule = () => {
     { año: '2023', activo: 3200000, pasivo: 1400000, patrimonio: 1800000 }
   ];
 
+  // Default fallback data when no real data is available
+  const defaultKpiData = [
+    {
+      title: 'Activo Total',
+      value: '€3,200,000',
+      subtitle: 'Total de activos',
+      trend: 'up' as const,
+      trendValue: '+8%',
+      icon: Building,
+      variant: 'success' as const
+    },
+    {
+      title: 'Patrimonio Neto',
+      value: '€1,800,000',
+      subtitle: '56.3% del activo',
+      trend: 'up' as const,
+      trendValue: '+12%',
+      icon: Shield,
+      variant: 'success' as const
+    },
+    {
+      title: 'Deuda Total',
+      value: '€1,400,000',
+      subtitle: '43.7% del activo',
+      trend: 'down' as const,
+      trendValue: '-5%',
+      icon: CreditCard,
+      variant: 'warning' as const
+    },
+    {
+      title: 'Ratio Solvencia',
+      value: '2.29',
+      subtitle: 'Activo/Pasivo',
+      trend: 'up' as const,
+      trendValue: '+0.15',
+      icon: TrendingUp,
+      variant: 'success' as const
+    }
+  ];
+
+  const defaultActivoData = [
+    { name: 'Inmovilizado', value: 1600000, color: '#4682B4' },
+    { name: 'Existencias', value: 480000, color: '#5F9EA0' },
+    { name: 'Clientes', value: 720000, color: '#87CEEB' },
+    { name: 'Tesorería', value: 400000, color: '#B0C4DE' }
+  ];
+
+  const defaultPasivoData = [
+    { name: 'Patrimonio Neto', value: 1800000, color: '#10B981' },
+    { name: 'Deuda LP', value: 800000, color: '#F59E0B' },
+    { name: 'Deuda CP', value: 600000, color: '#EF4444' }
+  ];
+
   useEffect(() => {
     const fetchBalanceData = async () => {
       if (!companyId) return;
@@ -133,16 +186,18 @@ export const BalanceSheetCurrentModule = () => {
           setPasivoData(realPasivoData);
         } else {
           setHasRealData(false);
-          setKpiData([]);
-          setActivoData([]);
-          setPasivoData([]);
+          // Use fallback data instead of empty arrays
+          setKpiData(defaultKpiData);
+          setActivoData(defaultActivoData);
+          setPasivoData(defaultPasivoData);
         }
       } catch (error) {
         console.error('Error fetching Balance data:', error);
         setHasRealData(false);
-        setKpiData([]);
-        setActivoData([]);
-        setPasivoData([]);
+        // Use fallback data on error
+        setKpiData(defaultKpiData);
+        setActivoData(defaultActivoData);
+        setPasivoData(defaultPasivoData);
       } finally {
         setLoading(false);
       }
@@ -183,28 +238,26 @@ export const BalanceSheetCurrentModule = () => {
       <section>
         {loading ? (
           <div className="text-center">Cargando datos del balance...</div>
-        ) : !hasRealData ? (
-          <div className="text-center py-12">
-            <div className="bg-slate-100 rounded-lg p-8 max-w-md mx-auto">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                No hay datos de balance disponibles
-              </h3>
-              <p className="text-slate-600">
-                Esta empresa no tiene datos de balance cargados en el sistema.
-              </p>
-            </div>
-          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {kpiData.map((kpi, index) => (
-              <ModernKPICard key={index} {...kpi} />
-            ))}
-          </div>
+          <>
+            {!hasRealData && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-blue-800 text-sm">
+                  <strong>Datos de demostración:</strong> Esta empresa no tiene datos reales de balance cargados. Se muestran datos de ejemplo para demostrar la funcionalidad.
+                </p>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {kpiData.map((kpi, index) => (
+                <ModernKPICard key={index} {...kpi} />
+              ))}
+            </div>
+          </>
         )}
       </section>
 
       {/* Balance Structure Charts */}
-      {hasRealData && (
+      {(hasRealData || (!hasRealData && kpiData.length > 0)) && (
         <section>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Estructura del Activo */}
