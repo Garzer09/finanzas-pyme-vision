@@ -119,45 +119,131 @@ export const ProfitLossCurrentModule = () => {
       'resultado_neto', 'beneficio_neto', 'resultado del ejercicio', 'resultado_del_ejercicio'
     ]);
 
-    console.info('[P&L] Records:', data.length, 'Latest keys:', Object.keys(content).length, 'Revenue:', revenue, 'EBITDA:', ebitda, 'Net:', netIncome);
+    console.debug('[P&L] Processing data:', { 
+      records: data.length, 
+      latestKeys: Object.keys(content).length, 
+      revenue, 
+      ebitda, 
+      netIncome,
+      companyId: hasCompanyContext ? currentCompany?.id : 'N/A'
+    });
+
+    // Calculate margins and trends more accurately
+    const ebitdaMargin = revenue > 0 ? (ebitda / revenue) * 100 : 0;
+    const netMargin = revenue > 0 ? (netIncome / revenue) * 100 : 0;
+    
+    // Get previous period for trend calculation
+    const previousData = getPeriodComparison('estado_pyg');
+    const prevContent = previousData.length > 1 ? previousData[1]?.data_content : null;
+    
+    const prevRevenue = prevContent ? findValue(prevContent, [
+      'importe_neto_cifra_negocios', 'ventas', 'ingresos'
+    ]) : 0;
+    
+    const prevEbitda = prevContent ? findValue(prevContent, [
+      'ebitda', 'resultado_bruto_explotacion'
+    ]) : 0;
+    
+    const prevNetIncome = prevContent ? findValue(prevContent, [
+      'resultado_neto', 'beneficio_neto'
+    ]) : 0;
+    
+    // Calculate real trends
+    const revenueGrowth = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0;
+    const ebitdaGrowth = prevEbitda !== 0 ? ((ebitda - prevEbitda) / Math.abs(prevEbitda)) * 100 : 0;
+    const netGrowth = prevNetIncome !== 0 ? ((netIncome - prevNetIncome) / Math.abs(prevNetIncome)) * 100 : 0;
 
     const kpiData = [
       {
         title: 'Ingresos Totales',
-        value: formatCurrency(revenue),
-        subtitle: hasCompanyContext ? `${currentCompany?.name}` : 'Cifra de negocios',
-        trend: 'up' as const,
-        trendValue: '+12%',
+        value: revenue > 0 ? formatCurrency(revenue) : 'Sin datos',
+        subtitle: hasCompanyContext && currentCompany ? `${currentCompany.name}` : 'Cifra de negocios',
+        trend: revenueGrowth > 0 ? 'up' as const : revenueGrowth < 0 ? 'down' as const : 'neutral' as const,
+        trendValue: Math.abs(revenueGrowth) >= 0.1 ? `${revenueGrowth > 0 ? '+' : ''}${revenueGrowth.toFixed(1)}%` : '0%',
         icon: DollarSign,
-        variant: 'success' as const
+        variant: revenue > 0 ? 'success' as const : 'default' as const
       },
       {
         title: 'EBITDA',
-        value: formatCurrency(ebitda),
-        subtitle: revenue ? `${((ebitda / revenue) * 100).toFixed(1)}% margen` : 'Sin datos',
-        trend: 'up' as const,
-        trendValue: '+5%',
+        value: ebitda !== 0 ? formatCurrency(ebitda) : 'Sin datos',
+        subtitle: ebitdaMargin !== 0 ? `${ebitdaMargin.toFixed(1)}% margen` : 'Sin datos de margen',
+        trend: ebitdaGrowth > 0 ? 'up' as const : ebitdaGrowth < 0 ? 'down' as const : 'neutral' as const,
+        trendValue: Math.abs(ebitdaGrowth) >= 0.1 ? `${ebitdaGrowth > 0 ? '+' : ''}${ebitdaGrowth.toFixed(1)}%` : '0%',
         icon: TrendingUp,
-        variant: 'success' as const
+        variant: ebitda > 0 ? 'success' as const : ebitda < 0 ? 'danger' as const : 'default' as const
       },
       {
         title: 'Resultado Neto',
-        value: formatCurrency(netIncome),
-        subtitle: revenue ? `${((netIncome / revenue) * 100).toFixed(1)}% margen` : 'Sin datos',
-        trend: netIncome >= 0 ? 'up' as const : 'down' as const,
-        trendValue: '+8%',
+        value: netIncome !== 0 ? formatCurrency(netIncome) : 'Sin datos',
+        subtitle: netMargin !== 0 ? `${netMargin.toFixed(1)}% margen neto` : 'Sin datos de margen',
+        trend: netGrowth > 0 ? 'up' as const : netGrowth < 0 ? 'down' as const : 'neutral' as const,
+        trendValue: Math.abs(netGrowth) >= 0.1 ? `${netGrowth > 0 ? '+' : ''}${netGrowth.toFixed(1)}%` : '0%',
         icon: Calculator,
-        variant: netIncome >= 0 ? 'success' as const : 'danger' as const
+        variant: netIncome > 0 ? 'success' as const : netIncome < 0 ? 'danger' as const : 'default' as const
       }
     ];
 
-    // Build P&L structure from real data
-    const plData = Object.entries(content).map(([key, value]) => ({
-      concepto: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      valor: Number(value) || 0,
-      porcentaje: revenue !== 0 ? (Number(value) / revenue) * 100 : 0,
-      destacar: ['ebitda', 'resultado_neto', 'importe_neto_cifra_negocios'].includes(key)
-    })).filter(item => item.valor !== 0);
+    // Helper function to format concept names
+    const formatConceptName = (key: string): string => {
+      // Common P&L concept translations
+      const translations: Record<string, string> = {
+        'importe_neto_cifra_negocios': 'Importe Neto de la Cifra de Negocios',
+        'importe_neto_de_la_cifra_de_negocios': 'Importe Neto de la Cifra de Negocios',
+        'variacion_existencias': 'Variación de Existencias',
+        'trabajos_realizados_empresa': 'Trabajos Realizados por la Empresa',
+        'aprovisionamientos': 'Aprovisionamientos',
+        'otros_gastos_explotacion': 'Otros Gastos de Explotación',
+        'gastos_personal': 'Gastos de Personal',
+        'amortizacion_inmovilizado': 'Amortización del Inmovilizado',
+        'resultado_explotacion': 'RESULTADO DE EXPLOTACIÓN',
+        'resultado_bruto_explotacion': 'RESULTADO BRUTO DE EXPLOTACIÓN (EBITDA)',
+        'ebitda': 'EBITDA',
+        'ingresos_financieros': 'Ingresos Financieros',
+        'gastos_financieros': 'Gastos Financieros',
+        'resultado_financiero': 'Resultado Financiero',
+        'resultado_antes_impuestos': 'Resultado Antes de Impuestos',
+        'impuesto_beneficios': 'Impuesto sobre Beneficios',
+        'resultado_neto': 'RESULTADO NETO DEL EJERCICIO',
+        'resultado_del_ejercicio': 'RESULTADO DEL EJERCICIO'
+      };
+      
+      return translations[key.toLowerCase()] || 
+             key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    };
+    
+    const isHighlightedConcept = (key: string): boolean => {
+      const highlighted = [
+        'importe_neto_cifra_negocios',
+        'importe_neto_de_la_cifra_de_negocios', 
+        'resultado_bruto_explotacion',
+        'ebitda',
+        'resultado_explotacion',
+        'resultado_antes_impuestos',
+        'resultado_neto',
+        'resultado_del_ejercicio'
+      ];
+      return highlighted.includes(key.toLowerCase());
+    };
+
+    // Build P&L structure from real data with better formatting
+    const plData = Object.entries(content)
+      .map(([key, value]) => {
+        const numValue = Number(value) || 0;
+        return {
+          concepto: formatConceptName(key),
+          valor: numValue,
+          porcentaje: revenue !== 0 ? (numValue / revenue) * 100 : 0,
+          destacar: isHighlightedConcept(key),
+          isPositive: numValue >= 0
+        };
+      })
+      .filter(item => Math.abs(item.valor) >= 1) // Filter very small amounts
+      .sort((a, b) => {
+        // Sort by importance and then by value
+        if (a.destacar && !b.destacar) return -1;
+        if (!a.destacar && b.destacar) return 1;
+        return Math.abs(b.valor) - Math.abs(a.valor);
+      });
 
     return { kpiData, plData };
   };
@@ -193,12 +279,26 @@ export const ProfitLossCurrentModule = () => {
             <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-steel-800 bg-clip-text text-transparent">
               Cuenta de Resultados
             </h1>
-            <p className="text-slate-700 text-lg font-medium">
-              {hasCompanyContext && currentCompany ? 
-                `Análisis de rentabilidad - ${currentCompany.name}` : 
-                'Análisis detallado del rendimiento financiero y rentabilidad'
-              }
-            </p>
+            <div className="flex items-center justify-between">
+              <p className="text-slate-700 text-lg font-medium">
+                {hasCompanyContext && currentCompany ? 
+                  `Análisis de rentabilidad - ${currentCompany.name}` : 
+                  'Análisis detallado del rendimiento financiero y rentabilidad'
+                }
+              </p>
+              {hasRealData && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                  <div className="w-2 h-2 bg-green-600 rounded-full mr-2"></div>
+                  Datos Reales
+                </span>
+              )}
+              {!hasRealData && hasCompanyContext && (
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
+                  <div className="w-2 h-2 bg-amber-600 rounded-full mr-2"></div>
+                  Datos de Demostración
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -234,7 +334,7 @@ export const ProfitLossCurrentModule = () => {
                   </span>
                   <div className="flex space-x-6 text-right">
                     <span className={`font-mono ${
-                      item.valor >= 0 ? 'text-success-600' : 'text-danger-600'
+                      item.isPositive ? 'text-success-600' : 'text-danger-600'
                     } ${item.destacar ? 'font-bold text-lg' : ''}`}>
                       {formatCurrency(item.valor)}
                     </span>
