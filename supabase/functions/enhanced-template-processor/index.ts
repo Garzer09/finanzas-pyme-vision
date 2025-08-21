@@ -220,9 +220,9 @@ Deno.serve(async (req) => {
         
         // Call normalization function to move from staging to final tables
         const { data: normalizationResult, error: normalizationError } = await supabase
-          .rpc('normalize_financial_lines', {
-            _import_id: jobId,
-            _company_id: companyId
+          .rpc('normalize_financials', {
+            company_uuid: companyId,
+            import_id: jobId
           })
         
         if (normalizationError) {
