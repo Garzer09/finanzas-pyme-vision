@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 
 interface PLData {
   id: number;
@@ -36,9 +37,13 @@ export const useAnalyticalPLData = (companyId?: string): UseAnalyticalPLDataResu
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
+  const { companyId: contextCompanyId } = useCompanyContext();
+  
+  // Use provided companyId or fall back to context companyId
+  const effectiveCompanyId = companyId || contextCompanyId;
 
   const fetchPLData = async () => {
-    if (!user || !companyId) return;
+    if (!user || !effectiveCompanyId) return;
     
     setIsLoading(true);
     setError(null);
@@ -47,7 +52,7 @@ export const useAnalyticalPLData = (companyId?: string): UseAnalyticalPLDataResu
       const { data, error: supabaseError } = await supabase
         .from('fs_pyg_lines')
         .select('*')
-        .eq('company_id', companyId)
+        .eq('company_id', effectiveCompanyId)
         .order('period_date', { ascending: false });
 
       if (supabaseError) {
@@ -74,7 +79,7 @@ export const useAnalyticalPLData = (companyId?: string): UseAnalyticalPLDataResu
 
   useEffect(() => {
     fetchPLData();
-  }, [user, companyId]);
+  }, [user, effectiveCompanyId]);
 
   const analyticalData = useMemo((): AnalyticalPLItem[] => {
     if (plData.length === 0) {

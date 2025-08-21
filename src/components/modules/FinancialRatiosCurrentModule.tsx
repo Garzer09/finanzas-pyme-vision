@@ -121,12 +121,12 @@ export const FinancialRatiosCurrentModule = () => {
           setKpiData(defaultKpiData);
         } else {
           setHasRealData(false);
-          setKpiData([]);
+          setKpiData(defaultKpiData);
         }
       } catch (error) {
         console.error('Error fetching ratios data:', error);
         setHasRealData(false);
-        setKpiData([]);
+        setKpiData(defaultKpiData);
       } finally {
         setLoading(false);
       }
@@ -158,28 +158,26 @@ export const FinancialRatiosCurrentModule = () => {
       <section>
         {loading ? (
           <div className="text-center">Cargando datos de ratios...</div>
-        ) : !hasRealData ? (
-          <div className="text-center py-12">
-            <div className="bg-slate-100 rounded-lg p-8 max-w-md mx-auto">
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                No hay datos para calcular ratios
-              </h3>
-              <p className="text-slate-600">
-                Esta empresa necesita datos de balance y cuenta de resultados para calcular ratios financieros.
-              </p>
-            </div>
-          </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {kpiData.map((kpi, index) => (
-              <ModernKPICard key={index} {...kpi} />
-            ))}
-          </div>
+          <>
+            {!hasRealData && (
+              <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-blue-800 text-sm">
+                  <strong>Datos de demostración:</strong> Esta empresa no tiene datos reales para calcular ratios. Se muestran ratios de ejemplo para demostrar la funcionalidad.
+                </p>
+              </div>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {kpiData.map((kpi, index) => (
+                <ModernKPICard key={index} {...kpi} />
+              ))}
+            </div>
+          </>
         )}
       </section>
 
       {/* Radar Chart and Comparison */}
-      {hasRealData && (
+      {(hasRealData || (!hasRealData && kpiData.length > 0)) && (
         <section>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Radar Chart */}

@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { useAnalyticalPLData } from '@/hooks/useAnalyticalPLData';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 import { MissingFinancialData } from '@/components/ui/missing-financial-data';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +26,8 @@ interface AnalyticalPLItem {
 export const AnalyticalPLCurrentModule = () => {
   const [viewMode, setViewMode] = useState<'table' | 'margins' | 'waterfall'>('table');
   const [showHeatmap, setShowHeatmap] = useState(false);
-  const { analyticalData, hasRealData } = useAnalyticalPLData();
+  const { companyId } = useCompanyContext();
+  const { analyticalData, hasRealData } = useAnalyticalPLData(companyId);
 
   // Show missing data indicator if no real data
   if (!hasRealData) {
