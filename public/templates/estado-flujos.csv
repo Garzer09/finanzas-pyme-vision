@@ -1,16 +1,20 @@
 Concepto,Año1,Año2,Año3,Notas
-Resultado del ejercicio,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-+ Amortizaciones,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-+ Provisiones,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-+/- Otros ajustes,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-- Aumento existencias,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-- Aumento deudores,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-+ Aumento acreedores,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-- Inversiones inmovilizado,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-+ Desinversiones,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-- Inversiones financieras,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-+ Aumento capital,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-+/- Variación deuda,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-- Dividendos pagados,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-Efectivo inicial,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
-Efectivo final,,,,Valores en punto decimal. Comprueba que (Efectivo final - inicial) ≈ suma flujos.
+ACTIVIDADES DE EXPLOTACIÓN,,,,Categoría - No incluir valores
+Resultado del ejercicio,,,,"Flujos de explotación"
++ Amortizaciones,,,,"Flujos de explotación"
++ Provisiones,,,,"Flujos de explotación"
++/- Otros ajustes,,,,"Flujos de explotación"
+- Aumento existencias,,,,"Flujos de explotación"
+- Aumento deudores,,,,"Flujos de explotación"
++ Aumento acreedores,,,,"Flujos de explotación"
+ACTIVIDADES DE INVERSIÓN,,,,Categoría - No incluir valores
+- Inversiones inmovilizado,,,,"Flujos de inversión"
++ Desinversiones,,,,"Flujos de inversión"
+- Inversiones financieras,,,,"Flujos de inversión"
+ACTIVIDADES DE FINANCIACIÓN,,,,Categoría - No incluir valores
++ Aumento capital,,,,"Flujos de financiación"
++/- Variación deuda,,,,"Flujos de financiación"
+- Dividendos pagados,,,,"Flujos de financiación"
+EFECTIVO,,,,Categoría - No incluir valores
+Efectivo inicial,,,,"Efectivo inicial del periodo"
+Efectivo final,,,,"Efectivo final del periodo"

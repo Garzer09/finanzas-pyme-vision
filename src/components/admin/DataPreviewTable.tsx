@@ -54,6 +54,28 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
   const [showValidationDetails, setShowValidationDetails] = useState(false);
   const { toast } = useToast();
 
+  // Helper function to check if a concept is recognized (simplified)
+  const isRecognizedConcept = (concept: string, fileType: string | undefined): boolean => {
+    // This is a simplified version - the real implementation would use the backend mapping
+    const commonConcepts = {
+      'cuenta-pyg.csv': [
+        'cifra de negocios', 'ventas', 'ingresos', 'aprovisionamientos', 'compras',
+        'gastos de personal', 'sueldos', 'amortización', 'gastos financieros', 'impuestos'
+      ],
+      'balance-situacion.csv': [
+        'activo corriente', 'activo no corriente', 'pasivo corriente', 'pasivo no corriente',
+        'patrimonio neto', 'existencias', 'clientes', 'proveedores', 'tesorería', 'efectivo'
+      ]
+    };
+    
+    const conceptsForFile = commonConcepts[fileType as keyof typeof commonConcepts] || [];
+    const normalizedConcept = concept.toLowerCase().trim();
+    
+    return conceptsForFile.some(knownConcept => 
+      normalizedConcept.includes(knownConcept) || knownConcept.includes(normalizedConcept)
+    );
+  };
+
   // Validate data and update errors
   const validateFileData = useCallback((file: ParsedFileData): CellError[] => {
     const errors: CellError[] = [];
@@ -114,6 +136,16 @@ export const DataPreviewTable: React.FC<DataPreviewTableProps> = ({
             column: header,
             error: 'Concepto requerido'
           });
+        }
+        
+        // Suggest concept mapping for unrecognized concepts
+        if (header === 'Concepto' && value && String(value).trim() !== '') {
+          const conceptValue = String(value).trim();
+          // This is a simplified check - in real implementation, this would call the backend mapping function
+          if (!isRecognizedConcept(conceptValue, file.canonicalName)) {
+            // This is just a warning, not an error
+            // Could be enhanced to show mapping suggestions
+          }
         }
         
         // Check numeric columns

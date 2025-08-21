@@ -3,14 +3,36 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { TrendingUp, Shield, Zap, Calculator } from 'lucide-react';
 import { useCompanyContext } from '@/contexts/CompanyContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useCalculatedRatios } from '@/hooks/useCalculatedRatios';
+import { MissingFinancialData } from '@/components/MissingFinancialData';
+import { DashboardSidebar } from '@/components/DashboardSidebar';
+import { DashboardHeader } from '@/components/DashboardHeader';
 import { useEffect, useState } from 'react';
 
 export const FinancialRatiosCurrentModule = () => {
   const { companyId } = useCompanyContext();
+  const { ratios, loading, hasData, refreshRatios } = useCalculatedRatios(companyId);
   const [kpiData, setKpiData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [hasRealData, setHasRealData] = useState(false);
+
+  // Show missing data indicator if no real data
+  if (!hasData && !loading) {
+    return (
+      <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50">
+        <DashboardSidebar />
+        <div className="flex-1 flex flex-col">
+          <DashboardHeader />
+          <main className="flex-1 p-6 flex items-center justify-center">
+            <div className="max-w-lg w-full">
+              <MissingFinancialData 
+                dataType="ratios"
+                onUploadClick={() => console.log('Navigate to upload')}
+              />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   const defaultKpiData = [
     {
@@ -93,47 +115,28 @@ export const FinancialRatiosCurrentModule = () => {
   ];
 
   useEffect(() => {
-    const fetchRatiosData = async () => {
-      if (!companyId) return;
+    if (hasData && ratios.length > 0) {
+      // Transform calculated ratios to KPI format
+      const calculatedKpiData = ratios.slice(0, 4).map((ratio, index) => {
+        const icons = [TrendingUp, Shield, Zap, Calculator];
+        const variants = ['success', 'info', 'warning', 'default'] as const;
+        
+        return {
+          title: ratio.name,
+          value: ratio.value !== null ? `${ratio.value.toFixed(2)}${ratio.unit}` : 'N/A',
+          subtitle: ratio.description,
+          trend: ratio.value !== null && ratio.value > 0 ? 'up' as const : 'down' as const,
+          trendValue: ratio.value !== null ? `${ratio.period_year}` : '',
+          icon: icons[index % icons.length],
+          variant: ratio.isCalculated ? variants[index % variants.length] : 'default' as const
+        };
+      });
       
-      setLoading(true);
-      try {
-        // Check if company has financial data to calculate ratios
-        const { data: balanceData, error: balanceError } = await supabase
-          .from('fs_balance_lines')
-          .select('*')
-          .eq('company_id', companyId)
-          .limit(1);
-
-        const { data: pygData, error: pygError } = await supabase
-          .from('fs_pyg_lines')
-          .select('*')
-          .eq('company_id', companyId)
-          .limit(1);
-
-        if (balanceError || pygError) {
-          console.error('Error checking financial data:', balanceError || pygError);
-        }
-
-        if (balanceData && balanceData.length > 0 && pygData && pygData.length > 0) {
-          setHasRealData(true);
-          // TODO: Calculate real ratios from financial data
-          setKpiData(defaultKpiData);
-        } else {
-          setHasRealData(false);
-          setKpiData(defaultKpiData);
-        }
-      } catch (error) {
-        console.error('Error fetching ratios data:', error);
-        setHasRealData(false);
-        setKpiData(defaultKpiData);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchRatiosData();
-  }, [companyId]);
+      setKpiData(calculatedKpiData);
+    } else {
+      setKpiData(defaultKpiData);
+    }
+  }, [ratios, hasData]);
 
   return (
     <main className="flex-1 p-6 space-y-8 overflow-auto bg-gradient-to-br from-slate-50 via-white to-steel-50" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>

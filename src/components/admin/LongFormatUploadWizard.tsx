@@ -173,56 +173,21 @@ const fileProcessor = new EnhancedFileProcessor();
   const handleDownloadAllTemplates = async () => {
     setLoading(true);
     try {
-      const years = [2022, 2023, 2024];
-      const templateTypes = ['pyg', 'balance', 'cashflow'];
       const allFiles: { filename: string; content: string }[] = [];
 
-      // Generate long format templates dynamically
-      for (const templateType of templateTypes) {
-        const { data, error } = await supabase.functions.invoke('long-template-generator', {
-          body: {
-            templateType,
-            years,
-            companyId,
-            periods: years.map(year => ({
-              year,
-              period: `${year}-12-31`,
-              periodType: 'annual'
-            }))
-          }
-        });
-
-        if (!error && data) {
-          allFiles.push({
-            filename: data.filename,
-            content: data.content
-          });
-        }
-      }
-
-      // Add qualitative template (static)
-      try {
-        const qualitativeResponse = await fetch('/templates/empresa_cualitativa.csv');
-        if (qualitativeResponse.ok) {
-          const qualitativeContent = await qualitativeResponse.text();
-          allFiles.push({
-            filename: 'empresa_cualitativa.csv',
-            content: qualitativeContent
-          });
-        }
-      } catch (error) {
-        console.warn('Could not load qualitative template:', error);
-      }
-
-      // Add other available templates
-      const otherTemplates = [
+      // Use static templates (corrected versions) instead of dynamic generation
+      const allTemplates = [
+        'cuenta-pyg.csv',
+        'balance-situacion.csv',
+        'estado-flujos.csv',
+        'empresa_cualitativa.csv',
         'pool-deuda.csv',
         'pool-deuda-vencimientos.csv', 
         'datos-operativos.csv',
         'supuestos-financieros.csv'
       ];
 
-      for (const template of otherTemplates) {
+      for (const template of allTemplates) {
         try {
           const response = await fetch(`/templates/${template}`);
           if (response.ok) {

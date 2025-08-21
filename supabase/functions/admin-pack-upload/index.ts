@@ -14,6 +14,66 @@ const CANONICAL_CSV_NAMES = {
   'info-empresa.csv': 'company_info'
 }
 
+// Patrones inteligentes para detección de archivos con variaciones
+const FILE_DETECTION_PATTERNS = {
+  'pyg': {
+    patterns: [
+      /cuenta.*p.*g/i,
+      /perdidas.*ganancias/i,
+      /p.*g/i,
+      /resultado/i,
+      /income.*statement/i,
+      /profit.*loss/i
+    ],
+    canonical: 'cuenta-pyg.csv',
+    requiredConcepts: ['Cifra de negocios', 'Aprovisionamientos', 'Gastos de personal']
+  },
+  'balance': {
+    patterns: [
+      /balance.*situacion/i,
+      /balance.*sheet/i,
+      /balance/i,
+      /situacion.*patrimonial/i,
+      /activo.*pasivo/i
+    ],
+    canonical: 'balance-situacion.csv',
+    requiredConcepts: ['ACTIVO', 'PASIVO', 'PATRIMONIO']
+  },
+  'cashflow': {
+    patterns: [
+      /estado.*flujos/i,
+      /flujos.*efectivo/i,
+      /cash.*flow/i,
+      /tesoreria/i,
+      /flujos/i
+    ],
+    canonical: 'estado-flujos.csv',
+    requiredConcepts: ['ACTIVIDADES DE EXPLOTACIÓN', 'EFECTIVO']
+  },
+  'debt_pool': {
+    patterns: [
+      /pool.*deuda/i,
+      /deuda.*financiera/i,
+      /prestamos/i,
+      /debt.*pool/i,
+      /financiacion/i
+    ],
+    canonical: 'pool-deuda.csv',
+    requiredConcepts: ['Entidad', 'Importe']
+  },
+  'operational': {
+    patterns: [
+      /datos.*operativos/i,
+      /operativo/i,
+      /unidades.*fisicas/i,
+      /produccion/i,
+      /ventas.*unidades/i
+    ],
+    canonical: 'datos-operativos.csv',
+    requiredConcepts: ['Concepto', 'Unidad']
+  }
+}
+
 const REQUIRED_FILES = ['cuenta-pyg.csv', 'balance-situacion.csv']
 
 const PGC_CONCEPTS_PYG = [
@@ -37,12 +97,72 @@ const PGC_CONCEPTS_PYG = [
   'Impuesto sobre beneficios'
 ]
 
+// Mapeo inteligente de conceptos con sinónimos
+const CONCEPT_SYNONYMS = {
+  // P&G Concepts
+  'Cifra de negocios': [
+    'importe neto cifra negocios', 'ventas', 'ingresos', 'facturación', 'ingresos explotación',
+    'ingresos operacionales', 'ingresos ordinarios', 'ventas netas', 'revenue', 'sales'
+  ],
+  'Aprovisionamientos': [
+    'compras', 'consumos', 'coste ventas', 'coste mercancías', 'materias primas',
+    'consumo materias primas', 'purchases', 'cost of goods sold', 'cogs'
+  ],
+  'Gastos de personal': [
+    'sueldos salarios', 'costes personal', 'nóminas', 'seguridad social',
+    'gastos empleados', 'staff costs', 'payroll', 'employee costs'
+  ],
+  'Otros gastos de explotación': [
+    'gastos explotación', 'gastos operativos', 'gastos generales', 'gastos administración',
+    'otros gastos operacionales', 'operating expenses', 'opex'
+  ],
+  'Amortización del inmovilizado': [
+    'amortizaciones', 'depreciación', 'amortización', 'depreciation', 'amortization'
+  ],
+  'Ingresos financieros': [
+    'ingresos financieros', 'intereses cobrados', 'dividendos', 'financial income', 'interest income'
+  ],
+  'Gastos financieros': [
+    'intereses', 'gastos financieros', 'intereses pagados', 'financial expenses', 'interest expenses'
+  ],
+  'Impuesto sobre beneficios': [
+    'impuestos', 'impuesto sociedades', 'tax', 'income tax', 'corporate tax'
+  ],
+  
+  // Balance Concepts
+  'Inmovilizado material': [
+    'activos fijos', 'propiedad planta equipo', 'inmovilizado tangible', 'fixed assets', 'ppe'
+  ],
+  'Inmovilizado intangible': [
+    'activos intangibles', 'patentes', 'marcas', 'software', 'intangible assets'
+  ],
+  'Existencias': [
+    'inventarios', 'stock', 'mercaderías', 'productos terminados', 'inventory'
+  ],
+  'Deudores comerciales y otras cuentas a cobrar': [
+    'clientes', 'cuentas cobrar', 'deudores', 'accounts receivable', 'trade receivables'
+  ],
+  'Efectivo y otros activos líquidos equivalentes': [
+    'tesorería', 'efectivo', 'bancos', 'caja', 'cash', 'cash equivalents'
+  ],
+  'Acreedores comerciales y otras cuentas a pagar': [
+    'proveedores', 'cuentas pagar', 'acreedores', 'accounts payable', 'trade payables'
+  ]
+}
+
 const BALANCE_SECTIONS = {
   'ACTIVO NO CORRIENTE': 'ACTIVO_NC',
   'ACTIVO CORRIENTE': 'ACTIVO_C',
   'PATRIMONIO NETO': 'PATRIMONIO_NETO',
   'PASIVO NO CORRIENTE': 'PASIVO_NC',
   'PASIVO CORRIENTE': 'PASIVO_C'
+}
+
+const CASHFLOW_CATEGORIES = {
+  'ACTIVIDADES DE EXPLOTACIÓN': 'OPERATIVO',
+  'ACTIVIDADES DE INVERSIÓN': 'INVERSION',
+  'ACTIVIDADES DE FINANCIACIÓN': 'FINANCIACION',
+  'EFECTIVO': 'EFECTIVO'
 }
 
 const corsHeaders = {
@@ -133,31 +253,44 @@ Deno.serve(async (req) => {
             
             const file = new File([csvContent], fileData.fileName, { type: 'text/csv' })
             
-            // Map filename to canonical name properly
+            // Detección inteligente de archivos usando patrones y contenido
             let canonicalName = fileData.canonicalName || fileData.fileName.toLowerCase()
+            let detectionResult = detectFileTypeIntelligently(fileData.fileName, csvContent)
             
-            // Map common file variations to canonical names
-            if (canonicalName.includes('cuenta-pyg') || canonicalName.includes('pyg')) {
-              canonicalName = 'cuenta-pyg.csv'
-            } else if (canonicalName.includes('balance-situacion') || canonicalName.includes('balance')) {
-              canonicalName = 'balance-situacion.csv'
-            } else if (canonicalName.includes('estado-flujos') || canonicalName.includes('flujos')) {
-              canonicalName = 'estado-flujos.csv'
-            } else if (canonicalName.includes('datos-operativos') || canonicalName.includes('operativos')) {
-              canonicalName = 'datos-operativos.csv'
-            } else if (canonicalName.includes('pool-deuda-vencimientos')) {
-              canonicalName = 'pool-deuda-vencimientos.csv'
-            } else if (canonicalName.includes('pool-deuda')) {
-              canonicalName = 'pool-deuda.csv'
-            } else if (canonicalName.includes('supuestos-financieros') || canonicalName.includes('supuestos')) {
-              canonicalName = 'supuestos-financieros.csv'
+            if (detectionResult.canonical) {
+              canonicalName = detectionResult.canonical
+              console.log(`🎯 Detección inteligente: ${fileData.fileName} → ${canonicalName} (confianza: ${detectionResult.confidence})`)
+            } else {
+              // Fallback al mapeo básico existente
+              if (canonicalName.includes('cuenta-pyg') || canonicalName.includes('pyg')) {
+                canonicalName = 'cuenta-pyg.csv'
+              } else if (canonicalName.includes('balance-situacion') || canonicalName.includes('balance')) {
+                canonicalName = 'balance-situacion.csv'
+              } else if (canonicalName.includes('estado-flujos') || canonicalName.includes('flujos')) {
+                canonicalName = 'estado-flujos.csv'
+              } else if (canonicalName.includes('datos-operativos') || canonicalName.includes('operativos')) {
+                canonicalName = 'datos-operativos.csv'
+              } else if (canonicalName.includes('pool-deuda-vencimientos')) {
+                canonicalName = 'pool-deuda-vencimientos.csv'
+              } else if (canonicalName.includes('pool-deuda')) {
+                canonicalName = 'pool-deuda.csv'
+              } else if (canonicalName.includes('supuestos-financieros') || canonicalName.includes('supuestos')) {
+                canonicalName = 'supuestos-financieros.csv'
+              }
             }
             
             console.log(`Processing file: ${fileData.fileName} -> ${canonicalName}`)
             if (CANONICAL_CSV_NAMES[canonicalName]) {
               csvFiles[canonicalName] = file
             } else {
-              console.warn(`Unknown canonical name: ${canonicalName} for file: ${fileData.fileName}`)
+              // Mensaje de error mejorado con sugerencias
+              const suggestions = detectionResult.suggestions || []
+              console.warn(`❌ Archivo no reconocido: ${fileData.fileName}`)
+              if (suggestions.length > 0) {
+                console.warn(`💡 Sugerencias:`)
+                suggestions.forEach(suggestion => console.warn(`   ${suggestion}`))
+              }
+              console.warn(`📋 Nombres de archivo válidos: ${Object.keys(CANONICAL_CSV_NAMES).join(', ')}`)
             }
           }
         }
@@ -906,9 +1039,20 @@ async function loadPyGData(supabase: any, rows: any[], context: any) {
 
   // Transform to long format and insert
   const longData: any[] = []
+  const mappingLogs: string[] = []
+  
   for (const row of rows) {
-    const concept = row['Concepto']?.trim()
-    if (!concept) continue
+    const originalConcept = row['Concepto']?.trim()
+    if (!originalConcept) continue
+    
+    // Aplicar mapeo inteligente de conceptos
+    const mappingResult = mapConceptIntelligently(originalConcept)
+    const concept = mappingResult.mapped || originalConcept
+    
+    // Log del mapeo si se aplicó
+    if (mappingResult.mapped && mappingResult.mapped !== originalConcept) {
+      mappingLogs.push(`P&G: "${originalConcept}" → "${concept}" (${Math.round(mappingResult.confidence * 100)}%)`)
+    }
 
     for (const [key, value] of Object.entries(row)) {
       // Accept both specific years (2022, 2023) and generic formats (Año1, Año2) for data loading
@@ -953,6 +1097,12 @@ async function loadPyGData(supabase: any, rows: any[], context: any) {
   if (longData.length > 0) {
     const { error } = await supabase.from('fs_pyg_lines').insert(longData)
     if (error) throw error
+    
+    // Log mapeos aplicados
+    if (mappingLogs.length > 0) {
+      console.log('🔄 Mapeos de conceptos aplicados:')
+      mappingLogs.forEach(log => console.log(`  ${log}`))
+    }
   }
 }
 
@@ -1006,16 +1156,26 @@ async function loadBalanceData(supabase: any, rows: any[], context: any) {
 
   // Transform to long format and insert
   const longData: any[] = []
+  const mappingLogs: string[] = []
   let currentSection = ''
 
   for (const row of rows) {
-    const concept = row['Concepto']?.trim()
-    if (!concept) continue
+    const originalConcept = row['Concepto']?.trim()
+    if (!originalConcept) continue
 
-    // Detect section headers
-    if (Object.keys(BALANCE_SECTIONS).includes(concept)) {
-      currentSection = BALANCE_SECTIONS[concept]
+    // Detect section headers first
+    if (Object.keys(BALANCE_SECTIONS).includes(originalConcept)) {
+      currentSection = BALANCE_SECTIONS[originalConcept]
       continue
+    }
+
+    // Apply intelligent concept mapping for non-section items
+    const mappingResult = mapConceptIntelligently(originalConcept)
+    const concept = mappingResult.mapped || originalConcept
+    
+    // Log mapping if applied
+    if (mappingResult.mapped && mappingResult.mapped !== originalConcept) {
+      mappingLogs.push(`Balance: "${originalConcept}" → "${concept}" (${Math.round(mappingResult.confidence * 100)}%)`)
     }
 
     for (const [key, value] of Object.entries(row)) {
@@ -1062,10 +1222,18 @@ async function loadBalanceData(supabase: any, rows: any[], context: any) {
   if (longData.length > 0) {
     const { error } = await supabase.from('fs_balance_lines').insert(longData)
     if (error) throw error
+    
+    // Log mapeos aplicados
+    if (mappingLogs.length > 0) {
+      console.log('🔄 Mapeos de conceptos aplicados:')
+      mappingLogs.forEach(log => console.log(`  ${log}`))
+    }
   }
 }
 
 async function loadCashflowData(supabase: any, rows: any[], context: any) {
+  console.log('Loading Cash Flow data...')
+  
   // Delete existing data for this period (REPLACE mode)
   if (context.importMode === 'REPLACE') {
     const deleteQuery = supabase
@@ -1083,27 +1251,51 @@ async function loadCashflowData(supabase: any, rows: any[], context: any) {
 
   // Transform to long format and insert
   const longData: any[] = []
+  let currentCategory = 'OPERATIVO'
+
   for (const row of rows) {
     const concept = row['Concepto']?.trim()
     if (!concept) continue
 
-    // Determine category based on concept
-    let category = 'OPERATIVO'
-    if (concept.includes('Inversión') || concept.includes('Inmovilizado')) category = 'INVERSION'
-    if (concept.includes('Capital') || concept.includes('Dividendo') || concept.includes('Deuda')) category = 'FINANCIACION'
+    // Detect category headers
+    if (Object.keys(CASHFLOW_CATEGORIES).includes(concept)) {
+      currentCategory = CASHFLOW_CATEGORIES[concept]
+      continue
+    }
+
+    // Skip EFECTIVO category items for now (they're informational)
+    if (currentCategory === 'EFECTIVO') continue
 
     for (const [key, value] of Object.entries(row)) {
-      if (key !== 'Concepto' && key !== 'Notas' && value && /^\d{4}$/.test(key)) {
-        const amount = parseFloat(String(value).replace(',', '.').replace(/[^\\d.-]/g, ''))
+      // Accept both specific years (2022, 2023) and generic formats (Año1, Año2)
+      const isYearColumn = /^\d{4}$/.test(key) || /^Año\d+$/i.test(key)
+      if (key !== 'Concepto' && key !== 'Notas' && value && isYearColumn) {
+        const amount = parseFloat(String(value).replace(',', '.').replace(/[^\d.-]/g, ''))
         if (!isNaN(amount)) {
+          // Extract the actual year from the column header
+          let actualYear: number
+          if (/^\d{4}$/.test(key)) {
+            // Specific year like "2022"
+            actualYear = parseInt(key)
+          } else {
+            // Generic year like "Año1" - convert to actual year
+            const match = key.match(/^Año(\d+)$/i)
+            if (match) {
+              const yearOffset = parseInt(match[1]) - 1
+              actualYear = context.periodYear + yearOffset
+            } else {
+              actualYear = context.periodYear // fallback
+            }
+          }
+
           longData.push({
             company_id: context.companyId,
-            period_date: context.periodDate,
+            period_date: new Date(actualYear, 11, 31), // December 31st of the actual year
             period_type: context.periodType,
-            period_year: context.periodYear,
+            period_year: actualYear, // Use the actual year from the column
             period_quarter: context.periodQuarter,
             period_month: context.periodMonth,
-            category,
+            category: currentCategory,
             concept,
             amount,
             currency_code: context.currencyCode,
@@ -1118,6 +1310,146 @@ async function loadCashflowData(supabase: any, rows: any[], context: any) {
   if (longData.length > 0) {
     const { error } = await supabase.from('fs_cashflow_lines').insert(longData)
     if (error) throw error
+  }
+}
+
+// Función de detección inteligente de tipo de archivo
+function detectFileTypeIntelligently(fileName: string, csvContent: string): { canonical: string | null, confidence: number, suggestions?: string[] } {
+  const normalizedFileName = fileName.toLowerCase().replace(/[_\s-]+/g, ' ')
+  const normalizedContent = csvContent.toLowerCase()
+  
+  let bestMatch = { type: '', score: 0, canonical: '' }
+  const suggestions: string[] = []
+  
+  // Evaluar cada patrón de archivo
+  for (const [fileType, config] of Object.entries(FILE_DETECTION_PATTERNS)) {
+    let score = 0
+    
+    // 1. Puntuación por nombre de archivo (40% del peso)
+    for (const pattern of config.patterns) {
+      if (pattern.test(normalizedFileName)) {
+        score += 0.4
+        break
+      }
+    }
+    
+    // 2. Puntuación por conceptos requeridos en contenido (60% del peso)
+    const conceptMatches = config.requiredConcepts.filter(concept => 
+      normalizedContent.includes(concept.toLowerCase())
+    )
+    const conceptScore = conceptMatches.length / config.requiredConcepts.length
+    score += conceptScore * 0.6
+    
+    // Actualizar mejor coincidencia
+    if (score > bestMatch.score) {
+      bestMatch = { type: fileType, score, canonical: config.canonical }
+    }
+    
+    // Generar sugerencias si hay coincidencias parciales
+    if (score > 0.3 && score < 0.7) {
+      suggestions.push(`El archivo podría ser ${config.canonical} (confianza: ${Math.round(score * 100)}%)`)
+    }
+  }
+  
+  // Solo devolver resultado si la confianza es suficiente
+  if (bestMatch.score >= 0.7) {
+    return {
+      canonical: bestMatch.canonical,
+      confidence: bestMatch.score,
+      suggestions
+    }
+  }
+  
+  return {
+    canonical: null,
+    confidence: bestMatch.score,
+    suggestions: suggestions.length > 0 ? suggestions : [`Archivo no reconocido automáticamente. Sugerencias: ${Object.values(FILE_DETECTION_PATTERNS).map(p => p.canonical).join(', ')}`]
+  }
+}
+
+// Función de mapeo inteligente de conceptos
+function mapConceptIntelligently(inputConcept: string): { mapped: string | null, confidence: number, suggestions: string[] } {
+  const normalizedInput = inputConcept.toLowerCase().trim()
+  const suggestions: string[] = []
+  
+  // 1. Búsqueda exacta
+  for (const [canonical, synonyms] of Object.entries(CONCEPT_SYNONYMS)) {
+    if (canonical.toLowerCase() === normalizedInput) {
+      return { mapped: canonical, confidence: 1.0, suggestions: [] }
+    }
+  }
+  
+  // 2. Búsqueda en sinónimos
+  for (const [canonical, synonyms] of Object.entries(CONCEPT_SYNONYMS)) {
+    for (const synonym of synonyms) {
+      if (synonym.toLowerCase() === normalizedInput) {
+        return { mapped: canonical, confidence: 0.95, suggestions: [] }
+      }
+    }
+  }
+  
+  // 3. Búsqueda parcial/fuzzy
+  let bestMatch = { concept: '', confidence: 0 }
+  
+  for (const [canonical, synonyms] of Object.entries(CONCEPT_SYNONYMS)) {
+    // Verificar coincidencia parcial con concepto canónico
+    const canonicalWords = canonical.toLowerCase().split(' ')
+    const inputWords = normalizedInput.split(' ')
+    
+    let matchingWords = 0
+    for (const inputWord of inputWords) {
+      if (canonicalWords.some(canonicalWord => 
+        canonicalWord.includes(inputWord) || inputWord.includes(canonicalWord)
+      )) {
+        matchingWords++
+      }
+    }
+    
+    const canonicalScore = matchingWords / Math.max(canonicalWords.length, inputWords.length)
+    
+    // Verificar coincidencia parcial con sinónimos
+    let bestSynonymScore = 0
+    for (const synonym of synonyms) {
+      const synonymWords = synonym.split(' ')
+      let synonymMatchingWords = 0
+      
+      for (const inputWord of inputWords) {
+        if (synonymWords.some(synonymWord => 
+          synonymWord.includes(inputWord) || inputWord.includes(synonymWord)
+        )) {
+          synonymMatchingWords++
+        }
+      }
+      
+      const synonymScore = synonymMatchingWords / Math.max(synonymWords.length, inputWords.length)
+      bestSynonymScore = Math.max(bestSynonymScore, synonymScore)
+    }
+    
+    const overallScore = Math.max(canonicalScore, bestSynonymScore)
+    
+    if (overallScore > bestMatch.confidence) {
+      bestMatch = { concept: canonical, confidence: overallScore }
+    }
+    
+    // Añadir sugerencias para coincidencias parciales
+    if (overallScore > 0.4 && overallScore < 0.8) {
+      suggestions.push(`¿Quizás "${canonical}"? (${Math.round(overallScore * 100)}% similar)`)
+    }
+  }
+  
+  // Devolver resultado si la confianza es suficiente
+  if (bestMatch.confidence >= 0.8) {
+    return {
+      mapped: bestMatch.concept,
+      confidence: bestMatch.confidence,
+      suggestions: [`Concepto mapeado automáticamente: "${inputConcept}" → "${bestMatch.concept}"`]
+    }
+  }
+  
+  return {
+    mapped: null,
+    confidence: bestMatch.confidence,
+    suggestions: suggestions.length > 0 ? suggestions : [`Concepto "${inputConcept}" no reconocido. Usar tal como está.`]
   }
 }
 

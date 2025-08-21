@@ -1,0 +1,30 @@
+Concepto,Año1,Año2,Año3,Notas
+ACTIVO NO CORRIENTE,,,,Sección - No incluir valores
+Inmovilizado intangible,,,,"Activo no corriente"
+Inmovilizado material,,,,"Activo no corriente"
+Inversiones inmobiliarias,,,,"Activo no corriente"
+Inversiones financieras a largo plazo,,,,"Activo no corriente"
+Activos por impuesto diferido,,,,"Activo no corriente"
+ACTIVO CORRIENTE,,,,Sección - No incluir valores
+Existencias,,,,"Activo corriente"
+Deudores comerciales y otras cuentas a cobrar,,,,"Activo corriente - Clientes"
+Inversiones financieras a corto plazo,,,,"Activo corriente"
+Periodificaciones a corto plazo,,,,"Activo corriente"
+Efectivo y otros activos líquidos equivalentes,,,,"Activo corriente - Tesorería"
+PATRIMONIO NETO,,,,Sección - No incluir valores
+Capital social,,,,"Patrimonio neto"
+Prima de emisión,,,,"Patrimonio neto"
+Reservas,,,,"Patrimonio neto"
+Resultados ejercicios anteriores,,,,"Patrimonio neto"
+Resultado del ejercicio,,,,"Patrimonio neto"
+PASIVO NO CORRIENTE,,,,Sección - No incluir valores
+Provisiones a largo plazo,,,,"Pasivo no corriente"
+Deudas a largo plazo,,,,"Pasivo no corriente"
+Deudas con empresas del grupo a largo plazo,,,,"Pasivo no corriente"
+Pasivos por impuesto diferido,,,,"Pasivo no corriente"
+PASIVO CORRIENTE,,,,Sección - No incluir valores
+Provisiones a corto plazo,,,,"Pasivo corriente"
+Deudas a corto plazo,,,,"Pasivo corriente"
+Deudas con empresas del grupo a corto plazo,,,,"Pasivo corriente"
+Acreedores comerciales y otras cuentas a pagar,,,,"Pasivo corriente - Proveedores"
+Periodificaciones a corto plazo,,,,"Pasivo corriente"
