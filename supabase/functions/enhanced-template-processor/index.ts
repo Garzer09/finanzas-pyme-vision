@@ -218,15 +218,14 @@ Deno.serve(async (req) => {
           selectedYears.length > 0 ? selectedYears : analysis.detectedYears
         )
         
-        // Call normalization function to move from staging to final tables
-        const { data: normalizationResult, error: normalizationError } = await supabase
-          .rpc('normalize_financials', {
-            company_uuid: companyId,
-            import_id: jobId
+        // Call processing function to move from staging to final tables
+        const { data: processingResult, error: processingError } = await supabase
+          .rpc('process_financial_staging', {
+            p_job: jobId
           })
         
-        if (normalizationError) {
-          console.warn('Normalization warning:', normalizationError)
+        if (processingError) {
+          console.warn('Processing warning:', processingError)
         }
 
         return new Response(JSON.stringify({
@@ -238,7 +237,7 @@ Deno.serve(async (req) => {
           detected_years: analysis.detectedYears,
           file_analysis: analysis,
           staging_result: stagingData,
-          normalization_result: normalizationResult,
+          processing_result: processingResult,
           dry_run: false
         }), {
           status: 200,
@@ -604,7 +603,8 @@ async function processDataToStaging(
         const amount = parseFloat(row[yearColumnIndex]?.toString().replace(/[^\d.-]/g, '') || '0')
         
         if (!isNaN(amount) && amount !== 0) {
-          stagingRecords.push({
+          // Set the appropriate field based on data type
+          let recordData = {
             job_id: jobId,
             company_id: companyId,
             user_id: userId,
@@ -618,7 +618,17 @@ async function processDataToStaging(
             file_name: schema.name,
             source: 'template_upload',
             status: 'pending'
-          })
+          }
+          
+          // Add specific fields based on data type
+          if (dataType === 'balance_situacion') {
+            recordData.section = 'Activo' // Balance sheet needs section
+          } else if (dataType === 'estado_flujos') {
+            recordData.section = 'Operaciones' // Cash flow needs section mapped to category in DB
+          }
+          // P&G (estado_pyg) doesn't need section field
+          
+          stagingRecords.push(recordData)
         }
       }
     }
