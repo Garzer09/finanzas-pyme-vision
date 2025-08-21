@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
@@ -99,7 +99,7 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
   };
 
   // Validate if user has access to a specific company
-  const validateCompanyAccess = async (targetCompanyId: string): Promise<boolean> => {
+  const validateCompanyAccess = useCallback(async (targetCompanyId: string): Promise<boolean> => {
     if (!user || !targetCompanyId) return false;
 
     // Check if user is admin first
@@ -127,7 +127,7 @@ export const CompanyProvider: React.FC<CompanyProviderProps> = ({ children }) =>
       console.error('Error validating company access:', err);
       return false;
     }
-  };
+  }, [user]);
 
   // Set current company and load its data
   const setCurrentCompany = async (targetCompanyId: string) => {
