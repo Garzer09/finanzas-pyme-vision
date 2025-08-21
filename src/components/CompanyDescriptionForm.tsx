@@ -26,7 +26,11 @@ interface CompanyData {
   website?: string;
 }
 
-export const CompanyDescriptionForm = () => {
+interface CompanyDescriptionFormProps {
+  companyId?: string;
+}
+
+export const CompanyDescriptionForm: React.FC<CompanyDescriptionFormProps> = ({ companyId }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [companyData, setCompanyData] = useState<CompanyData>({
     name: '',
@@ -44,7 +48,7 @@ export const CompanyDescriptionForm = () => {
   const { isAdmin } = useUserRole();
   const { impersonatedUserInfo } = useAdminImpersonation();
   const { currentCompany } = useCompanyContext();
-  const { companyDescription, loading: descriptionLoading, saveCompanyDescription } = useCompanyDescription();
+  const { companyDescription, loading: descriptionLoading, saveCompanyDescription } = useCompanyDescription(companyId);
 
   // Get company name from current company context first, then fallback to impersonation/profile
   const getCompanyName = () => {
@@ -84,6 +88,14 @@ export const CompanyDescriptionForm = () => {
   }, [companyDescription, companyName]);
 
   const handleSave = async () => {
+    // Determine data source based on existing data
+    let dataSource = 'manual';
+    if (companyDescription?.data_source === 'template') {
+      dataSource = 'template_enhanced'; // Template data that has been manually modified
+    } else if (companyDescription?.data_source === 'template_enhanced') {
+      dataSource = 'template_enhanced'; // Keep as enhanced
+    }
+
     const success = await saveCompanyDescription({
       company_name: companyData.name,
       description: companyData.description,
@@ -93,7 +105,8 @@ export const CompanyDescriptionForm = () => {
       employees: companyData.employees,
       revenue: companyData.revenue,
       headquarters: companyData.headquarters,
-      website: companyData.website
+      website: companyData.website,
+      data_source: dataSource
     });
     
     if (success) {
@@ -181,6 +194,19 @@ export const CompanyDescriptionForm = () => {
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Data Source Indicator */}
+          {companyDescription?.data_source && (
+            <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <CheckCircle className="h-4 w-4 text-blue-600" />
+              <span className="text-sm text-blue-800">
+                {companyDescription.data_source === 'template' && 'Datos cargados desde plantilla cualitativa'}
+                {companyDescription.data_source === 'template_enhanced' && 'Datos de plantilla con modificaciones manuales'}
+                {companyDescription.data_source === 'manual' && 'Datos introducidos manualmente'}
+                {companyDescription.data_source === 'perplexity' && 'Datos obtenidos de búsqueda automática'}
+              </span>
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Información Básica */}
             <div className="space-y-4">
@@ -308,6 +334,24 @@ export const CompanyDescriptionForm = () => {
               className="mt-2"
             />
           </div>
+
+          {/* Template Information */}
+          {!companyDescription && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <div>
+                  <h4 className="font-semibold text-amber-900 mb-1">Sin datos de plantilla</h4>
+                  <p className="text-sm text-amber-700 mb-2">
+                    Esta empresa no tiene información cualitativa cargada desde plantillas. 
+                  </p>
+                  <p className="text-xs text-amber-600">
+                    Para cargar datos desde plantilla, ve a <strong>Administración → Cargar Plantillas</strong> y sube el archivo <code>empresa_cualitativa.csv</code>.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Raw search result (only if available) */}
           {companyDescription?.raw_search_result && (

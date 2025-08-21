@@ -10,18 +10,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Save } from 'lucide-react';
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 
 export const CompanyDescriptionModule = () => {
-  const [searchParams] = useSearchParams();
-  const companyId = searchParams.get('companyId');
+  const { companyId: paramCompanyId } = useParams<{ companyId: string }>();
+  const { companyId: contextCompanyId } = useCompanyContext();
+  const companyId = paramCompanyId || contextCompanyId;
   const [isEditing, setIsEditing] = useState(false);
   
   // Get company information from database
-  const { companyInfo, loading: companyLoading } = useCompanyInfo(companyId);
+  const { companyInfo, loading: companyLoading } = useCompanyInfo(companyId || undefined);
   
   // Use company name from database or fallback
-  const companyName = companyInfo?.name || '';
+  const companyName = companyInfo?.name || 'Empresa Sin Nombre';
+
+  // Debug logging
+  console.debug('[CompanyDescriptionModule] companyId:', companyId, 'companyInfo:', companyInfo);
 
   // Shareholder data management
   const {
@@ -60,7 +65,7 @@ export const CompanyDescriptionModule = () => {
 
           {/* Company Description Form */}
           <section>
-            <CompanyDescriptionForm />
+            <CompanyDescriptionForm companyId={companyId} />
           </section>
 
           {/* Shareholder Structure Section */}

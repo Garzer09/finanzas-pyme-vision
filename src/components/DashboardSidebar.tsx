@@ -170,7 +170,7 @@ export const DashboardSidebar = () => {
       expandable: false,
       items: [
         {
-          path: '/admin/users',
+          path: '/admin/empresas',
           label: 'Panel de Administración',
           icon: Shield,
           color: 'text-primary'

@@ -28,7 +28,7 @@ interface CompanyDescription {
   updated_at: string;
 }
 
-export const useCompanyDescription = () => {
+export const useCompanyDescription = (companyId?: string) => {
   const [companyDescription, setCompanyDescription] = useState<CompanyDescription | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +43,7 @@ export const useCompanyDescription = () => {
     if (targetUserId) {
       fetchCompanyDescription();
     }
-  }, [targetUserId]);
+  }, [targetUserId, companyId]);
 
   const fetchCompanyDescription = async () => {
     try {
@@ -57,22 +57,32 @@ export const useCompanyDescription = () => {
         .eq('user_id', targetUserId)
         .single();
 
-      // Check if we have a company associated with this user to get qualitative data
-      const { data: membershipData } = await supabase
-        .from('memberships')
-        .select('company_id')
-        .eq('user_id', targetUserId)
-        .single();
-
+      // Get qualitative data - prioritize provided companyId, then membership
       let qualitativeData = null;
-      if (membershipData?.company_id) {
+      let effectiveCompanyId = companyId;
+      
+      if (!effectiveCompanyId) {
+        // Check if we have a company associated with this user
+        const { data: membershipData } = await supabase
+          .from('memberships')
+          .select('company_id')
+          .eq('user_id', targetUserId)
+          .single();
+        effectiveCompanyId = membershipData?.company_id;
+      }
+
+      if (effectiveCompanyId) {
+        console.debug('[useCompanyDescription] Fetching qualitative data for company:', effectiveCompanyId);
+        
         // Get qualitative template data from company_info_normalized
         const { data: qualData } = await supabase
           .from('company_info_normalized')
           .select('*')
-          .eq('company_id', membershipData.company_id)
+          .eq('company_id', effectiveCompanyId)
           .single();
         qualitativeData = qualData;
+        
+        console.debug('[useCompanyDescription] Qualitative data found:', !!qualData, qualData?.company_name);
       }
 
       // Merge data prioritizing qualitative template data when available
