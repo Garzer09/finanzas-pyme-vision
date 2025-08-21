@@ -98,150 +98,150 @@ export const useFinancialRatiosOptimized = (): UseFinancialRatiosOptimizedResult
         // LIQUIDEZ
         {
           name: 'Ratio Corriente',
-          value: calculateRatio(
-            () => findValue(balanceMap, ['activo_corriente', 'activo corriente']),
-            () => findValue(balanceMap, ['pasivo_corriente', 'pasivo corriente']),
-            (activo, pasivo) => pasivo > 0 ? activo / pasivo : 0
-          ),
+          value: (() => {
+            const activo = findValue(balanceMap, ['activo_corriente', 'activo corriente']);
+            const pasivo = findValue(balanceMap, ['pasivo_corriente', 'pasivo corriente']);
+            return pasivo > 0 ? activo / pasivo : 0;
+          })(),
           unit: '',
           category: 'Liquidez',
           description: 'Capacidad para cubrir deudas a corto plazo',
           formula: 'Activo Corriente / Pasivo Corriente',
           benchmark: 1.5,
-          status: getRatioStatus(1.5, 1.0, 1.5)
+          status: 'good'
         },
         {
           name: 'Prueba Ácida',
-          value: calculateRatio(
-            () => findValue(balanceMap, ['activo_corriente', 'activo corriente']),
-            () => findValue(balanceMap, ['existencias']),
-            () => findValue(balanceMap, ['pasivo_corriente', 'pasivo corriente']),
-            (activo, existencias, pasivo) => pasivo > 0 ? (activo - existencias) / pasivo : 0
-          ),
+          value: (() => {
+            const activo = findValue(balanceMap, ['activo_corriente', 'activo corriente']);
+            const existencias = findValue(balanceMap, ['existencias']);
+            const pasivo = findValue(balanceMap, ['pasivo_corriente', 'pasivo corriente']);
+            return pasivo > 0 ? (activo - existencias) / pasivo : 0;
+          })(),
           unit: '',
           category: 'Liquidez',
           description: 'Liquidez sin considerar existencias',
           formula: '(Activo Corriente - Existencias) / Pasivo Corriente',
           benchmark: 1.0,
-          status: getRatioStatus(1.0, 0.8, 1.0)
+          status: 'good'
         },
         {
           name: 'Ratio Tesorería',
-          value: calculateRatio(
-            () => findValue(balanceMap, ['efectivo_equivalentes', 'efectivo y equivalentes', 'tesoreria']),
-            () => findValue(balanceMap, ['pasivo_corriente', 'pasivo corriente']),
-            (efectivo, pasivo) => pasivo > 0 ? efectivo / pasivo : 0
-          ),
+          value: (() => {
+            const efectivo = findValue(balanceMap, ['efectivo_equivalentes', 'efectivo y equivalentes', 'tesoreria']);
+            const pasivo = findValue(balanceMap, ['pasivo_corriente', 'pasivo corriente']);
+            return pasivo > 0 ? efectivo / pasivo : 0;
+          })(),
           unit: '',
           category: 'Liquidez',
           description: 'Capacidad inmediata de pago',
           formula: 'Efectivo / Pasivo Corriente',
           benchmark: 0.3,
-          status: getRatioStatus(0.3, 0.2, 0.3)
+          status: 'good'
         },
 
         // ENDEUDAMIENTO
         {
           name: 'Ratio Endeudamiento Total',
-          value: calculateRatio(
-            () => findValue(balanceMap, ['pasivo_total', 'total_pasivo']),
-            () => findValue(balanceMap, ['activo_total', 'total_activo']),
-            (pasivo, activo) => activo > 0 ? (pasivo / activo) * 100 : 0
-          ),
+          value: (() => {
+            const pasivo = findValue(balanceMap, ['pasivo_total', 'total_pasivo']);
+            const activo = findValue(balanceMap, ['activo_total', 'total_activo']);
+            return activo > 0 ? (pasivo / activo) * 100 : 0;
+          })(),
           unit: '%',
           category: 'Endeudamiento',
           description: 'Proporción de activos financiados con deuda',
           formula: '(Total Pasivo / Total Activo) × 100',
           benchmark: 40.0,
-          status: getRatioStatus(40.0, 50.0, 40.0, true) // Lower is better
+          status: 'good'
         },
         {
           name: 'Autonomía Financiera',
-          value: calculateRatio(
-            () => findValue(balanceMap, ['patrimonio_neto', 'patrimonio neto']),
-            () => findValue(balanceMap, ['activo_total', 'total_activo']),
-            (patrimonio, activo) => activo > 0 ? (patrimonio / activo) * 100 : 0
-          ),
+          value: (() => {
+            const patrimonio = findValue(balanceMap, ['patrimonio_neto', 'patrimonio neto']);
+            const activo = findValue(balanceMap, ['activo_total', 'total_activo']);
+            return activo > 0 ? (patrimonio / activo) * 100 : 0;
+          })(),
           unit: '%',
           category: 'Endeudamiento',
           description: 'Proporción de activos financiados con recursos propios',
           formula: '(Patrimonio Neto / Total Activo) × 100',
           benchmark: 60.0,
-          status: getRatioStatus(60.0, 50.0, 60.0)
+          status: 'good'
         },
         {
           name: 'Ratio Solvencia',
-          value: calculateRatio(
-            () => findValue(balanceMap, ['activo_total', 'total_activo']),
-            () => findValue(balanceMap, ['pasivo_total', 'total_pasivo']),
-            (activo, pasivo) => pasivo > 0 ? activo / pasivo : 0
-          ),
+          value: (() => {
+            const activo = findValue(balanceMap, ['activo_total', 'total_activo']);
+            const pasivo = findValue(balanceMap, ['pasivo_total', 'total_pasivo']);
+            return pasivo > 0 ? activo / pasivo : 0;
+          })(),
           unit: '',
           category: 'Endeudamiento',
           description: 'Capacidad de pago a largo plazo',
           formula: 'Activo Total / Pasivo Total',
           benchmark: 2.0,
-          status: getRatioStatus(2.0, 1.5, 2.0)
+          status: 'good'
         },
 
         // RENTABILIDAD
         {
           name: 'ROA (Return on Assets)',
-          value: calculateRatio(
-            () => findValue(pygMap, ['resultado_ejercicio', 'resultado del ejercicio', 'beneficio_neto']),
-            () => findValue(balanceMap, ['activo_total', 'total_activo']),
-            (resultado, activo) => activo > 0 ? (resultado / activo) * 100 : 0
-          ),
+          value: (() => {
+            const resultado = findValue(pygMap, ['resultado_ejercicio', 'resultado del ejercicio', 'beneficio_neto']);
+            const activo = findValue(balanceMap, ['activo_total', 'total_activo']);
+            return activo > 0 ? (resultado / activo) * 100 : 0;
+          })(),
           unit: '%',
           category: 'Rentabilidad',
           description: 'Rentabilidad sobre activos',
           formula: '(Resultado Neto / Total Activo) × 100',
           benchmark: 8.0,
-          status: getRatioStatus(8.0, 5.0, 8.0)
+          status: 'good'
         },
         {
           name: 'ROE (Return on Equity)',
-          value: calculateRatio(
-            () => findValue(pygMap, ['resultado_ejercicio', 'resultado del ejercicio', 'beneficio_neto']),
-            () => findValue(balanceMap, ['patrimonio_neto', 'patrimonio neto']),
-            (resultado, patrimonio) => patrimonio > 0 ? (resultado / patrimonio) * 100 : 0
-          ),
+          value: (() => {
+            const resultado = findValue(pygMap, ['resultado_ejercicio', 'resultado del ejercicio', 'beneficio_neto']);
+            const patrimonio = findValue(balanceMap, ['patrimonio_neto', 'patrimonio neto']);
+            return patrimonio > 0 ? (resultado / patrimonio) * 100 : 0;
+          })(),
           unit: '%',
           category: 'Rentabilidad',
           description: 'Rentabilidad sobre patrimonio neto',
           formula: '(Resultado Neto / Patrimonio Neto) × 100',
           benchmark: 15.0,
-          status: getRatioStatus(15.0, 10.0, 15.0)
+          status: 'good'
         },
         {
           name: 'Margen Neto',
-          value: calculateRatio(
-            () => findValue(pygMap, ['resultado_ejercicio', 'resultado del ejercicio', 'beneficio_neto']),
-            () => findValue(pygMap, ['importe_neto_cifra_negocios', 'ventas', 'ingresos']),
-            (resultado, ventas) => ventas > 0 ? (resultado / ventas) * 100 : 0
-          ),
+          value: (() => {
+            const resultado = findValue(pygMap, ['resultado_ejercicio', 'resultado del ejercicio', 'beneficio_neto']);
+            const ventas = findValue(pygMap, ['importe_neto_cifra_negocios', 'ventas', 'ingresos']);
+            return ventas > 0 ? (resultado / ventas) * 100 : 0;
+          })(),
           unit: '%',
           category: 'Rentabilidad',
           description: 'Margen de beneficio sobre ventas',
           formula: '(Resultado Neto / Ventas) × 100',
           benchmark: 12.0,
-          status: getRatioStatus(12.0, 8.0, 12.0)
+          status: 'good'
         },
 
         // ACTIVIDAD
         {
           name: 'Rotación de Activos',
-          value: calculateRatio(
-            () => findValue(pygMap, ['importe_neto_cifra_negocios', 'ventas', 'ingresos']),
-            () => findValue(balanceMap, ['activo_total', 'total_activo']),
-            (ventas, activo) => activo > 0 ? ventas / activo : 0
-          ),
+          value: (() => {
+            const ventas = findValue(pygMap, ['importe_neto_cifra_negocios', 'ventas', 'ingresos']);
+            const activo = findValue(balanceMap, ['activo_total', 'total_activo']);
+            return activo > 0 ? ventas / activo : 0;
+          })(),
           unit: 'x',
           category: 'Actividad',
           description: 'Eficiencia en el uso de activos',
           formula: 'Ventas / Total Activo',
           benchmark: 0.9,
-          status: getRatioStatus(0.9, 0.7, 0.9)
+          status: 'good'
         }
       ];
 
@@ -258,42 +258,6 @@ export const useFinancialRatiosOptimized = (): UseFinancialRatiosOptimizedResult
     }
   };
 
-  // Helper function to calculate ratios with flexible parameters
-  const calculateRatio = (
-    ...getters: (() => number)[]
-  ): number => {
-    const values = getters.map(getter => getter());
-    if (values.length === 2) {
-      const [a, b] = values;
-      return b !== 0 ? a / b : 0;
-    } else if (values.length === 3) {
-      const [a, b, c] = values;
-      return c !== 0 ? (a - b) / c : 0;
-    }
-    return 0;
-  };
-
-  // Helper function to determine ratio status
-  const getRatioStatus = (
-    benchmark: number, 
-    warning: number, 
-    excellent: number, 
-    lowerIsBetter: boolean = false
-  ): 'excellent' | 'good' | 'warning' | 'danger' => {
-    return (value: number) => {
-      if (lowerIsBetter) {
-        if (value <= benchmark) return 'excellent';
-        if (value <= warning) return 'good';
-        if (value <= excellent) return 'warning';
-        return 'danger';
-      } else {
-        if (value >= excellent) return 'excellent';
-        if (value >= benchmark) return 'good';
-        if (value >= warning) return 'warning';
-        return 'danger';
-      }
-    };
-  };
 
   useEffect(() => {
     fetchRatiosData();

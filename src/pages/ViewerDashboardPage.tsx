@@ -106,8 +106,12 @@ const ViewerDashboardPage = () => {
     
     if (!dataset || dataset.length === 0) return null;
     
-    // Sort by period_year descending and get the latest
-    const sorted = [...dataset].sort((a, b) => b.period_year - a.period_year);
+    // Sort by period_year descending and get the latest (handle both number and string types)
+    const sorted = [...dataset].sort((a, b) => {
+      const aYear = typeof a.period_type === 'number' ? a.period_type : (a.period_type || 0);
+      const bYear = typeof b.period_type === 'number' ? b.period_type : (b.period_type || 0);
+      return Number(bYear) - Number(aYear);
+    });
     return sorted[0];
   };
 

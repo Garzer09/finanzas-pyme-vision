@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Upload, FileSpreadsheet, AlertTriangle, BarChart3, TrendingUp, DollarSign } from 'lucide-react';
 
 interface MissingFinancialDataProps {
-  dataType: 'cashflow' | 'balance' | 'pyg' | 'operational' | 'debt';
+  dataType: 'cashflow' | 'balance' | 'pyg' | 'operational' | 'debt' | 'ratios';
   onUploadClick?: () => void;
   className?: string;
 }
@@ -44,6 +44,13 @@ const dataTypeConfig = {
     templateName: 'pool-deuda.csv',
     icon: AlertTriangle,
     color: 'border-red-200 bg-red-50'
+  },
+  ratios: {
+    title: 'Faltan Datos para Ratios',
+    description: 'Para calcular ratios financieros necesitamos datos del Balance y P&G.',
+    templateName: 'balance-situacion.csv',
+    icon: BarChart3,
+    color: 'border-indigo-200 bg-indigo-50'
   }
 };
 

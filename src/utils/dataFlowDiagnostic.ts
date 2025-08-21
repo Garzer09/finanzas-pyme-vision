@@ -3,7 +3,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-interface DiagnosticResult {
+export interface DiagnosticResult {
   step: string;
   status: 'success' | 'error' | 'warning';
   message: string;

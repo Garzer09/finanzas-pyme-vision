@@ -23,7 +23,47 @@ export const FinancialRatiosCurrentModule = () => {
   };
 
   // Get company context for display
-  const { currentCompany, hasCompanyContext } = useCompanyContext();
+  const { currentCompany } = useCompanyContext();
+  
+  // Default KPI data when no real data is available
+  const defaultKpiData = [
+    {
+      title: 'Ratio Corriente',
+      value: 'Sin datos',
+      subtitle: 'Capacidad para cubrir deudas a corto plazo',
+      trend: 'neutral' as const,
+      trendValue: '-',
+      icon: TrendingUp,
+      variant: 'default' as const
+    },
+    {
+      title: 'ROE',
+      value: 'Sin datos',
+      subtitle: 'Rentabilidad sobre patrimonio',
+      trend: 'neutral' as const,
+      trendValue: '-',
+      icon: Shield,
+      variant: 'default' as const
+    },
+    {
+      title: 'Endeudamiento',
+      value: 'Sin datos',
+      subtitle: 'Proporción de deuda sobre activos',
+      trend: 'neutral' as const,
+      trendValue: '-',
+      icon: Zap,
+      variant: 'default' as const
+    },
+    {
+      title: 'Rotación Activos',
+      value: 'Sin datos',
+      subtitle: 'Eficiencia en el uso de activos',
+      trend: 'neutral' as const,
+      trendValue: '-',
+      icon: Calculator,
+      variant: 'default' as const
+    }
+  ];
 
   // Transform ratios to KPI format
   const kpiData = useMemo(() => {
@@ -55,10 +95,10 @@ export const FinancialRatiosCurrentModule = () => {
         title: ratio.name,
         value: formatRatio(ratio.value, ratio.unit),
         subtitle: ratio.description,
-        trend: getTrend(ratio.value, ratio.benchmark) as const,
+        trend: getTrend(ratio.value, ratio.benchmark) as 'up' | 'down' | 'neutral',
         trendValue: `${ratio.value.toFixed(2)}${ratio.unit}`,
         icon: icons[index % icons.length],
-        variant: getVariant(ratio.value, ratio.benchmark) as const
+        variant: getVariant(ratio.value, ratio.benchmark) as 'success' | 'warning' | 'danger' | 'default'
       };
     });
   }, [ratios, hasRealData]);
@@ -67,56 +107,74 @@ export const FinancialRatiosCurrentModule = () => {
 
 
 
+  // Get ratio values by name helper function
+  const getRatioByName = (name: string): FinancialRatio | undefined => {
+    return ratios.find(ratio => ratio.name.includes(name));
+  };
+
   // Radar chart data
   const ratiosRadar = [
-    { ratio: 'Liquidez', value: Math.min(ratios.ratioLiquidez * 50, 100) },
-    { ratio: 'Solvencia', value: Math.min(ratios.ratioSolvencia * 25, 100) },
-    { ratio: 'Rentabilidad', value: Math.min(ratios.roe * 5, 100) },
-    { ratio: 'Eficiencia', value: Math.min(ratios.rotacionActivos * 100, 100) },
-    { ratio: 'Autonomía', value: ratios.autonomiaFinanciera }
+    { ratio: 'Liquidez', value: Math.min((getRatioByName('Corriente')?.value || 0) * 50, 100) },
+    { ratio: 'Solvencia', value: Math.min((getRatioByName('Solvencia')?.value || 0) * 25, 100) },
+    { ratio: 'Rentabilidad', value: Math.min((getRatioByName('ROE')?.value || 0) * 5, 100) },
+    { ratio: 'Eficiencia', value: Math.min((getRatioByName('Rotación')?.value || 0) * 100, 100) },
+    { ratio: 'Autonomía', value: getRatioByName('Autonomía')?.value || 0 }
   ];
 
   // Comparison data
   const ratiosComparison = [
-    { categoria: 'Liquidez', empresa: ratios.ratioLiquidez, sector: 1.4, benchmark: 1.5 },
-    { categoria: 'ROE', empresa: ratios.roe, sector: 12.0, benchmark: 15.0 },
-    { categoria: 'ROA', empresa: ratios.roa, sector: 6.5, benchmark: 8.0 },
-    { categoria: 'Endeudamiento', empresa: ratios.ratioEndeudamiento, sector: 45.0, benchmark: 40.0 }
+    { categoria: 'Liquidez', empresa: getRatioByName('Corriente')?.value || 0, sector: 1.4, benchmark: 1.5 },
+    { categoria: 'ROE', empresa: getRatioByName('ROE')?.value || 0, sector: 12.0, benchmark: 15.0 },
+    { categoria: 'ROA', empresa: getRatioByName('ROA')?.value || 0, sector: 6.5, benchmark: 8.0 },
+    { categoria: 'Endeudamiento', empresa: getRatioByName('Endeudamiento')?.value || 0, sector: 45.0, benchmark: 40.0 }
   ];
 
-  // Detailed ratios by category
-  const ratiosDetalle = [
-    { 
-      grupo: 'LIQUIDEZ', 
-      ratios: [
-        { nombre: 'Ratio Corriente', valor: ratios.ratioLiquidez, benchmark: 1.5, formula: 'Activo Corriente / Pasivo Corriente' },
-        { nombre: 'Prueba Ácida', valor: ratios.pruebaAcida, benchmark: 1.0, formula: '(Activo Corriente - Existencias) / Pasivo Corriente' },
-        { nombre: 'Ratio Tesorería', valor: ratios.ratioTesoreria, benchmark: 0.3, formula: 'Efectivo / Pasivo Corriente' }
-      ]
-    },
-    { 
-      grupo: 'RENTABILIDAD', 
-      ratios: [
-        { nombre: 'ROE', valor: ratios.roe, benchmark: 15.0, formula: 'Beneficio Neto / Patrimonio Neto × 100' },
-        { nombre: 'ROA', valor: ratios.roa, benchmark: 8.0, formula: 'Beneficio Neto / Activo Total × 100' },
-        { nombre: 'Margen Neto', valor: ratios.margenNeto, benchmark: 12.0, formula: 'Beneficio Neto / Ventas × 100' }
-      ]
-    },
-    { 
-      grupo: 'EFICIENCIA', 
-      ratios: [
-        { nombre: 'Rotación Activos', valor: ratios.rotacionActivos, benchmark: 0.9, formula: 'Ventas / Activo Total' }
-      ]
-    },
-    { 
-      grupo: 'ENDEUDAMIENTO', 
-      ratios: [
-        { nombre: 'Ratio Endeudamiento', valor: ratios.ratioEndeudamiento, benchmark: 40.0, formula: 'Pasivo Total / Activo Total × 100' },
-        { nombre: 'Autonomía Financiera', valor: ratios.autonomiaFinanciera, benchmark: 60.0, formula: 'Patrimonio Neto / Activo Total × 100' },
-        { nombre: 'Ratio Solvencia', valor: ratios.ratioSolvencia, benchmark: 2.0, formula: 'Activo Total / Pasivo Total' }
-      ]
-    }
-  ];
+  // Group ratios by category
+  const ratiosDetalle = useMemo(() => {
+    const liquidezRatios = ratios.filter(r => r.category === 'Liquidez');
+    const rentabilidadRatios = ratios.filter(r => r.category === 'Rentabilidad');
+    const actividadRatios = ratios.filter(r => r.category === 'Actividad');
+    const endeudamientoRatios = ratios.filter(r => r.category === 'Endeudamiento');
+
+    return [
+      {
+        grupo: 'LIQUIDEZ',
+        ratios: liquidezRatios.map(ratio => ({
+          nombre: ratio.name,
+          valor: ratio.value,
+          benchmark: ratio.benchmark,
+          formula: ratio.formula
+        }))
+      },
+      {
+        grupo: 'RENTABILIDAD',
+        ratios: rentabilidadRatios.map(ratio => ({
+          nombre: ratio.name,
+          valor: ratio.value,
+          benchmark: ratio.benchmark,
+          formula: ratio.formula
+        }))
+      },
+      {
+        grupo: 'ACTIVIDAD',
+        ratios: actividadRatios.map(ratio => ({
+          nombre: ratio.name,
+          valor: ratio.value,
+          benchmark: ratio.benchmark,
+          formula: ratio.formula
+        }))
+      },
+      {
+        grupo: 'ENDEUDAMIENTO',
+        ratios: endeudamientoRatios.map(ratio => ({
+          nombre: ratio.name,
+          valor: ratio.value,
+          benchmark: ratio.benchmark,
+          formula: ratio.formula
+        }))
+      }
+    ].filter(grupo => grupo.ratios.length > 0);
+  }, [ratios]);
 
   if (loading) {
     return (
@@ -129,7 +187,7 @@ export const FinancialRatiosCurrentModule = () => {
     );
   }
 
-  if (!hasRealData && hasCompanyContext) {
+  if (!hasRealData && currentCompany) {
     return (
       <div className="space-y-8">
         <MissingFinancialData 
@@ -152,18 +210,18 @@ export const FinancialRatiosCurrentModule = () => {
             </h1>
             <div className="flex items-center justify-between">
               <p className="text-slate-700 text-lg font-medium">
-                {hasCompanyContext && currentCompany ? 
+                {currentCompany ? 
                   `Análisis integral de salud financiera - ${currentCompany.name}` : 
                   'Análisis integral de la salud financiera mediante ratios clave'
                 }
               </p>
-              {isRealData && hasRealData && (
+              {hasRealData && (
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
                   <div className="w-2 h-2 bg-green-600 rounded-full mr-2"></div>
                   Datos Reales
                 </span>
               )}
-              {!isRealData && hasCompanyContext && (
+              {!hasRealData && currentCompany && (
                 <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-800">
                   <div className="w-2 h-2 bg-amber-600 rounded-full mr-2"></div>
                   Datos de Demostración

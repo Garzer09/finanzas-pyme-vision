@@ -7,7 +7,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { Calendar, TrendingUp, BarChart3, DollarSign } from 'lucide-react';
 import { useFinancialData } from '@/hooks/useFinancialData';
 import { useCompanyContext } from '@/contexts/CompanyContext';
-import { MissingFinancialData } from '@/components/MissingFinancialData';
+import { MissingFinancialData } from '@/components/ui/missing-financial-data';
 
 export const FinancialAnalysisModule = () => {
   const [selectedYear, setSelectedYear] = useState('2024');

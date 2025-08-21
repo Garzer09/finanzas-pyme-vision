@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { TrendingUp, DollarSign, Percent, Calculator } from 'lucide-react';
 import { useCompanyData } from '@/hooks/useCompanyData';
 import { MissingFinancialData } from '@/components/ui/missing-financial-data';
+import { getPeriodComparison } from '@/utils/getPeriodComparison';
 
 export const ProfitLossCurrentModule = () => {
   const { data, loading, error, hasRealData, getLatestData, currentCompany, hasCompanyContext } = useCompanyData('estado_pyg');
@@ -132,21 +133,30 @@ export const ProfitLossCurrentModule = () => {
     const ebitdaMargin = revenue > 0 ? (ebitda / revenue) * 100 : 0;
     const netMargin = revenue > 0 ? (netIncome / revenue) * 100 : 0;
     
-    // Get previous period for trend calculation
-    const previousData = getPeriodComparison('estado_pyg');
-    const prevContent = previousData.length > 1 ? previousData[1]?.data_content : null;
+    // Get previous period for trend calculation (simplified approach)
+    const prevRevenue = data.length > 1 ? (() => {
+      const prevData = data[1]; // Get second most recent record
+      if (!prevData?.data_content) return 0;
+      return findValue(prevData.data_content, [
+        'importe_neto_cifra_negocios', 'ventas', 'ingresos'
+      ]);
+    })() : 0;
     
-    const prevRevenue = prevContent ? findValue(prevContent, [
-      'importe_neto_cifra_negocios', 'ventas', 'ingresos'
-    ]) : 0;
+    const prevEbitda = data.length > 1 ? (() => {
+      const prevData = data[1];
+      if (!prevData?.data_content) return 0;
+      return findValue(prevData.data_content, [
+        'ebitda', 'resultado_bruto_explotacion'
+      ]);
+    })() : 0;
     
-    const prevEbitda = prevContent ? findValue(prevContent, [
-      'ebitda', 'resultado_bruto_explotacion'
-    ]) : 0;
-    
-    const prevNetIncome = prevContent ? findValue(prevContent, [
-      'resultado_neto', 'beneficio_neto'
-    ]) : 0;
+    const prevNetIncome = data.length > 1 ? (() => {
+      const prevData = data[1];
+      if (!prevData?.data_content) return 0;
+      return findValue(prevData.data_content, [
+        'resultado_neto', 'beneficio_neto'
+      ]);
+    })() : 0;
     
     // Calculate real trends
     const revenueGrowth = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : 0;
