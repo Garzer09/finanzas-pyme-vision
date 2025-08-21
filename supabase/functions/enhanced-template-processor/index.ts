@@ -203,7 +203,63 @@ Deno.serve(async (req) => {
       console.warn('Failed to create upload history record:', uploadError)
     }
 
-    // Return response
+    // If not a dry run and validation passed, process data to staging tables
+    if (!dryRun && validationResults.is_valid && companyId) {
+      try {
+        const jobId = uploadData?.id || crypto.randomUUID()
+        
+        // Process data to staging tables
+        const stagingData = await processDataToStaging(
+          analysis.fileData,
+          templateSchema,
+          companyId,
+          user.id,
+          jobId,
+          selectedYears.length > 0 ? selectedYears : analysis.detectedYears
+        )
+        
+        // Call normalization function to move from staging to final tables
+        const { data: normalizationResult, error: normalizationError } = await supabase
+          .rpc('normalize_financial_lines', {
+            _import_id: jobId,
+            _company_id: companyId
+          })
+        
+        if (normalizationError) {
+          console.warn('Normalization warning:', normalizationError)
+        }
+
+        return new Response(JSON.stringify({
+          success: true,
+          upload_id: jobId,
+          template_name: templateSchema.name,
+          template_display_name: templateSchema.display_name,
+          validation_results: validationResults,
+          detected_years: analysis.detectedYears,
+          file_analysis: analysis,
+          staging_result: stagingData,
+          normalization_result: normalizationResult,
+          dry_run: false
+        }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+        
+      } catch (processingError) {
+        console.error('Error processing data to staging:', processingError)
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Processing failed',
+          details: processingError instanceof Error ? processingError.message : 'Unknown processing error',
+          upload_id: uploadData?.id
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
+    // Return response for dry run or validation failed
     return new Response(JSON.stringify({
       success: true,
       upload_id: uploadData?.id,
@@ -497,6 +553,109 @@ function mapColumns(schema: TemplateSchema, fileHeaders: string[]) {
   }
 
   return { mapped, unmapped }
+}
+
+async function processDataToStaging(
+  fileData: string[][],
+  schema: TemplateSchema,
+  companyId: string,
+  userId: string,
+  jobId: string,
+  selectedYears: number[]
+): Promise<any> {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+  if (fileData.length === 0) {
+    throw new Error('No data to process')
+  }
+
+  const headers = fileData[0]
+  const dataRows = fileData.slice(1)
+  const columnMapping = mapColumns(schema, headers)
+
+  // Determine data type from template name
+  let dataType = 'financial_data'
+  if (schema.name.includes('balance') || schema.name.includes('situacion')) {
+    dataType = 'balance_situacion'
+  } else if (schema.name.includes('pyg') || schema.name.includes('perdidas')) {
+    dataType = 'estado_pyg'
+  } else if (schema.name.includes('flujo') || schema.name.includes('cash')) {
+    dataType = 'estado_flujos'
+  }
+
+  const stagingRecords = []
+
+  // Process each data row
+  for (let rowIndex = 0; rowIndex < dataRows.length; rowIndex++) {
+    const row = dataRows[rowIndex]
+    
+    // Extract concept (first column typically)
+    const conceptIndex = columnMapping.mapped['concepto'] || columnMapping.mapped['concept'] || 0
+    const concept = row[conceptIndex]?.toString().trim()
+    
+    if (!concept || concept === '') continue
+
+    // Process year columns
+    for (const year of selectedYears) {
+      const yearColumnIndex = columnMapping.mapped[year.toString()]
+      if (yearColumnIndex !== undefined) {
+        const amount = parseFloat(row[yearColumnIndex]?.toString().replace(/[^\d.-]/g, '') || '0')
+        
+        if (!isNaN(amount) && amount !== 0) {
+          stagingRecords.push({
+            job_id: jobId,
+            company_id: companyId,
+            user_id: userId,
+            data_type: dataType,
+            period_type: 'annual',
+            period_year: year,
+            concept_original: concept,
+            concept_normalized: normalizeFinancialConcept(concept),
+            amount: amount,
+            currency_code: 'EUR',
+            file_name: schema.name,
+            source: 'template_upload',
+            status: 'pending'
+          })
+        }
+      }
+    }
+  }
+
+  // Insert records to staging table
+  if (stagingRecords.length > 0) {
+    const { data, error } = await supabase
+      .from('financial_lines_staging')
+      .insert(stagingRecords)
+      .select()
+
+    if (error) {
+      throw new Error(`Failed to insert staging data: ${error.message}`)
+    }
+
+    return {
+      records_inserted: stagingRecords.length,
+      data_type: dataType,
+      years_processed: selectedYears,
+      job_id: jobId
+    }
+  }
+
+  return {
+    records_inserted: 0,
+    data_type: dataType,
+    message: 'No valid records found to process'
+  }
+}
+
+function normalizeFinancialConcept(concept: string): string {
+  // Basic normalization - remove special characters, convert to lowercase
+  return concept.toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function validateRow(
