@@ -3,159 +3,69 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 import { TrendingUp, Shield, Zap, Calculator } from 'lucide-react';
 import { useMemo } from 'react';
-import { useCompanyData } from '@/hooks/useCompanyData';
+import { useFinancialRatiosOptimized, FinancialRatio } from '@/hooks/useFinancialRatiosOptimized';
+import { useCompanyContext } from '@/contexts/CompanyContext';
 import { MissingFinancialData } from '@/components/ui/missing-financial-data';
 
 export const FinancialRatiosCurrentModule = () => {
   const { 
-    data: allData, 
+    ratios, 
     loading, 
     error, 
     hasRealData, 
-    getLatestData, 
-    currentCompany, 
-    hasCompanyContext 
-  } = useCompanyData(['balance_situacion', 'estado_pyg']);
+    refreshRatios 
+  } = useFinancialRatiosOptimized();
 
   // Helper functions for calculations
-  const findValue = (content: Record<string, any>, keys: string[]) => {
-    for (const key of keys) {
-      const value = content[key] || content[key.toLowerCase()] || content[key.replace(/_/g, ' ')];
-      if (value !== undefined && value !== null) {
-        return Number(value) || 0;
-      }
-    }
-    return 0;
-  };
-
   const formatRatio = (value: number, unit: string = '') => {
     if (value === 0) return 'Sin datos';
     return `${value.toFixed(2)}${unit}`;
   };
 
-  // Calculate ratios from real data
-  const calculatedRatios = useMemo(() => {
-    if (!hasRealData || !allData.length) {
-      return null;
+  // Get company context for display
+  const { currentCompany, hasCompanyContext } = useCompanyContext();
+
+  // Transform ratios to KPI format
+  const kpiData = useMemo(() => {
+    if (!hasRealData || !ratios.length) {
+      return defaultKpiData;
     }
 
-    const latestBalance = getLatestData('balance_situacion');
-    const latestPyg = getLatestData('estado_pyg');
+    // Take first 4 ratios for KPI cards
+    return ratios.slice(0, 4).map((ratio, index) => {
+      const icons = [TrendingUp, Shield, Zap, Calculator];
+      const variants = ['success', 'info', 'warning', 'default'] as const;
+      
+      // Determine trend based on ratio value vs benchmark
+      const getTrend = (value: number, benchmark: number) => {
+        if (ratio.name.includes('Endeudamiento')) {
+          return value <= benchmark ? 'up' : 'down';
+        }
+        return value >= benchmark ? 'up' : 'down';
+      };
 
-    if (!latestBalance?.data_content && !latestPyg?.data_content) {
-      return null;
-    }
+      const getVariant = (value: number, benchmark: number) => {
+        if (ratio.name.includes('Endeudamiento')) {
+          return value <= benchmark ? 'success' : value <= benchmark * 1.2 ? 'warning' : 'danger';
+        }
+        return value >= benchmark ? 'success' : value >= benchmark * 0.8 ? 'warning' : 'danger';
+      };
 
-    const balanceContent = latestBalance?.data_content || {};
-    const pygContent = latestPyg?.data_content || {};
-
-    console.debug('[Ratios] Processing data:', { 
-      balanceKeys: Object.keys(balanceContent).length,
-      pygKeys: Object.keys(pygContent).length,
-      companyId: hasCompanyContext ? currentCompany?.id : 'N/A'
+      return {
+        title: ratio.name,
+        value: formatRatio(ratio.value, ratio.unit),
+        subtitle: ratio.description,
+        trend: getTrend(ratio.value, ratio.benchmark) as const,
+        trendValue: `${ratio.value.toFixed(2)}${ratio.unit}`,
+        icon: icons[index % icons.length],
+        variant: getVariant(ratio.value, ratio.benchmark) as const
+      };
     });
+  }, [ratios, hasRealData]);
 
-    // Balance sheet values
-    const activoCorriente = findValue(balanceContent, ['activo_corriente', 'activo corriente']);
-    const activoTotal = findValue(balanceContent, ['activo_total', 'total_activo']);
-    const pasivoCorriente = findValue(balanceContent, ['pasivo_corriente', 'pasivo corriente']);
-    const pasivoTotal = findValue(balanceContent, ['pasivo_total', 'total_pasivo']);
-    const patrimonioNeto = findValue(balanceContent, ['patrimonio_neto', 'patrimonio neto']);
-    const existencias = findValue(balanceContent, ['existencias']);
-    const efectivo = findValue(balanceContent, ['efectivo_equivalentes', 'efectivo y equivalentes', 'tesoreria']);
 
-    // P&L values
-    const ventas = findValue(pygContent, ['importe_neto_cifra_negocios', 'ventas', 'ingresos']);
-    const resultadoNeto = findValue(pygContent, ['resultado_ejercicio', 'resultado del ejercicio', 'beneficio_neto']);
 
-    // Calculate ratios
-    const ratioLiquidez = pasivoCorriente > 0 ? activoCorriente / pasivoCorriente : 0;
-    const pruebaAcida = pasivoCorriente > 0 ? (activoCorriente - existencias) / pasivoCorriente : 0;
-    const ratioTesoreria = pasivoCorriente > 0 ? efectivo / pasivoCorriente : 0;
-    
-    const ratioEndeudamiento = activoTotal > 0 ? (pasivoTotal / activoTotal) * 100 : 0;
-    const autonomiaFinanciera = activoTotal > 0 ? (patrimonioNeto / activoTotal) * 100 : 0;
-    const ratioSolvencia = pasivoTotal > 0 ? activoTotal / pasivoTotal : 0;
 
-    const roa = activoTotal > 0 ? (resultadoNeto / activoTotal) * 100 : 0;
-    const roe = patrimonioNeto > 0 ? (resultadoNeto / patrimonioNeto) * 100 : 0;
-    const margenNeto = ventas > 0 ? (resultadoNeto / ventas) * 100 : 0;
-    const rotacionActivos = activoTotal > 0 ? ventas / activoTotal : 0;
-
-    return {
-      // Liquidez
-      ratioLiquidez,
-      pruebaAcida,
-      ratioTesoreria,
-      // Endeudamiento
-      ratioEndeudamiento,
-      autonomiaFinanciera,
-      ratioSolvencia,
-      // Rentabilidad
-      roa,
-      roe,
-      margenNeto,
-      // Actividad
-      rotacionActivos
-    };
-  }, [allData, hasRealData, getLatestData, hasCompanyContext, currentCompany]);
-
-  // Default data for demo
-  const defaultRatios = {
-    ratioLiquidez: 1.35,
-    pruebaAcida: 0.95,
-    ratioTesoreria: 0.25,
-    ratioEndeudamiento: 43.8,
-    autonomiaFinanciera: 56.3,
-    ratioSolvencia: 2.29,
-    roa: 7.6,
-    roe: 13.5,
-    margenNeto: 9.75,
-    rotacionActivos: 0.78
-  };
-
-  const ratios = calculatedRatios || defaultRatios;
-  const isRealData = calculatedRatios !== null;
-
-  // KPI Cards data
-  const kpiData = [
-    {
-      title: 'ROE',
-      value: formatRatio(ratios.roe, '%'),
-      subtitle: 'Rentabilidad fondos propios',
-      trend: ratios.roe > 15 ? 'up' as const : ratios.roe > 10 ? 'neutral' as const : 'down' as const,
-      trendValue: `${ratios.roe.toFixed(1)}%`,
-      icon: TrendingUp,
-      variant: ratios.roe > 15 ? 'success' as const : ratios.roe > 10 ? 'warning' as const : 'danger' as const
-    },
-    {
-      title: 'ROA',
-      value: formatRatio(ratios.roa, '%'),
-      subtitle: 'Rentabilidad activos',
-      trend: ratios.roa > 8 ? 'up' as const : ratios.roa > 5 ? 'neutral' as const : 'down' as const,
-      trendValue: `${ratios.roa.toFixed(1)}%`,
-      icon: Calculator,
-      variant: ratios.roa > 8 ? 'success' as const : ratios.roa > 5 ? 'warning' as const : 'danger' as const
-    },
-    {
-      title: 'Ratio Liquidez',
-      value: formatRatio(ratios.ratioLiquidez),
-      subtitle: 'Capacidad de pago',
-      trend: ratios.ratioLiquidez > 1.5 ? 'up' as const : ratios.ratioLiquidez > 1 ? 'neutral' as const : 'down' as const,
-      trendValue: `${ratios.ratioLiquidez.toFixed(2)}x`,
-      icon: Shield,
-      variant: ratios.ratioLiquidez > 1.5 ? 'success' as const : ratios.ratioLiquidez > 1 ? 'warning' as const : 'danger' as const
-    },
-    {
-      title: 'Autonomía Financiera',
-      value: formatRatio(ratios.autonomiaFinanciera, '%'),
-      subtitle: 'Independencia financiera',
-      trend: ratios.autonomiaFinanciera > 50 ? 'up' as const : ratios.autonomiaFinanciera > 30 ? 'neutral' as const : 'down' as const,
-      trendValue: `${ratios.autonomiaFinanciera.toFixed(1)}%`,
-      icon: Zap,
-      variant: ratios.autonomiaFinanciera > 50 ? 'success' as const : ratios.autonomiaFinanciera > 30 ? 'warning' as const : 'danger' as const
-    }
-  ];
 
   // Radar chart data
   const ratiosRadar = [

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useCompanyContext } from '@/contexts/CompanyContext';
@@ -24,14 +24,76 @@ interface CashFlowKPIs {
   coberturaDeuda: number;
 }
 
+interface MonthlyCashFlow {
+  mes: string;
+  operativo: number;
+  inversion: number;
+  financiacion: number;
+  neto: number;
+}
+
 interface UseCashFlowDataResult {
   cashFlowData: CashFlowData[];
+  monthlyData: MonthlyCashFlow[];
   kpis: CashFlowKPIs;
   isLoading: boolean;
   error: string | null;
   hasRealData: boolean;
   refetch: () => Promise<void>;
+  getYearData: (year: number) => CashFlowData[];
+  getMonthlyBreakdown: (year: number) => MonthlyCashFlow[];
 }
+
+// Función para normalizar categorías de flujos de caja
+const normalizeCategory = (category: string): string => {
+  const normalized = category.toLowerCase().trim();
+  
+  if (normalized.includes('operativo') || normalized.includes('explotación') || normalized.includes('operaciones')) {
+    return 'OPERATIVO';
+  }
+  if (normalized.includes('inversión') || normalized.includes('inversion') || normalized.includes('inmovilizado')) {
+    return 'INVERSION';
+  }
+  if (normalized.includes('financiación') || normalized.includes('financiacion') || normalized.includes('financiero')) {
+    return 'FINANCIACION';
+  }
+  
+  return category.toUpperCase(); // Mantener original si no coincide
+};
+
+// Función para generar datos mensuales
+const generateMonthlyData = (cashFlowData: CashFlowData[]): MonthlyCashFlow[] => {
+  const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const monthlyData: { [key: string]: MonthlyCashFlow } = {};
+
+  // Inicializar todos los meses
+  months.forEach(month => {
+    monthlyData[month] = { mes: month, operativo: 0, inversion: 0, financiacion: 0, neto: 0 };
+  });
+
+  // Agrupar datos reales por mes
+  cashFlowData.forEach(item => {
+    if (item.period_month && item.period_month >= 1 && item.period_month <= 12) {
+      const monthKey = months[item.period_month - 1];
+      const category = normalizeCategory(item.category);
+      
+      if (category === 'OPERATIVO') {
+        monthlyData[monthKey].operativo += item.amount;
+      } else if (category === 'INVERSION') {
+        monthlyData[monthKey].inversion += item.amount;
+      } else if (category === 'FINANCIACION') {
+        monthlyData[monthKey].financiacion += item.amount;
+      }
+    }
+  });
+
+  // Calcular neto y convertir a array
+  return months.map(month => {
+    const monthData = monthlyData[month];
+    monthData.neto = monthData.operativo + monthData.inversion + monthData.financiacion;
+    return monthData;
+  });
+};
 
 export const useCashFlowData = (companyId?: string): UseCashFlowDataResult => {
   const [cashFlowData, setCashFlowData] = useState<CashFlowData[]>([]);
@@ -40,7 +102,7 @@ export const useCashFlowData = (companyId?: string): UseCashFlowDataResult => {
   const { user } = useAuth();
   const { validateCompanyAccess } = useCompanyContext();
 
-  const fetchCashFlowData = async () => {
+  const fetchCashFlowData = useCallback(async () => {
     if (!user) return;
     
     setIsLoading(true);
@@ -54,7 +116,6 @@ export const useCashFlowData = (companyId?: string): UseCashFlowDataResult => {
       if (companyId) {
         query = query.eq('company_id', companyId);
       } else {
-        // If no companyId provided, don't fetch any data for now
         setCashFlowData([]);
         setIsLoading(false);
         return;
@@ -79,7 +140,7 @@ export const useCashFlowData = (companyId?: string): UseCashFlowDataResult => {
         period_date: item.period_date,
         period_year: item.period_year,
         period_month: item.period_month,
-        category: item.category,
+        category: normalizeCategory(item.category),
         concept: item.concept,
         amount: Number(item.amount)
       }));
@@ -91,12 +152,16 @@ export const useCashFlowData = (companyId?: string): UseCashFlowDataResult => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user, companyId, validateCompanyAccess]);
 
   useEffect(() => {
     fetchCashFlowData();
-  }, [user, companyId]);
+  }, [fetchCashFlowData]);
 
+  // Datos mensuales calculados
+  const monthlyData = useMemo(() => generateMonthlyData(cashFlowData), [cashFlowData]);
+
+  // KPIs calculados
   const kpis = useMemo((): CashFlowKPIs => {
     if (cashFlowData.length === 0) {
       return {
@@ -115,7 +180,7 @@ export const useCashFlowData = (companyId?: string): UseCashFlowDataResult => {
     const latestYear = Math.max(...cashFlowData.map(item => item.period_year));
     const latestData = cashFlowData.filter(item => item.period_year === latestYear);
 
-    // Calculate cash flows by category
+    // Calculate cash flows by normalized category
     const flujoOperativo = latestData
       .filter(item => item.category === 'OPERATIVO')
       .reduce((sum, item) => sum + item.amount, 0);
@@ -148,18 +213,31 @@ export const useCashFlowData = (companyId?: string): UseCashFlowDataResult => {
     };
   }, [cashFlowData]);
 
+  // Funciones auxiliares
+  const getYearData = useCallback((year: number): CashFlowData[] => {
+    return cashFlowData.filter(item => item.period_year === year);
+  }, [cashFlowData]);
+
+  const getMonthlyBreakdown = useCallback((year: number): MonthlyCashFlow[] => {
+    const yearData = getYearData(year);
+    return generateMonthlyData(yearData);
+  }, [getYearData]);
+
   const hasRealData = cashFlowData.length > 0;
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     await fetchCashFlowData();
-  };
+  }, [fetchCashFlowData]);
 
   return {
     cashFlowData,
+    monthlyData,
     kpis,
     isLoading,
     error,
     hasRealData,
-    refetch
+    refetch,
+    getYearData,
+    getMonthlyBreakdown
   };
 };

@@ -4,6 +4,7 @@ import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Respons
 import { Lightbulb, Activity } from 'lucide-react'
 import { useProjectionInsights } from '@/hooks/useProjectionInsights'
 import { useProjections } from '@/hooks/useProjections'
+import { useMemo } from 'react'
 
 interface CashFlowTabProps {
   scenario: 'base' | 'optimista' | 'pesimista'
@@ -28,6 +29,32 @@ export function CashFlowTab({ scenario, yearRange, unit, includeInflation }: Cas
     if (unit === 'k€') return `€${Math.abs(value)}K`
     return `${value}%`
   }
+
+  // Calcular métricas dinámicas para los cards de resumen
+  const summaryMetrics = useMemo(() => {
+    if (!chartData || chartData.length === 0) {
+      return {
+        fcfAcumulado: 0,
+        capexTotal: 0,
+        cashFinal: 0
+      }
+    }
+
+    // FCF Acumulado (suma de todos los años)
+    const fcfAcumulado = chartData.reduce((sum, year) => sum + year.fcf, 0)
+    
+    // CAPEX Total (suma de inversiones, valores negativos)
+    const capexTotal = Math.abs(chartData.reduce((sum, year) => sum + year.icf, 0))
+    
+    // Cash Final (último año disponible)
+    const cashFinal = chartData[chartData.length - 1]?.cashOnHand || 0
+
+    return {
+      fcfAcumulado,
+      capexTotal,
+      cashFinal
+    }
+  }, [chartData])
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -141,8 +168,10 @@ export function CashFlowTab({ scenario, yearRange, unit, includeInflation }: Cas
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">FCF Acumulado (5 años)</p>
-                <p className="text-2xl font-bold text-primary">€1.71M</p>
+                <p className="text-sm text-muted-foreground">FCF Acumulado ({yearRange[1]} años)</p>
+                <p className="text-2xl font-bold text-primary">
+                  {formatValue(summaryMetrics.fcfAcumulado)}
+                </p>
               </div>
               <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center">
                 <Activity className="h-4 w-4 text-success" />
@@ -156,7 +185,9 @@ export function CashFlowTab({ scenario, yearRange, unit, includeInflation }: Cas
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">CAPEX Total</p>
-                <p className="text-2xl font-bold text-warning">€1.25M</p>
+                <p className="text-2xl font-bold text-warning">
+                  {formatValue(summaryMetrics.capexTotal)}
+                </p>
               </div>
               <div className="h-8 w-8 rounded-full bg-warning/10 flex items-center justify-center">
                 <Activity className="h-4 w-4 text-warning" />
@@ -170,7 +201,9 @@ export function CashFlowTab({ scenario, yearRange, unit, includeInflation }: Cas
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Cash Final</p>
-                <p className="text-2xl font-bold text-primary">€1.77M</p>
+                <p className="text-2xl font-bold text-primary">
+                  {formatValue(summaryMetrics.cashFinal)}
+                </p>
               </div>
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Activity className="h-4 w-4 text-primary" />
