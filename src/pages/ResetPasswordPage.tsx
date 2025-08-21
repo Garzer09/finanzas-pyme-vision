@@ -32,12 +32,9 @@ const ResetPasswordPage = () => {
           const type = urlParams.get('type');
           const error = urlParams.get('error');
 
-          console.log('URL params:', { 
-            accessToken: !!accessToken, 
-            refreshToken: !!refreshToken, 
-            type, 
-            error 
-          });
+          // Security: Do not log sensitive authentication tokens
+          const hasTokens = accessToken && refreshToken;
+          console.log('Recovery flow detected:', { hasTokens, type, hasError: !!error });
 
           if (error) {
             console.error('Error in URL:', error);
@@ -87,7 +84,7 @@ const ResetPasswordPage = () => {
           });
           navigate('/auth');
         } else if (session) {
-          console.log('Valid session found:', session);
+          console.log('Valid session found');
           setTokenValid(true);
         } else {
           console.log('No valid session found');

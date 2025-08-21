@@ -155,14 +155,13 @@ async function validateDatabase(): Promise<SystemHealthCheck> {
  * Validates environment configuration
  */
 function validateEnvironment(): SystemHealthCheck {
-  const requiredEnvVars = [
-    'VITE_SUPABASE_URL',
-    'VITE_SUPABASE_ANON_KEY'
-  ];
+  // Supabase configuration is hardcoded in Lovable
+  const supabaseUrl = "https://hlwchpmogvwmpuvwmvwv.supabase.co";
+  const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhsd2NocG1vZ3Z3bXB1dndtdnd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyODQ5MjMsImV4cCI6MjA2Mzg2MDkyM30.WAKJS5_qPOgzTdwNmIRo15w-SD8KyH9X6x021bEhKaY";
 
-  const missingVars = requiredEnvVars.filter(
-    varName => !import.meta.env[varName]
-  );
+  const missingVars: string[] = [];
+  if (!supabaseUrl) missingVars.push('SUPABASE_URL');
+  if (!supabaseAnonKey) missingVars.push('SUPABASE_ANON_KEY');
 
   if (missingVars.length > 0) {
     return {

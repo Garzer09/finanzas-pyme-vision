@@ -111,14 +111,12 @@ export class HealthCheckService {
     const startTime = Date.now();
     
     try {
-      // Simple health check to Supabase
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
-        method: 'HEAD',
-        headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        }
-      });
+      // Use Supabase client for secure health check
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Simple RPC call to test database connectivity
+      const { error } = await supabase.rpc('get_user_role').limit(0);
+      const response = { ok: !error };
 
       const responseTime = Date.now() - startTime;
 
