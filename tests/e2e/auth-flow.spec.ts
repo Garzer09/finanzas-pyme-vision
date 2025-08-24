@@ -23,9 +23,8 @@ test.describe('Authentication Flow E2E Tests', () => {
     // Wait for initial page load
     await page.waitForLoadState('networkidle');
     
-    // Check that we can interact with the page
-    const pageContent = await page.textContent('body');
-    expect(pageContent).toContain('Finanzas'); // Should contain some version of the app name
+    // Check that the FinSight branding is visible
+    await expect(page.getByText('FinSight')).toBeVisible();
   });
 
   test('should load JavaScript and CSS resources', async ({ page }) => {
