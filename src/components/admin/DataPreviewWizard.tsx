@@ -169,11 +169,29 @@ export const DataPreviewWizard: React.FC<DataPreviewWizardProps> = ({
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const processFile = new File([blob], file.fileName, { type: 'text/csv' });
         
+        // Map canonical file names to template names (remove .csv extension and normalize)
+        const templateNameMapping: { [key: string]: string } = {
+          'balance-situacion.csv': 'balance-situacion',
+          'cuenta-pyg.csv': 'cuenta-pyg', 
+          'estado-flujos.csv': 'estado-flujos',
+          'pool-deuda.csv': 'pool-deuda',
+          'datos-operativos.csv': 'datos-operativos',
+          // Handle variations in casing and naming
+          'Balance-Situacion.csv': 'balance-situacion',
+          'Cuenta-PyG.csv': 'cuenta-pyg',
+          'Estado-Flujos.csv': 'estado-flujos',
+          'Pool-Deuda.csv': 'pool-deuda',
+          'Datos-Operativos.csv': 'datos-operativos'
+        };
+        
+        const templateName = templateNameMapping[file.canonicalName] || 
+                            file.canonicalName.toLowerCase().replace('.csv', '');
+
         // Create FormData for the edge function
         const formData = new FormData();
         formData.append('file', processFile);
         formData.append('company_id', companyInfo.companyId);
-        formData.append('template_name', file.canonicalName);
+        formData.append('template_name', templateName);
         file.detectedYears.forEach(year => 
           formData.append('selected_years[]', year.toString())
         );
