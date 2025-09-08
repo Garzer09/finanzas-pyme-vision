@@ -90,6 +90,54 @@ export const useFinancialData = (dataType?: string, companyId?: string) => {
         }
       }
 
+      // Ratios financieros desde vista materializada fs_ratios_mv
+      if (dataType === 'ratios_financieros' || !dataType) {
+        let ratiosQuery = supabase
+          .from('fs_ratios_mv')
+          .select('*')
+          .order('period_year', { ascending: false });
+
+        if (effectiveCompanyId) {
+          ratiosQuery = ratiosQuery.eq('company_id', effectiveCompanyId);
+        }
+
+        const { data: ratiosDb, error: ratiosError } = await Promise.race([ratiosQuery, timeoutPromise]) as any;
+        if (ratiosError) error = ratiosError;
+        if (ratiosDb && ratiosDb.length > 0) {
+          // Adapt rows into FinancialDataPoint shape
+          const grouped = ratiosDb.reduce((acc: any, row: any) => {
+            const year = row.period_year;
+            const key = `ratios_financieros_${year}`;
+            if (!acc[key]) {
+              acc[key] = {
+                id: key,
+                data_type: 'ratios_financieros',
+                period_date: `${year}-12-31`,
+                period_type: 'annual',
+                data_content: {},
+                created_at: row.calculated_at || new Date().toISOString()
+              };
+            }
+            // Map ratios
+            acc[key].data_content = {
+              ...acc[key].data_content,
+              ratio_corriente: row.ratio_corriente,
+              prueba_acida: row.prueba_acida,
+              ratio_tesoreria: row.ratio_tesoreria,
+              margen_neto: row.margen_neto,
+              autonomia_financiera: row.autonomia_financiera,
+              roa: row.roa,
+              roe: row.roe,
+              rotacion_activos: row.rotacion_activos,
+              ratio_endeudamiento_total: row.ratio_endeudamiento_total,
+              ratio_endeudamiento_financiero: row.ratio_endeudamiento_financiero,
+            };
+            return acc;
+          }, {} as Record<string, FinancialDataPoint>);
+          result.push(...Object.values(grouped));
+        }
+      }
+
       if (dataType === 'balance_situacion' || !dataType) {
         let balanceQuery = supabase
           .from('fs_balance_lines')

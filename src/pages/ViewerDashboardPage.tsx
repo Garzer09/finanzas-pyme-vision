@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Building2, ArrowLeft, BarChart3, TrendingUp, PieChart, DollarSign, Percent, Target, AlertTriangle } from 'lucide-react';
@@ -29,8 +29,8 @@ interface KPIData {
 }
 
 const ViewerDashboardPage = () => {
-  const [searchParams] = useSearchParams();
-  const companyId = searchParams.get('companyId');
+  const params = useParams();
+  const companyId = params.companyId;
   const [company, setCompany] = useState<Company | null>(null);
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(false);
@@ -106,11 +106,11 @@ const ViewerDashboardPage = () => {
     
     if (!dataset || dataset.length === 0) return null;
     
-    // Sort by period_year descending and get the latest (handle both number and string types)
-    const sorted = [...dataset].sort((a, b) => {
-      const aYear = typeof a.period_type === 'number' ? a.period_type : (a.period_type || 0);
-      const bYear = typeof b.period_type === 'number' ? b.period_type : (b.period_type || 0);
-      return Number(bYear) - Number(aYear);
+    // Sort by period_date descending and get the latest
+    const sorted = [...dataset].sort((a: any, b: any) => {
+      const aTime = new Date(a.period_date).getTime();
+      const bTime = new Date(b.period_date).getTime();
+      return bTime - aTime;
     });
     return sorted[0];
   };

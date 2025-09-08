@@ -77,7 +77,7 @@ const ViewerMisEmpresasPage = () => {
   };
 
   const handleCompanySelect = (companyId: string) => {
-    navigate(`/app/dashboard?companyId=${companyId}`);
+    navigate(`/app/${companyId}`);
   };
 
   useEffect(() => {

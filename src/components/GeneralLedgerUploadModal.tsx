@@ -166,6 +166,13 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
                 title: "¡Procesamiento completado!",
                 description: `${totalInserted} asientos procesados correctamente`,
               });
+
+              // Navegar automáticamente al dashboard de la empresa tras finalizar
+              setTimeout(() => {
+                if (companyId) {
+                  navigate(`/app/${companyId}`);
+                }
+              }, 750);
             } else if (updatedJob.status === 'FAILED') {
               const stats = updatedJob.stats_json;
               toast({
@@ -305,6 +312,48 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
       const newCompanyId = crypto.randomUUID();
       setCompanyId(newCompanyId);
       const period = `${fiscalYear}-01-01`;
+
+      // Ensure company exists and assign memberships before upload
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) {
+          throw new Error('No hay sesión activa');
+        }
+
+        // Create or upsert company
+        const { error: upsertCompanyError } = await supabase
+          .from('companies')
+          .upsert({
+            id: newCompanyId,
+            name: companyName,
+            currency_code: 'EUR',
+            accounting_standard: 'PGC',
+            sector: null,
+            created_by: currentUser.id
+          }, { onConflict: 'id' });
+
+        if (upsertCompanyError) {
+          throw upsertCompanyError;
+        }
+
+        // Assign memberships to current admin and target user
+        const membershipsToUpsert = [
+          { company_id: newCompanyId, user_id: currentUser.id, role: 'admin' },
+          { company_id: newCompanyId, user_id, role: 'user' }
+        ];
+
+        const { error: membershipError } = await supabase
+          .from('memberships')
+          .upsert(membershipsToUpsert, { onConflict: 'company_id,user_id' });
+
+        if (membershipError) {
+          // No bloquear la subida por fallo de membresía, pero informar en consola
+          console.warn('Fallo asignando membresías:', membershipError);
+        }
+      } catch (prepError) {
+        console.error('Preparación de empresa/membresías falló:', prepError);
+        // Continuar de todos modos para no bloquear la carga si la empresa ya existía
+      }
 
       const formData = new FormData();
       formData.append('companyId', newCompanyId);
@@ -449,7 +498,7 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
 
   const handleGoToDashboard = () => {
     if (companyId) {
-      navigate(`/dashboard?companyId=${companyId}`);
+      navigate(`/app/${companyId}`);
     } else {
       navigate('/home');
     }
