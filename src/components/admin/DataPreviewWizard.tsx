@@ -145,32 +145,117 @@ export const DataPreviewWizard: React.FC<DataPreviewWizardProps> = ({
 
     setIsProcessing(true);
     try {
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { supabase } = await import('@/integrations/supabase/client');
+      
+      // Process each file through the enhanced template processor
+      const processedFiles = [];
+      let totalRecordsProcessed = 0;
+      
+      for (const file of uploadedFiles) {
+        // Convert data back to CSV format for processing
+        const csvContent = [
+          file.headers.join(','),
+          ...file.data.map(row => 
+            file.headers.map(header => {
+              const value = row[header];
+              return typeof value === 'string' && value.includes(',') 
+                ? `"${value}"` 
+                : String(value || '');
+            }).join(',')
+          )
+        ].join('\n');
+        
+        // Create a file blob from the CSV content
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const processFile = new File([blob], file.fileName, { type: 'text/csv' });
+        
+        // Map canonical file names to template names (remove .csv extension and normalize)
+        const templateNameMapping: { [key: string]: string } = {
+          'balance-situacion.csv': 'balance-situacion',
+          'cuenta-pyg.csv': 'cuenta-pyg', 
+          'estado-flujos.csv': 'estado-flujos',
+          'pool-deuda.csv': 'pool-deuda',
+          'datos-operativos.csv': 'datos-operativos',
+          // Handle variations in casing and naming
+          'Balance-Situacion.csv': 'balance-situacion',
+          'Cuenta-PyG.csv': 'cuenta-pyg',
+          'Estado-Flujos.csv': 'estado-flujos',
+          'Pool-Deuda.csv': 'pool-deuda',
+          'Datos-Operativos.csv': 'datos-operativos'
+        };
+        
+        const templateName = templateNameMapping[file.canonicalName] || 
+                            file.canonicalName.toLowerCase().replace('.csv', '');
+
+        // Create FormData for the edge function
+        const formData = new FormData();
+        formData.append('file', processFile);
+        formData.append('company_id', companyInfo.companyId);
+        formData.append('template_name', templateName);
+        file.detectedYears.forEach(year => 
+          formData.append('selected_years[]', year.toString())
+        );
+        
+        // Call enhanced template processor
+        const { data: processingResult, error: processingError } = await supabase.functions.invoke(
+          'enhanced-template-processor', 
+          { 
+            body: formData,
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
+        
+        if (processingError) {
+          throw new Error(`Error procesando ${file.fileName}: ${processingError.message}`);
+        }
+        
+        if (!processingResult?.success) {
+          throw new Error(`Error en ${file.fileName}: ${processingResult?.error || 'Error desconocido'}`);
+        }
+        
+        processedFiles.push({
+          fileName: file.fileName,
+          canonicalName: file.canonicalName,
+          uploadId: processingResult.upload_id,
+          recordsProcessed: file.data.length
+        });
+        
+        totalRecordsProcessed += file.data.length;
+      }
+      
+      // Now process the staged data to final tables using database function
+      const { data: normalizationResult, error: normalizationError } = await supabase
+        .rpc('normalize_financial_lines', {
+          _import_id: processedFiles[0]?.uploadId, // Use first upload ID as import session
+          _company_id: companyInfo.companyId
+        });
+      
+      if (normalizationError) {
+        console.warn('Normalization warning:', normalizationError);
+        // Continue even with normalization warnings
+      }
       
       const processedData = {
         companyInfo,
-        files: uploadedFiles.map(file => ({
-          fileName: file.fileName,
-          canonicalName: file.canonicalName,
-          data: file.data,
-          detectedYears: file.detectedYears
-        })),
-        totalRecords: uploadedFiles.reduce((acc, file) => acc + file.data.length, 0),
-        detectedYears: [...new Set(uploadedFiles.flatMap(f => f.detectedYears))].sort()
+        files: processedFiles,
+        totalRecords: totalRecordsProcessed,
+        detectedYears: [...new Set(uploadedFiles.flatMap(f => f.detectedYears))].sort(),
+        normalizationResult
       };
       
       onComplete(processedData);
       
       toast({
         title: "Datos procesados exitosamente",
-        description: `${processedData.totalRecords} registros guardados en la base de datos`,
+        description: `${totalRecordsProcessed} registros guardados en la base de datos`,
       });
     } catch (error) {
       console.error('Error processing data:', error);
       toast({
         title: "Error al procesar",
-        description: "Hubo un problema procesando los datos",
+        description: error instanceof Error ? error.message : "Hubo un problema procesando los datos",
         variant: "destructive"
       });
     } finally {

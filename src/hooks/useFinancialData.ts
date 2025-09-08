@@ -218,7 +218,7 @@ export const useFinancialData = (dataType?: string, companyId?: string) => {
         setLoading(false);
       }
     }
-  }, [dataType, companyId, contextCompanyId, validateCompanyAccess]); // <-- added missing deps
+  }, [dataType, companyId, contextCompanyId]); // validateCompanyAccess is memoized in context
 
   // Group financial data by year and data type
   const groupFinancialData = (data: any[], type: string): FinancialDataPoint[] => {
