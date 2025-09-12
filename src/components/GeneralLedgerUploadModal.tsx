@@ -336,10 +336,9 @@ export const GeneralLedgerUploadModal: React.FC<GeneralLedgerUploadModalProps> =
           throw upsertCompanyError;
         }
 
-        // Assign memberships to current admin and target user
+        // Assign membership to current admin
         const membershipsToUpsert = [
-          { company_id: newCompanyId, user_id: currentUser.id, role: 'admin' },
-          { company_id: newCompanyId, user_id, role: 'user' }
+          { company_id: newCompanyId, user_id: currentUser.id, role: 'admin' }
         ];
 
         const { error: membershipError } = await supabase

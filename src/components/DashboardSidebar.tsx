@@ -175,6 +175,12 @@ export const DashboardSidebar = () => {
           icon: Shield,
           color: 'text-primary'
         },
+        {
+          path: '/debug',
+          label: 'Sistema Debug',
+          icon: AlertTriangle,
+          color: 'text-warning-600'
+        },
       ]
     }] : []),
     {

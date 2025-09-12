@@ -77,6 +77,7 @@ import AdminEmpresasPage from "./pages/AdminEmpresasPage";
 import AdminCargasPage from "./pages/AdminCargasPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import { RootRedirect } from "./components/RootRedirect";
+import DebugPage from "./pages/DebugPage";
 
 // Loading component for lazy-loaded modules
 const ModuleLoadingFallback = () => (
@@ -228,6 +229,12 @@ const App = () => {
               <Route path="/admin/carga-plantillas" element={<AdminCargaPlantillasPage />} />
               <Route path="/admin/cargas" element={<AdminCargasPage />} />
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+              <Route path="/debug" element={<DebugPage />} />
+            </Route>
+            
+            {/* Public Debug Route - Accessible to all authenticated users */}
+            <Route element={<RequireAuth><Outlet /></RequireAuth>}>
+              <Route path="/debug-public" element={<DebugPage />} />
             </Route>
             
             <Route path="*" element={<Navigate to="/" replace />} />
