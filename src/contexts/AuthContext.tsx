@@ -255,26 +255,14 @@ const AuthProviderInner: React.FC<AuthProviderProps> = ({ children }) => {
   const isLoading = state.matches('initializing') || state.matches('authenticating') || roleLoading;
   const currentRole = state.context.role !== 'none' ? state.context.role : (queriedRole || 'none');
 
-  // Legacy compatibility - Fix authStatus computation
-  const authStatus: 'idle' | 'authenticating' | 'authenticated' | 'unauthenticated' = 
-    state.matches('authenticating') ? 'authenticating' :
-    state.matches('authenticated') ? 'authenticated' :
-    state.matches('unauthenticated') ? 'unauthenticated' : 'idle';
+  // Legacy compatibility
+  const authStatus = state.matches('authenticating') ? 'authenticating' :
+                    state.matches('authenticated') ? 'authenticated' :
+                    state.matches('unauthenticated') ? 'unauthenticated' : 'idle';
 
-  const roleStatus: 'idle' | 'resolving' | 'ready' | 'error' = 
-    roleLoading ? 'resolving' :
-    roleError ? 'error' :
-    currentRole !== 'none' ? 'ready' : 'idle';
-
-  // Add debugging for the loop issue
-  console.debug('[AUTH-CONTEXT] State debug:', {
-    machineState: state.value,
-    authStatus,
-    roleStatus,
-    currentRole,
-    roleLoading,
-    roleError: roleError?.message
-  });
+  const roleStatus = roleLoading ? 'resolving' :
+                    roleError ? 'error' :
+                    currentRole !== 'none' ? 'ready' : 'idle';
 
   const contextValue: AuthContextType = {
     user: state.context.user,
