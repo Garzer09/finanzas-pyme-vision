@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Upload, History, BarChart3, Plus, Calendar, Briefcase, MoreVertical, Edit, Users, Trash2, Settings } from 'lucide-react';
+import { Building2, Database, History, BarChart3, Plus, Calendar, Briefcase, MoreVertical, Edit, Users, Trash2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -541,10 +541,10 @@ export const AdminEmpresasPage: React.FC = () => {
                               variant="default" 
                               size="sm" 
                               className="w-full gap-2"
-                              onClick={() => navigate(`/admin/carga-plantillas?companyId=${company.id}`)}
+                              onClick={() => navigate(`/excel-upload?companyId=${company.id}`)}
                             >
-                              <Upload className="h-4 w-4" />
-                              Cargar Plantillas CSV
+                              <Database className="h-4 w-4" />
+                              Cargar Datos
                             </Button>
                             
                             <div className="grid grid-cols-2 gap-2">
