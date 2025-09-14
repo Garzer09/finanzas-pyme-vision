@@ -78,6 +78,7 @@ import AdminCargasPage from "./pages/AdminCargasPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import { RootRedirect } from "./components/RootRedirect";
 import DebugPage from "./pages/DebugPage";
+import { FinancialWizardPage } from "./pages/FinancialWizardPage";
 
 // Loading component for lazy-loaded modules
 const ModuleLoadingFallback = () => (
@@ -229,6 +230,7 @@ const App = () => {
               <Route path="/admin/carga-plantillas" element={<AdminCargaPlantillasPage />} />
               <Route path="/admin/cargas" element={<AdminCargasPage />} />
               <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+              <Route path="/wizard-datos/:companyId" element={<FinancialWizardPage />} />
               <Route path="/debug" element={<DebugPage />} />
             </Route>
             

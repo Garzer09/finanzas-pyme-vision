@@ -541,7 +541,7 @@ export const AdminEmpresasPage: React.FC = () => {
                               variant="default" 
                               size="sm" 
                               className="w-full gap-2"
-                              onClick={() => navigate(`/excel-upload?companyId=${company.id}`)}
+                              onClick={() => navigate(`/wizard-datos/${company.id}`)}
                             >
                               <Database className="h-4 w-4" />
                               Cargar Datos
