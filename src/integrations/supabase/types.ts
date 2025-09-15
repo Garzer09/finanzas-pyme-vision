@@ -86,6 +86,27 @@ export type Database = {
         }
         Relationships: []
       }
+      balance_section_mapping: {
+        Row: {
+          canonical_section: string
+          created_at: string | null
+          id: number
+          input_variant: string
+        }
+        Insert: {
+          canonical_section: string
+          created_at?: string | null
+          id?: number
+          input_variant: string
+        }
+        Update: {
+          canonical_section?: string
+          created_at?: string | null
+          id?: number
+          input_variant?: string
+        }
+        Relationships: []
+      }
       benchmarks_ratios: {
         Row: {
           company_id: string
@@ -1107,6 +1128,7 @@ export type Database = {
           section: string | null
           sheet_name: string | null
           source: string | null
+          source_hash: string | null
           status: string
           user_id: string
         }
@@ -1129,6 +1151,7 @@ export type Database = {
           section?: string | null
           sheet_name?: string | null
           source?: string | null
+          source_hash?: string | null
           status?: string
           user_id: string
         }
@@ -1151,6 +1174,7 @@ export type Database = {
           section?: string | null
           sheet_name?: string | null
           source?: string | null
+          source_hash?: string | null
           status?: string
           user_id?: string
         }
@@ -1281,6 +1305,7 @@ export type Database = {
           period_type: string
           period_year: number
           section: string
+          source_hash: string | null
           uploaded_by: string | null
         }
         Insert: {
@@ -1297,6 +1322,7 @@ export type Database = {
           period_type: string
           period_year: number
           section: string
+          source_hash?: string | null
           uploaded_by?: string | null
         }
         Update: {
@@ -1313,6 +1339,7 @@ export type Database = {
           period_type?: string
           period_year?: number
           section?: string
+          source_hash?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
@@ -1340,6 +1367,7 @@ export type Database = {
           period_quarter: number | null
           period_type: string
           period_year: number
+          source_hash: string | null
           uploaded_by: string | null
         }
         Insert: {
@@ -1356,6 +1384,7 @@ export type Database = {
           period_quarter?: number | null
           period_type: string
           period_year: number
+          source_hash?: string | null
           uploaded_by?: string | null
         }
         Update: {
@@ -1372,6 +1401,7 @@ export type Database = {
           period_quarter?: number | null
           period_type?: string
           period_year?: number
+          source_hash?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
@@ -1398,6 +1428,7 @@ export type Database = {
           period_quarter: number | null
           period_type: string
           period_year: number
+          source_hash: string | null
           uploaded_by: string | null
         }
         Insert: {
@@ -1413,6 +1444,7 @@ export type Database = {
           period_quarter?: number | null
           period_type: string
           period_year: number
+          source_hash?: string | null
           uploaded_by?: string | null
         }
         Update: {
@@ -1428,6 +1460,7 @@ export type Database = {
           period_quarter?: number | null
           period_type?: string
           period_year?: number
+          source_hash?: string | null
           uploaded_by?: string | null
         }
         Relationships: [
@@ -1896,6 +1929,47 @@ export type Database = {
         }
         Relationships: []
       }
+      staging_errors: {
+        Row: {
+          column_name: string | null
+          created_at: string | null
+          error_code: string | null
+          error_detail: string | null
+          id: number
+          job_id: string | null
+          raw_record: Json | null
+          row_number: number
+        }
+        Insert: {
+          column_name?: string | null
+          created_at?: string | null
+          error_code?: string | null
+          error_detail?: string | null
+          id?: number
+          job_id?: string | null
+          raw_record?: Json | null
+          row_number: number
+        }
+        Update: {
+          column_name?: string | null
+          created_at?: string | null
+          error_code?: string | null
+          error_detail?: string | null
+          id?: number
+          job_id?: string | null
+          raw_record?: Json | null
+          row_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staging_errors_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "upload_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_plans: {
         Row: {
           created_at: string
@@ -2232,6 +2306,98 @@ export type Database = {
           },
         ]
       }
+      upload_job_logs: {
+        Row: {
+          created_at: string | null
+          duration_ms: number | null
+          id: number
+          job_id: string | null
+          level: string
+          message: string
+          meta: Json | null
+          phase: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_ms?: number | null
+          id?: number
+          job_id?: string | null
+          level: string
+          message: string
+          meta?: Json | null
+          phase?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_ms?: number | null
+          id?: number
+          job_id?: string | null
+          level?: string
+          message?: string
+          meta?: Json | null
+          phase?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upload_job_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "upload_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      upload_jobs: {
+        Row: {
+          company_id: string
+          created_at: string | null
+          error_message: string | null
+          file_path: string
+          file_sha256: string | null
+          file_type: string
+          id: string
+          rows_error: number | null
+          rows_ok: number | null
+          rows_total: number | null
+          status: string
+          updated_at: string | null
+          user_id: string
+          validate_only: boolean | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string | null
+          error_message?: string | null
+          file_path: string
+          file_sha256?: string | null
+          file_type: string
+          id?: string
+          rows_error?: number | null
+          rows_ok?: number | null
+          rows_total?: number | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+          validate_only?: boolean | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string | null
+          error_message?: string | null
+          file_path?: string
+          file_sha256?: string | null
+          file_type?: string
+          id?: string
+          rows_error?: number | null
+          rows_ok?: number | null
+          rows_total?: number | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+          validate_only?: boolean | null
+        }
+        Relationships: []
+      }
       user_kpis: {
         Row: {
           created_at: string
@@ -2416,6 +2582,17 @@ export type Database = {
       }
     }
     Functions: {
+      calculate_source_hash: {
+        Args: {
+          p_anio: number
+          p_concepto: string
+          p_importe: number
+          p_job_id: string
+          p_periodo: string
+          p_seccion?: string
+        }
+        Returns: string
+      }
       get_accessible_companies: {
         Args: { _user_id?: string }
         Returns: {
@@ -2458,6 +2635,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      normalize_balance_section: {
+        Args: { input_section: string }
+        Returns: string
+      }
       normalize_financial_lines: {
         Args: { _company_id: string; _import_id: string }
         Returns: Json
@@ -2471,12 +2652,16 @@ export type Database = {
         Returns: string
       }
       process_financial_staging: {
-        Args: { p_job: string }
+        Args: { p_company_id: string; p_job_id: string } | { p_job: string }
         Returns: Json
       }
       promote_user_to_admin: {
         Args: { target_user_id: string }
         Returns: undefined
+      }
+      refresh_financial_materialized_views: {
+        Args: { p_company_id: string }
+        Returns: Json
       }
       refresh_materialized_views: {
         Args: { _company: string }
