@@ -81,7 +81,12 @@ export function UploadJobStatus({ jobId, onComplete }: UploadJobStatusProps) {
         .order('created_at', { ascending: true });
 
       if (logsError) throw logsError;
-      setLogs(logsData || []);
+      // Cast the database types to match our interface
+      const typedLogs = (logsData || []).map(log => ({
+        ...log,
+        level: log.level as 'info' | 'warn' | 'error'
+      }));
+      setLogs(typedLogs);
 
     } catch (error) {
       console.error('Error loading job data:', error);
@@ -126,7 +131,11 @@ export function UploadJobStatus({ jobId, onComplete }: UploadJobStatusProps) {
         },
         (payload) => {
           if (payload.new) {
-            setLogs(prev => [...prev, payload.new as JobLog]);
+            const newLog = {
+              ...(payload.new as any),
+              level: (payload.new as any).level as 'info' | 'warn' | 'error'
+            };
+            setLogs(prev => [...prev, newLog]);
           }
         }
       )

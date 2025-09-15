@@ -77,6 +77,7 @@ import AdminCargasPage from "./pages/AdminCargasPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import { RootRedirect } from "./components/RootRedirect";
 import DebugPage from "./pages/DebugPage";
+import DataUploadPage from "./pages/DataUploadPage";
 
 // Loading component for lazy-loaded modules
 const ModuleLoadingFallback = () => (
@@ -129,6 +130,9 @@ const App = () => {
                 <Route index element={<ViewerDashboardPage />} />
                 {/* Descripción de la empresa dentro del contexto de compañía */}
                 <Route path="descripcion-empresa" element={<CompanyDescriptionModule />} />
+                
+                {/* Data Upload */}
+                <Route path="data-upload" element={<DataUploadPage />} />
                 
                 {/* Core Financial Analysis */}
                 <Route path="cuenta-pyg" element={<CuentaPyGPage />} />

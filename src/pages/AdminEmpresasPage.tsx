@@ -478,11 +478,15 @@ export const AdminEmpresasPage: React.FC = () => {
                                     <Users className="h-4 w-4" />
                                     Asignar usuarios
                                   </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleManageModules(company)} className="gap-2">
-                                    <Settings className="h-4 w-4" />
-                                    Gestionar módulos
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
+                                   <DropdownMenuItem onClick={() => handleManageModules(company)} className="gap-2">
+                                     <Settings className="h-4 w-4" />
+                                     Gestionar módulos
+                                   </DropdownMenuItem>
+                                   <DropdownMenuItem onClick={() => navigate(`/app/${company.id}/data-upload`)} className="gap-2">
+                                     <Upload className="h-4 w-4" />
+                                     Cargar datos
+                                   </DropdownMenuItem>
+                                   <DropdownMenuSeparator />
                                   <DropdownMenuItem 
                                     onClick={() => {
                                       setSelectedCompany(company);
