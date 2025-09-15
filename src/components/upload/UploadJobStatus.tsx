@@ -13,7 +13,9 @@ import {
   XCircle, 
   Download, 
   RefreshCw,
-  Loader2
+  Loader2,
+  BarChart3,
+  Plus
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -368,6 +370,37 @@ export function UploadJobStatus({ jobId, onComplete }: UploadJobStatusProps) {
             }
           </AlertDescription>
         </Alert>
+      )}
+
+      {/* Navigation Actions */}
+      {job.status === 'completed' && (
+        <Card>
+          <CardHeader>
+            <CardTitle>¿Qué quieres hacer ahora?</CardTitle>
+            <CardDescription>
+              Elige tu próximo paso para continuar trabajando con los datos
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Button 
+                onClick={() => window.location.href = window.location.pathname.replace('/data-upload', '')}
+                className="w-full"
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Ver Dashboard
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => onComplete?.()}
+                className="w-full"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Subir Otro Archivo
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
