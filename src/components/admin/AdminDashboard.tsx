@@ -18,7 +18,6 @@ import { UserCreationWizard } from './UserCreationWizard';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { UserCard } from './UserCard';
 import { AdminUserDashboard } from './AdminUserDashboard';
-import { AdminDataManager } from './AdminDataManager';
 import { AdminImpersonationProvider, useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
 import { GeneralLedgerUploadModal } from '@/components/GeneralLedgerUploadModal';
 import { UserMembershipManager } from './UserMembershipManager';

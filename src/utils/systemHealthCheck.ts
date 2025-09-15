@@ -196,40 +196,16 @@ function validateEnvironment(): SystemHealthCheck {
 }
 
 /**
- * Validates file upload system readiness
+ * Validates file upload system readiness - DISABLED
+ * File upload system has been completely removed
  */
 async function validateFileUpload(): Promise<SystemHealthCheck> {
-  try {
-    // Test storage bucket access
-    const { data, error } = await supabase.storage
-      .from('excel-files')
-      .list('', { limit: 1 });
-
-    if (error) {
-      return {
-        component: 'File Upload System',
-        status: 'critical',
-        message: 'Storage bucket access failed',
-        details: error,
-        timestamp: new Date()
-      };
-    }
-
-    return {
-      component: 'File Upload System',
-      status: 'healthy',
-      message: 'File upload system operational',
-      timestamp: new Date()
-    };
-  } catch (error) {
-    return {
-      component: 'File Upload System',
-      status: 'critical',
-      message: 'File upload system failure',
-      details: error,
-      timestamp: new Date()
-    };
-  }
+  return {
+    component: 'File Upload System',
+    status: 'warning',
+    message: 'File upload system has been disabled',
+    timestamp: new Date()
+  };
 }
 
 /**

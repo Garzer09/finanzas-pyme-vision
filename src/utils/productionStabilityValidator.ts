@@ -72,35 +72,14 @@ async function validateEdgeFunctions(): Promise<{ issues: string[], warnings: st
 }
 
 /**
- * Validates file upload system stability
+ * Validates file upload system stability - DISABLED
+ * File upload system has been completely removed
  */
 async function validateFileUploadStability(): Promise<{ issues: string[], warnings: string[] }> {
-  const issues: string[] = [];
-  const warnings: string[] = [];
-
-  try {
-    // Check file size limits
-    const maxFileSize = import.meta.env.VITE_MAX_FILE_SIZE;
-    if (!maxFileSize) {
-      warnings.push('File size limit not configured');
-    } else {
-      const sizeLimit = parseInt(maxFileSize);
-      if (sizeLimit > 50 * 1024 * 1024) { // 50MB
-        warnings.push('File size limit unusually high (>50MB)');
-      }
-    }
-
-    // Check allowed file types
-    const allowedTypes = import.meta.env.VITE_ALLOWED_FILE_TYPES;
-    if (!allowedTypes) {
-      issues.push('Allowed file types not configured');
-    }
-
-  } catch (error) {
-    issues.push(`File upload validation failed: ${error}`);
-  }
-
-  return { issues, warnings };
+  return {
+    issues: [],
+    warnings: ['File upload system has been disabled']
+  };
 }
 
 /**

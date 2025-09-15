@@ -19,8 +19,7 @@ import { RequireAdmin } from "./components/RequireAdmin";
 import AuthPage from "./pages/AuthPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
-// Removed unused pages: Index, LandingPage, NotFound
-import ExcelUploadPage from "./pages/ExcelUploadPage";
+// Removed unused pages: Index, LandingPage, NotFound, ExcelUploadPage
 import FilesDashboardPage from "./pages/FilesDashboardPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 // Core Financial Analysis Pages
@@ -120,7 +119,6 @@ const App = () => {
               <Route path="/app/mis-empresas" element={<ViewerMisEmpresasPage />} />
               
               {/* Legacy routes for backwards compatibility */}
-              <Route path="/subir-excel" element={<ExcelUploadPage />} />
               <Route path="/archivos" element={<FilesDashboardPage />} />
               <Route path="/suscripcion" element={<SubscriptionPage />} />
               {/** Ruta de demo eliminada para producción **/}

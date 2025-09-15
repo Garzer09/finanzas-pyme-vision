@@ -233,13 +233,7 @@ export interface TemplateManagerProps {
   companyId?: string;
 }
 
-export interface EnhancedUploadProps {
-  templateSchema?: TemplateSchema;
-  companyId?: string;
-  onUploadComplete?: (result: ProcessFileResponse) => void;
-  onValidationUpdate?: (results: ValidationResults) => void;
-  allowTemplateSelection?: boolean;
-}
+// Removed: EnhancedUploadProps interface - no longer used after removing upload functionality
 
 export interface ValidationSummaryProps {
   validationResults: ValidationResults;

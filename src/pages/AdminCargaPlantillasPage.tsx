@@ -1,58 +1,12 @@
 import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AdminTopNavigation } from '@/components/AdminTopNavigation';
-import { LongFormatUploadWizard } from '@/components/admin/LongFormatUploadWizard';
 import { RoleBasedAccess } from '@/components/RoleBasedAccess';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 
 export const AdminCargaPlantillasPage: React.FC = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const companyId = searchParams.get('companyId');
   
-  const handleComplete = (processedCompanyId: string) => {
-    toast.success('Datos procesados exitosamente');
-    // Navigate to description page to review the uploaded qualitative data
-    if (processedCompanyId) {
-      navigate(`/app/${processedCompanyId}/balance-situacion`);
-    } else {
-      navigate('/admin/dashboard');
-    }
-  };
-  
-  const handleCancel = () => {
-    navigate(-1);
-  };
-
-  const handleCreateDemoCompany = async () => {
-    try {
-      // Crea empresa demo rápida y navega a carga con su companyId
-      const { data: existing } = await supabase
-        .from('companies')
-        .select('id')
-        .eq('name', 'Empresa Demo SA')
-        .single();
-
-      let id = existing?.id as string | undefined;
-      if (!id) {
-        const { data, error } = await supabase
-          .from('companies')
-          .insert({ name: 'Empresa Demo SA', sector: 'Servicios', currency_code: 'EUR', accounting_standard: 'PGC' })
-          .select('id')
-          .single();
-        if (error) throw error;
-        id = data?.id as string;
-      }
-
-      toast.success('Empresa Demo creada');
-      navigate(`/admin/carga-plantillas?companyId=${id}`);
-    } catch (e: any) {
-      toast.error(`No se pudo crear la Empresa Demo: ${e?.message || 'Error'}`);
-    }
-  };
-
   return (
     <RoleBasedAccess allowedRoles={['admin']}>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-steel-50/30">
@@ -67,28 +21,26 @@ export const AdminCargaPlantillasPage: React.FC = () => {
               
               <div className="relative z-10">
                 <h1 className="text-4xl font-bold text-slate-900 mb-4 bg-gradient-to-r from-steel-600 to-cadet-600 bg-clip-text text-transparent">
-                  Carga de Plantillas
+                  Carga de Plantillas - DESHABILITADA
                 </h1>
                 <p className="text-slate-700 text-lg font-medium">
-                  Sistema unificado de carga de datos financieros y cualitativos en formato Long
+                  El flujo de carga de datos ha sido completamente deshabilitado.
                 </p>
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-yellow-800">
+                    ⚠️ La funcionalidad de carga de archivos Excel/CSV ha sido eliminada del sistema.
+                    Las tablas de Supabase se mantienen intactas para uso futuro.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Acciones rápidas */}
-          <div className="mb-6 flex items-center gap-3">
-            <Button variant="default" onClick={handleCreateDemoCompany}>
-              Crear Empresa Demo y Cargar Plantillas
+          <div className="text-center py-12">
+            <Button variant="outline" onClick={() => navigate('/admin/dashboard')}>
+              Volver al Dashboard Admin
             </Button>
           </div>
-
-          {/* Long Format Upload Wizard */}
-          <LongFormatUploadWizard 
-            companyId={companyId}
-            onComplete={handleComplete}
-            onCancel={handleCancel}
-          />
         </div>
       </div>
     </RoleBasedAccess>
