@@ -41,9 +41,9 @@ function normalizeDecimal(value: string): string {
   return value?.replace(/\./g, '').replace(',', '.') ?? value;
 }
 
-function calculateFileHash(data: Uint8Array): string {
+async function calculateFileHash(data: Uint8Array): Promise<string> {
   const crypto = globalThis.crypto;
-  const hashBuffer = crypto.subtle.digestSync("SHA-256", data);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(hashBuffer))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
@@ -132,7 +132,7 @@ serve(async (req) => {
 
     // Calculate file hash for deduplication (if not validate_only)
     if (!validate_only) {
-      const fileHash = calculateFileHash(fileBytes);
+      const fileHash = await calculateFileHash(fileBytes);
       
       // Check for duplicate file
       const { data: existingJob } = await svcClient
