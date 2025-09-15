@@ -107,7 +107,7 @@ export default function DataUploadPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between mb-8">
               {steps.map((step, index) => (
-                <React.Fragment key={step.number}>
+                <div key={step.number} className="flex items-center">
                   <div className="flex flex-col items-center space-y-2">
                     <div className={`
                       w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm
@@ -124,12 +124,13 @@ export default function DataUploadPage() {
                         step.number
                       )}
                     </div>
-                    <div className="text-center">
-                      <div className="font-medium text-sm">{step.title}</div>
-                      <div className="text-xs text-muted-foreground max-w-24">
-                        {step.description}
-                      </div>
-                    </div>
+                    <span className={`text-sm font-medium ${
+                      getStepStatus(step.number) === 'completed' || getStepStatus(step.number) === 'current'
+                        ? 'text-foreground' 
+                        : 'text-muted-foreground'
+                    }`}>
+                      {step.title}
+                    </span>
                   </div>
                   {index < steps.length - 1 && (
                     <div className={`
@@ -140,7 +141,7 @@ export default function DataUploadPage() {
                       }
                     `} />
                   )}
-                </React.Fragment>
+                </div>
               ))}
             </div>
           </CardContent>
