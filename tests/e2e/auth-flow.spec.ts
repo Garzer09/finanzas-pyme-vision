@@ -107,10 +107,20 @@ test.describe('Basic Functionality Tests', () => {
     // Go offline
     await context.setOffline(true);
     
-    // Try to navigate
-    await page.reload();
+    // Try to navigate - expect this to fail with offline error
+    let reloadFailed = false;
+    try {
+      await page.reload();
+    } catch (error) {
+      // Expect reload to fail when offline
+      expect(error.message).toMatch(/net::ERR_INTERNET_DISCONNECTED|Failed to load resource|Network error/);
+      reloadFailed = true;
+    }
     
-    // Should handle offline gracefully
+    // Ensure the reload actually failed as expected
+    expect(reloadFailed).toBe(true);
+    
+    // Should handle offline gracefully - check that page still has content from before going offline
     const content = await page.textContent('body').catch(() => '');
     expect(content).toBeTruthy(); // Should show some content, possibly offline page
   });
