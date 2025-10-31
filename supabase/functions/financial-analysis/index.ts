@@ -122,7 +122,7 @@ Devuelve el análisis en formato JSON estructurado:
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-3-sonnet-20240229',
         max_tokens: 4000,
         messages: [{
           role: 'user',

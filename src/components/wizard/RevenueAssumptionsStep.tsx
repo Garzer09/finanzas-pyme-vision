@@ -2,22 +2,21 @@ import { UseFormReturn } from "react-hook-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Button } from "@/components/ui/button"
-import { HelpCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { HelpCircle } from "lucide-react"
 import { SliderInput } from "@/components/ui/slider-input"
 import { NumberInput } from "@/components/ui/number-input"
-import { type FinancialAssumptions } from "@/schemas/financial-assumptions"
+import { RevenueAssumptions } from "@/schemas/financial-assumptions"
 
 interface RevenueAssumptionsStepProps {
-  form: UseFormReturn<FinancialAssumptions>
+  form: UseFormReturn<RevenueAssumptions>
 }
 
 export function RevenueAssumptionsStep({ form }: RevenueAssumptionsStepProps) {
   const { register, watch, setValue, formState: { errors } } = form
-
-  const salesGrowth = watch("revenueAssumptions.salesGrowth") || 0
-  const averageUnitPrice = watch("revenueAssumptions.averageUnitPrice") || 0
+  
+  const salesGrowth = watch("salesGrowth") || 0
+  const averageUnitPrice = watch("averageUnitPrice") || 0
 
   return (
     <Card className="w-full">
@@ -32,39 +31,37 @@ export function RevenueAssumptionsStep({ form }: RevenueAssumptionsStepProps) {
           {/* Sales Growth */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label>Crecimiento de ventas anual (%)</Label>
+              <Label htmlFor="salesGrowth">Crecimiento de Ventas (%)</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <HelpCircle className="h-4 w-4 text-muted-foreground cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Tasa de crecimiento anual esperada de las ventas</p>
+                    <p>Porcentaje de crecimiento anual esperado en las ventas</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
             <SliderInput
-              label="Crecimiento de ventas anual"
+              label=""
               value={salesGrowth}
-              onValueChange={(value) => setValue("revenueAssumptions.salesGrowth", value)}
+              onValueChange={(value) => setValue("salesGrowth", value)}
               min={0}
               max={100}
               step={0.1}
               formatValue={(value) => `${value.toFixed(1)}%`}
-              className="flex-1"
+              aria-label="Crecimiento de ventas"
             />
-            {errors.revenueAssumptions?.salesGrowth && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.revenueAssumptions.salesGrowth.message}
-              </p>
+            {errors.salesGrowth && (
+              <p className="text-destructive text-sm">{errors.salesGrowth.message}</p>
             )}
           </div>
 
           {/* Average Unit Price */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label>Precio unitario promedio (€)</Label>
+              <Label htmlFor="averageUnitPrice">Precio Medio por Unidad (€)</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -77,17 +74,16 @@ export function RevenueAssumptionsStep({ form }: RevenueAssumptionsStepProps) {
               </TooltipProvider>
             </div>
             <NumberInput
-              label="Precio unitario promedio (€)"
+              label=""
               value={averageUnitPrice}
-              onValueChange={(value) => setValue("revenueAssumptions.averageUnitPrice", value)}
+              onValueChange={(value) => setValue("averageUnitPrice", value)}
               min={0}
               step={0.01}
-              className="flex-1"
+              formatValue={(value) => `${value.toFixed(2)}€`}
+              aria-label="Precio medio por unidad"
             />
-            {errors.revenueAssumptions?.averageUnitPrice && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.revenueAssumptions.averageUnitPrice.message}
-              </p>
+            {errors.averageUnitPrice && (
+              <p className="text-destructive text-sm">{errors.averageUnitPrice.message}</p>
             )}
           </div>
         </div>
@@ -95,7 +91,7 @@ export function RevenueAssumptionsStep({ form }: RevenueAssumptionsStepProps) {
         {/* Product Mix */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Label>Mix de productos (opcional)</Label>
+            <Label htmlFor="productMix">Mix de Productos (Opcional)</Label>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -108,14 +104,13 @@ export function RevenueAssumptionsStep({ form }: RevenueAssumptionsStepProps) {
             </TooltipProvider>
           </div>
           <Textarea
-            placeholder="Ej: 60% productos premium, 40% productos estándar"
+            id="productMix"
+            placeholder="Describe la composición de productos y su peso en las ventas..."
             className="min-h-[100px]"
-            {...register("revenueAssumptions.productMix")}
+            {...register("productMix")}
           />
-          {errors.revenueAssumptions?.productMix && (
-            <p className="text-sm text-destructive mt-1">
-              {errors.revenueAssumptions.productMix.message}
-            </p>
+          {errors.productMix && (
+            <p className="text-destructive text-sm">{errors.productMix.message}</p>
           )}
         </div>
       </CardContent>

@@ -1,25 +1,15 @@
-import React, { useEffect, Suspense } from 'react';
-import { useLocation } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { DebugToolbar } from "@/components/DebugToolbar";
-import { InactivityWarning } from "@/components/InactivityWarning";
-
-import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
-import { PeriodProvider } from "./contexts/PeriodContext";
-import { CompanyProvider } from "./contexts/CompanyContext";
-import { AdminImpersonationProvider } from "./contexts/AdminImpersonationContext";
-import { CompanyLayout } from "./components/CompanyLayout";
-
-import { RequireAuth } from "./components/RequireAuth";
-import { RequireAdmin } from "./components/RequireAdmin";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import AuthPage from "./pages/AuthPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
-
-// Removed unused pages: Index, LandingPage, NotFound, ExcelUploadPage
+import HomePage from "./pages/HomePage";
+import Index from "./pages/Index";
+import NotFound from "./pages/NotFound";
+import ExcelUploadPage from "./pages/ExcelUploadPage";
 import FilesDashboardPage from "./pages/FilesDashboardPage";
 import SubscriptionPage from "./pages/SubscriptionPage";
 // Core Financial Analysis Pages
@@ -32,32 +22,16 @@ import NOFAnalysisPage from "./pages/NOFAnalysisPage";
 import BreakEvenPage from "./pages/BreakEvenPage";
 import DebtPoolPage from "./pages/DebtPoolPage";
 import DebtServicePage from "./pages/DebtServicePage";
-
-// Lazy load heavy modules for better performance
-const KeyFinancialAssumptionsModule = React.lazy(() => 
-  import("./components/modules/KeyFinancialAssumptionsModule").then(m => ({ default: m.KeyFinancialAssumptionsModule }))
-);
-const FinancialAnalysisModule = React.lazy(() => 
-  import("./components/modules/FinancialAnalysisModule").then(m => ({ default: m.FinancialAnalysisModule }))
-);
-const ProjectionsModule = React.lazy(() => 
-  import("./components/modules/ProjectionsModule").then(m => ({ default: m.ProjectionsModule }))
-);
-const MetodologiaSensibilidadModule = React.lazy(() => 
-  import("./components/modules/MetodologiaSensibilidadModule").then(m => ({ default: m.MetodologiaSensibilidadModule }))
-);
-const EVAValuationModule = React.lazy(() => 
-  import("./components/modules/EVAValuationModule").then(m => ({ default: m.EVAValuationModule }))
-);
-const SituacionActualModule = React.lazy(() => 
-  import("./components/modules/SituacionActualModule").then(m => ({ default: m.SituacionActualModule }))
-);
-const SimulatorModule = React.lazy(() => 
-  import("./components/modules/SimulatorModule").then(m => ({ default: m.SimulatorModule }))
-);
-
-// Existing modules - keeping non-lazy for frequently used components
+// Existing modules
+import { KeyFinancialAssumptionsModule } from "./components/modules/KeyFinancialAssumptionsModule";
+import { FinancialAnalysisModule } from "./components/modules/FinancialAnalysisModule";
+import { ProjectionsModule } from "./components/modules/ProjectionsModule";
+import { SensitivityModuleNew } from "./components/modules/SensitivityModuleNew";
+import { EVAValuationModule } from "./components/modules/EVAValuationModule";
+import { SituacionActualModule } from "./components/modules/SituacionActualModule";
+import { SimulatorModule } from "./components/modules/SimulatorModule";
 import { PremisasIngresosModule } from "./components/modules/PremisasIngresosModule";
+
 import { ProfitLossCurrentModule } from "./components/modules/ProfitLossCurrentModule";
 import { BalanceSheetCurrentModule } from "./components/modules/BalanceSheetCurrentModule";
 import { FinancialRatiosCurrentModule } from "./components/modules/FinancialRatiosCurrentModule";
@@ -65,192 +39,75 @@ import { CompanyDescriptionModule } from "./components/modules/CompanyDescriptio
 import { AnalyticalPLCurrentModule } from "./components/modules/AnalyticalPLCurrentModule";
 import { SalesSegmentsModule } from "./components/modules/SalesSegmentsModule";
 import ConclusionsPage from "./pages/ConclusionsPage";
-import AdminSettingsPage from "./pages/AdminSettingsPage";
-import AdminUsersPage from "./pages/AdminUsersPage";
-import ViewerMisEmpresasPage from "./pages/ViewerMisEmpresasPage";
-import ViewerDashboardPage from "./pages/ViewerDashboardPage";
-import { SessionRecovery } from "@/components/SessionRecovery";
 
-import { AdminCargaPlantillasPage } from "./pages/AdminCargaPlantillasPage";
-import AdminEmpresasPage from "./pages/AdminEmpresasPage";
-import AdminCargasPage from "./pages/AdminCargasPage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import { RootRedirect } from "./components/RootRedirect";
-import DebugPage from "./pages/DebugPage";
-import DataUploadPage from "./pages/DataUploadPage";
+const queryClient = new QueryClient();
 
-// Loading component for lazy-loaded modules
-const ModuleLoadingFallback = () => (
-  <div className="flex items-center justify-center h-64">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-    <span className="ml-3 text-muted-foreground">Cargando módulo...</span>
+const App = () => (
+  <div className="dark">
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Routes>
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/" element={<Index />} />
+            <Route path="/home" element={<HomePage />} />
+           <Route path="/subir-excel" element={<ExcelUploadPage />} />
+           <Route path="/archivos" element={<FilesDashboardPage />} />
+           <Route path="/suscripcion" element={<SubscriptionPage />} />
+          <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
+          
+          {/* Core Financial Analysis */}
+          <Route path="/cuenta-pyg" element={<CuentaPyGPage />} />
+          <Route path="/balance-situacion" element={<BalanceSituacionPage />} />
+          <Route path="/ratios-financieros" element={<RatiosFinancierosPage />} />
+          
+          {/* Advanced Financial Analysis - NEW */}
+          <Route path="/flujos-caja" element={<CashFlowPage />} />
+          <Route path="/analisis-nof" element={<NOFAnalysisPage />} />
+          <Route path="/punto-muerto" element={<BreakEvenPage />} />
+          <Route path="/endeudamiento" element={<DebtPoolPage />} />
+          <Route path="/servicio-deuda" element={<DebtServicePage />} />
+          
+          {/* Sección 3 - Situación Actual */}
+          <Route path="/situacion-actual" element={<SituacionActualModule />} />
+          <Route path="/pyg-actual" element={<ProfitLossCurrentModule />} />
+          <Route path="/pyg-analitico-actual" element={<AnalyticalPLCurrentModule />} />
+          <Route path="/balance-actual" element={<BalanceSheetCurrentModule />} />
+          <Route path="/flujos-actual" element={<FinancialAnalysisModule />} />
+          <Route path="/ratios-actual" element={<FinancialRatiosCurrentModule />} />
+          <Route path="/punto-muerto-actual" element={<FinancialAnalysisModule />} />
+          <Route path="/endeudamiento-actual" element={<FinancialAnalysisModule />} />
+          <Route path="/servicio-deuda-actual" element={<FinancialAnalysisModule />} />
+          
+          <Route path="/nof-actual" element={<FinancialAnalysisModule />} />
+          <Route path="/segmentos-actual" element={<SalesSegmentsModule />} />
+          
+          {/* Sección 4 - Supuestos */}
+          <Route path="/supuestos-financieros" element={<KeyFinancialAssumptionsModule />} />
+          
+          {/* Sección 5 - Proyecciones */}
+          <Route path="/proyecciones" element={<ProjectionsModule />} />
+          
+          {/* Sección 6 - Sensibilidad */}
+          <Route path="/escenarios" element={<SensitivityModuleNew />} />
+          
+          {/* Sección 7 - Valoración EVA */}
+          <Route path="/valoracion-eva" element={<EVAValuationModule />} />
+          
+          {/* Simulador */}
+          <Route path="/simulador" element={<SimulatorModule />} />
+          
+          {/* Conclusiones */}
+          <Route path="/conclusiones" element={<ConclusionsPage />} />
+          
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
   </div>
 );
-
-const App = () => {
-  // Fase 1: Instrumentación - logs de navegación
-  const location = useLocation();
-  
-  React.useEffect(() => {
-    // Only log routes in development or when debug is enabled
-    if (process.env.NODE_ENV === 'development' || localStorage.getItem('debug_mode') === 'true') {
-      console.debug('[ROUTE]', location.pathname);
-    }
-  }, [location.pathname]);
-
-  return (
-  <ErrorBoundary>
-      <AuthProvider>
-        <SessionRecovery>
-          <AdminImpersonationProvider>
-            <CompanyProvider>
-              <PeriodProvider>
-                <TooltipProvider>
-            <Toaster />
-            <Sonner />
-          <Routes>
-            {/* Smart Root Route - Redirects based on auth status and role */}
-            <Route path="/" element={<RootRedirect />} />
-            <Route path="/auth" element={<AuthPage />} />
-            <Route path="/reset-password" element={<ResetPasswordPage />} />
-
-            {/* Protected Routes - Require Authentication */}
-            <Route element={<RequireAuth><Outlet /></RequireAuth>}>
-              {/* Company Selection Route */}
-              <Route path="/app/mis-empresas" element={<ViewerMisEmpresasPage />} />
-              
-              {/* Legacy routes for backwards compatibility */}
-              <Route path="/archivos" element={<FilesDashboardPage />} />
-              <Route path="/suscripcion" element={<SubscriptionPage />} />
-              {/** Ruta de demo eliminada para producción **/}
-              <Route path="/descripcion-empresa" element={<CompanyDescriptionModule />} />
-              
-              {/* Company-specific routes with dynamic companyId */}
-              <Route path="/app/:companyId" element={<CompanyLayout><Outlet /></CompanyLayout>}>
-                <Route index element={<ViewerDashboardPage />} />
-                {/* Descripción de la empresa dentro del contexto de compañía */}
-                <Route path="descripcion-empresa" element={<CompanyDescriptionModule />} />
-                
-                {/* Data Upload */}
-                <Route path="data-upload" element={<DataUploadPage />} />
-                
-                {/* Core Financial Analysis */}
-                <Route path="cuenta-pyg" element={<CuentaPyGPage />} />
-                <Route path="balance-situacion" element={<BalanceSituacionPage />} />
-                <Route path="ratios-financieros" element={<RatiosFinancierosPage />} />
-                
-                {/* Advanced Financial Analysis */}
-                <Route path="flujos-caja" element={<CashFlowPage />} />
-                <Route path="analisis-nof" element={<NOFAnalysisPage />} />
-                <Route path="punto-muerto" element={<BreakEvenPage />} />
-                <Route path="endeudamiento" element={<DebtPoolPage />} />
-                <Route path="servicio-deuda" element={<DebtServicePage />} />
-                
-                {/* Sección 3 - Situación Actual */}
-                <Route path="situacion-actual" element={
-                  <Suspense fallback={<ModuleLoadingFallback />}>
-                    <SituacionActualModule />
-                  </Suspense>
-                } />
-                <Route path="pyg-actual" element={<ProfitLossCurrentModule />} />
-                <Route path="pyg-analitico-actual" element={<AnalyticalPLCurrentModule />} />
-                <Route path="balance-actual" element={<BalanceSheetCurrentModule />} />
-                <Route path="flujos-actual" element={
-                  <Suspense fallback={<ModuleLoadingFallback />}>
-                    <FinancialAnalysisModule />
-                  </Suspense>
-                } />
-                <Route path="ratios-actual" element={<FinancialRatiosCurrentModule />} />
-                <Route path="punto-muerto-actual" element={
-                  <Suspense fallback={<ModuleLoadingFallback />}>
-                    <FinancialAnalysisModule />
-                  </Suspense>
-                } />
-                <Route path="endeudamiento-actual" element={
-                  <Suspense fallback={<ModuleLoadingFallback />}>
-                    <FinancialAnalysisModule />
-                  </Suspense>
-                } />
-                <Route path="servicio-deuda-actual" element={
-                  <Suspense fallback={<ModuleLoadingFallback />}>
-                    <FinancialAnalysisModule />
-                  </Suspense>
-                } />
-                <Route path="nof-actual" element={
-                  <Suspense fallback={<ModuleLoadingFallback />}>
-                    <FinancialAnalysisModule />
-                  </Suspense>
-                } />
-                <Route path="segmentos-actual" element={<SalesSegmentsModule />} />
-                
-                {/* Sección 4 - Supuestos */}
-                <Route path="supuestos-financieros" element={
-                  <Suspense fallback={<ModuleLoadingFallback />}>
-                    <KeyFinancialAssumptionsModule />
-                  </Suspense>
-                } />
-                
-                {/* Sección 5 - Proyecciones */}
-                <Route path="proyecciones" element={
-                  <Suspense fallback={<ModuleLoadingFallback />}>
-                    <ProjectionsModule />
-                  </Suspense>
-                } />
-                
-                {/* Sección 6 - Sensibilidad */}
-                <Route path="escenarios" element={
-                  <Suspense fallback={<ModuleLoadingFallback />}>
-                    <MetodologiaSensibilidadModule />
-                  </Suspense>
-                } />
-                
-                {/* Sección 7 - Valoración EVA */}
-                <Route path="valoracion-eva" element={
-                  <Suspense fallback={<ModuleLoadingFallback />}>
-                    <EVAValuationModule />
-                  </Suspense>
-                } />
-                
-                {/* Simulador */}
-                <Route path="simulador" element={
-                  <Suspense fallback={<ModuleLoadingFallback />}>
-                    <SimulatorModule />
-                  </Suspense>
-                } />
-                
-                {/* Conclusiones */}
-                <Route path="conclusiones" element={<ConclusionsPage />} />
-              </Route>
-            </Route>
-
-            {/* Admin Routes - Require Admin Role */}
-            <Route element={<RequireAdmin />}>
-              <Route path="/admin/settings" element={<Navigate to="/admin/users" replace />} />
-              <Route path="/admin/users" element={<AdminUsersPage />} />
-              <Route path="/admin/empresas" element={<AdminEmpresasPage />} />
-              <Route path="/admin/carga-plantillas" element={<AdminCargaPlantillasPage />} />
-              <Route path="/admin/cargas" element={<AdminCargasPage />} />
-              <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
-              <Route path="/debug" element={<DebugPage />} />
-            </Route>
-            
-            {/* Public Debug Route - Accessible to all authenticated users */}
-            <Route element={<RequireAuth><Outlet /></RequireAuth>}>
-              <Route path="/debug-public" element={<DebugPage />} />
-            </Route>
-            
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-          <InactivityWarning />
-          <DebugToolbar />
-                </TooltipProvider>
-              </PeriodProvider>
-            </CompanyProvider>
-          </AdminImpersonationProvider>
-        </SessionRecovery>
-      </AuthProvider>
-  </ErrorBoundary>
-  );
-};
 
 export default App;

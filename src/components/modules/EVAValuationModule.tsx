@@ -5,22 +5,18 @@ import { DashboardPageHeader } from '@/components/DashboardPageHeader';
 import { ValuationKPIs } from '@/components/valuation/ValuationKPIs';
 import { MethodsWeightPanel } from '@/components/valuation/MethodsWeightPanel';
 import { ValuationMethodsChart } from '@/components/valuation/ValuationMethodsChart';
-import { HorizonSelector } from '@/components/valuation/HorizonSelector';
 import { useValuation } from '@/hooks/useValuation';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
-import { Save, FileDown, Share2, AlertTriangle } from 'lucide-react';
+import { Save, FileDown, Share2 } from 'lucide-react';
 
 export const EVAValuationModule = () => {
   const { toast } = useToast();
   const {
     valuationData,
     updateMethodWeights,
-    updateGrowthRate,
-    updateHorizon
-  } = useValuation(); // TODO: Pass companyId when available
-
-  const hasMinYears = (valuationData.financialData.revenue?.length || 0) >= 3;
+    updateGrowthRate
+  } = useValuation();
 
   const handleSaveValuation = () => {
     toast({
@@ -60,7 +56,6 @@ export const EVAValuationModule = () => {
               size="sm"
               className="gap-2 justify-start"
               aria-label="Guardar valoración"
-              disabled={!hasMinYears}
             >
               <Save className="h-4 w-4" />
               <span className="hidden lg:inline">Guardar</span>
@@ -72,7 +67,6 @@ export const EVAValuationModule = () => {
               size="sm"
               className="gap-2 justify-start"
               aria-label="Exportar valoración en PDF"
-              disabled={!hasMinYears}
             >
               <FileDown className="h-4 w-4" />
               <span className="hidden lg:inline">PDF</span>
@@ -97,15 +91,6 @@ export const EVAValuationModule = () => {
               title="Valoración EVA"
               subtitle="Análisis integral con múltiples metodologías de valoración"
             />
-            {!hasMinYears && (
-              <div className="mt-4 flex items-start gap-3 rounded-lg border border-yellow-300/70 bg-yellow-50 p-3 text-yellow-800">
-                <AlertTriangle className="h-5 w-5 mt-0.5" />
-                <div>
-                  <p className="font-medium">Histórico insuficiente</p>
-                  <p className="text-sm">Se requieren al menos 3 años de datos financieros para calcular la valoración (DCF y métodos relacionados).</p>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="flex-1 overflow-auto">
@@ -113,14 +98,6 @@ export const EVAValuationModule = () => {
               {/* KPI Cards */}
               <section>
                 <ValuationKPIs valuationData={valuationData} />
-              </section>
-
-              {/* Horizon Configuration */}
-              <section>
-                <HorizonSelector
-                  valuationData={valuationData}
-                  onHorizonChange={updateHorizon}
-                />
               </section>
 
               {/* Main Content Grid */}

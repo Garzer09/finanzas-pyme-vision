@@ -1,21 +1,20 @@
 import { UseFormReturn } from "react-hook-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { HelpCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { HelpCircle } from "lucide-react"
 import { SliderInput } from "@/components/ui/slider-input"
-import { type FinancialAssumptions } from "@/schemas/financial-assumptions"
+import { TaxOthers } from "@/schemas/financial-assumptions"
 
 interface TaxOthersStepProps {
-  form: UseFormReturn<FinancialAssumptions>
+  form: UseFormReturn<TaxOthers>
 }
 
 export function TaxOthersStep({ form }: TaxOthersStepProps) {
   const { watch, setValue, formState: { errors } } = form
-
-  const effectiveTaxRate = watch("taxOthers.effectiveTaxRate") || 0
-  const dividendPolicy = watch("taxOthers.dividendPolicy") || 0
+  
+  const effectiveTaxRate = watch("effectiveTaxRate") || 0
+  const dividendPolicy = watch("dividendPolicy") || 0
 
   return (
     <Card className="w-full">
@@ -30,7 +29,7 @@ export function TaxOthersStep({ form }: TaxOthersStepProps) {
           {/* Effective Tax Rate */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label>Tasa impositiva efectiva (%)</Label>
+              <Label>Tipo Impositivo Efectivo (%)</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -43,26 +42,24 @@ export function TaxOthersStep({ form }: TaxOthersStepProps) {
               </TooltipProvider>
             </div>
             <SliderInput
-              label="Tasa impositiva efectiva"
+              label=""
               value={effectiveTaxRate}
-              onValueChange={(value) => setValue("taxOthers.effectiveTaxRate", value)}
+              onValueChange={(value) => setValue("effectiveTaxRate", value)}
               min={0}
               max={50}
               step={0.1}
               formatValue={(value) => `${value.toFixed(1)}%`}
-              className="flex-1"
+              aria-label="Tipo impositivo efectivo"
             />
-            {errors.taxOthers?.effectiveTaxRate && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.taxOthers.effectiveTaxRate.message}
-              </p>
+            {errors.effectiveTaxRate && (
+              <p className="text-destructive text-sm">{errors.effectiveTaxRate.message}</p>
             )}
           </div>
 
           {/* Dividend Policy */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label>Política de dividendos (% de beneficios)</Label>
+              <Label>Política de Dividendos (%)</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -75,19 +72,17 @@ export function TaxOthersStep({ form }: TaxOthersStepProps) {
               </TooltipProvider>
             </div>
             <SliderInput
-              label="Política de dividendos (% de beneficios)"
+              label=""
               value={dividendPolicy}
-              onValueChange={(value) => setValue("taxOthers.dividendPolicy", value)}
+              onValueChange={(value) => setValue("dividendPolicy", value)}
               min={0}
               max={100}
               step={0.1}
               formatValue={(value) => `${value.toFixed(1)}%`}
-              className="flex-1"
+              aria-label="Política de dividendos"
             />
-            {errors.taxOthers?.dividendPolicy && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.taxOthers.dividendPolicy.message}
-              </p>
+            {errors.dividendPolicy && (
+              <p className="text-destructive text-sm">{errors.dividendPolicy.message}</p>
             )}
           </div>
         </div>
@@ -97,7 +92,7 @@ export function TaxOthersStep({ form }: TaxOthersStepProps) {
           <Card className="bg-muted/50">
             <CardContent className="pt-6">
               <h4 className="font-semibold mb-2">Retención Fiscal</h4>
-              <p className="text-2xl font-bold text-primary">
+              <p className="text-lg font-bold text-primary">
                 {effectiveTaxRate.toFixed(1)}%
               </p>
               <p className="text-xs text-muted-foreground">
@@ -109,7 +104,7 @@ export function TaxOthersStep({ form }: TaxOthersStepProps) {
           <Card className="bg-muted/50">
             <CardContent className="pt-6">
               <h4 className="font-semibold mb-2">Retención de Beneficios</h4>
-              <p className="text-2xl font-bold text-primary">
+              <p className="text-lg font-bold text-primary">
                 {(100 - dividendPolicy).toFixed(1)}%
               </p>
               <p className="text-xs text-muted-foreground">

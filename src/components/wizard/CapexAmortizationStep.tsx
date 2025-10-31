@@ -1,41 +1,28 @@
 import { UseFormReturn } from "react-hook-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { HelpCircle, CalendarIcon } from "lucide-react"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Button } from "@/components/ui/button"
+import { HelpCircle, Calendar as CalendarIcon } from "lucide-react"
 import { NumberInput } from "@/components/ui/number-input"
+import { CapexAmortization } from "@/schemas/financial-assumptions"
 import { format } from "date-fns"
 import { es } from "date-fns/locale"
 import { cn } from "@/lib/utils"
-import { type FinancialAssumptions } from "@/schemas/financial-assumptions"
 
 interface CapexAmortizationStepProps {
-  form: UseFormReturn<FinancialAssumptions>
+  form: UseFormReturn<CapexAmortization>
 }
 
 export function CapexAmortizationStep({ form }: CapexAmortizationStepProps) {
   const { watch, setValue, formState: { errors } } = form
   
-  const plannedInvestment = watch("capexAmortization.plannedInvestment") || 0
-  const executionDate = watch("capexAmortization.executionDate")
-  const amortizationMethod = watch("capexAmortization.amortizationMethod")
-
-  const getMethodDescription = (method: string) => {
-    switch (method) {
-      case "lineal":
-        return "Amortización constante durante toda la vida útil del activo"
-      case "degresiva":
-        return "Mayor amortización en los primeros años, disminuyendo progresivamente"
-      case "otro":
-        return "Método específico según las características del activo"
-      default:
-        return ""
-    }
-  }
+  const plannedInvestment = watch("plannedInvestment") || 0
+  const executionDate = watch("executionDate")
+  const amortizationMethod = watch("amortizationMethod")
 
   return (
     <Card className="w-full">
@@ -50,7 +37,7 @@ export function CapexAmortizationStep({ form }: CapexAmortizationStepProps) {
           {/* Planned Investment */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label>Inversión planificada (€)</Label>
+              <Label>Inversión Prevista (€)</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -63,24 +50,23 @@ export function CapexAmortizationStep({ form }: CapexAmortizationStepProps) {
               </TooltipProvider>
             </div>
             <NumberInput
-              label="Inversión planificada (€)"
+              label=""
               value={plannedInvestment}
-              onValueChange={(value) => setValue("capexAmortization.plannedInvestment", value)}
+              onValueChange={(value) => setValue("plannedInvestment", value)}
               min={0}
               step={1000}
-              className="flex-1"
+              formatValue={(value) => `${value.toLocaleString()}€`}
+              aria-label="Inversión prevista"
             />
-            {errors.capexAmortization?.plannedInvestment && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.capexAmortization.plannedInvestment.message}
-              </p>
+            {errors.plannedInvestment && (
+              <p className="text-destructive text-sm">{errors.plannedInvestment.message}</p>
             )}
           </div>
 
           {/* Execution Date */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label>Fecha de ejecución</Label>
+              <Label>Fecha de Ejecución</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -95,7 +81,7 @@ export function CapexAmortizationStep({ form }: CapexAmortizationStepProps) {
             <Popover>
               <PopoverTrigger asChild>
                 <Button
-                  variant={"outline"}
+                  variant="outline"
                   className={cn(
                     "w-full justify-start text-left font-normal",
                     !executionDate && "text-muted-foreground"
@@ -113,23 +99,21 @@ export function CapexAmortizationStep({ form }: CapexAmortizationStepProps) {
                 <Calendar
                   mode="single"
                   selected={executionDate}
-                  onSelect={(date) => setValue("capexAmortization.executionDate", date)}
+                  onSelect={(date) => setValue("executionDate", date || new Date())}
                   disabled={(date) => date < new Date()}
                   initialFocus
                 />
               </PopoverContent>
             </Popover>
-            {errors.capexAmortization?.executionDate && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.capexAmortization.executionDate.message}
-              </p>
+            {errors.executionDate && (
+              <p className="text-destructive text-sm">{errors.executionDate.message}</p>
             )}
           </div>
 
           {/* Amortization Method */}
           <div className="space-y-2 sm:col-span-2">
             <div className="flex items-center gap-2">
-              <Label>Método de amortización</Label>
+              <Label>Método de Amortización</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -141,10 +125,10 @@ export function CapexAmortizationStep({ form }: CapexAmortizationStepProps) {
                 </Tooltip>
               </TooltipProvider>
             </div>
-            <Select 
-              value={amortizationMethod} 
+            <Select
+              value={amortizationMethod}
               onValueChange={(value: "lineal" | "degresiva" | "otro") => 
-                setValue("capexAmortization.amortizationMethod", value)
+                setValue("amortizationMethod", value)
               }
             >
               <SelectTrigger>
@@ -156,10 +140,8 @@ export function CapexAmortizationStep({ form }: CapexAmortizationStepProps) {
                 <SelectItem value="otro">Otro</SelectItem>
               </SelectContent>
             </Select>
-            {errors.capexAmortization?.amortizationMethod && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.capexAmortization.amortizationMethod.message}
-              </p>
+            {errors.amortizationMethod && (
+              <p className="text-destructive text-sm">{errors.amortizationMethod.message}</p>
             )}
           </div>
         </div>
@@ -170,7 +152,12 @@ export function CapexAmortizationStep({ form }: CapexAmortizationStepProps) {
             <CardContent className="pt-6">
               <h4 className="font-semibold mb-2">Descripción del Método</h4>
               <p className="text-sm text-muted-foreground">
-                {getMethodDescription(amortizationMethod)}
+                {amortizationMethod === "lineal" && 
+                  "Amortización constante durante toda la vida útil del activo"}
+                {amortizationMethod === "degresiva" && 
+                  "Mayor amortización en los primeros años, disminuyendo progresivamente"}
+                {amortizationMethod === "otro" && 
+                  "Método específico según las características del activo"}
               </p>
             </CardContent>
           </Card>

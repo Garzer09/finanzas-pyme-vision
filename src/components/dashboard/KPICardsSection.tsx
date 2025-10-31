@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { TrendingUp, TrendingDown, DollarSign, Percent, Activity, Building } from 'lucide-react';
 import { useFinancialData } from '@/hooks/useFinancialData';
-import { useRealDataDetection } from '@/hooks/useRealDataDetection';
 
 interface KPIData {
   title: string;
@@ -15,13 +14,8 @@ interface KPIData {
   description: string;
 }
 
-interface KPICardsSectionProps {
-  companyId?: string;
-}
-
-export const KPICardsSection: React.FC<KPICardsSectionProps> = ({ companyId }) => {
-  const { data, loading, hasRealData, getLatestData, calculateGrowth, getPeriodComparison } = useFinancialData();
-  const { dataAvailability, hasRealData: hasValidData } = useRealDataDetection(companyId);
+export const KPICardsSection: React.FC = () => {
+  const { data, loading, getLatestData, calculateGrowth, getPeriodComparison } = useFinancialData();
 
   if (loading) {
     return (
@@ -37,38 +31,9 @@ export const KPICardsSection: React.FC<KPICardsSectionProps> = ({ companyId }) =
     );
   }
 
-  // Si no hay datos reales, mostrar mensaje informativo  
-  if (!hasValidData && !hasRealData) {
-    return (
-      <div className="space-y-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold text-steel-blue-dark">
-            Indicadores Clave de Rendimiento
-          </h3>
-          <Badge variant="outline" className="text-orange-600 border-orange-200 bg-orange-50">
-            {companyId ? `Sin datos para empresa ${companyId.slice(0, 8)}` : 'Sin datos cargados'}
-          </Badge>
-        </div>
-        <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
-          <Activity className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No hay datos financieros disponibles</h3>
-          <p className="text-gray-500 mb-4">
-            Carga un archivo Excel o PDF para ver los indicadores clave de tu empresa
-          </p>
-          <Badge 
-            onClick={() => window.location.href = '/excel-upload'} 
-            className="bg-blue-600 hover:bg-blue-700 cursor-pointer"
-          >
-            📁 Cargar Datos
-          </Badge>
-        </div>
-      </div>
-    );
-  }
-
   const ratiosData = getLatestData('ratios_financieros');
   const pygData = getLatestData('estado_pyg');
-  const balanceData = getLatestData('balance_situacion');
+  const balanceData = getLatestData('estado_balance');
 
   // KPIs Año 0 (Actuales)
   const currentKPIs: KPIData[] = [
@@ -182,14 +147,9 @@ export const KPICardsSection: React.FC<KPICardsSectionProps> = ({ companyId }) =
     <div className="space-y-8">
       {/* KPIs Año 0 (Actuales) */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold text-steel-blue-dark">
-            Indicadores Clave de Rendimiento - Año Actual
-          </h3>
-          <Badge variant={hasRealData ? 'default' : 'outline'} className="text-xs">
-            {hasRealData ? '📊 Datos Reales' : '🔍 Datos Demo'}
-          </Badge>
-        </div>
+        <h3 className="text-xl font-semibold text-steel-blue-dark mb-4">
+          Indicadores Clave de Rendimiento - Año Actual
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {currentKPIs.map((kpi, index) => {
             const IconComponent = kpi.icon;
@@ -230,7 +190,7 @@ export const KPICardsSection: React.FC<KPICardsSectionProps> = ({ companyId }) =
                       </div>
                     )}
                     {!hasRealData && (
-                      <p className="text-xs text-steel-blue-light">📁 Sube archivos para ver datos reales</p>
+                      <p className="text-xs text-steel-blue-light">Sube archivos para ver datos reales</p>
                     )}
                   </div>
                 </CardContent>

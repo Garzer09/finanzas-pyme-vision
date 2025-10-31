@@ -6,43 +6,64 @@ import { BarChart3, Euro, Percent } from 'lucide-react';
 
 interface TornadoChartProps {
   className?: string;
-  baseEbitdaK: number;
-  salesImpactPer1Percent: number; // K€ por 1%
-  costsImpactPer1Percent: number; // K€ por 1%
-  priceImpactPer1Percent?: number; // K€ por 1%
-  volumeImpactPer1Percent?: number; // K€ por 1%
 }
 
-export const TornadoChart = ({ 
-  className,
-  baseEbitdaK,
-  salesImpactPer1Percent,
-  costsImpactPer1Percent,
-  priceImpactPer1Percent = 10,
-  volumeImpactPer1Percent
-}: TornadoChartProps) => {
+export const TornadoChart = ({ className }: TornadoChartProps) => {
   const [showPercentage, setShowPercentage] = useState(false);
 
-  const volImpact = volumeImpactPer1Percent ?? salesImpactPer1Percent;
-
-  const dynamicData = [
-    { label: 'Ventas +10%', eurosK:  10 * salesImpactPer1Percent, positive: true },
-    { label: 'Ventas -10%', eurosK: -10 * salesImpactPer1Percent, positive: false },
-    { label: 'Costes -5%', eurosK:  -(-5 * costsImpactPer1Percent), positive: true }, // -5% costes => impacto positivo
-    { label: 'Costes +5%', eurosK:  -(+5 * costsImpactPer1Percent), positive: false },
-    { label: 'Precio +3%', eurosK:  +3 * priceImpactPer1Percent, positive: true },
-    { label: 'Precio -3%', eurosK:  -3 * priceImpactPer1Percent, positive: false },
-    { label: 'Volumen +5%', eurosK:  +5 * volImpact, positive: true },
-    { label: 'Volumen -5%', eurosK:  -5 * volImpact, positive: false },
-  ].map(item => ({
-    variable: item.label,
-    impactEuros: item.eurosK,
-    impactPercent: baseEbitdaK > 0 ? (item.eurosK / baseEbitdaK) * 100 : 0,
-    positive: item.positive
-  }));
+  const baseData = [
+    { 
+      variable: 'Ventas +10%', 
+      impactEuros: 250, 
+      impactPercent: 55.6,
+      positive: true 
+    },
+    { 
+      variable: 'Ventas -10%', 
+      impactEuros: -250, 
+      impactPercent: -55.6,
+      positive: false 
+    },
+    { 
+      variable: 'Costes -5%', 
+      impactEuros: 75, 
+      impactPercent: 16.7,
+      positive: true 
+    },
+    { 
+      variable: 'Costes +5%', 
+      impactEuros: -75, 
+      impactPercent: -16.7,
+      positive: false 
+    },
+    { 
+      variable: 'Precio +3%', 
+      impactEuros: 75, 
+      impactPercent: 16.7,
+      positive: true 
+    },
+    { 
+      variable: 'Precio -3%', 
+      impactEuros: -75, 
+      impactPercent: -16.7,
+      positive: false 
+    },
+    { 
+      variable: 'Volumen +5%', 
+      impactEuros: 60, 
+      impactPercent: 13.3,
+      positive: true 
+    },
+    { 
+      variable: 'Volumen -5%', 
+      impactEuros: -60, 
+      impactPercent: -13.3,
+      positive: false 
+    },
+  ];
 
   // Sort by absolute impact for tornado effect
-  const sortedData = [...dynamicData].sort((a, b) => {
+  const sortedData = [...baseData].sort((a, b) => {
     const aValue = showPercentage ? Math.abs(a.impactPercent) : Math.abs(a.impactEuros);
     const bValue = showPercentage ? Math.abs(b.impactPercent) : Math.abs(b.impactEuros);
     return bValue - aValue;

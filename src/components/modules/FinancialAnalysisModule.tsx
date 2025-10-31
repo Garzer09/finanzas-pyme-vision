@@ -5,46 +5,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { Calendar, TrendingUp, BarChart3, DollarSign } from 'lucide-react';
-import { useFinancialData } from '@/hooks/useFinancialData';
-import { useCompanyContext } from '@/contexts/CompanyContext';
-import { MissingFinancialData } from '@/components/ui/missing-financial-data';
 
 export const FinancialAnalysisModule = () => {
   const [selectedYear, setSelectedYear] = useState('2024');
   const [selectedMonth, setSelectedMonth] = useState('all');
-  const { companyId } = useCompanyContext();
-  const { data: financialData, loading, hasRealData } = useFinancialData('estado_pyg', companyId);
 
-  // Show missing data indicator if no real data
-  if (!hasRealData && !loading) {
-    return (
-      <div className="flex min-h-screen bg-gradient-to-br from-light-gray-50 via-white to-steel-blue-light/20">
-        <DashboardSidebar />
-        <div className="flex-1 flex flex-col">
-          <DashboardHeader />
-          <main className="flex-1 p-6 flex items-center justify-center">
-            <div className="max-w-lg w-full">
-              <MissingFinancialData 
-                dataType="pyg"
-                onUploadClick={() => console.log('Navigate to upload')}
-              />
-            </div>
-          </main>
-        </div>
-      </div>
-    );
-  }
-
-  // Generate P&G data from real financial data
-  const pygData = financialData && financialData.length > 0 ? [
-    { concepto: 'Ingresos', actual: 2500, presupuesto: 2400 }, // TODO: Extract from real data
+  const pygData = [
+    { concepto: 'Ingresos', actual: 2500, presupuesto: 2400 },
     { concepto: 'Coste Ventas', actual: -1500, presupuesto: -1440 },
     { concepto: 'Margen Bruto', actual: 1000, presupuesto: 960 },
     { concepto: 'Gastos Operativos', actual: -550, presupuesto: -520 },
     { concepto: 'EBITDA', actual: 450, presupuesto: 440 },
     { concepto: 'Amortizaciones', actual: -120, presupuesto: -115 },
     { concepto: 'EBIT', actual: 330, presupuesto: 325 },
-  ] : [];
+  ];
 
   const balanceData = [
     { concepto: 'Activo Fijo', valor: 1200 },

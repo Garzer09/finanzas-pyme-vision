@@ -1,8 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useNOFData } from '@/hooks/useNOFData';
-import { MissingFinancialData } from '@/components/ui/missing-financial-data';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
@@ -44,9 +42,6 @@ import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { WaterfallChart } from '@/components/ui/waterfall-chart';
 
 export const NOFModule = () => {
-  // Use real data hook
-  const { nofAnalysis, isLoading, error, hasRealData } = useNOFData();
-  
   const [periodo, setPeriodo] = useState('anual');
   const [cobro, setCobro] = useState([33]);
   const [inventario, setInventario] = useState([37]);
@@ -54,30 +49,16 @@ export const NOFModule = () => {
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showInventoryDetails, setShowInventoryDetails] = useState(false);
 
-  // Show missing data indicator if no real data
-  if (!hasRealData && !isLoading) {
-    return (
-      <main className="flex-1 p-6 flex items-center justify-center bg-background">
-        <div className="max-w-lg w-full">
-          <MissingFinancialData 
-            dataType="balance"
-            onUploadClick={() => console.log('Navigate to upload')}
-          />
-        </div>
-      </main>
-    );
-  }
-
-  // Use real NOF calculations
-  const nofTotal = nofAnalysis.nofTotal;
-  const nofAnterior = nofAnalysis.nofAnterior;
-  const impactoCaja = nofAnalysis.impactoCaja;
-  const ventasAnuales = 2400000; // This could come from P&G data
-  const diasVentas = nofAnalysis.diasVentas;
-  const eficiencia = nofAnalysis.eficiencia;
+  // Datos calculados
+  const nofTotal = 240000;
+  const nofAnterior = 220000;
+  const impactoCaja = nofTotal - nofAnterior;
+  const ventasAnuales = 2400000;
+  const diasVentas = Math.round((nofTotal / ventasAnuales) * 365);
+  const eficiencia = diasVentas <= 30 ? 'Alta' : diasVentas <= 45 ? 'Media' : 'Baja';
   
-  // Optimized calculations
-  const nofOptimizado = nofTotal * 0.75; // 25% reduction target
+  // Nuevos cálculos optimizados
+  const nofOptimizado = 125000;
   const liberacionCaja = nofTotal - nofOptimizado;
   const mejorcaROCE = 3.5;
 
@@ -90,14 +71,14 @@ export const NOFModule = () => {
     }).format(value);
   };
 
-  // Datos para gráfico waterfall usando datos reales
+  // Datos para gráfico waterfall
   const waterfallData = [
-    { name: 'Existencias', value: nofAnalysis.components.existencias, type: 'positive' as const },
-    { name: 'Clientes', value: nofAnalysis.components.clientes, type: 'positive' as const },
-    { name: 'Otros deudores', value: nofAnalysis.components.otrosDeudores, type: 'positive' as const },
-    { name: 'Proveedores', value: -nofAnalysis.components.proveedores, type: 'negative' as const },
-    { name: 'Acreedores', value: -nofAnalysis.components.acreedores, type: 'negative' as const },
-    { name: 'NOF Total', value: nofTotal, type: 'total' as const }
+    { name: 'Existencias', value: 300000, type: 'positive' as const },
+    { name: 'Clientes', value: 400000, type: 'positive' as const },
+    { name: 'Otros deudores', value: 80000, type: 'positive' as const },
+    { name: 'Proveedores', value: -380000, type: 'negative' as const },
+    { name: 'Acreedores', value: -160000, type: 'negative' as const },
+    { name: 'NOF Total', value: 240000, type: 'total' as const }
   ];
 
   // Datos de evolución

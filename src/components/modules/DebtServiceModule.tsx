@@ -2,6 +2,7 @@ import { ModernKPICard } from '@/components/ui/modern-kpi-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SliderInput } from '@/components/ui/slider-input';
+import { NumberInput } from '@/components/ui/number-input';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ModalMonthDetail } from '@/components/debt-service/ModalMonthDetail';
@@ -32,121 +33,27 @@ import {
   Area,
   ComposedChart
 } from 'recharts';
-import { useState, useEffect } from 'react';
-import { useCompanyContext } from '@/contexts/CompanyContext';
-import { supabase } from '@/integrations/supabase/client';
-
-interface DebtData {
-  loans: any[];
-  balances: any[];
-  maturities: any[];
-}
-
-interface MonthData {
-  mes: string;
-  servicio: number;
-  flujoDisponible: number;
-  dscr: number;
-}
+import { useState } from 'react';
+import { useDscr } from '@/hooks/useDscr';
 
 export const DebtServiceModule = () => {
-  const { companyId } = useCompanyContext();
-  const [debtData, setDebtData] = useState<DebtData>({ loans: [], balances: [], maturities: [] });
-  const [loading, setLoading] = useState(true);
-  const [hasRealData, setHasRealData] = useState(false);
-  const [ebitdaAnnual, setEbitdaAnnual] = useState(450000);
-  const [ocfAnnual, setOcfAnnual] = useState(380000);
-  const [selectedMonth, setSelectedMonth] = useState<MonthData | null>(null);
+  const {
+    ebitdaAnnual,
+    ocfAnnual,
+    setEbitdaAnnual,
+    setOcfAnnual,
+    servicioDeudaAnual,
+    flujoDisponibleAnual,
+    dscrPromedio,
+    dscrMinimo,
+    mesesEnRiesgo,
+    monthlyData,
+    applyStressTest,
+    resetToBase
+  } = useDscr(450000, 380000);
+
+  const [selectedMonth, setSelectedMonth] = useState<typeof monthlyData[0] | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  useEffect(() => {
-    const fetchDebtData = async () => {
-      if (!companyId) return;
-      
-      setLoading(true);
-      try {
-        // Fetch debt data from all debt-related tables
-        const [loansResult, balancesResult, maturitiesResult] = await Promise.all([
-          supabase
-            .from('debt_loans')
-            .select('*')
-            .eq('company_id', companyId),
-          supabase
-            .from('debt_balances')
-            .select('*')
-            .eq('company_id', companyId),
-          supabase
-            .from('debt_maturities')
-            .select('*')
-            .eq('company_id', companyId)
-        ]);
-
-        if (loansResult.error) throw loansResult.error;
-        if (balancesResult.error) throw balancesResult.error;
-        if (maturitiesResult.error) throw maturitiesResult.error;
-
-        const loans = loansResult.data || [];
-        const balances = balancesResult.data || [];
-        const maturities = maturitiesResult.data || [];
-
-        setDebtData({ loans, balances, maturities });
-        
-        // Check if company has any debt data
-        if (loans.length > 0 || balances.length > 0 || maturities.length > 0) {
-          setHasRealData(true);
-          console.log('Debt data found:', { loans, balances, maturities });
-        } else {
-          setHasRealData(false);
-        }
-      } catch (error) {
-        console.error('Error fetching debt data:', error);
-        setHasRealData(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDebtData();
-  }, [companyId]);
-
-  // Calculate monthly data from real debt data or use simulation
-  const calculateMonthlyData = (): MonthData[] => {
-    if (!hasRealData) return [];
-
-    // TODO: Calculate real monthly debt service from debt_maturities table
-    // For now, return empty array as no real data exists
-    return [];
-  };
-
-  const monthlyData = calculateMonthlyData();
-
-  // Calculate KPIs from real data or simulation
-  const calculateKPIs = () => {
-    if (!hasRealData) {
-      return {
-        servicioDeudaAnual: 0,
-        dscrPromedio: 0,
-        dscrMinimo: 0,
-        mesesEnRiesgo: 0
-      };
-    }
-
-    // TODO: Calculate real KPIs from debt data
-    const servicioDeudaAnual = monthlyData.reduce((sum, item) => sum + item.servicio, 0);
-    const flujoDisponibleAnual = monthlyData.reduce((sum, item) => sum + item.flujoDisponible, 0);
-    const dscrPromedio = servicioDeudaAnual > 0 ? flujoDisponibleAnual / servicioDeudaAnual : 0;
-    const dscrMinimo = monthlyData.length > 0 ? Math.min(...monthlyData.map(item => item.dscr)) : 0;
-    const mesesEnRiesgo = monthlyData.filter(item => item.dscr < 1.0).length;
-
-    return {
-      servicioDeudaAnual,
-      dscrPromedio,
-      dscrMinimo,
-      mesesEnRiesgo
-    };
-  };
-
-  const { servicioDeudaAnual, dscrPromedio, dscrMinimo, mesesEnRiesgo } = calculateKPIs();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-ES', {
@@ -168,8 +75,8 @@ export const DebtServiceModule = () => {
     }).format(value);
   };
 
-  // KPI Data
-  const kpiData = hasRealData ? [
+  // KPI Data simplified - sin duplicaciones
+  const kpiData = [
     {
       title: 'Servicio de Deuda Anual',
       value: formatCurrencyK(servicioDeudaAnual),
@@ -204,7 +111,7 @@ export const DebtServiceModule = () => {
       icon: Shield,
       variant: mesesEnRiesgo === 0 ? 'success' as const : 'danger' as const
     }
-  ] : [];
+  ];
 
   const handleBarClick = (data: any, index: number) => {
     if (data && data.dscr < 1.0) {
@@ -214,17 +121,7 @@ export const DebtServiceModule = () => {
   };
 
   const handleStressTest = (type: 'ebitda_decrease' | 'interest_increase') => {
-    if (type === 'ebitda_decrease') {
-      setEbitdaAnnual(prev => prev * 0.9);
-      setOcfAnnual(prev => prev * 0.9);
-    } else if (type === 'interest_increase') {
-      setOcfAnnual(prev => prev * 0.95);
-    }
-  };
-
-  const resetToBase = () => {
-    setEbitdaAnnual(450000);
-    setOcfAnnual(380000);
+    applyStressTest(type);
   };
 
   return (
@@ -247,212 +144,304 @@ export const DebtServiceModule = () => {
                 <p className="text-slate-700 text-lg font-medium">Evaluación de la capacidad para hacer frente a las obligaciones de deuda</p>
               </div>
               
-              {hasRealData && (
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Download className="h-4 w-4" />
-                    Exportar PDF
-                  </Button>
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Save className="h-4 w-4" />
-                    Guardar Escenario
-                  </Button>
-                  <Button variant="outline" size="sm" className="gap-2" onClick={resetToBase}>
-                    <RotateCcw className="h-4 w-4" />
-                    Restaurar Base
-                  </Button>
-                </div>
-              )}
+              {/* Botones de acción */}
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Exportar PDF
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Save className="h-4 w-4" />
+                  Guardar Escenario
+                </Button>
+                <Button variant="outline" size="sm" className="gap-2" onClick={resetToBase}>
+                  <RotateCcw className="h-4 w-4" />
+                  Restaurar Base
+                </Button>
+              </div>
             </div>
           </div>
         </section>
 
-        {/* KPIs Grid or No Data Message */}
+        {/* KPIs Grid simplificado */}
         <section>
-          {loading ? (
-            <div className="text-center">Cargando datos de servicio de deuda...</div>
-          ) : !hasRealData ? (
-            <div className="text-center py-12">
-              <div className="bg-slate-100 rounded-lg p-8 max-w-md mx-auto">
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                  No hay datos de deuda disponibles
-                </h3>
-                <p className="text-slate-600">
-                  Esta empresa no tiene información de préstamos o deuda cargada en el sistema.
-                </p>
+          <div className="grid grid-cols-4 lg:grid-cols-4 md:grid-cols-2 sm:grid-cols-1 gap-6">
+            {kpiData.map((kpi, index) => (
+              <div key={index} className="relative">
+                <ModernKPICard {...kpi} />
+                {kpi.title.includes('DSCR') && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="absolute top-2 right-2 h-4 w-4 text-slate-400 hover:text-[hsl(var(--primary))] cursor-help transition-colors" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <div className="space-y-2">
+                        <p className="font-medium">DSCR = Flujo Disponible / Servicio de Deuda</p>
+                        <p className="text-sm text-slate-600">
+                          Mide la capacidad de generar suficiente flujo de caja para cubrir las obligaciones de deuda.
+                        </p>
+                        <a href="#" className="text-sm text-[hsl(var(--primary))] hover:underline">
+                          Ver política crediticia →
+                        </a>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
               </div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-4 lg:grid-cols-4 md:grid-cols-2 sm:grid-cols-1 gap-6">
-              {kpiData.map((kpi, index) => (
-                <div key={index} className="relative">
-                  <ModernKPICard {...kpi} />
-                  {kpi.title.includes('DSCR') && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <HelpCircle className="absolute top-2 right-2 h-4 w-4 text-slate-400 hover:text-[hsl(var(--primary))] cursor-help transition-colors" />
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs">
-                        <div className="space-y-2">
-                          <p className="font-medium">DSCR = Flujo Disponible / Servicio de Deuda</p>
-                          <p className="text-sm text-slate-600">
-                            Mide la capacidad de generar suficiente flujo de caja para cubrir las obligaciones de deuda.
-                          </p>
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
+            ))}
+          </div>
         </section>
 
-        {/* Simulation and Charts - Only show if there's real data */}
-        {hasRealData && (
-          <>
-            {/* Simulación de Flujos */}
-            <section>
-              <Card className="bg-white border-slate-200 p-6 shadow-sm">
-                <CardHeader className="p-0 mb-6">
-                  <CardTitle className="text-xl font-semibold text-slate-900 flex items-center gap-2">
-                    <Calculator className="h-5 w-5 text-[hsl(var(--primary))]" />
-                    Simulación de Flujos de Caja
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Controles de parámetros */}
-                    <div className="space-y-6">
-                      <SliderInput
-                        label="EBITDA Anual"
-                        value={ebitdaAnnual}
-                        onValueChange={setEbitdaAnnual}
-                        min={100000}
-                        max={2000000}
-                        step={10000}
-                        formatValue={formatCurrency}
-                        aria-label="EBITDA anual input"
-                      />
-                      
-                      <SliderInput
-                        label="Flujo de Caja Operativo Anual"
-                        value={ocfAnnual}
-                        onValueChange={setOcfAnnual}
-                        min={100000}
-                        max={2000000}
-                        step={10000}
-                        formatValue={formatCurrency}
-                        aria-label="OCF anual input"
-                      />
-                    </div>
+        {/* Simulación de Flujos */}
+        <section>
+          <Card className="bg-white border-slate-200 p-6 shadow-sm">
+            <CardHeader className="p-0 mb-6">
+              <CardTitle className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+                <Calculator className="h-5 w-5 text-[hsl(var(--primary))]" />
+                Simulación de Flujos de Caja
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Controles de parámetros */}
+                <div className="space-y-6">
+                  <SliderInput
+                    label="EBITDA Anual"
+                    value={ebitdaAnnual}
+                    onValueChange={setEbitdaAnnual}
+                    min={100000}
+                    max={2000000}
+                    step={10000}
+                    formatValue={formatCurrency}
+                    aria-label="EBITDA anual input"
+                  />
+                  
+                  <SliderInput
+                    label="Flujo de Caja Operativo Anual"
+                    value={ocfAnnual}
+                    onValueChange={setOcfAnnual}
+                    min={100000}
+                    max={2000000}
+                    step={10000}
+                    formatValue={formatCurrency}
+                    aria-label="OCF anual input"
+                  />
+                </div>
 
-                    {/* Botones de stress test */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-medium text-slate-900">Análisis de Estrés</h3>
-                      <div className="grid grid-cols-1 gap-3">
-                        <Button 
-                          variant="outline" 
-                          className="justify-start gap-2 h-12"
-                          onClick={() => handleStressTest('ebitda_decrease')}
-                        >
-                          <TrendingDown className="h-4 w-4 text-red-500" />
-                          <div className="text-left">
-                            <div className="font-medium">-10% EBITDA</div>
-                            <div className="text-xs text-slate-500">Escenario pesimista</div>
-                          </div>
-                        </Button>
-                        
-                        <Button 
-                          variant="outline" 
-                          className="justify-start gap-2 h-12"
-                          onClick={() => handleStressTest('interest_increase')}
-                        >
-                          <TrendingUp className="h-4 w-4 text-orange-500" />
-                          <div className="text-left">
-                            <div className="font-medium">+100 pb Tipo</div>
-                            <div className="text-xs text-slate-500">Subida de tipos</div>
-                          </div>
-                        </Button>
+                {/* Botones de stress test */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium text-slate-900">Análisis de Estrés</h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    <Button 
+                      variant="outline" 
+                      className="justify-start gap-2 h-12"
+                      onClick={() => handleStressTest('ebitda_decrease')}
+                    >
+                      <TrendingDown className="h-4 w-4 text-red-500" />
+                      <div className="text-left">
+                        <div className="font-medium">-10% EBITDA</div>
+                        <div className="text-xs text-slate-500">Escenario pesimista</div>
                       </div>
-                    </div>
+                    </Button>
+                    
+                    <Button 
+                      variant="outline" 
+                      className="justify-start gap-2 h-12"
+                      onClick={() => handleStressTest('interest_increase')}
+                    >
+                      <TrendingUp className="h-4 w-4 text-orange-500" />
+                      <div className="text-left">
+                        <div className="font-medium">+100 pb Tipo</div>
+                        <div className="text-xs text-slate-500">Subida de tipos</div>
+                      </div>
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            </section>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
-            {/* Charts would go here if monthlyData exists */}
-            {monthlyData.length > 0 && (
-              <>
-                {/* Gráfico mejorado con área roja */}
-                <section>
-                  <Card className="bg-white border-slate-200 p-6 shadow-sm">
-                    <CardHeader className="p-0 mb-6">
-                      <CardTitle className="text-xl font-semibold text-slate-900">
-                        Servicio de Deuda vs Flujo Disponible
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <div className="h-96">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <ComposedChart data={monthlyData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                            <XAxis 
-                              dataKey="mes" 
-                              stroke="hsl(var(--muted-foreground))" 
-                              fontSize={12}
-                            />
-                            <YAxis 
-                              stroke="hsl(var(--muted-foreground))" 
-                              tickFormatter={(value) => `${(value / 1000).toFixed(0)}K€`}
-                              fontSize={12}
-                            />
-                            <RechartsTooltip 
-                              content={({ active, payload, label }) => {
-                                if (active && payload && payload.length) {
-                                  return (
-                                    <div className="bg-white p-3 border border-slate-200 rounded-lg shadow-lg">
-                                      <p className="font-semibold text-slate-800">{label}</p>
-                                      {payload.map((entry, index) => (
-                                        <p key={index} className="text-slate-600">
-                                          <span style={{ color: entry.color }}>
-                                            {entry.name === 'servicio' ? 'Servicio' : 'Flujo Disponible'}: {formatCurrency(Number(entry.value))}
-                                          </span>
-                                        </p>
-                                      ))}
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              }}
-                            />
-                            
-                            <Line 
-                              type="monotone" 
-                              dataKey="servicio" 
-                              stroke="hsl(var(--muted-foreground))" 
-                              strokeWidth={3}
-                              name="servicio"
-                            />
-                            <Line 
-                              type="monotone" 
-                              dataKey="flujoDisponible" 
-                              stroke="hsl(var(--primary))" 
-                              strokeWidth={3}
-                              name="flujoDisponible"
-                            />
-                          </ComposedChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </section>
-              </>
-            )}
-          </>
-        )}
+        {/* Gráfico mejorado con área roja */}
+        <section>
+          <Card className="bg-white border-slate-200 p-6 shadow-sm">
+            <CardHeader className="p-0 mb-6">
+              <CardTitle className="text-xl font-semibold text-slate-900">
+                Servicio de Deuda vs Flujo Disponible
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="h-96">
+                <ResponsiveContainer width="100%" height="100%">
+                  <ComposedChart data={monthlyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="mes" 
+                      stroke="hsl(var(--muted-foreground))" 
+                      fontSize={12}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))" 
+                      tickFormatter={(value) => `${(value / 1000).toFixed(0)}K€`}
+                      fontSize={12}
+                    />
+                    <RechartsTooltip 
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="bg-white p-3 border border-slate-200 rounded-lg shadow-lg">
+                              <p className="font-semibold text-slate-800">{label}</p>
+                              {payload.map((entry, index) => (
+                                <p key={index} className="text-slate-600">
+                                  <span style={{ color: entry.color }}>
+                                    {entry.name === 'servicio' ? 'Servicio' : 'Flujo Disponible'}: {formatCurrency(Number(entry.value))}
+                                  </span>
+                                </p>
+                              ))}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    
+                    {/* Área roja cuando servicio > flujo */}
+                    <Area
+                      type="monotone"
+                      dataKey={(data) => data.servicio > data.flujoDisponible ? data.servicio : 0}
+                      fill="rgba(239, 68, 68, 0.2)"
+                      stroke="none"
+                    />
+                    
+                    <Line 
+                      type="monotone" 
+                      dataKey="servicio" 
+                      stroke="hsl(var(--muted-foreground))" 
+                      strokeWidth={3}
+                      name="servicio"
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="flujoDisponible" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={3}
+                      name="flujoDisponible"
+                    />
+                  </ComposedChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
 
-        {/* Modal for month details */}
+        {/* Gráfico DSCR mejorado con bandas y modal */}
+        <section>
+          <Card className="bg-white border-slate-200 p-6 shadow-sm">
+            <CardHeader className="p-0 mb-6">
+              <CardTitle className="text-xl font-semibold text-slate-900">
+                DSCR (Debt Service Coverage Ratio)
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={monthlyData}>
+                    {/* Bandas de fondo */}
+                    <defs>
+                      <pattern id="green-band" patternUnits="userSpaceOnUse" width="4" height="4">
+                        <rect width="4" height="4" fill="rgba(34, 197, 94, 0.1)" />
+                      </pattern>
+                      <pattern id="yellow-band" patternUnits="userSpaceOnUse" width="4" height="4">
+                        <rect width="4" height="4" fill="rgba(234, 179, 8, 0.1)" />
+                      </pattern>
+                      <pattern id="red-band" patternUnits="userSpaceOnUse" width="4" height="4">
+                        <rect width="4" height="4" fill="rgba(239, 68, 68, 0.1)" />
+                      </pattern>
+                    </defs>
+                    
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis 
+                      dataKey="mes" 
+                      stroke="hsl(var(--muted-foreground))" 
+                      fontSize={12}
+                    />
+                    <YAxis 
+                      stroke="hsl(var(--muted-foreground))" 
+                      fontSize={12}
+                    />
+                    <RechartsTooltip 
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload;
+                          return (
+                            <div className="bg-white p-3 border border-slate-200 rounded-lg shadow-lg">
+                              <p className="font-semibold text-slate-800">{label}</p>
+                              <p className="text-slate-600">
+                                DSCR: <span className="font-medium">{data.dscr.toFixed(2)}x</span>
+                              </p>
+                              {data.dscr < 1.0 && (
+                                <p className="text-red-600 text-sm">
+                                  ⚠️ Haz clic para ver detalles
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
+                    
+                    {/* Línea punteada en 1.2 */}
+                    <ReferenceLine 
+                      y={1.2} 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2} 
+                      strokeDasharray="5 5"
+                      label={{ 
+                        value: "Umbral recomendado (1.2)", 
+                        position: "top", 
+                        fill: "hsl(var(--primary))",
+                        fontSize: 12
+                      }}
+                    />
+                    
+                     <Bar 
+                       dataKey="dscr"
+                       onClick={handleBarClick}
+                       cursor="pointer"
+                     >
+                       {monthlyData.map((entry, index) => {
+                         let fillColor = "hsl(var(--success))"; // Verde para DSCR bueno
+                         if (entry.dscr < 1.0) fillColor = "hsl(var(--destructive))"; // Rojo para crítico
+                         else if (entry.dscr < 1.2) fillColor = "hsl(var(--warning))"; // Ámbar para aceptable
+                         
+                         return <Cell key={`cell-${index}`} fill={fillColor} />;
+                       })}
+                     </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              
+               {/* Leyenda */}
+               <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+                 <div className="flex items-center justify-center gap-2">
+                   <div className="w-4 h-4 bg-[hsl(var(--success))] rounded"></div>
+                   <span className="text-sm text-slate-600">DSCR ≥ 1.2 (Bueno)</span>
+                 </div>
+                 <div className="flex items-center justify-center gap-2">
+                   <div className="w-4 h-4 bg-[hsl(var(--warning))] rounded"></div>
+                   <span className="text-sm text-slate-600">1.0 ≤ DSCR &lt; 1.2 (Aceptable)</span>
+                 </div>
+                 <div className="flex items-center justify-center gap-2">
+                   <div className="w-4 h-4 bg-[hsl(var(--destructive))] rounded"></div>
+                   <span className="text-sm text-slate-600">DSCR &lt; 1.0 (Riesgo)</span>
+                 </div>
+               </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Modal de detalles del mes */}
         <ModalMonthDetail
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}

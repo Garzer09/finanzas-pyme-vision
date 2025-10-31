@@ -12,18 +12,6 @@ dist
 dist-ssr
 *.local
 
-# Environment variables
-.env
-.env.production
-.env.local
-.env.*.local
-
-# Sensitive files
-*.key
-*.pem
-*.p12
-*.pfx
-
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -34,20 +22,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-
-# Build artifacts
-build/
-coverage/
-*.tsbuildinfo
-
-# Test artifacts
-test-results/
-playwright-report/
-
-# Playwright browser installation markers
-.playwright-install-attempted
-.playwright-install-failed
-
-# Temporary files
-tmp/
-temp/

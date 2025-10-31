@@ -1,15 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Download, Lightbulb, TrendingUp } from 'lucide-react'
 import { useProjectionInsights } from '@/hooks/useProjectionInsights'
-import { useInflationData } from '@/hooks/useInflationData'
-import { applyInflationToProjections } from '@/utils/inflationAdjustments'
-import { useProjections } from '@/hooks/useProjections'
-import { InflationDataCard } from '@/components/projections/InflationDataCard'
 
 interface PLProyectadoTabProps {
   scenario: 'base' | 'optimista' | 'pesimista'
@@ -19,61 +14,29 @@ interface PLProyectadoTabProps {
 }
 
 export function PLProyectadoTab({ scenario, yearRange, unit, includeInflation }: PLProyectadoTabProps) {
-  const { getAverageInflation } = useInflationData({ 
-    region: 'EU', 
-    yearRange: [new Date().getFullYear(), new Date().getFullYear() + yearRange[1]] 
-  })
-  
-  const { plData } = useProjections(scenario, yearRange)
-  const baseChartData = plData.map((item, index) => ({
-    year: index,
-    ingresos: item.ingresos,
-    costes: item.costes,
-    ebitda: item.ebitda,
-    margenEbitda: item.margenEbitda,
-  }))
+  // Mock data - en producción vendría de API/Supabase
+  const chartData = [
+    { year: 'A0', ingresos: 1200, costes: 840, ebitda: 360, margenEbitda: 30 },
+    { year: 'A1', ingresos: 1350, costes: 918, ebitda: 432, margenEbitda: 32 },
+    { year: 'A2', ingresos: 1520, costes: 1013, ebitda: 507, margenEbitda: 33.4 },
+    { year: 'A3', ingresos: 1720, costes: 1134, ebitda: 586, margenEbitda: 34.1 },
+    { year: 'A4', ingresos: 1950, costes: 1268, ebitda: 682, margenEbitda: 35 },
+    { year: 'A5', ingresos: 2200, costes: 1408, ebitda: 792, margenEbitda: 36 }
+  ].slice(0, yearRange[1] + 1)
 
-  // Apply inflation adjustments if enabled
-  const chartData = includeInflation ? 
-    applyInflationToProjections(baseChartData, {
-      includeInflation: true,
-      customRates: {
-        [new Date().getFullYear() + 1]: getAverageInflation(),
-        [new Date().getFullYear() + 2]: getAverageInflation(),
-        [new Date().getFullYear() + 3]: getAverageInflation(),
-        [new Date().getFullYear() + 4]: getAverageInflation(),
-        [new Date().getFullYear() + 5]: getAverageInflation(),
-      }
-    }).map((item, index) => ({ ...item, year: `A${index}` })) :
-    baseChartData.map((item, index) => ({ ...item, year: `A${index}` }))
-
-  const tableData = (() => {
-    const pad = (arr: number[]) => {
-      const res = [...arr]
-      while (res.length < 6) res.push(0)
-      return res
-    }
-    const ingresos = pad(plData.map(d => d.ingresos))
-    const costes = pad(plData.map(d => -d.costes))
-    const ebitda = pad(plData.map(d => d.ebitda))
-    const amort = pad(plData.map((_, idx) => Math.round((plData[idx]?.ingresos || 0) * 0.02)))
-    const ebit = ebitda.map((v, i) => v - amort[i])
-    const gastosFin = pad(plData.map((_, idx) => -Math.round(ebitda[idx] * 0.05)))
-    const bai = ebit.map((v, i) => v + gastosFin[i])
-    const impuestos = bai.map(v => -Math.round(Math.max(0, v) * 0.25))
-    const bdi = bai.map((v, i) => v + impuestos[i])
-    return [
-      { concepto: 'Ingresos por Ventas', a0: ingresos[0], a1: ingresos[1], a2: ingresos[2], a3: ingresos[3], a4: ingresos[4], a5: ingresos[5] },
-      { concepto: 'Coste de Ventas', a0: costes[0], a1: costes[1], a2: costes[2], a3: costes[3], a4: costes[4], a5: costes[5] },
-      { concepto: 'EBITDA', a0: ebitda[0], a1: ebitda[1], a2: ebitda[2], a3: ebitda[3], a4: ebitda[4], a5: ebitda[5] },
-      { concepto: 'Amortizaciones', a0: -amort[0], a1: -amort[1], a2: -amort[2], a3: -amort[3], a4: -amort[4], a5: -amort[5] },
-      { concepto: 'EBIT', a0: ebit[0], a1: ebit[1], a2: ebit[2], a3: ebit[3], a4: ebit[4], a5: ebit[5] },
-      { concepto: 'Gastos Financieros', a0: gastosFin[0], a1: gastosFin[1], a2: gastosFin[2], a3: gastosFin[3], a4: gastosFin[4], a5: gastosFin[5] },
-      { concepto: 'BAI', a0: bai[0], a1: bai[1], a2: bai[2], a3: bai[3], a4: bai[4], a5: bai[5] },
-      { concepto: 'Impuestos (25%)', a0: impuestos[0], a1: impuestos[1], a2: impuestos[2], a3: impuestos[3], a4: impuestos[4], a5: impuestos[5] },
-      { concepto: 'BDI', a0: bdi[0], a1: bdi[1], a2: bdi[2], a3: bdi[3], a4: bdi[4], a5: bdi[5] },
-    ]
-  })()
+  const tableData = [
+    { concepto: 'Ingresos por Ventas', a0: 1200, a1: 1350, a2: 1520, a3: 1720, a4: 1950, a5: 2200 },
+    { concepto: 'Coste de Ventas', a0: -600, a1: -675, a2: -760, a3: -860, a4: -975, a5: -1100 },
+    { concepto: 'Margen Bruto', a0: 600, a1: 675, a2: 760, a3: 860, a4: 975, a5: 1100 },
+    { concepto: 'Gastos Operativos', a0: -240, a1: -243, a2: -253, a3: -274, a4: -293, a5: -308 },
+    { concepto: 'EBITDA', a0: 360, a1: 432, a2: 507, a3: 586, a4: 682, a5: 792 },
+    { concepto: 'Amortizaciones', a0: -45, a1: -52, a2: -58, a3: -65, a4: -73, a5: -82 },
+    { concepto: 'EBIT', a0: 315, a1: 380, a2: 449, a3: 521, a4: 609, a5: 710 },
+    { concepto: 'Gastos Financieros', a0: -25, a1: -28, a2: -31, a3: -34, a4: -37, a5: -40 },
+    { concepto: 'BAI', a0: 290, a1: 352, a2: 418, a3: 487, a4: 572, a5: 670 },
+    { concepto: 'Impuestos (25%)', a0: -73, a1: -88, a2: -105, a3: -122, a4: -143, a5: -168 },
+    { concepto: 'BDI', a0: 217, a1: 264, a2: 313, a3: 365, a4: 429, a5: 502 }
+  ]
 
   const insights = useProjectionInsights({
     scenario,
@@ -115,12 +78,6 @@ export function PLProyectadoTab({ scenario, yearRange, unit, includeInflation }:
 
   return (
     <div className="space-y-6">
-      {/* Inflation Data Card */}
-      <InflationDataCard 
-        includeInflation={includeInflation}
-        yearRange={yearRange}
-      />
-
       {/* Insights */}
       {insights.map((insight) => (
         <Alert key={insight.id} className="border-primary/20 bg-primary/5">
@@ -137,11 +94,6 @@ export function PLProyectadoTab({ scenario, yearRange, unit, includeInflation }:
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
             Evolución P&G Proyectado
-            {includeInflation && (
-              <Badge variant="secondary" className="text-xs">
-                Con inflación BCE
-              </Badge>
-            )}
           </CardTitle>
         </CardHeader>
         <CardContent>

@@ -3,10 +3,8 @@ import { Slider } from '@/components/ui/slider'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { FileDown, FileText, TrendingUp, Percent, Euro, Info } from 'lucide-react'
+import { FileDown, FileText, TrendingUp, Percent, Euro } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useInflationData } from '@/hooks/useInflationData'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 
 interface ProjectionsToolbarProps {
   scenario: 'base' | 'optimista' | 'pesimista'
@@ -33,16 +31,6 @@ export function ProjectionsToolbar({
   onExportPDF,
   onExportPPTX
 }: ProjectionsToolbarProps) {
-  const { 
-    inflationRates, 
-    loading: inflationLoading, 
-    getAverageInflation,
-    getInflationForYear 
-  } = useInflationData({ 
-    region: 'EU', 
-    yearRange: [new Date().getFullYear(), new Date().getFullYear() + yearRange[1]] 
-  })
-
   const formatCurrency = (value: number) => {
     if (unit === 'm€') return `€${(value / 1000).toFixed(1)}M`
     if (unit === 'k€') return `€${value}K`
@@ -55,10 +43,6 @@ export function ProjectionsToolbar({
     ebitdaPercent: 18.5,
     roeA5: 16.2
   }
-
-  const averageInflation = getAverageInflation()
-  const currentYear = new Date().getFullYear()
-  const endYearInflation = getInflationForYear(currentYear + yearRange[1])
 
   return (
     <div className="sticky top-16 z-40 bg-white/95 backdrop-blur-sm border-b border-border shadow-sm">
@@ -129,23 +113,6 @@ export function ProjectionsToolbar({
                 onCheckedChange={onInflationChange}
                 aria-label="Incluir efectos de inflación"
               />
-              {includeInflation && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Info className="h-4 w-4 text-muted-foreground cursor-help" />
-                    </TooltipTrigger>
-                    <TooltipContent className="bg-white">
-                      <div className="text-xs">
-                        <p><strong>Fuente:</strong> Banco Central Europeo (BCE)</p>
-                        <p>Inflación promedio: {averageInflation.toFixed(1)}%</p>
-                        <p>Año {currentYear + yearRange[1]}: {endYearInflation.toFixed(1)}%</p>
-                        <p className="text-muted-foreground mt-1">Se aplica a valores monetarios</p>
-                      </div>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
             </div>
           </div>
 

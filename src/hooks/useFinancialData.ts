@@ -1,8 +1,6 @@
-
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { debugManager } from '@/utils/debugManager';
-import { useCompanyContext } from '@/contexts/CompanyContext';
+
 export interface FinancialDataPoint {
   id: string;
   data_type: string;
@@ -12,298 +10,112 @@ export interface FinancialDataPoint {
   created_at: string;
 }
 
-// Note: Mock data removed - only real data from database will be displayed
+// Demo data for visualization when no real data is available
+const demoFinancialData: FinancialDataPoint[] = [
+  {
+    id: 'demo-pyg-2024',
+    data_type: 'estado_pyg',
+    period_date: '2024-12-31',
+    period_type: 'annual',
+    data_content: {
+      ingresos_explotacion: 2840000,
+      gastos_explotacion: 2100000,
+      resultado_explotacion: 740000,
+      gastos_financieros: 45000,
+      resultado_neto: 520000
+    },
+    created_at: '2024-12-01T10:00:00Z'
+  },
+  {
+    id: 'demo-pyg-2023',
+    data_type: 'estado_pyg',
+    period_date: '2023-12-31',
+    period_type: 'annual',
+    data_content: {
+      ingresos_explotacion: 2450000,
+      gastos_explotacion: 1850000,
+      resultado_explotacion: 600000,
+      gastos_financieros: 38000,
+      resultado_neto: 420000
+    },
+    created_at: '2023-12-01T10:00:00Z'
+  },
+  {
+    id: 'demo-balance-2024',
+    data_type: 'estado_balance',
+    period_date: '2024-12-31',
+    period_type: 'annual',
+    data_content: {
+      activo_corriente: 1250000,
+      activo_no_corriente: 1850000,
+      pasivo_corriente: 650000,
+      pasivo_no_corriente: 980000,
+      patrimonio_neto: 1470000
+    },
+    created_at: '2024-12-01T10:00:00Z'
+  },
+  {
+    id: 'demo-ratios-2024',
+    data_type: 'ratios_financieros',
+    period_date: '2024-12-31',
+    period_type: 'annual',
+    data_content: {
+      liquidez: {
+        ratio_corriente: 1.92,
+        ratio_acido: 1.45,
+        ratio_tesoreria: 0.68
+      },
+      endeudamiento: {
+        ratio_endeudamiento: 52.5,
+        deuda_patrimonio: 1.11,
+        cobertura_intereses: 16.4
+      },
+      rentabilidad: {
+        roe: 35.4,
+        roa: 16.8,
+        margen_neto: 18.3
+      }
+    },
+    created_at: '2024-12-01T10:00:00Z'
+  }
+];
 
-export const useFinancialData = (dataType?: string, companyId?: string) => {
+export const useFinancialData = (dataType?: string) => {
   const [data, setData] = useState<FinancialDataPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasRealData, setHasRealData] = useState(false);
-  const mounted = useRef(true);
-  const lastFetchRef = useRef<string>('');
-  const cacheRef = useRef<Map<string, { data: FinancialDataPoint[]; timestamp: number }>>(new Map());
-  const { validateCompanyAccess, companyId: contextCompanyId } = useCompanyContext();
 
-  const fetchFinancialData = useCallback(async () => {
-    const effectiveCompanyId = companyId || contextCompanyId || undefined;
-    const fetchKey = `${effectiveCompanyId || 'no-company'}_${dataType || 'all'}_${Date.now()}`;
-    lastFetchRef.current = fetchKey;
-    
-    if (!mounted.current) return;
+  useEffect(() => {
+    fetchFinancialData();
+  }, [dataType]);
 
-    // Verificar cache (válido por 5 minutos)
-    const cacheKey = `${effectiveCompanyId || 'no-company'}_${dataType || 'all'}`;
-    const cached = cacheRef.current.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < 300000) {
-      setData(cached.data);
-      setHasRealData(cached.data.length > 0);
-      setLoading(false);
-      return;
-    }
-    
-    const endTimer = debugManager.startTimer('financial_data_fetch');
-    
+  const fetchFinancialData = async () => {
     try {
-      debugManager.logInfo(`Fetching financial data from specific tables: ${dataType || 'all'}`, undefined, 'useFinancialData');
       setLoading(true);
+      // Get latest financial data without user filtering for anonymous uploads
+      let query = supabase
+        .from('financial_data')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-      if (!effectiveCompanyId) {
-        setData([]);
-        setHasRealData(false);
-        setLoading(false);
-        setError(null);
-        return;
+      if (dataType) {
+        query = query.eq('data_type', dataType);
       }
 
-      const allowed = await validateCompanyAccess(effectiveCompanyId);
-      if (!allowed) {
-        setError('Unauthorized company access');
-        setHasRealData(false);
-        setData([]);
-        setLoading(false);
-        return;
-      }
-      
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), 15000)
-      );
-      
-      let result: any[] = [];
-      let error = null;
-
-      // Fetch from specific financial tables based on dataType
-      if (dataType === 'estado_pyg' || !dataType) {
-        let pygQuery = supabase
-          .from('fs_pyg_lines')
-          .select('*')
-          .order('period_year', { ascending: false });
-        
-        if (effectiveCompanyId) {
-          pygQuery = pygQuery.eq('company_id', effectiveCompanyId);
-        }
-        
-        const { data: pygData, error: pygError } = await Promise.race([pygQuery, timeoutPromise]) as any;
-        if (pygError) error = pygError;
-        if (pygData && pygData.length > 0) {
-          const grouped = groupFinancialData(pygData, 'estado_pyg');
-          result.push(...grouped);
-        }
-      }
-
-      // Ratios financieros desde vista materializada fs_ratios_mv
-      if (dataType === 'ratios_financieros' || !dataType) {
-        let ratiosQuery = supabase
-          .from('fs_ratios_mv')
-          .select('*')
-          .order('period_year', { ascending: false });
-
-        if (effectiveCompanyId) {
-          ratiosQuery = ratiosQuery.eq('company_id', effectiveCompanyId);
-        }
-
-        const { data: ratiosDb, error: ratiosError } = await Promise.race([ratiosQuery, timeoutPromise]) as any;
-        if (ratiosError) error = ratiosError;
-        if (ratiosDb && ratiosDb.length > 0) {
-          // Adapt rows into FinancialDataPoint shape
-          const grouped = ratiosDb.reduce((acc: any, row: any) => {
-            const year = row.period_year;
-            const key = `ratios_financieros_${year}`;
-            if (!acc[key]) {
-              acc[key] = {
-                id: key,
-                data_type: 'ratios_financieros',
-                period_date: `${year}-12-31`,
-                period_type: 'annual',
-                data_content: {},
-                created_at: row.calculated_at || new Date().toISOString()
-              };
-            }
-            // Map ratios
-            acc[key].data_content = {
-              ...acc[key].data_content,
-              ratio_corriente: row.ratio_corriente,
-              prueba_acida: row.prueba_acida,
-              ratio_tesoreria: row.ratio_tesoreria,
-              margen_neto: row.margen_neto,
-              autonomia_financiera: row.autonomia_financiera,
-              roa: row.roa,
-              roe: row.roe,
-              rotacion_activos: row.rotacion_activos,
-              ratio_endeudamiento_total: row.ratio_endeudamiento_total,
-              ratio_endeudamiento_financiero: row.ratio_endeudamiento_financiero,
-            };
-            return acc;
-          }, {} as Record<string, FinancialDataPoint>);
-          result.push(...Object.values(grouped));
-        }
-      }
-
-      if (dataType === 'balance_situacion' || !dataType) {
-        let balanceQuery = supabase
-          .from('fs_balance_lines')
-          .select('*')
-          .order('period_year', { ascending: false });
-        
-        if (effectiveCompanyId) {
-          balanceQuery = balanceQuery.eq('company_id', effectiveCompanyId);
-        }
-        
-        const { data: balanceData, error: balanceError } = await Promise.race([balanceQuery, timeoutPromise]) as any;
-        if (balanceError) error = balanceError;
-        if (balanceData && balanceData.length > 0) {
-          const grouped = groupFinancialData(balanceData, 'balance_situacion');
-          result.push(...grouped);
-        }
-      }
-
-      if (dataType === 'estado_flujos' || !dataType) {
-        let cashflowQuery = supabase
-          .from('fs_cashflow_lines')
-          .select('*')
-          .order('period_year', { ascending: false });
-        
-        if (effectiveCompanyId) {
-          cashflowQuery = cashflowQuery.eq('company_id', effectiveCompanyId);
-        }
-        
-        const { data: cashflowData, error: cashflowError } = await Promise.race([cashflowQuery, timeoutPromise]) as any;
-        if (cashflowError) error = cashflowError;
-        if (cashflowData && cashflowData.length > 0) {
-          const grouped = groupFinancialData(cashflowData, 'estado_flujos');
-          result.push(...grouped);
-        }
-      }
-
-      // Check if this is still the latest fetch
-      if (lastFetchRef.current !== fetchKey || !mounted.current) return;
+      const { data: result, error } = await query;
 
       if (error) throw error;
       
-      const hasRealDBData = result && result.length > 0;
-      setHasRealData(hasRealDBData);
-      
-      let finalData: FinancialDataPoint[] = [];
-      
-      if (hasRealDBData) {
-        finalData = processRealData(result);
-        
-        // Guardar en cache
-        cacheRef.current.set(cacheKey, {
-          data: finalData,
-          timestamp: Date.now()
-        });
-
-        // Limpiar cache viejo (mantener solo últimas 5 entradas)
-        if (cacheRef.current.size > 5) {
-          const oldestKey = Array.from(cacheRef.current.entries())
-            .sort(([, a], [, b]) => a.timestamp - b.timestamp)[0][0];
-          cacheRef.current.delete(oldestKey);
-        }
-      }
-      
-      debugManager.logInfo(`Financial data fetched successfully: ${finalData.length} records`, { hasRealData: hasRealDBData }, 'useFinancialData');
+      // Use real data if available, otherwise fall back to demo data
+      const finalData = result && result.length > 0 ? result : demoFinancialData;
       setData(finalData);
     } catch (err) {
-      endTimer();
-      if (lastFetchRef.current !== fetchKey || !mounted.current) return;
-      
-      debugManager.logError('Failed to fetch financial data', err, { dataType }, 'useFinancialData');
-      const errorMessage = err instanceof Error ? err.message : 'Error fetching data';
-      setError(errorMessage);
-      setHasRealData(false);
-      setData([]);
+      setError(err instanceof Error ? err.message : 'Error fetching data');
+      // On error, still show demo data
+      setData(demoFinancialData);
     } finally {
-      if (lastFetchRef.current === fetchKey && mounted.current) {
-        endTimer();
-        setLoading(false);
-      }
+      setLoading(false);
     }
-  }, [dataType, companyId, contextCompanyId]); // validateCompanyAccess is memoized in context
-
-  // Group financial data by year and data type
-  const groupFinancialData = (data: any[], type: string): FinancialDataPoint[] => {
-    if (!data || data.length === 0) return [];
-    
-    const grouped = data.reduce((acc, item) => {
-      const year = item.period_year;
-      const key = `${type}_${year}`;
-      
-      if (!acc[key]) {
-        acc[key] = {
-          id: key,
-          data_type: type,
-          period_date: `${year}-12-31`,
-          period_type: 'annual',
-          data_content: {},
-          created_at: item.created_at || new Date().toISOString()
-        };
-      }
-      
-      acc[key].data_content[item.concept] = item.amount;
-      return acc;
-    }, {} as Record<string, FinancialDataPoint>);
-    
-    return Object.values(grouped);
-  };
-
-  useEffect(() => {
-    mounted.current = true;
-    fetchFinancialData();
-    
-    return () => {
-      mounted.current = false;
-    };
-  }, [fetchFinancialData]);
-
-
-  // Helper function to extract the latest year value from year-structured data
-  const extractLatestValue = (yearData: any): number => {
-    if (typeof yearData === 'number') return yearData;
-    if (typeof yearData === 'object' && yearData !== null) {
-      const years = Object.keys(yearData).sort().reverse();
-      if (years.length > 0) {
-        return Number(yearData[years[0]]) || 0;
-      }
-    }
-    return 0;
-  };
-
-  // Helper function to get all years from year-structured data
-  const getAllYearValues = (yearData: any): Record<string, number> => {
-    if (typeof yearData === 'object' && yearData !== null && !Array.isArray(yearData)) {
-      return yearData;
-    }
-    return {};
-  };
-
-  // Process real data to flatten year-structured values
-  const processRealData = (realData: any[]): FinancialDataPoint[] => {
-    return realData.map(item => {
-      const flattenedContent: any = {};
-      
-      if (item.data_content && typeof item.data_content === 'object') {
-        Object.keys(item.data_content).forEach(key => {
-          const value = item.data_content[key];
-          
-          if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-            // Handle nested objects (like liquidez, endeudamiento in ratios)
-            if (item.data_type === 'ratios_financieros') {
-              flattenedContent[key] = value;
-            } else {
-              // For other data types, extract latest year value
-              flattenedContent[key] = extractLatestValue(value);
-            }
-          } else {
-            flattenedContent[key] = value;
-          }
-        });
-      }
-      
-      return {
-        ...item,
-        data_content: flattenedContent
-      };
-    });
   };
 
   const getLatestData = (type: string) => {
@@ -313,32 +125,6 @@ export const useFinancialData = (dataType?: string, companyId?: string) => {
   const getPeriodComparison = (type: string) => {
     const typeData = data.filter(item => item.data_type === type);
     return typeData.slice(0, 2); // Current and previous period
-  };
-
-  // Get multi-year data for charts
-  const getMultiYearData = (type: string) => {
-    const item = data.find(d => d.data_type === type);
-    if (!item?.data_content) return [];
-    
-    const years = new Set<string>();
-    Object.values(item.data_content).forEach(value => {
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        Object.keys(value).forEach(year => {
-          if (!isNaN(Number(year))) years.add(year);
-        });
-      }
-    });
-    
-    return Array.from(years).sort().map(year => {
-      const yearData: any = { year };
-      Object.keys(item.data_content).forEach(key => {
-        const value = item.data_content[key];
-        if (typeof value === 'object' && value !== null && value[year] !== undefined) {
-          yearData[key] = value[year];
-        }
-      });
-      return yearData;
-    });
   };
 
   const calculateGrowth = (current: any, previous: any, field: string) => {
@@ -368,40 +154,14 @@ export const useFinancialData = (dataType?: string, companyId?: string) => {
     return isFinite(num) && !isNaN(num) ? num : fallback;
   };
 
-  const hasRealDataForPeriod = (year?: string): boolean => {
-    if (!hasRealData) return false;
-    if (!year) return true;
-    
-    return data.some(item => {
-      const itemYear = new Date(item.period_date).getFullYear().toString();
-      return itemYear === year;
-    });
-  };
-
-  const clearCache = useCallback(() => {
-    cacheRef.current.clear();
-  }, []);
-
-  const getProcessedDataForAnalysis = useCallback(() => {
-    return data.reduce((acc, item) => {
-      acc[item.data_type] = item.data_content;
-      return acc;
-    }, {} as Record<string, any>);
-  }, [data]);
-
   return {
     data,
     loading,
     error,
-    hasRealData,
-    hasRealDataForPeriod,
     getLatestData,
     getPeriodComparison,
-    getMultiYearData,
     calculateGrowth,
     safeNumber,
-    clearCache,
-    getProcessedDataForAnalysis,
     refetch: fetchFinancialData
   };
 };

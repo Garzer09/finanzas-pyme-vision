@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, useLocation, useSearchParams } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { 
   Home,
   FileText,
@@ -27,72 +27,25 @@ import {
   ChevronUp,
   Layers,
   Briefcase,
-  TrendingDown,
-  Upload,
-  Shield
+  TrendingDown
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useUserRole } from '@/hooks/useUserRole';
-import { useCompanyLogo } from '@/hooks/useCompanyLogo';
-import { useAdminImpersonation } from '@/contexts/AdminImpersonationContext';
-import { CompanyLogo } from '@/components/CompanyLogo';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSessionTimeout } from '@/hooks/useSessionTimeout';
-import { LogOut, AlertCircle } from 'lucide-react';
-import { 
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
 
 export const DashboardSidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
-  const { signOut } = useAuth();
-  const [searchParams] = useSearchParams();
-  const location = useLocation();
-  
-  // Extract companyId from URL params (new structure: /app/:companyId)
-  const companyId = location.pathname.includes('/app/') ? 
-    location.pathname.split('/app/')[1]?.split('/')[0] : 
-    searchParams.get('companyId');
-  
-  // Initialize session timeout (moved here to ensure AuthProvider is available)
-  useSessionTimeout({ timeoutMinutes: 120, warningMinutes: 15 });
   const [expandedSections, setExpandedSections] = useState<{ [key: string]: boolean }>({
     situacion: true,
     supuestos: false,
     proyecciones: false,
     sensibilidad: false,
-    valoracion: false,
-    admin: false
+    valoracion: false
   });
   
+  const location = useLocation();
   const currentPath = location.pathname;
-  const { isAdmin } = useUserRole();
-  const { logoUrl } = useCompanyLogo();
-  const { isImpersonating, impersonatedUserInfo, setImpersonation } = useAdminImpersonation();
-  const navigate = useNavigate();
 
   // Function to get the section key based on current path
   const getSectionFromPath = (path: string): string | null => {
-    // Dashboard Principal
-    if (path === '/home' || path === '/') {
-      return null; // No section to expand for dashboard
-    }
-    
-    // Admin section
-    if (path.includes('/admin') || path.includes('/excel-upload')) {
-      return 'admin';
-    }
-    
     // Section 3: Análisis Situación Actual
     if (path.includes('/cuenta-pyg') || path.includes('/balance-situacion') || 
         path.includes('/ratios-financieros') || path.includes('/flujos-caja') || 
@@ -163,31 +116,11 @@ export const DashboardSidebar = () => {
   };
 
   const menuSections = [
-    // Admin section - only visible to admins
-    ...(isAdmin ? [{
-      title: 'Administración',
-      key: 'admin',
-      expandable: false,
-      items: [
-        {
-          path: '/admin/empresas',
-          label: 'Panel de Administración',
-          icon: Shield,
-          color: 'text-primary'
-        },
-        {
-          path: '/debug',
-          label: 'Sistema Debug',
-          icon: AlertTriangle,
-          color: 'text-warning-600'
-        },
-      ]
-    }] : []),
     {
       title: '1. Resumen Ejecutivo',
       items: [
         {
-          path: companyId ? `/app/${companyId}` : '/app/mis-empresas',
+          path: '/home',
           label: 'Dashboard Principal',
           icon: Home,
           color: 'text-steel-600'
@@ -198,7 +131,7 @@ export const DashboardSidebar = () => {
       title: '2. Descripción Empresa',
       items: [
         {
-          path: companyId ? `/app/${companyId}/descripcion-empresa` : '/app/mis-empresas',
+          path: '/descripcion-empresa',
           label: 'Descripción de la Empresa',
           icon: Building2,
           color: 'text-cadet-600'
@@ -211,61 +144,61 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: companyId ? `/app/${companyId}/cuenta-pyg` : '/app/mis-empresas',
+          path: '/cuenta-pyg',
           label: 'Cuenta P&G',
           icon: FileText,
           color: 'text-steel-500'
         },
         {
-          path: companyId ? `/app/${companyId}/balance-situacion` : '/app/mis-empresas',
+          path: '/balance-situacion',
           label: 'Balance Situación',
           icon: CreditCard,
           color: 'text-steel-600'
         },
         {
-          path: companyId ? `/app/${companyId}/ratios-financieros` : '/app/mis-empresas',
+          path: '/ratios-financieros',
           label: 'Ratios Financieros',
           icon: Activity,
           color: 'text-warning-600'
         },
         {
-          path: companyId ? `/app/${companyId}/flujos-caja` : '/app/mis-empresas',
+          path: '/flujos-caja',
           label: 'Estado Flujos Caja',
           icon: Wallet,
           color: 'text-success-600'
         },
         {
-          path: companyId ? `/app/${companyId}/analisis-nof` : '/app/mis-empresas',
+          path: '/analisis-nof',
           label: 'Análisis NOF',
           icon: CircleDot,
           color: 'text-cadet-600'
         },
         {
-          path: companyId ? `/app/${companyId}/punto-muerto` : '/app/mis-empresas',
+          path: '/punto-muerto',
           label: 'Punto Muerto',
           icon: Target,
           color: 'text-danger-500'
         },
         {
-          path: companyId ? `/app/${companyId}/endeudamiento` : '/app/mis-empresas',
+          path: '/endeudamiento',
           label: 'Endeudamiento',
           icon: Database,
           color: 'text-steel-700'
         },
         {
-          path: companyId ? `/app/${companyId}/servicio-deuda` : '/app/mis-empresas',
+          path: '/servicio-deuda',
           label: 'Servicio Deuda',
           icon: AlertTriangle,
           color: 'text-warning-500'
         },
         {
-          path: companyId ? `/app/${companyId}/pyg-analitico-actual` : '/app/mis-empresas',
+          path: '/pyg-analitico-actual',
           label: 'P&G Analítico Actual',
           icon: BarChart3,
           color: 'text-cadet-500'
         },
         {
-          path: companyId ? `/app/${companyId}/segmentos-actual` : '/app/mis-empresas',
+          path: '/segmentos-actual',
           label: 'Ventas por Segmentos',
           icon: Users,
           color: 'text-steel-400'
@@ -278,7 +211,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: companyId ? `/app/${companyId}/supuestos-financieros` : '/app/mis-empresas',
+          path: '/supuestos-financieros',
           label: 'Supuestos Financieros Clave',
           icon: Calculator,
           color: 'text-primary'
@@ -291,7 +224,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: companyId ? `/app/${companyId}/proyecciones` : '/app/mis-empresas',
+          path: '/proyecciones',
           label: 'Proyecciones',
           icon: TrendingUp,
           color: 'text-success-500'
@@ -304,7 +237,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: companyId ? `/app/${companyId}/escenarios` : '/app/mis-empresas',
+          path: '/escenarios',
           label: 'Escenarios y Sensibilidad',
           icon: TrendingDown,
           color: 'text-warning-600'
@@ -317,7 +250,7 @@ export const DashboardSidebar = () => {
       expandable: true,
       items: [
         {
-          path: companyId ? `/app/${companyId}/valoracion-eva` : '/app/mis-empresas',
+          path: '/valoracion-eva',
           label: 'Valoración Integral',
           icon: DollarSign,
           color: 'text-steel-700'
@@ -328,7 +261,7 @@ export const DashboardSidebar = () => {
       title: '8. Conclusiones',
       items: [
         {
-          path: companyId ? `/app/${companyId}/conclusiones` : '/app/mis-empresas',
+          path: '/conclusiones',
           label: 'Conclusiones y Recomendaciones',
           icon: FileText,
           color: 'text-steel-600'
@@ -355,19 +288,11 @@ export const DashboardSidebar = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-steel-50/30 to-cadet-50/20"></div>
         {!collapsed && (
           <div className="flex items-center gap-3 relative z-10">
-            <CompanyLogo 
-              logoUrl={logoUrl}
-              size="md"
-              fallback={
-                <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-professional bg-gradient-to-br from-steel-500 to-cadet-500">
-                  <TrendingUp className="h-5 w-5 text-white" />
-                </div>
-              }
-            />
+            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-professional bg-gradient-to-br from-steel-500 to-cadet-500">
+              <TrendingUp className="h-5 w-5 text-white" />
+            </div>
             <div>
-              <span className="font-bold text-slate-900 text-lg tracking-tight">
-                {logoUrl ? '' : 'FinSight Pro'}
-              </span>
+              <span className="font-bold text-slate-900 text-lg tracking-tight">FinSight Pro</span>
               <p className="text-sm text-slate-600 font-medium">Análisis Financiero Integral</p>
             </div>
           </div>
@@ -384,35 +309,6 @@ export const DashboardSidebar = () => {
           )}
         </button>
       </div>
-
-      {/* Admin Impersonation Banner */}
-      {isAdmin && isImpersonating && impersonatedUserInfo && (
-        <div className="mx-4 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium text-blue-800 mb-1">Viendo como:</p>
-              <p className="text-sm font-semibold text-blue-900 truncate">
-                {impersonatedUserInfo.email}
-              </p>
-              <p className="text-xs text-blue-700 truncate">
-                {impersonatedUserInfo.company_name}
-              </p>
-            </div>
-          </div>
-          <Button
-            onClick={() => {
-              setImpersonation(null, null);
-              navigate('/admin/users');
-            }}
-            size="sm"
-            variant="outline"
-            className="w-full mt-2 text-xs border-blue-300 text-blue-700 hover:bg-blue-100"
-          >
-            <Shield className="h-3 w-3 mr-1" />
-            Volver a Panel Admin
-          </Button>
-        </div>
-      )}
 
       {/* Navigation with modern styling */}
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto scrollbar-hide">
@@ -501,49 +397,20 @@ export const DashboardSidebar = () => {
         ))}
       </nav>
 
-      {/* Logout Section */}
-      <div className="mt-auto pt-4 border-t border-steel-700/30">
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <button
-              className={cn(
-                "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:text-white hover:bg-steel-800/50 transition-all duration-200 rounded-lg group",
-                collapsed && "justify-center"
-              )}
-              title={collapsed ? "Cerrar Sesión" : undefined}
-            >
-              <LogOut className="h-5 w-5 flex-shrink-0" />
-              {!collapsed && <span className="font-medium">Cerrar Sesión</span>}
-              {collapsed && (
-                <div className="absolute left-full ml-3 px-3 py-2 bg-slate-900 text-white text-sm rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 shadow-lg">
-                  Cerrar Sesión
-                </div>
-              )}
-            </button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle className="flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-amber-500" />
-                Confirmar Cierre de Sesión
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                ¿Estás seguro de que quieres cerrar tu sesión? Tendrás que volver a iniciar sesión para acceder a la aplicación.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={() => signOut('/')}
-                className="bg-red-600 hover:bg-red-700"
-              >
-                Cerrar Sesión
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      {/* Footer with enhanced styling */}
+      <div className="p-4 border-t border-slate-200/50">
+        <button
+          className={cn(
+            "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50/80 text-slate-700 hover:text-steel-600 font-medium",
+            collapsed && "justify-center"
+          )}
+          aria-label="Configuración"
+          title={collapsed ? 'Configuración' : undefined}
+        >
+          <Settings className="h-5 w-5 text-slate-500" />
+          {!collapsed && <span className="font-medium tracking-wide">Configuración</span>}
+        </button>
       </div>
-
     </div>
   );
 };

@@ -1,23 +1,22 @@
 import { UseFormReturn } from "react-hook-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { HelpCircle } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { HelpCircle } from "lucide-react"
 import { SliderInput } from "@/components/ui/slider-input"
 import { NumberInput } from "@/components/ui/number-input"
-import { type FinancialAssumptions } from "@/schemas/financial-assumptions"
+import { OperatingCosts } from "@/schemas/financial-assumptions"
 
 interface OperatingCostsStepProps {
-  form: UseFormReturn<FinancialAssumptions>
+  form: UseFormReturn<OperatingCosts>
 }
 
 export function OperatingCostsStep({ form }: OperatingCostsStepProps) {
   const { watch, setValue, formState: { errors } } = form
-
-  const variableCostPercentage = watch("operatingCosts.variableCostPercentage") || 0
-  const fixedAnnualCost = watch("operatingCosts.fixedAnnualCost") || 0
-  const personnelCost = watch("operatingCosts.personnelCost") || 0
+  
+  const variableCostPercentage = watch("variableCostPercentage") || 0
+  const fixedAnnualCost = watch("fixedAnnualCost") || 0
+  const personnelCost = watch("personnelCost") || 0
 
   return (
     <Card className="w-full">
@@ -32,7 +31,7 @@ export function OperatingCostsStep({ form }: OperatingCostsStepProps) {
           {/* Variable Cost Percentage */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label>Costes variables (% de ventas)</Label>
+              <Label>Coste Variable sobre Ventas (%)</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -45,26 +44,24 @@ export function OperatingCostsStep({ form }: OperatingCostsStepProps) {
               </TooltipProvider>
             </div>
             <SliderInput
-              label="Costes variables (% de ventas)"
+              label=""
               value={variableCostPercentage}
-              onValueChange={(value) => setValue("operatingCosts.variableCostPercentage", value)}
+              onValueChange={(value) => setValue("variableCostPercentage", value)}
               min={0}
               max={100}
               step={0.1}
               formatValue={(value) => `${value.toFixed(1)}%`}
-              className="flex-1"
+              aria-label="Coste variable sobre ventas"
             />
-            {errors.operatingCosts?.variableCostPercentage && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.operatingCosts.variableCostPercentage.message}
-              </p>
+            {errors.variableCostPercentage && (
+              <p className="text-destructive text-sm">{errors.variableCostPercentage.message}</p>
             )}
           </div>
 
           {/* Fixed Annual Cost */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <Label>Costes fijos anuales (€)</Label>
+              <Label>Coste Fijo Anual (€)</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -77,24 +74,23 @@ export function OperatingCostsStep({ form }: OperatingCostsStepProps) {
               </TooltipProvider>
             </div>
             <NumberInput
-              label="Costes fijos anuales (€)"
+              label=""
               value={fixedAnnualCost}
-              onValueChange={(value) => setValue("operatingCosts.fixedAnnualCost", value)}
+              onValueChange={(value) => setValue("fixedAnnualCost", value)}
               min={0}
               step={1000}
-              className="flex-1"
+              formatValue={(value) => `${value.toLocaleString()}€`}
+              aria-label="Coste fijo anual"
             />
-            {errors.operatingCosts?.fixedAnnualCost && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.operatingCosts.fixedAnnualCost.message}
-              </p>
+            {errors.fixedAnnualCost && (
+              <p className="text-destructive text-sm">{errors.fixedAnnualCost.message}</p>
             )}
           </div>
 
           {/* Personnel Cost */}
           <div className="space-y-2 sm:col-span-2">
             <div className="flex items-center gap-2">
-              <Label>Costes de personal (€)</Label>
+              <Label>Coste de Personal (€)</Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -107,17 +103,16 @@ export function OperatingCostsStep({ form }: OperatingCostsStepProps) {
               </TooltipProvider>
             </div>
             <NumberInput
-              label="Costes de personal (€)"
+              label=""
               value={personnelCost}
-              onValueChange={(value) => setValue("operatingCosts.personnelCost", value)}
+              onValueChange={(value) => setValue("personnelCost", value)}
               min={0}
               step={1000}
-              className="flex-1"
+              formatValue={(value) => `${value.toLocaleString()}€`}
+              aria-label="Coste de personal"
             />
-            {errors.operatingCosts?.personnelCost && (
-              <p className="text-sm text-destructive mt-1">
-                {errors.operatingCosts.personnelCost.message}
-              </p>
+            {errors.personnelCost && (
+              <p className="text-destructive text-sm">{errors.personnelCost.message}</p>
             )}
           </div>
         </div>

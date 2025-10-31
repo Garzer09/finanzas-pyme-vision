@@ -1,7 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useCompanyContext } from '@/contexts/CompanyContext';
+import { useState, useMemo } from 'react';
 
 export interface DebtItem {
   id: string;
@@ -25,91 +22,64 @@ export interface RiskMetrics {
 }
 
 export const useDebtData = () => {
-  const { companyId } = useParams<{ companyId: string }>();
-  const [debtItems, setDebtItems] = useState<DebtItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // Fetch debt data from database (real tables)
-  const { validateCompanyAccess } = useCompanyContext();
-
-  useEffect(() => {
-    if (!companyId) return;
-
-    const fetchDebtData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const allowed = await validateCompanyAccess(companyId);
-        if (!allowed) {
-          setError('Unauthorized company access');
-          setDebtItems([]);
-          return;
-        }
-
-        const { data: loans, error: loansError } = await supabase
-          .from('debt_loans')
-          .select('*')
-          .eq('company_id', companyId);
-        if (loansError) throw loansError;
-
-        const { data: maturities, error: matError } = await supabase
-          .from('debt_maturities')
-          .select('*')
-          .eq('company_id', companyId);
-        if (matError) throw matError;
-
-        const matByLoan = new Map<number, any[]>();
-        (maturities || []).forEach((m: any) => {
-          const key = Number(m.loan_id);
-          if (!matByLoan.has(key)) matByLoan.set(key, []);
-          matByLoan.get(key)!.push(m);
-        });
-
-        const today = new Date();
-        const transformed: DebtItem[] = (loans || []).map((loan: any) => {
-          const list = (matByLoan.get(Number(loan.id)) || []).sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
-          const upcoming = list.find((m: any) => new Date(m.due_date) >= today);
-          const last = list.length > 0 ? list[list.length - 1] : null;
-          const nextQuota = upcoming ? Number(upcoming.amount_principal || 0) + Number(upcoming.amount_interest || 0) : 0;
-
-          const endDate = loan.end_date ? new Date(loan.end_date) : undefined;
-          const monthsLeft = endDate ? Math.max(0, (endDate.getFullYear() - today.getFullYear()) * 12 + (endDate.getMonth() - today.getMonth())) : 0;
-
-          const freqMap: Record<string, string> = {
-            monthly: 'Mensual',
-            quarterly: 'Trimestral',
-            semiannual: 'Semestral',
-            annual: 'Anual',
-            bullet: 'A vencimiento'
-          };
-
-          return {
-            id: String(loan.id),
-            entidad: loan.entity || 'Entidad',
-            tipo: loan.loan_type || 'Préstamo',
-            capitalInicial: Number(loan.initial_principal ?? loan.current_balance ?? 0),
-            capitalPendiente: Number(loan.current_balance ?? 0),
-            tipoInteres: Number(loan.interest_rate ?? 0),
-            plazoRestante: monthsLeft,
-            cuota: nextQuota,
-            proximoVencimiento: upcoming ? String(upcoming.due_date) : '',
-            ultimoVencimiento: last ? String(last.due_date) : '',
-            frecuencia: freqMap[(loan.frequency || 'monthly').toLowerCase()] || 'Mensual',
-            garantias: loan.guarantees || undefined
-          } as DebtItem;
-        });
-
-        setDebtItems(transformed);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error loading debt data');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDebtData();
-  }, [companyId, validateCompanyAccess]);
+  const [debtItems, setDebtItems] = useState<DebtItem[]>([
+    {
+      id: '1',
+      entidad: 'Banco Santander',
+      tipo: 'Préstamo ICO',
+      capitalInicial: 500000,
+      capitalPendiente: 320000,
+      tipoInteres: 3.5,
+      plazoRestante: 36,
+      cuota: 9500,
+      proximoVencimiento: '2024-02-15',
+      ultimoVencimiento: '2027-02-15',
+      frecuencia: 'Mensual',
+      garantias: 'Hipoteca sobre inmueble'
+    },
+    {
+      id: '2',
+      entidad: 'BBVA',
+      tipo: 'Línea de Crédito',
+      capitalInicial: 200000,
+      capitalPendiente: 150000,
+      tipoInteres: 4.2,
+      plazoRestante: 12,
+      cuota: 0,
+      proximoVencimiento: '2024-12-31',
+      ultimoVencimiento: '2024-12-31',
+      frecuencia: 'A vencimiento',
+      garantias: 'Aval personal'
+    },
+    {
+      id: '3',
+      entidad: 'CaixaBank',
+      tipo: 'Leasing',
+      capitalInicial: 180000,
+      capitalPendiente: 95000,
+      tipoInteres: 3.8,
+      plazoRestante: 24,
+      cuota: 4200,
+      proximoVencimiento: '2024-02-01',
+      ultimoVencimiento: '2026-02-01',
+      frecuencia: 'Mensual',
+      garantias: 'Bien objeto de leasing'
+    },
+    {
+      id: '4',
+      entidad: 'Banco Sabadell',
+      tipo: 'Descuento Comercial',
+      capitalInicial: 100000,
+      capitalPendiente: 85000,
+      tipoInteres: 2.8,
+      plazoRestante: 6,
+      cuota: 0,
+      proximoVencimiento: '2024-08-15',
+      ultimoVencimiento: '2024-08-15',
+      frecuencia: 'A vencimiento',
+      garantias: 'Sin garantías'
+    }
+  ]);
 
   // Cálculos principales
   const totalCapitalPendiente = useMemo(() => 
@@ -225,8 +195,6 @@ export const useDebtData = () => {
     debtByType,
     vencimientos,
     riskMetrics,
-    loading,
-    error,
     addDebtItem,
     updateDebtItem,
     deleteDebtItem

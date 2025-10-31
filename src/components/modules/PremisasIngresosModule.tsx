@@ -7,20 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { TrendingUp, CalendarDays, Percent, Target } from 'lucide-react';
-import { useCompanyContext } from '@/contexts/CompanyContext';
-import { useFinancialAssumptionsData } from '@/hooks/useFinancialAssumptionsData';
-import { Input } from '@/components/ui/input';
 
 export const PremisasIngresosModule = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('annual');
-  const { companyId } = useCompanyContext();
-  const { getLatestAssumption, upsertSegmentMargins } = useFinancialAssumptionsData(companyId);
-  const [margins, setMargins] = useState({
-    premium: Number(getLatestAssumption('margen_segmento_premium')?.assumption_value) || 35,
-    estandar: Number(getLatestAssumption('margen_segmento_estandar')?.assumption_value) || 25,
-    basicos: Number(getLatestAssumption('margen_segmento_basicos')?.assumption_value) || 15,
-    servicios: Number(getLatestAssumption('margen_segmento_servicios')?.assumption_value) || 45,
-  });
 
   const ingresosData = [
     { periodo: 'Año 0', ventas: 2500, crecimiento: 0 },
@@ -201,12 +190,11 @@ export const PremisasIngresosModule = () => {
                   <div className="p-3 rounded-2xl bg-steel-blue/20 backdrop-blur-sm border border-steel-blue/30 shadow-xl">
                     <Target className="h-6 w-6 text-steel-blue-dark" />
                   </div>
-                  Ingresos por Segmento y Márgenes
+                  Ingresos por Segmento
                 </CardTitle>
               </CardHeader>
               <CardContent className="relative z-10">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div className="h-80 relative">
+                <div className="h-80 relative">
                   <div className="absolute inset-0 bg-white/30 backdrop-blur-sm rounded-2xl border border-white/40"></div>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={segmentosData}>
@@ -252,31 +240,6 @@ export const PremisasIngresosModule = () => {
                       />
                     </BarChart>
                   </ResponsiveContainer>
-                  </div>
-                  <div className="space-y-4">
-                    <h4 className="font-semibold text-gray-900">Márgenes por Segmento (%)</h4>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="text-sm text-gray-600">Premium</label>
-                        <Input type="number" value={margins.premium} onChange={(e) => setMargins(s => ({...s, premium: Number(e.target.value)}))} />
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-600">Estándar</label>
-                        <Input type="number" value={margins.estandar} onChange={(e) => setMargins(s => ({...s, estandar: Number(e.target.value)}))} />
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-600">Básicos</label>
-                        <Input type="number" value={margins.basicos} onChange={(e) => setMargins(s => ({...s, basicos: Number(e.target.value)}))} />
-                      </div>
-                      <div>
-                        <label className="text-sm text-gray-600">Servicios</label>
-                        <Input type="number" value={margins.servicios} onChange={(e) => setMargins(s => ({...s, servicios: Number(e.target.value)}))} />
-                      </div>
-                    </div>
-                    <div>
-                      <Button onClick={() => upsertSegmentMargins(margins)} className="mt-2">Guardar Márgenes</Button>
-                    </div>
-                  </div>
                 </div>
               </CardContent>
             </Card>

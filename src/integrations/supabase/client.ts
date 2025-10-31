@@ -2,7 +2,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-// Supabase configuration - hardcoded as per Lovable requirements
 const SUPABASE_URL = "https://hlwchpmogvwmpuvwmvwv.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhsd2NocG1vZ3Z3bXB1dndtdnd2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDgyODQ5MjMsImV4cCI6MjA2Mzg2MDkyM30.WAKJS5_qPOgzTdwNmIRo15w-SD8KyH9X6x021bEhKaY";
 

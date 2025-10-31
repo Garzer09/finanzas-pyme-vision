@@ -1,62 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import {
-  Navigate,
-  useSearchParams,
-  useNavigate,
-  useLocation
-} from 'react-router-dom';
+import React, { useState } from 'react';
+import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, BarChart3, PieChart, DollarSign, Shield, Zap } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { getPostLoginRedirect } from '@/utils/authHelpers';
-import { isAuthLoading } from '@/types/auth';
 
-const AuthPage: React.FC = () => {
-  // Auth hooks & router
-  const {
-    signIn,
-    signUp,
-    updatePassword,
-    authState,
-    authStatus,
-    role,
-    roleStatus,
-    initialized,
-    hasJustLoggedIn,
-    user,
-    retry
-  } = useAuth();
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // UI state
+const AuthPage = () => {
+  const { user, signIn, signUp } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
-  const [isPasswordReset, setIsPasswordReset] = useState(false);
-  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [tokenLoading, setTokenLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     confirmPassword: '',
-    newPassword: '',
-    confirmNewPassword: '',
     fullName: '',
     companyName: '',
     sector: '',
@@ -66,98 +28,11 @@ const AuthPage: React.FC = () => {
     rememberMe: false
   });
 
-  // Handle password reset tokens from URL
-  useEffect(() => {
-    const access_token = searchParams.get('access_token');
-    const refresh_token = searchParams.get('refresh_token');
-    const type = searchParams.get('type');
+  if (user) {
+    return <Navigate to="/home" replace />;
+  }
 
-    console.debug('[AUTH-PAGE] URL params check:', { 
-      access_token: !!access_token, 
-      refresh_token: !!refresh_token, 
-      type 
-    });
-
-    if (type === 'recovery' && access_token && refresh_token) {
-      console.debug('[AUTH-PAGE] Password recovery token detected');
-      setTokenLoading(true);
-      setIsPasswordReset(true);
-      setIsRecoveryMode(true);
-      setIsLogin(false);
-      setIsPasswordRecovery(false);
-      
-      // The session will be restored automatically by Supabase
-      setTimeout(() => {
-        setTokenLoading(false);
-      }, 2000);
-    }
-  }, [searchParams]);
-
-  // Centralized post-auth redirection using authHelpers
-  useEffect(() => {
-    if (!initialized) return;
-
-    const redirectInfo = getPostLoginRedirect(
-      authStatus === 'authenticated',
-      role || 'none',
-      hasJustLoggedIn,
-      location.pathname,
-      location.state?.from?.pathname
-    );
-
-    console.debug('[AUTH-PAGE] Redirect check:', redirectInfo);
-    
-    if (redirectInfo.shouldRedirect && redirectInfo.targetPath) {
-      console.debug(`[AUTH-PAGE] ${redirectInfo.reason} → ${redirectInfo.targetPath}`);
-      navigate(redirectInfo.targetPath, { replace: !hasJustLoggedIn });
-    }
-  }, [
-    initialized,
-    authStatus,
-    role,
-    hasJustLoggedIn,
-    navigate,
-    location.pathname,
-    location.state?.from?.pathname
-  ]);
-
-  // Debug state logger
-  useEffect(() => {
-    console.debug('[AUTH-PAGE] State debug:', {
-      path: '/auth',
-      user: Boolean(user),
-      authStatus,
-      role,
-      roleStatus,
-      initialized,
-      hasJustLoggedIn,
-      isRecoveryMode,
-      mode: isPasswordReset
-        ? 'password-reset'
-        : isPasswordRecovery
-        ? 'recovery'
-        : isSignUp
-        ? 'signup'
-        : 'login'
-    });
-    setTokenLoading(false);
-  }, [
-    user,
-    authStatus,
-    role,
-    roleStatus,
-    initialized,
-    hasJustLoggedIn,
-    isRecoveryMode,
-    isPasswordReset,
-    isPasswordRecovery,
-    isSignUp
-  ]);
-
-  const handleInputChange = (
-    field: string,
-    value: string | boolean
-  ) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -166,167 +41,58 @@ const AuthPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // Password RESET flow
-      if (isPasswordReset) {
-        // Validate password fields
-        if (!formData.newPassword || !formData.confirmNewPassword) {
-          toast({
-            title: 'Error',
-            description: 'Por favor completa ambos campos de contraseña',
-            variant: 'destructive'
-          });
-          setLoading(false);
-          return;
-        }
-
-        if (formData.newPassword.length < 6) {
-          toast({
-            title: 'Error',
-            description: 'La contraseña debe tener al menos 6 caracteres',
-            variant: 'destructive'
-          });
-          setLoading(false);
-          return;
-        }
-
-        if (formData.newPassword !== formData.confirmNewPassword) {
-          toast({
-            title: 'Error',
-            description: 'Las contraseñas no coinciden',
-            variant: 'destructive'
-          });
-          setLoading(false); // Reset loading state on validation error
-          return;
-        }
-        const { error } = await supabase.auth.updateUser({
-          password: formData.newPassword
-        });
+      if (isLogin) {
+        const { error } = await signIn(formData.email, formData.password);
         if (error) {
           toast({
-            title: 'Error al actualizar contraseña',
+            title: "Error al iniciar sesión",
             description: error.message,
-            variant: 'destructive'
+            variant: "destructive"
           });
         } else {
           toast({
-            title: 'Contraseña actualizada',
-            description:
-              'Tu contraseña ha sido actualizada. Redirigiendo...'
+            title: "¡Bienvenido!",
+            description: "Has iniciado sesión correctamente"
           });
-          setIsRecoveryMode(false);
-          setIsPasswordReset(false);
-          setIsLogin(true);
-          setTimeout(() => {
-            navigate('/', { replace: true });
-          }, 1500);
         }
-
-      // Password RECOVERY flow
-      } else if (isPasswordRecovery) {
-        // Validate email for password recovery
-        if (!formData.email.trim()) {
-          toast({
-            title: 'Error',
-            description: 'Por favor ingresa tu email',
-            variant: 'destructive'
-          });
-          setLoading(false);
-          return;
-        }
-
-        const { error } = await supabase.auth.resetPasswordForEmail(
-          formData.email,
-          {
-            redirectTo: `${window.location.origin}/reset-password`
-          }
-        );
-        if (error) {
-          toast({
-            title: 'Error al enviar email',
-            description: error.message,
-            variant: 'destructive'
-          });
-        } else {
-          toast({
-            title: 'Email enviado',
-            description:
-              'Revisa tu correo para restablecer tu contraseña'
-          });
-          setIsPasswordRecovery(false);
-          setIsLogin(true);
-        }
-
-      // SIGN UP flow
-      } else if (isSignUp) {
-        if (!formData.fullName || !formData.companyName) {
-          toast({
-            title: 'Error',
-            description:
-              'Completa todos los campos obligatorios',
-            variant: 'destructive'
-          });
-          setLoading(false); // Reset loading state on validation error
-          return;
-        }
-        const { error } = await signUp(
-          formData.email,
-          formData.password,
-          {
-            full_name: formData.fullName,
-            company_name: formData.companyName
-          }
-        );
-        if (error) {
-          toast({
-            title: 'Error al crear cuenta',
-            description: error.message,
-            variant: 'destructive'
-          });
-        } else {
-          toast({
-            title: 'Cuenta creada',
-            description:
-              'Revisa tu email para confirmar la cuenta'
-          });
-          setIsSignUp(false);
-          setIsLogin(true);
-        }
-
-      // LOGIN flow
       } else {
-        // Basic validation for login
-        if (!formData.email.trim() || !formData.password) {
+        if (formData.password !== formData.confirmPassword) {
           toast({
-            title: 'Error',
-            description: 'Por favor ingresa tu email y contraseña',
-            variant: 'destructive'
+            title: "Error",
+            description: "Las contraseñas no coinciden",
+            variant: "destructive"
           });
-          setLoading(false);
           return;
         }
 
-        console.debug(
-          '[AUTH-PAGE] Login submit',
-          { email: formData.email }
-        );
-        const { error } = await signIn(
-          formData.email,
-          formData.password
-        );
-        if (error) {
-          console.debug('[AUTH-PAGE] Login error', error);
+        if (!formData.acceptTerms) {
           toast({
-            title: 'Error al iniciar sesión',
+            title: "Error",
+            description: "Debes aceptar los términos y condiciones",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        const { error } = await signUp(formData.email, formData.password, {
+          full_name: formData.fullName,
+          company_name: formData.companyName,
+          sector: formData.sector,
+          revenue_range: formData.revenue,
+          employees_count: formData.employees
+        });
+
+        if (error) {
+          toast({
+            title: "Error al registrarse",
             description: error.message,
-            variant: 'destructive'
+            variant: "destructive"
           });
         } else {
-          console.debug('[AUTH-PAGE] Login successful');
           toast({
-            title: '¡Bienvenido!',
-            description: 'Has iniciado sesión correctamente'
+            title: "¡Registro exitoso!",
+            description: "Revisa tu email para confirmar tu cuenta"
           });
-          // redirección gestionada por useEffect
         }
       }
     } finally {
@@ -334,307 +100,237 @@ const AuthPage: React.FC = () => {
     }
   };
 
-  // Show recovery-token loader
-  if (tokenLoading) {
-    return (
-      <div
-        className="min-h-screen bg-steel flex items-center justify-center"
-        style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}
-      >
-        <Card className="w-full max-w-md">
-          <CardContent className="py-8 flex flex-col items-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4" />
-            <p className="text-sm text-muted-foreground">
-              Procesando enlace de recuperación...
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
-    <div
-      className="min-h-screen bg-steel flex items-center justify-center"
-      style={{ fontFamily: 'Inter, "Noto Sans", sans-serif' }}
-    >
-      <div className="w-full max-w-md">
-        {/* Header / Logo */}
-        <div className="mb-8 flex justify-center">
-          <TrendingUp className="h-8 w-8 text-white" />
-          <span className="ml-2 text-4xl font-bold text-white">
-            FinSight
-          </span>
-        </div>
-
-        <Card className="w-full">
+    <div className="min-h-screen flex bg-gradient-to-br from-steel-blue-50 to-light-gray-100">
+      {/* Form Section */}
+      <div className="w-full lg:w-2/5 flex items-center justify-center p-8">
+        <Card className="w-full max-w-md">
           <CardHeader className="text-center space-y-4">
-            <CardTitle className="text-2xl">
-              {isPasswordReset
-                ? 'Nueva Contraseña'
-                : isPasswordRecovery
-                ? 'Recuperar Contraseña'
-                : isSignUp
-                ? 'Crear Cuenta'
-                : 'Iniciar Sesión'}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <TrendingUp className="h-8 w-8 text-steel-blue" />
+              <span className="text-2xl font-bold text-steel-blue-dark">FinSight</span>
+            </div>
+            <CardTitle className="text-2xl text-steel-blue-dark">
+              {isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'}
             </CardTitle>
             <CardDescription>
-              {isPasswordReset
-                ? 'Establece tu nueva contraseña'
-                : isPasswordRecovery
-                ? 'Introduce tu email para recibir un enlace'
-                : isSignUp
-                ? 'Crea tu cuenta para acceder al dashboard'
-                : 'Accede a tu dashboard de análisis financiero'}
+              {isLogin 
+                ? 'Accede a tu dashboard de análisis financiero'
+                : 'Únete a FinSight y transforma el análisis financiero de tu PYME'
+              }
             </CardDescription>
           </CardHeader>
 
           <CardContent>
-            <form
-              onSubmit={handleSubmit}
-              className="space-y-4"
-            >
-              {isPasswordReset ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {!isLogin && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor="newPassword">
-                      Nueva Contraseña
-                    </Label>
+                    <Label htmlFor="fullName">Nombre Completo</Label>
                     <Input
-                      id="newPassword"
-                      type="password"
-                      value={formData.newPassword}
-                      onChange={e =>
-                        handleInputChange(
-                          'newPassword',
-                          e.target.value
-                        )
-                      }
+                      id="fullName"
+                      type="text"
+                      value={formData.fullName}
+                      onChange={(e) => handleInputChange('fullName', e.target.value)}
                       required
-                      minLength={6}
                     />
                   </div>
+
                   <div className="space-y-2">
-                    <Label htmlFor="confirmNewPassword">
-                      Confirmar Nueva Contraseña
-                    </Label>
+                    <Label htmlFor="companyName">Nombre de la Empresa</Label>
                     <Input
-                      id="confirmNewPassword"
-                      type="password"
-                      value={formData.confirmNewPassword}
-                      onChange={e =>
-                        handleInputChange(
-                          'confirmNewPassword',
-                          e.target.value
-                        )
-                      }
-                      required
-                      minLength={6}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  {isSignUp && (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="fullName">
-                          Nombre Completo *
-                        </Label>
-                        <Input
-                          id="fullName"
-                          type="text"
-                          value={formData.fullName}
-                          onChange={e =>
-                            handleInputChange(
-                              'fullName',
-                              e.target.value
-                            )
-                          }
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="companyName">
-                          Nombre de la Empresa *
-                        </Label>
-                        <Input
-                          id="companyName"
-                          type="text"
-                          value={formData.companyName}
-                          onChange={e =>
-                            handleInputChange(
-                              'companyName',
-                              e.target.value
-                            )
-                          }
-                          required
-                        />
-                      </div>
-                    </>
-                  )}
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={e =>
-                        handleInputChange(
-                          'email',
-                          e.target.value
-                        )
-                      }
+                      id="companyName"
+                      type="text"
+                      value={formData.companyName}
+                      onChange={(e) => handleInputChange('companyName', e.target.value)}
                       required
                     />
                   </div>
-                  {!isPasswordRecovery && (
+
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="password">
-                        Contraseña
-                      </Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        value={formData.password}
-                        onChange={e =>
-                          handleInputChange(
-                            'password',
-                            e.target.value
-                          )
-                        }
-                        required
-                      />
+                      <Label htmlFor="sector">Sector</Label>
+                      <Select value={formData.sector} onValueChange={(value) => handleInputChange('sector', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="tecnologia">Tecnología</SelectItem>
+                          <SelectItem value="retail">Retail</SelectItem>
+                          <SelectItem value="servicios">Servicios</SelectItem>
+                          <SelectItem value="manufactura">Manufactura</SelectItem>
+                          <SelectItem value="construccion">Construcción</SelectItem>
+                          <SelectItem value="otros">Otros</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                  )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="employees">Empleados</Label>
+                      <Select value={formData.employees} onValueChange={(value) => handleInputChange('employees', value)}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1-10">1-10</SelectItem>
+                          <SelectItem value="11-50">11-50</SelectItem>
+                          <SelectItem value="51-250">51-250</SelectItem>
+                          <SelectItem value="250+">250+</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="revenue">Facturación Anual</Label>
+                    <Select value={formData.revenue} onValueChange={(value) => handleInputChange('revenue', value)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona rango" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="<100k">Menos de 100.000 €</SelectItem>
+                        <SelectItem value="100k-500k">100.000 € - 500.000 €</SelectItem>
+                        <SelectItem value="500k-2M">500.000 € - 2.000.000 €</SelectItem>
+                        <SelectItem value="2M-10M">2.000.000 € - 10.000.000 €</SelectItem>
+                        <SelectItem value="10M+">Más de 10.000.000 €</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </>
               )}
 
-              {isLogin && !isPasswordRecovery && (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="rememberMe"
-                      checked={formData.rememberMe}
-                      onCheckedChange={checked =>
-                        handleInputChange(
-                          'rememberMe',
-                          checked as boolean
-                        )
-                      }
-                    />
-                    <Label htmlFor="rememberMe" className="text-sm">
-                      Recordarme
-                    </Label>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setIsPasswordRecovery(true)}
-                    className="text-sm text-primary hover:text-primary/80 transition-colors"
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </button>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Contraseña</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  required
+                />
+              </div>
+
+              {!isLogin && (
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirmar Contraseña</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                    required
+                  />
                 </div>
               )}
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading || isAuthLoading(authState)}
+              {isLogin && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="rememberMe"
+                    checked={formData.rememberMe}
+                    onCheckedChange={(checked) => handleInputChange('rememberMe', checked as boolean)}
+                  />
+                  <Label htmlFor="rememberMe" className="text-sm">Recordarme</Label>
+                </div>
+              )}
+
+              {!isLogin && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="acceptTerms"
+                    checked={formData.acceptTerms}
+                    onCheckedChange={(checked) => handleInputChange('acceptTerms', checked as boolean)}
+                  />
+                  <Label htmlFor="acceptTerms" className="text-sm">
+                    Acepto los términos y condiciones
+                  </Label>
+                </div>
+              )}
+
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={loading}
               >
-                {(loading || isAuthLoading(authState)) ? (
+                {loading ? (
                   <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                    {authState.status === 'authenticating'
-                      ? 'Iniciando sesión...'
-                      : authState.status === 'resolving-role'
-                      ? 'Cargando perfil...'
-                      : isPasswordReset
-                      ? 'Actualizando contraseña...'
-                      : isPasswordRecovery
-                      ? 'Enviando email...'
-                      : isSignUp
-                      ? 'Creando cuenta...'
-                      : 'Iniciando sesión...'}
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    {isLogin ? 'Iniciando sesión...' : 'Creando cuenta...'}
                   </div>
                 ) : (
-                  isPasswordReset
-                    ? 'Actualizar Contraseña'
-                    : isPasswordRecovery
-                    ? 'Enviar Email'
-                    : isSignUp
-                    ? 'Crear Cuenta'
-                    : 'Iniciar Sesión'
+                  isLogin ? 'Iniciar Sesión' : 'Crear Cuenta'
                 )}
               </Button>
 
-              {authState.status === 'error' && (
-                <div className="text-center space-y-2">
-                  <p className="text-sm text-destructive">
-                    {authState.error}
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      console.debug('[AUTH-PAGE] Manual retry triggered');
-                      retry();
-                    }}
-                  >
-                    Reintentar
-                  </Button>
-                </div>
-              )}
+              <Separator className="my-4" />
 
-              <Separator />
-
-              <div className="text-center space-y-2">
-                {isPasswordReset || isPasswordRecovery ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsPasswordReset(false);
-                      setIsPasswordRecovery(false);
-                      setIsLogin(true);
-                    }}
-                    className="text-primary hover:text-primary/80 text-sm"
-                  >
-                    ← Volver al inicio de sesión
-                  </button>
-                ) : isSignUp ? (
-                  <p className="text-sm">
-                    ¿Ya tienes una cuenta?{' '}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsSignUp(false);
-                        setIsLogin(true);
-                      }}
-                      className="text-primary hover:text-primary/80"
-                    >
-                      Iniciar sesión
-                    </button>
-                  </p>
-                ) : (
-                  <p className="text-sm">
-                    ¿No tienes cuenta?{' '}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsLogin(false);
-                        setIsSignUp(true);
-                      }}
-                      className="text-primary hover:text-primary/80"
-                    >
-                      Crear cuenta
-                    </button>
-                  </p>
-                )}
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-steel-blue hover:text-steel-blue-dark transition-colors text-sm"
+                >
+                  {isLogin ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
+                </button>
               </div>
             </form>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Hero Section */}
+      <div className="hidden lg:flex w-3/5 items-center justify-center p-12 bg-gradient-to-br from-steel-blue to-steel-blue-light text-white">
+        <div className="max-w-lg text-center space-y-8">
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <div className="flex flex-col items-center p-4 bg-white/10 rounded-lg backdrop-blur-sm">
+              <BarChart3 className="h-8 w-8 mb-2" />
+              <span className="text-sm">Análisis</span>
+            </div>
+            <div className="flex flex-col items-center p-4 bg-white/10 rounded-lg backdrop-blur-sm">
+              <PieChart className="h-8 w-8 mb-2" />
+              <span className="text-sm">Ratios</span>
+            </div>
+            <div className="flex flex-col items-center p-4 bg-white/10 rounded-lg backdrop-blur-sm">
+              <DollarSign className="h-8 w-8 mb-2" />
+              <span className="text-sm">Flujos</span>
+            </div>
+          </div>
+
+          <h1 className="text-4xl font-bold leading-tight">
+            Transforma el Análisis Financiero de tu PYME
+          </h1>
+          
+          <p className="text-xl opacity-90">
+            Herramientas profesionales de análisis financiero al alcance de tu empresa. 
+            Toma decisiones basadas en datos con FinSight.
+          </p>
+
+          <div className="grid grid-cols-1 gap-4 mt-8">
+            <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
+              <Shield className="h-5 w-5" />
+              <span>Análisis automatizado de estados financieros</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
+              <Zap className="h-5 w-5" />
+              <span>KPIs y alertas inteligentes en tiempo real</span>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
+              <TrendingUp className="h-5 w-5" />
+              <span>Proyecciones y análisis de sensibilidad</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

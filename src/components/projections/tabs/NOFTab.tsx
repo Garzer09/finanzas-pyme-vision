@@ -3,7 +3,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Lightbulb, CircleDot } from 'lucide-react'
 import { useProjectionInsights } from '@/hooks/useProjectionInsights'
-import { useProjections } from '@/hooks/useProjections'
 
 interface NOFTabProps {
   scenario: 'base' | 'optimista' | 'pesimista'
@@ -13,21 +12,15 @@ interface NOFTabProps {
 }
 
 export function NOFTab({ scenario, yearRange, unit, includeInflation }: NOFTabProps) {
-  const { balanceData, plData } = useProjections(scenario, yearRange)
-  const activo = balanceData.activo.slice(0, yearRange[1] + 1)
-
-  // Aproximación de NOF: circulante - tesorería y estimación de días netos según escenario
-  const chartData = activo.map((a, idx) => {
-    const ventas = plData[idx]?.ingresos || 0
-    const baseDSO = 65, baseDPO = 23, baseDIO = 28
-    const adj = scenario === 'optimista' ? -2 : scenario === 'pesimista' ? +2 : 0
-    const dso = Math.max(10, baseDSO + adj)
-    const dpo = Math.max(5, baseDPO)
-    const dio = Math.max(5, baseDIO + adj)
-    const diasNetos = Math.max(0, dso + dio - dpo)
-    const nof = Math.round(ventas * (diasNetos / 365))
-    return { year: a.year, nof, diasNetos, dso, dpo }
-  })
+  // Mock data - en producción vendría de API/Supabase
+  const chartData = [
+    { year: 'A0', nof: 280, diasNetos: 42, dso: 65, dpo: 23 },
+    { year: 'A1', nof: 315, diasNetos: 40, dso: 63, dpo: 23 },
+    { year: 'A2', nof: 358, diasNetos: 38, dso: 61, dpo: 23 },
+    { year: 'A3', nof: 406, diasNetos: 36, dso: 59, dpo: 23 },
+    { year: 'A4', nof: 460, diasNetos: 34, dso: 57, dpo: 23 },
+    { year: 'A5', nof: 520, diasNetos: 32, dso: 55, dpo: 23 }
+  ].slice(0, yearRange[1] + 1)
 
   const insights = useProjectionInsights({
     scenario,

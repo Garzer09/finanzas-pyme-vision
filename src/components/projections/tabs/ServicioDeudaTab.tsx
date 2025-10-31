@@ -3,7 +3,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
 import { Lightbulb, AlertTriangle } from 'lucide-react'
 import { useProjectionInsights } from '@/hooks/useProjectionInsights'
-import { useProjections } from '@/hooks/useProjections'
 
 interface ServicioDeudaTabProps {
   scenario: 'base' | 'optimista' | 'pesimista'
@@ -13,23 +12,15 @@ interface ServicioDeudaTabProps {
 }
 
 export function ServicioDeudaTab({ scenario, yearRange, unit, includeInflation }: ServicioDeudaTabProps) {
-  const { plData, ratiosData } = useProjections(scenario, yearRange)
-  const chartData = plData.map((pl, idx) => {
-    // Estimar servicio de deuda a partir de ratios de solvencia y deuda total proyectada
-    const deudaTotal = ratiosData.endeudamientoData[idx]?.deudaTotal || 0
-    const intereses = Math.round(deudaTotal * 0.05)
-    const principal = Math.round(deudaTotal * 0.08)
-    const servicioDeuda = intereses + principal
-    const dscr = intereses > 0 ? (pl.ebitda / intereses) : 0
-    return {
-      year: pl.year,
-      servicioDeuda,
-      principal,
-      intereses,
-      dscr,
-      ebitda: pl.ebitda
-    }
-  }).slice(0, yearRange[1] + 1)
+  // Mock data - en producción vendría de API/Supabase
+  const chartData = [
+    { year: 'A0', servicioDeuda: 180, principal: 120, intereses: 60, dscr: 2.0, ebitda: 360 },
+    { year: 'A1', servicioDeuda: 195, principal: 130, intereses: 65, dscr: 2.2, ebitda: 432 },
+    { year: 'A2', servicioDeuda: 205, principal: 135, intereses: 70, dscr: 2.5, ebitda: 507 },
+    { year: 'A3', servicioDeuda: 215, principal: 140, intereses: 75, dscr: 2.7, ebitda: 586 },
+    { year: 'A4', servicioDeuda: 225, principal: 145, intereses: 80, dscr: 3.0, ebitda: 682 },
+    { year: 'A5', servicioDeuda: 235, principal: 150, intereses: 85, dscr: 3.4, ebitda: 792 }
+  ].slice(0, yearRange[1] + 1)
 
   const insights = useProjectionInsights({
     scenario,

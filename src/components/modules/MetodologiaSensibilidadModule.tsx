@@ -1,4 +1,3 @@
-
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { DashboardPageHeader } from '@/components/DashboardPageHeader';
@@ -11,45 +10,18 @@ import { SensitivityToolbar } from '@/components/sensitivity/SensitivityToolbar'
 import { useSensitivity } from '@/hooks/useSensitivity';
 import { useSensitivityInsights } from '@/hooks/useSensitivityInsights';
 import { useToast } from '@/hooks/use-toast';
-import { useFinancialData } from '@/hooks/useFinancialData';
-import { useMemo } from 'react';
 
 export const MetodologiaSensibilidadModule = () => {
   const { toast } = useToast();
   
-  // Datos reales para EBITDA base (proxy con resultado_explotacion si no hay EBITDA)
-  const { data, loading } = useFinancialData('estado_pyg');
-  const baseEbitdaK = useMemo(() => {
-    if (!data || data.length === 0) return 450;
-    const items = data.filter(d => d.data_type === 'estado_pyg');
-    if (items.length === 0) return 450;
-    const latest = [...items].sort((a, b) => new Date(b.period_date).getTime() - new Date(a.period_date).getTime())[0];
-    const content = latest?.data_content || {};
-    const ebitda = Number(content['ebitda']);
-    const ebitProxy = Number(content['resultado_explotacion']);
-    const val = isFinite(ebitda) && ebitda !== 0 ? ebitda : (isFinite(ebitProxy) ? ebitProxy : 450000);
-    return Math.max(1, Math.round(val / 1000)); // convertir a K€
-  }, [data]);
-
-  const baseRevenueK = useMemo(() => {
-    if (!data || data.length === 0) return 2500;
-    const items = data.filter(d => d.data_type === 'estado_pyg');
-    if (items.length === 0) return 2500;
-    const latest = [...items].sort((a, b) => new Date(b.period_date).getTime() - new Date(a.period_date).getTime())[0];
-    const content = latest?.data_content || {};
-    const ingresos = Number(content['ingresos_explotacion'] ?? content['importe_neto_cifra_negocios'] ?? content['ventas']);
-    const val = isFinite(ingresos) && ingresos !== 0 ? ingresos : 2500000;
-    return Math.max(1, Math.round(val / 1000)); // convertir a K€
-  }, [data]);
-
-  // Use sensitivity hook con EBITDA base real
+  // Use sensitivity hook
   const {
     sensitivityData,
     handleSalesChange,
     handleCostsChange,
     setSalesDelta,
     setCostsDelta
-  } = useSensitivity(baseEbitdaK);
+  } = useSensitivity(450);
 
   // Get AI insights
   const { insights, isLoading } = useSensitivityInsights(sensitivityData);
@@ -107,20 +79,11 @@ export const MetodologiaSensibilidadModule = () => {
                       onSalesDirectChange={setSalesDelta}
                       onCostsDirectChange={setCostsDelta}
                     />
-                    <ScenarioAnalysis 
-                      baseEbitdaK={sensitivityData.ebitdaBase}
-                      baseRevenueK={baseRevenueK}
-                      salesImpactPer1Percent={sensitivityData.salesImpactPer1Percent}
-                      costsImpactPer1Percent={sensitivityData.costsImpactPer1Percent}
-                    />
+                    <ScenarioAnalysis />
                   </div>
 
                   {/* Tornado Chart */}
-                  <TornadoChart 
-                    baseEbitdaK={sensitivityData.ebitdaBase}
-                    salesImpactPer1Percent={sensitivityData.salesImpactPer1Percent}
-                    costsImpactPer1Percent={sensitivityData.costsImpactPer1Percent}
-                  />
+                  <TornadoChart />
                 </div>
 
                 {/* Insights Sidebar */}
@@ -141,4 +104,3 @@ export const MetodologiaSensibilidadModule = () => {
     </div>
   );
 };
-
